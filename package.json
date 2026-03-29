@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:exercises": "tsx scripts/seed-exercises.ts",
+    "seed:testdata": "tsx scripts/seed-test-data.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
@@ -26,6 +28,7 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
