@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Navigation } from '@/components/layout/Navigation'
 import './globals.css'
 
 const inter = Inter({
@@ -25,7 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl" className={`${inter.className} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full" style={{ backgroundColor: '#0a0a0f' }}>
+        <Navigation />
+        {/* Desktop: offset voor sidebar */}
+        <main className="lg:pl-56 pb-20 lg:pb-0 min-h-screen">
+          {children}
+        </main>
+      </body>
     </html>
   )
 }
