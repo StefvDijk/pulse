@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* ─── Pulse Design Tokens ─────────────────────────────────────────────────── */
+
+@theme {
+  /* Backgrounds */
+  --color-bg-primary: #0a0a0f;
+  --color-bg-secondary: #12121a;
+  --color-bg-tertiary: #1a1a2e;
+
+  /* Text */
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #8888a0;
+  --color-text-tertiary: #55556a;
+
+  /* Accent */
+  --color-accent-primary: #4f8cff;
+  --color-accent-green: #34d399;
+  --color-accent-yellow: #fbbf24;
+  --color-accent-red: #f87171;
+  --color-accent-orange: #fb923c;
+
+  /* Sport */
+  --color-sport-gym: #8b5cf6;
+  --color-sport-running: #06b6d4;
+  --color-sport-padel: #f59e0b;
+
+  /* Muscle Heatmap */
+  --color-muscle-light: #3b82f6;
+  --color-muscle-moderate: #3b82f6;
+  --color-muscle-heavy: #f59e0b;
+  --color-muscle-very-heavy: #ef4444;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ─── Base Styles ─────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background-color: #0a0a0f;
+  color: #f0f0f5;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
