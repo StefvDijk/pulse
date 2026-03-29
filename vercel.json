@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/hevy-sync", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/daily-aggregate", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/weekly-aggregate", "schedule": "0 3 * * 1" }
+  ]
+}
