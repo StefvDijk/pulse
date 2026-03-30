@@ -53,14 +53,16 @@ export function mapRun(parsed: ParsedRun, userId: string): RunInsert {
       parsed.durationSeconds,
       parsed.distanceMeters,
     ),
-    calories_burned: parsed.calories ?? null,
+    calories_burned: parsed.calories != null
+      ? Math.round(parsed.calories)
+      : null,
     avg_heart_rate: parsed.avgHeartRate
       ? Math.round(parsed.avgHeartRate)
       : null,
     max_heart_rate: parsed.maxHeartRate
       ? Math.round(parsed.maxHeartRate)
       : null,
-    run_type: 'outdoor',
+    run_type: 'easy',
     elevation_gain_meters: null,
     notes: null,
   }
@@ -84,7 +86,9 @@ export function mapPadelSession(
     started_at: parsed.startedAt,
     ended_at: parsed.endedAt ?? null,
     duration_seconds: parsed.durationSeconds ?? 0,
-    calories_burned: parsed.calories ?? null,
+    calories_burned: parsed.calories != null
+      ? Math.round(parsed.calories)
+      : null,
     avg_heart_rate: parsed.avgHeartRate
       ? Math.round(parsed.avgHeartRate)
       : null,

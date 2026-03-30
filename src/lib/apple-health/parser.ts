@@ -69,11 +69,18 @@ function parseRawWorkout(
     durationSeconds = parseMetricValue(raw.duration)
   }
 
-  // Distance: v2 → { qty, units }, v1 → string like "8.2 km"
+  // Distance: v2 → { qty, units } or array, v1 → string like "8.2 km"
   // HAE may use walkingAndRunningDistance instead of distance for running workouts
   let distanceMeters: number | undefined
   const distField = raw.distance ?? raw.walkingAndRunningDistance
-  if (distField && typeof distField === 'object' && 'qty' in distField) {
+  if (Array.isArray(distField)) {
+    // HAE v2 sends per-segment array — sum quantities
+    const items = distField as { qty?: number; units?: string }[]
+    const total = items.reduce((sum, item) => sum + (item?.qty ?? 0), 0)
+    if (total > 0) {
+      distanceMeters = distanceToMeters(total, items[0]?.units ?? 'km')
+    }
+  } else if (distField && typeof distField === 'object' && 'qty' in distField) {
     distanceMeters = distanceToMeters(
       (distField as { qty: number; units: string }).qty,
       (distField as { qty: number; units: string }).units,
@@ -83,9 +90,13 @@ function parseRawWorkout(
   }
 
   // Calories: try activeEnergyBurned.qty, then activeEnergy (array or object or string)
+  // HAE sends energy in kJ — convert to kcal when needed
   let calories: number | undefined
   if (raw.activeEnergyBurned?.qty !== undefined) {
-    calories = raw.activeEnergyBurned.qty
+    const isKJ = raw.activeEnergyBurned.units?.toLowerCase() === 'kj'
+    calories = isKJ
+      ? Math.round(raw.activeEnergyBurned.qty / 4.184)
+      : Math.round(raw.activeEnergyBurned.qty)
   } else if (Array.isArray(raw.activeEnergy)) {
     // HAE v2 sends activeEnergy as per-minute array of { qty, units } — sum and convert
     const items = raw.activeEnergy as { qty?: number; units?: string }[]

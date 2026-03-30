@@ -55,7 +55,7 @@ export const RawWorkoutSchema = z
     // avgHeartRate / maxHeartRate: HAE v2 sends { qty, units }, v1 sent string
     avgHeartRate: z.union([QuantityValueSchema, z.string()]).optional(),
     maxHeartRate: z.union([QuantityValueSchema, z.string()]).optional(),
-    walkingAndRunningDistance: z.union([QuantityValueSchema, z.string()]).optional(),
+    walkingAndRunningDistance: z.any().optional(),
   })
   .passthrough()
 
