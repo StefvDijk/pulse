@@ -1,12 +1,5 @@
-export default function DashboardPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold" style={{ color: '#f0f0f5' }}>
-        Dashboard
-      </h1>
-      <p className="mt-2 text-sm" style={{ color: '#8888a0' }}>
-        Week overzicht — komt eraan
-      </p>
-    </div>
-  )
+import { DashboardPage } from '@/components/dashboard/DashboardPage'
+
+export default function HomePage() {
+  return <DashboardPage />
 }

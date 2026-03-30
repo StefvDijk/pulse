@@ -6,71 +6,38 @@ import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
 // Webhook payload schema
+//
+// Hevy sends: { "workoutId": "f1085cdb-32b2-4003-967d-53a3af8eaecb" }
+// when a workout is saved. The Authorization header contains the token
+// configured in Hevy Developer Settings.
 // ---------------------------------------------------------------------------
 
-const HevyWebhookEventSchema = z.object({
-  event: z.string(),
-  workout_id: z.string().optional(),
-  // Hevy may include additional fields — we only care about workout.completed
+const HevyWebhookPayloadSchema = z.object({
+  workoutId: z.string(),
 })
-
-type HevyWebhookEvent = z.infer<typeof HevyWebhookEventSchema>
-
-// ---------------------------------------------------------------------------
-// Signature verification
-// ---------------------------------------------------------------------------
-
-async function verifyHevySignature(
-  rawBody: string,
-  signature: string,
-  secret: string,
-): Promise<boolean> {
-  try {
-    const encoder = new TextEncoder()
-    const keyData = encoder.encode(secret)
-    const messageData = encoder.encode(rawBody)
-
-    const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
-
-    // Hevy sends signature as hex — convert to Uint8Array
-    const signatureBytes = new Uint8Array(
-      signature.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) ?? [],
-    )
-
-    return crypto.subtle.verify('HMAC', key, signatureBytes, messageData)
-  } catch {
-    return false
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const webhookSecret = process.env.HEVY_WEBHOOK_SECRET
-
-  // Read raw body for signature verification
-  const rawBody = await request.text()
-
-  // Verify signature when secret is configured
-  if (webhookSecret) {
-    const signature = request.headers.get('x-hevy-signature') ?? ''
-    const isValid = await verifyHevySignature(rawBody, signature, webhookSecret)
-
-    if (!isValid) {
+  // Verify authorization header when token is configured
+  const expectedToken = process.env.HEVY_WEBHOOK_SECRET
+  if (expectedToken) {
+    const authHeader = request.headers.get('authorization') ?? ''
+    if (authHeader !== expectedToken) {
       return NextResponse.json(
-        { error: 'Invalid signature', code: 'INVALID_SIGNATURE' },
+        { error: 'Unauthorized', code: 'INVALID_TOKEN' },
         { status: 401 },
       )
     }
   }
 
-  // Parse event payload
-  let event: HevyWebhookEvent
+  // Parse payload
+  let payload: z.infer<typeof HevyWebhookPayloadSchema>
   try {
-    const parsed = JSON.parse(rawBody)
-    event = HevyWebhookEventSchema.parse(parsed)
+    const body = await request.json()
+    payload = HevyWebhookPayloadSchema.parse(body)
   } catch (parseError) {
     console.error('[POST /api/ingest/hevy/webhook] Invalid payload:', parseError)
     return NextResponse.json(
@@ -79,22 +46,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  // Only handle workout.completed events
-  if (event.event !== 'workout.completed') {
-    return NextResponse.json({ received: true, action: 'ignored' })
-  }
-
-  if (!event.workout_id) {
-    return NextResponse.json(
-      { error: 'Missing workout_id', code: 'MISSING_WORKOUT_ID' },
-      { status: 400 },
-    )
-  }
-
   const admin = createAdminClient()
 
-  // Webhook doesn't carry user context — find the user whose workout this belongs to
-  // Hevy workout IDs are unique per account, so we match via hevy_api_key users
+  // Find all users with a Hevy API key configured
   const { data: usersWithKey, error: queryError } = await admin
     .from('user_settings')
     .select('user_id, hevy_api_key')
@@ -114,18 +68,65 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!hevy_api_key) continue
 
     try {
-      const hevyWorkout = await getWorkout(hevy_api_key, event.workout_id)
+      const hevyWorkout = await getWorkout(hevy_api_key, payload.workoutId)
       const mapped = mapHevyWorkoutWithDefinitions(hevyWorkout, user_id, exerciseDefinitions)
 
-      const { error: upsertError } = await admin
+      // Upsert workout
+      const { data: upsertedWorkout, error: upsertError } = await admin
         .from('workouts')
-        .upsert(mapped.workout, { onConflict: 'hevy_workout_id' })
+        .upsert(mapped.workout, { onConflict: 'user_id,hevy_workout_id' })
+        .select('id')
+        .single()
 
       if (upsertError) {
         console.error(
-          `[POST /api/ingest/hevy/webhook] Upsert failed for workout ${event.workout_id}:`,
+          `[POST /api/ingest/hevy/webhook] Upsert failed for workout ${payload.workoutId}:`,
           upsertError,
         )
+        break
+      }
+
+      const workoutId = upsertedWorkout.id
+
+      // Upsert exercises and sets
+      for (const item of mapped.exercises) {
+        if (!item.exerciseDefinitionId) continue
+
+        const exerciseInsert = {
+          ...item.exercise,
+          workout_id: workoutId,
+          exercise_definition_id: item.exerciseDefinitionId,
+        }
+
+        const { data: upsertedExercise, error: exerciseError } = await admin
+          .from('workout_exercises')
+          .upsert(exerciseInsert)
+          .select('id')
+          .single()
+
+        if (exerciseError) {
+          console.error(
+            `[POST /api/ingest/hevy/webhook] Exercise upsert failed:`,
+            exerciseError,
+          )
+          continue
+        }
+
+        const setsToInsert = item.sets.map((set) => ({
+          ...set,
+          workout_exercise_id: upsertedExercise.id,
+        }))
+
+        if (setsToInsert.length > 0) {
+          const { error: setsError } = await admin.from('workout_sets').upsert(setsToInsert)
+
+          if (setsError) {
+            console.error(
+              `[POST /api/ingest/hevy/webhook] Sets upsert failed:`,
+              setsError,
+            )
+          }
+        }
       }
 
       // Successfully handled — stop iterating

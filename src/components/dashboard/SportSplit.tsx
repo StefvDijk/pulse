@@ -1,0 +1,85 @@
+'use client'
+
+export interface SportSplitProps {
+  gymMinutes: number
+  runningMinutes: number
+  padelMinutes: number
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes === 0) return '0 min'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h} u`
+  return `${h}u ${m}m`
+}
+
+interface SportBarProps {
+  label: string
+  minutes: number
+  maxMinutes: number
+  color: string
+  sessions: number
+}
+
+function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps) {
+  const pct = maxMinutes > 0 ? (minutes / maxMinutes) * 100 : 0
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-20 shrink-0">
+        <span className="text-sm font-medium" style={{ color: '#f0f0f5' }}>
+          {label}
+        </span>
+        <span className="ml-1 text-xs" style={{ color: '#8888a0' }}>
+          {sessions}x
+        </span>
+      </div>
+      <div className="relative h-4 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+      <span className="w-16 shrink-0 text-right text-sm" style={{ color: '#8888a0' }}>
+        {formatDuration(minutes)}
+      </span>
+    </div>
+  )
+}
+
+export function SportSplit({ gymMinutes, runningMinutes, padelMinutes }: SportSplitProps) {
+  const maxMinutes = Math.max(gymMinutes, runningMinutes, padelMinutes, 1)
+
+  // Rough session counts: assume ~60 min gym, ~40 min run, ~75 min padel average
+  const gymSessions = gymMinutes > 0 ? Math.max(1, Math.round(gymMinutes / 60)) : 0
+  const runningSessions = runningMinutes > 0 ? Math.max(1, Math.round(runningMinutes / 40)) : 0
+  const padelSessions = padelMinutes > 0 ? Math.max(1, Math.round(padelMinutes / 75)) : 0
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SportBar
+        label="Gym"
+        minutes={gymMinutes}
+        maxMinutes={maxMinutes}
+        color="#8b5cf6"
+        sessions={gymSessions}
+      />
+      <SportBar
+        label="Hardlopen"
+        minutes={runningMinutes}
+        maxMinutes={maxMinutes}
+        color="#06b6d4"
+        sessions={runningSessions}
+      />
+      <SportBar
+        label="Padel"
+        minutes={padelMinutes}
+        maxMinutes={maxMinutes}
+        color="#f59e0b"
+        sessions={padelSessions}
+      />
+    </div>
+  )
+}

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
+import { checkGoalProgress } from '@/lib/goals/auto-track'
 
 const bodySchema = z.discriminatedUnion('type', [
   z.object({
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       case 'weekly': {
         await computeWeeklyAggregation(user.id, body.week_start)
+        await checkGoalProgress(user.id, supabase)
         return NextResponse.json({ success: true, type: 'weekly', week_start: body.week_start })
       }
 

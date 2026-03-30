@@ -988,9 +988,9 @@ Elke story is een kleine, afgebakende taak. Werk ze af in volgorde. Na elke stor
 - [x] Hevy workouts verschijnen in dashboard
 - [x] Apple Health data (runs, padel, activiteit) wordt verwerkt
 - [x] Aggregaties worden correct berekend
-- [ ] Chat agent heeft toegang tot echte data
+- [x] Chat agent heeft toegang tot echte data
 - [x] Voedingsanalyse werkt
-- [ ] Alle pagina's tonen relevante data
+- [x] Alle pagina's tonen relevante data
 
 ---
 
