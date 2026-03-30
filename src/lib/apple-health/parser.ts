@@ -189,6 +189,8 @@ export function parseActivitySummary(
   >()
 
   for (const metric of payload.data.metrics) {
+    const metricUnits = metric.units?.toLowerCase()
+
     for (const point of metric.data) {
       const date = extractDate(point.date)
       const existing = byDate.get(date) ?? {}
@@ -201,7 +203,10 @@ export function parseActivitySummary(
           break
         case 'active_energy':
           if (point.qty !== undefined) {
-            byDate.set(date, { ...existing, activeCalories: point.qty })
+            // HAE sends active_energy in kJ — convert to kcal
+            const isKJ = metricUnits === 'kj'
+            const kcal = isKJ ? Math.round(point.qty / 4.184) : Math.round(point.qty)
+            byDate.set(date, { ...existing, activeCalories: kcal })
           }
           break
         case 'resting_heart_rate':
