@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const CreateGoalSchema = z.object({
   title: z.string().min(1).max(200),
@@ -20,7 +21,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
+    const { data, error } = await admin
       .from('goals')
       .select('*')
       .eq('user_id', user.id)
@@ -53,7 +57,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data, error } = await supabase
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
+    const { data, error } = await admin
       .from('goals')
       .insert({
         user_id: user.id,

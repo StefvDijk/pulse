@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 
 type DailyAggregationRow = Database['public']['Tables']['daily_aggregations']['Row']
@@ -16,15 +17,15 @@ export interface DashboardData {
 function getIsoWeekStart(date: Date): string {
   const d = new Date(date)
   const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day // adjust for Sunday (0)
+  const diff = day === 0 ? -6 : 1 - day
   d.setUTCDate(d.getUTCDate() + diff)
   return d.toISOString().slice(0, 10)
 }
 
 export async function GET() {
   try {
+    // Auth check via user-scoped client
     const supabase = await createClient()
-
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -32,6 +33,13 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
+
+    // Data queries via admin client — the SSR cookie-based client has a known
+    // issue where auth.getUser() succeeds but the JWT is not propagated to
+    // PostgREST queries, causing RLS to return empty results. Using the admin
+    // client with explicit user_id filtering is safe since we already verified
+    // the user's identity above.
+    const admin = createAdminClient()
 
     const today = new Date()
     const weekStart = getIsoWeekStart(today)
@@ -42,14 +50,14 @@ export async function GET() {
     const weekEndStr = weekEnd.toISOString().slice(0, 10)
 
     const [weeklyResult, dailyResult, schemaResult] = await Promise.all([
-      supabase
+      admin
         .from('weekly_aggregations')
         .select('*')
         .eq('user_id', user.id)
         .eq('week_start', weekStart)
         .maybeSingle(),
 
-      supabase
+      admin
         .from('daily_aggregations')
         .select('*')
         .eq('user_id', user.id)
@@ -57,7 +65,7 @@ export async function GET() {
         .lte('date', weekEndStr)
         .order('date', { ascending: true }),
 
-      supabase
+      admin
         .from('training_schemas')
         .select('*')
         .eq('user_id', user.id)

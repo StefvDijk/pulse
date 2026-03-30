@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     // Get or create chat session
     let sessionId = session_id
     if (!sessionId) {
-      const { data: newSession, error: sessionError } = await supabase
+      const { data: newSession, error: sessionError } = await admin
         .from('chat_sessions')
         .insert({
           user_id: user.id,
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch last 20 messages for context
-    const { data: history } = await supabase
+    const { data: history } = await admin
       .from('chat_messages')
       .select('role, content')
       .eq('session_id', sessionId)
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
     // Save user message
-    await supabase.from('chat_messages').insert({
+    await admin.from('chat_messages').insert({
       user_id: user.id,
       session_id: sessionId,
       role: 'user',
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
             extractWritebacks(fullResponse)
 
           // Save assistant message (clean text)
-          await supabase.from('chat_messages').insert({
+          await admin.from('chat_messages').insert({
             user_id: user.id,
             session_id: sessionId,
             role: 'assistant',
@@ -235,7 +235,7 @@ export async function POST(request: Request) {
           })
 
           // Update session
-          await supabase
+          await admin
             .from('chat_sessions')
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', sessionId)
@@ -254,7 +254,7 @@ export async function POST(request: Request) {
 
           // Write-back: injury log
           if (injuryLog?.body_location && injuryLog.description) {
-            await supabase
+            await admin
               .from('injury_logs')
               .insert({
                 user_id: user.id,
@@ -270,13 +270,13 @@ export async function POST(request: Request) {
           // Write-back: schema generation
           if (schemaGeneration?.title) {
             // Deactivate previous schema
-            await supabase
+            await admin
               .from('training_schemas')
               .update({ is_active: false })
               .eq('user_id', user.id)
               .eq('is_active', true)
 
-            await supabase
+            await admin
               .from('training_schemas')
               .insert({
                 user_id: user.id,

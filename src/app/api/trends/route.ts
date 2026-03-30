@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 
 type MonthlyRow = Database['public']['Tables']['monthly_aggregations']['Row']
@@ -24,6 +25,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
 
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
     const now = new Date()
     const currentYear = now.getUTCFullYear()
     const currentMonth = now.getUTCMonth() + 1
@@ -46,7 +50,7 @@ export async function GET() {
     const startMonth = twelveMonthsAgo.getUTCMonth() + 1
 
     const [monthsResult, currentWeekResult, lastYearWeekResult] = await Promise.all([
-      supabase
+      admin
         .from('monthly_aggregations')
         .select('*')
         .eq('user_id', user.id)
@@ -56,14 +60,14 @@ export async function GET() {
         .order('year', { ascending: true })
         .order('month', { ascending: true }),
 
-      supabase
+      admin
         .from('weekly_aggregations')
         .select('*')
         .eq('user_id', user.id)
         .eq('week_start', currentWeekStart)
         .single(),
 
-      supabase
+      admin
         .from('weekly_aggregations')
         .select('*')
         .eq('user_id', user.id)

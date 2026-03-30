@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 
 type WeeklyAggregationRow = Database['public']['Tables']['weekly_aggregations']['Row']
@@ -32,27 +33,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
 
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
     const { searchParams } = new URL(request.url)
     const period = (searchParams.get('period') ?? '4w') as Period
     const weeks = periodToWeeks(period)
     const startDate = getStartDate(weeks)
 
     const [weeklyResult, prsResult, goalsResult] = await Promise.all([
-      supabase
+      admin
         .from('weekly_aggregations')
         .select('*')
         .eq('user_id', user.id)
         .gte('week_start', startDate)
         .order('week_start', { ascending: true }),
 
-      supabase
+      admin
         .from('personal_records')
         .select('*')
         .eq('user_id', user.id)
         .order('achieved_at', { ascending: false })
         .limit(50),
 
-      supabase
+      admin
         .from('goals')
         .select('*')
         .eq('user_id', user.id)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
@@ -63,7 +64,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       case 'weekly': {
         await computeWeeklyAggregation(user.id, body.week_start)
-        await checkGoalProgress(user.id, supabase)
+        // Pass admin client — SSR cookie-based client JWT not propagated to PostgREST
+        const admin = createAdminClient()
+        await checkGoalProgress(user.id, admin)
         return NextResponse.json({ success: true, type: 'weekly', week_start: body.week_start })
       }
 

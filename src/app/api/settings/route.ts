@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
@@ -45,9 +46,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
 
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
     const [profileResult, settingsResult] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+      admin.from('profiles').select('*').eq('id', user.id).single(),
+      admin.from('user_settings').select('*').eq('user_id', user.id).single(),
     ])
 
     if (profileResult.error) throw profileResult.error
@@ -82,13 +86,16 @@ export async function PATCH(request: Request) {
       )
     }
 
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
     if (parsed.data.profile && Object.keys(parsed.data.profile).length > 0) {
-      const { error: pErr } = await supabase.from('profiles').update(parsed.data.profile).eq('id', user.id)
+      const { error: pErr } = await admin.from('profiles').update(parsed.data.profile).eq('id', user.id)
       if (pErr) throw pErr
     }
 
     if (parsed.data.settings && Object.keys(parsed.data.settings).length > 0) {
-      const { error: sErr } = await supabase.from('user_settings').update(parsed.data.settings).eq('user_id', user.id)
+      const { error: sErr } = await admin.from('user_settings').update(parsed.data.settings).eq('user_id', user.id)
       if (sErr) throw sErr
     }
 

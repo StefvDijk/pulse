@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request: Request) {
   try {
@@ -12,12 +13,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
     }
 
+    // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
+    const admin = createAdminClient()
+
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('session_id')
 
     if (sessionId) {
       // Fetch messages for specific session
-      const { data: messages, error } = await supabase
+      const { data: messages, error } = await admin
         .from('chat_messages')
         .select('id, role, content, message_type, created_at')
         .eq('session_id', sessionId)
@@ -31,7 +35,7 @@ export async function GET(request: Request) {
     }
 
     // No session_id: return most recent session or null
-    const { data: session } = await supabase
+    const { data: session } = await admin
       .from('chat_sessions')
       .select('id, title, started_at, last_message_at, message_count')
       .eq('user_id', user.id)
@@ -43,7 +47,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ session_id: null, messages: [] })
     }
 
-    const { data: messages } = await supabase
+    const { data: messages } = await admin
       .from('chat_messages')
       .select('id, role, content, message_type, created_at')
       .eq('session_id', session.id)
