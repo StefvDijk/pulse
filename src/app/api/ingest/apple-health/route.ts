@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
+import { categorizeWorkout } from '@/lib/apple-health/types'
 
 // ---------------------------------------------------------------------------
 // POST /api/ingest/apple-health
@@ -228,6 +229,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     parsedCounts: { runs: parsedRuns.length, padel: parsedPadel.length, other: parsedOther.length },
   }))
 
+  // Build workout categorization debug info from raw payload
+  const allWorkouts = payload.data.workouts.map((w) => ({
+    name: w.name,
+    category: categorizeWorkout(w.name),
+  }))
+
   return NextResponse.json({
     processed: {
       runs: runsProcessed,
@@ -236,7 +243,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     },
     errors,
     _debug: {
-      otherWorkoutNames: parsedOther.map((w) => w.name),
+      workoutCount: payload.data.workouts.length,
+      metricCount: payload.data.metrics.length,
+      workouts: allWorkouts,
     },
   })
 }
