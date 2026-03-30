@@ -47,7 +47,7 @@ export function mapRun(parsed: ParsedRun, userId: string): RunInsert {
     source: 'apple_health',
     started_at: parsed.startedAt,
     ended_at: parsed.endedAt ?? null,
-    duration_seconds: parsed.durationSeconds ?? 0,
+    duration_seconds: Math.round(parsed.durationSeconds ?? 0),
     distance_meters: parsed.distanceMeters ?? 0,
     avg_pace_seconds_per_km: computePace(
       parsed.durationSeconds,
@@ -85,7 +85,7 @@ export function mapPadelSession(
     source: 'apple_health',
     started_at: parsed.startedAt,
     ended_at: parsed.endedAt ?? null,
-    duration_seconds: parsed.durationSeconds ?? 0,
+    duration_seconds: Math.round(parsed.durationSeconds ?? 0),
     calories_burned: parsed.calories != null
       ? Math.round(parsed.calories)
       : null,
@@ -112,9 +112,11 @@ export function mapDailyActivity(
     user_id: userId,
     date: parsed.date,
     source: 'apple_health',
-    steps: parsed.steps ?? null,
+    steps: parsed.steps != null ? Math.round(parsed.steps) : null,
     active_calories: parsed.activeCalories ?? null,
-    resting_heart_rate: parsed.restingHeartRate ?? null,
+    resting_heart_rate: parsed.restingHeartRate != null
+      ? Math.round(parsed.restingHeartRate)
+      : null,
     // Fields not available from Apple Health at the top-level (populated by
     // other metrics or left for later enrichment):
     total_calories: null,
