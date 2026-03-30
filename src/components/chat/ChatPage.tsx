@@ -13,17 +13,13 @@ export function ChatPage() {
   return (
     <div className="flex h-[calc(100dvh-4rem)] flex-col lg:h-screen">
       {/* Header */}
-      <div
-        className="flex shrink-0 items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid #1a1a2e' }}
-      >
-        <h1 className="text-lg font-semibold" style={{ color: '#f0f0f5' }}>
-          Chat
+      <div className="flex shrink-0 items-center justify-between border-b border-border-light px-4 py-3">
+        <h1 className="text-lg font-semibold text-text-primary">
+          Coach
         </h1>
         <button
           onClick={handleNewSession}
-          className="rounded-lg px-3 py-1.5 text-xs transition-colors hover:opacity-80"
-          style={{ backgroundColor: '#1a1a2e', color: '#8888a0', border: '1px solid #3a3a5c' }}
+          className="rounded-lg border border-border-medium bg-bg-subtle px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-active"
         >
           Nieuwe sessie
         </button>

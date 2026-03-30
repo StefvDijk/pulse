@@ -16,19 +16,18 @@ function getPhaseLabel(currentWeek: number, totalWeeks: number): string {
 }
 
 function getPhaseColor(phase: string): string {
-  if (phase === 'Opbouw') return '#4f8cff'
-  if (phase === 'Piek') return '#f59e0b'
-  return '#22c55e'
+  if (phase === 'Opbouw') return '#2E6F6F'
+  if (phase === 'Piek') return '#C2410C'
+  return '#16A34A'
 }
 
 export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) {
   if (!schema) {
     return (
       <div
-        className="flex items-center justify-center rounded-lg p-4"
-        style={{ backgroundColor: '#1a1a2e', borderColor: '#3a3a5c', border: '1px solid' }}
+        className="flex items-center justify-center rounded-lg border border-border-light bg-bg-subtle p-4"
       >
-        <p className="text-sm" style={{ color: '#8888a0' }}>
+        <p className="text-sm text-text-tertiary">
           Geen actief trainingsschema
         </p>
       </div>
@@ -51,7 +50,7 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium" style={{ color: '#f0f0f5' }}>
+        <span className="text-sm font-medium text-text-primary">
           {schema.title}
         </span>
         <span
@@ -62,14 +61,14 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
         </span>
       </div>
 
-      <div className="relative h-2 overflow-hidden rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+      <div className="relative h-2 overflow-hidden rounded-full bg-bg-subtle">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: phaseColor }}
         />
       </div>
 
-      <p className="text-xs" style={{ color: '#8888a0' }}>
+      <p className="text-xs text-text-tertiary">
         Week {currentWeek} van {totalWeeks}
       </p>
     </div>

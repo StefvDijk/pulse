@@ -29,11 +29,9 @@ function SaveButton({ status, onClick }: { status: SaveStatus; onClick: () => vo
     <button
       onClick={onClick}
       disabled={status === 'saving'}
-      className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-50"
-      style={{
-        backgroundColor: status === 'saved' ? '#22c55e' : '#4f8cff',
-        color: '#fff',
-      }}
+      className={`rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-50 ${
+        status === 'saved' ? 'bg-status-green text-white' : 'bg-accent text-accent-text'
+      }`}
     >
       {label}
     </button>
@@ -42,24 +40,20 @@ function SaveButton({ status, onClick }: { status: SaveStatus; onClick: () => vo
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h2 className="mb-4 text-base font-semibold" style={{ color: '#f0f0f5' }}>{title}</h2>
+    <h2 className="mb-4 text-base font-semibold text-text-primary">{title}</h2>
   )
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium" style={{ color: '#8888a0' }}>{label}</label>
+      <label className="text-xs font-medium text-text-tertiary">{label}</label>
       {children}
     </div>
   )
 }
 
-const INPUT_STYLE = {
-  backgroundColor: '#0a0a0f',
-  border: '1px solid #1a1a2e',
-  color: '#f0f0f5',
-}
+const INPUT_CLASSES = 'bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
 
 export function SettingsPage() {
   const { data, isLoading, error, refresh } = useSettings()
@@ -169,10 +163,10 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-      <h1 className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Instellingen</h1>
+      <h1 className="text-xl font-bold text-text-primary">Instellingen</h1>
 
       {/* Profile section */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}>
+      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Profiel" />
         <div className="flex flex-col gap-4">
           <Field label="Naam">
@@ -180,8 +174,7 @@ export function SettingsPage() {
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="rounded-lg px-3 py-2 text-sm outline-none"
-              style={INPUT_STYLE}
+              className={INPUT_CLASSES}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -194,8 +187,7 @@ export function SettingsPage() {
                 min={20}
                 max={300}
                 step="0.1"
-                className="rounded-lg px-3 py-2 text-sm outline-none"
-                style={INPUT_STYLE}
+                className={INPUT_CLASSES}
               />
             </Field>
             <Field label="Lengte (cm)">
@@ -206,8 +198,7 @@ export function SettingsPage() {
                 placeholder="175"
                 min={100}
                 max={250}
-                className="rounded-lg px-3 py-2 text-sm outline-none"
-                style={INPUT_STYLE}
+                className={INPUT_CLASSES}
               />
             </Field>
           </div>
@@ -215,8 +206,7 @@ export function SettingsPage() {
             <select
               value={dietaryPref}
               onChange={(e) => setDietaryPref(e.target.value)}
-              className="rounded-lg px-3 py-2 text-sm outline-none"
-              style={INPUT_STYLE}
+              className={INPUT_CLASSES}
             >
               <option value="omnivore">Omnivoor</option>
               <option value="vegetarian">Vegetarisch</option>
@@ -230,7 +220,7 @@ export function SettingsPage() {
       </div>
 
       {/* Connections section */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}>
+      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Koppelingen" />
         <div className="flex flex-col gap-4">
           <Field label="Hevy API key">
@@ -240,8 +230,7 @@ export function SettingsPage() {
                 value={hevyKey}
                 onChange={(e) => setHevyKey(e.target.value)}
                 placeholder="sk-…"
-                className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-                style={INPUT_STYLE}
+                className={`flex-1 ${INPUT_CLASSES}`}
               />
               <StatusDot active={!!data?.settings.hevy_api_key} />
             </div>
@@ -253,8 +242,7 @@ export function SettingsPage() {
                 value={healthToken}
                 onChange={(e) => setHealthToken(e.target.value)}
                 placeholder="token…"
-                className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-                style={INPUT_STYLE}
+                className={`flex-1 ${INPUT_CLASSES}`}
               />
               <StatusDot active={!!data?.settings.health_auto_export_token} />
             </div>
@@ -266,7 +254,7 @@ export function SettingsPage() {
       </div>
 
       {/* Training goals section */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}>
+      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Trainingsdoelen" />
         <div className="flex flex-col gap-4">
           <Field label="Proteïne doel (g/kg lichaamsgewicht)">
@@ -278,12 +266,11 @@ export function SettingsPage() {
               min={0.5}
               max={5}
               step="0.1"
-              className="rounded-lg px-3 py-2 text-sm outline-none"
-              style={INPUT_STYLE}
+              className={INPUT_CLASSES}
             />
           </Field>
           <div>
-            <p className="mb-2 text-xs font-medium" style={{ color: '#8888a0' }}>Wekelijkse sessies</p>
+            <p className="mb-2 text-xs font-medium text-text-tertiary">Wekelijkse sessies</p>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Gym">
                 <input
@@ -292,8 +279,7 @@ export function SettingsPage() {
                   onChange={(e) => setGymTarget(e.target.value)}
                   min={0}
                   max={14}
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
               </Field>
               <Field label="Hardlopen">
@@ -303,8 +289,7 @@ export function SettingsPage() {
                   onChange={(e) => setRunTarget(e.target.value)}
                   min={0}
                   max={14}
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
               </Field>
               <Field label="Padel">
@@ -314,8 +299,7 @@ export function SettingsPage() {
                   onChange={(e) => setPadelTarget(e.target.value)}
                   min={0}
                   max={14}
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
               </Field>
             </div>
@@ -333,7 +317,7 @@ function StatusDot({ active }: { active: boolean }) {
   return (
     <div
       className="h-2.5 w-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: active ? '#22c55e' : '#3a3a5c' }}
+      style={{ backgroundColor: active ? '#16A34A' : '#D6D3CD' }}
       title={active ? 'Verbonden' : 'Niet verbonden'}
     />
   )

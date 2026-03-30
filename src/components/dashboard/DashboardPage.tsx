@@ -25,7 +25,7 @@ function DashboardSkeleton() {
       <SkeletonCard className="flex flex-col gap-3">
         <SkeletonLine width="w-1/3" />
         <div className="flex justify-center py-2">
-          <div className="h-24 w-24 rounded-full" style={{ backgroundColor: '#1a1a2e' }} />
+          <div className="h-24 w-24 rounded-full bg-bg-subtle" />
         </div>
         <div className="grid grid-cols-3 gap-2">
           <SkeletonRect height="h-10" />
@@ -41,7 +41,7 @@ function DashboardSkeleton() {
         <SkeletonLine width="w-1/4" />
         <div className="flex gap-2">
           {[1,2,3,4,5,6,7].map(i => (
-            <div key={i} className="h-10 flex-1 rounded-full" style={{ backgroundColor: '#1a1a2e' }} />
+            <div key={i} className="h-10 flex-1 rounded-full bg-bg-subtle" />
           ))}
         </div>
       </SkeletonCard>
@@ -64,10 +64,9 @@ function DashboardCard({
 }) {
   return (
     <div
-      className={`rounded-xl p-5 ${className ?? ''}`}
-      style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
+      className={`bg-bg-card border border-border-light rounded-[14px] p-[14px_16px] ${className ?? ''}`}
     >
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider" style={{ color: '#8888a0' }}>
+      <h2 className="mb-4 text-[17px] font-semibold text-text-primary">
         {title}
       </h2>
       {children}
@@ -121,26 +120,26 @@ export function DashboardPage() {
         {weekly && (
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div>
-              <p className="text-lg font-bold" style={{ color: '#f0f0f5' }}>
+              <p className="text-lg font-bold tabular-nums text-text-primary">
                 {weekly.total_sessions ?? 0}
               </p>
-              <p className="text-xs" style={{ color: '#8888a0' }}>
+              <p className="text-xs text-text-tertiary">
                 sessies
               </p>
             </div>
             <div>
-              <p className="text-lg font-bold" style={{ color: '#f0f0f5' }}>
+              <p className="text-lg font-bold tabular-nums text-text-primary">
                 {Math.round((weekly.total_training_minutes ?? 0) / 60 * 10) / 10}u
               </p>
-              <p className="text-xs" style={{ color: '#8888a0' }}>
+              <p className="text-xs text-text-tertiary">
                 trainingstijd
               </p>
             </div>
             <div>
-              <p className="text-lg font-bold" style={{ color: '#f0f0f5' }}>
+              <p className="text-lg font-bold tabular-nums text-text-primary">
                 {Math.round(weekly.total_tonnage_kg ?? 0).toLocaleString('nl-NL')}
               </p>
-              <p className="text-xs" style={{ color: '#8888a0' }}>
+              <p className="text-xs text-text-tertiary">
                 kg tonnage
               </p>
             </div>

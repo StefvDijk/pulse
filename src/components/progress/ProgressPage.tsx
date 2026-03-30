@@ -15,7 +15,7 @@ import type { Period } from '@/app/api/progress/route'
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#8888a0' }}>
+    <h2 className="text-[17px] font-semibold text-text-primary">
       {children}
     </h2>
   )
@@ -23,10 +23,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="rounded-xl p-4"
-      style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-    >
+    <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
       {children}
     </div>
   )
@@ -45,7 +42,7 @@ export function ProgressPage() {
     <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Progressie</h1>
+        <h1 className="text-xl font-bold text-text-primary">Progressie</h1>
         <TimePeriodSelector value={period} onChange={setPeriod} />
       </div>
 
@@ -64,7 +61,7 @@ export function ProgressPage() {
           <Card>
             <div className="mb-3 flex items-center justify-between">
               <SectionTitle>Trainingsvolume</SectionTitle>
-              <span className="text-xs" style={{ color: '#8888a0' }}>min · ACWR lijn</span>
+              <span className="text-xs text-text-tertiary">min · ACWR lijn</span>
             </div>
             <VolumeChart weeks={data.weeklyAggregations} />
           </Card>

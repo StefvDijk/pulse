@@ -9,11 +9,11 @@ export interface GoalProgressProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  strength: '#8b5cf6',
-  running: '#06b6d4',
-  padel: '#f59e0b',
-  nutrition: '#22c55e',
-  general: '#8888a0',
+  strength: '#2E6F6F',
+  running: '#C2410C',
+  padel: '#B45309',
+  nutrition: '#16A34A',
+  general: '#A8A29E',
 }
 
 function formatDeadline(dateStr: string): string {
@@ -32,7 +32,7 @@ export function GoalProgress({ goals }: GoalProgressProps) {
   if (goals.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm" style={{ color: '#8888a0' }}>Geen actieve doelen</p>
+        <p className="text-sm text-text-tertiary">Geen actieve doelen</p>
       </div>
     )
   }
@@ -43,13 +43,12 @@ export function GoalProgress({ goals }: GoalProgressProps) {
         const current = goal.current_value ?? 0
         const target = goal.target_value ?? 1
         const pct = Math.min(100, Math.round((current / target) * 100))
-        const categoryColor = CATEGORY_COLORS[goal.category] ?? '#8888a0'
+        const categoryColor = CATEGORY_COLORS[goal.category] ?? '#A8A29E'
 
         return (
           <div
             key={goal.id}
-            className="rounded-lg p-3"
-            style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
+            className="rounded-lg p-3 bg-bg-subtle border border-border-light"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -59,23 +58,23 @@ export function GoalProgress({ goals }: GoalProgressProps) {
                 >
                   {goal.category}
                 </span>
-                <span className="truncate text-sm font-medium" style={{ color: '#f0f0f5' }}>
+                <span className="truncate text-sm font-medium text-text-primary">
                   {goal.title}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {goal.deadline && (
-                  <span className="text-xs" style={{ color: '#8888a0' }}>
+                  <span className="text-xs text-text-tertiary">
                     {formatDeadline(goal.deadline)}
                   </span>
                 )}
-                <span className="text-xs font-medium" style={{ color: '#f0f0f5' }}>
+                <span className="text-xs font-medium text-text-primary">
                   {pct}%
                 </span>
               </div>
             </div>
 
-            <div className="mb-1 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+            <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-bg-subtle">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${pct}%`, backgroundColor: categoryColor }}
@@ -84,10 +83,10 @@ export function GoalProgress({ goals }: GoalProgressProps) {
 
             {goal.target_value !== null && (
               <div className="flex justify-between">
-                <span className="text-xs" style={{ color: '#8888a0' }}>
+                <span className="text-xs text-text-tertiary">
                   {current} {goal.target_unit ?? ''}
                 </span>
-                <span className="text-xs" style={{ color: '#8888a0' }}>
+                <span className="text-xs text-text-tertiary">
                   {target} {goal.target_unit ?? ''}
                 </span>
               </div>

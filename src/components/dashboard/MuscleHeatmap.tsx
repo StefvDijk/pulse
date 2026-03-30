@@ -46,12 +46,22 @@ const BACK_REGIONS: MuscleRegion[] = [
   { id: 'rotator_cuff_r', label: 'Rotator cuff', shape: 'ellipse', cx: 142, cy: 75, rx: 10, ry: 8 },
 ]
 
-/** Map muscle load (0-100) to a fill color. */
+/** Map muscle load (0-100) to a terracotta fill color. */
 function loadToColor(load: number): string {
   if (load <= 0) return 'transparent'
-  if (load <= 33) return '#4f8cff'
-  if (load <= 66) return '#f59e0b'
-  return '#ef4444'
+  if (load <= 25) return '#E6A87C'
+  if (load <= 50) return '#D4845A'
+  if (load <= 75) return '#C2410C'
+  return '#9A3412'
+}
+
+/** Map muscle load (0-100) to opacity. */
+function loadToOpacity(load: number): number {
+  if (load <= 0) return 0
+  if (load <= 25) return 0.4
+  if (load <= 50) return 0.65
+  if (load <= 75) return 0.8
+  return 0.9
 }
 
 /** Get the canonical muscle key (strip _r suffix for mirrored regions). */
@@ -81,42 +91,42 @@ function BodySilhouette({
     <>
       {/* Simple body outline */}
       {/* Head */}
-      <ellipse cx={100} cy={32} rx={18} ry={22} fill="#1a1a2e" stroke="#3a3a5c" strokeWidth={1.5} />
+      <ellipse cx={100} cy={32} rx={18} ry={22} fill="#E7E5E0" stroke="#D4D0C8" strokeWidth={1.5} />
       {/* Neck */}
-      <rect x={91} y={52} width={18} height={10} fill="#1a1a2e" />
+      <rect x={91} y={52} width={18} height={10} fill="#E7E5E0" />
       {/* Torso */}
       <path
         d="M 65 62 L 135 62 L 128 145 L 72 145 Z"
-        fill="#12121a"
-        stroke="#3a3a5c"
+        fill="#EDEAE4"
+        stroke="#D4D0C8"
         strokeWidth={1.5}
       />
       {/* Left arm */}
       <path
         d="M 65 62 L 40 68 L 36 130 L 52 130 L 55 68 L 68 70 Z"
-        fill="#12121a"
-        stroke="#3a3a5c"
+        fill="#EDEAE4"
+        stroke="#D4D0C8"
         strokeWidth={1.5}
       />
       {/* Right arm */}
       <path
         d="M 135 62 L 160 68 L 164 130 L 148 130 L 145 68 L 132 70 Z"
-        fill="#12121a"
-        stroke="#3a3a5c"
+        fill="#EDEAE4"
+        stroke="#D4D0C8"
         strokeWidth={1.5}
       />
       {/* Left leg */}
       <path
         d="M 72 145 L 68 200 L 74 255 L 93 255 L 96 200 L 95 145 Z"
-        fill="#12121a"
-        stroke="#3a3a5c"
+        fill="#EDEAE4"
+        stroke="#D4D0C8"
         strokeWidth={1.5}
       />
       {/* Right leg */}
       <path
         d="M 105 145 L 104 200 L 107 255 L 126 255 L 132 200 L 128 145 Z"
-        fill="#12121a"
-        stroke="#3a3a5c"
+        fill="#EDEAE4"
+        stroke="#D4D0C8"
         strokeWidth={1.5}
       />
 
@@ -125,7 +135,7 @@ function BodySilhouette({
         const key = getMuscleKey(region.id)
         const load = muscleLoad[key] ?? 0
         const fill = loadToColor(load)
-        const opacity = load > 0 ? 0.7 : 0
+        const opacity = loadToOpacity(load)
 
         return (
           <ellipse
@@ -166,7 +176,7 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       <div className="flex gap-4">
         {/* Front */}
         <div className="flex-1">
-          <p className="mb-1 text-center text-xs" style={{ color: '#8888a0' }}>
+          <p className="text-text-tertiary mb-1 text-center text-xs">
             Voorkant
           </p>
           <svg
@@ -185,7 +195,7 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
 
         {/* Back */}
         <div className="flex-1">
-          <p className="mb-1 text-center text-xs" style={{ color: '#8888a0' }}>
+          <p className="text-text-tertiary mb-1 text-center text-xs">
             Achterkant
           </p>
           <svg
@@ -206,13 +216,10 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none absolute z-10 rounded px-2 py-1 text-xs shadow"
+          className="bg-bg-card border-border-medium text-text-primary pointer-events-none absolute z-10 rounded border px-2 py-1 text-xs shadow"
           style={{
             left: tooltip.x + 8,
             top: tooltip.y - 28,
-            backgroundColor: '#1a1a2e',
-            border: '1px solid #3a3a5c',
-            color: '#f0f0f5',
           }}
         >
           {tooltip.label}: {Math.round(tooltip.load)}%
@@ -220,18 +227,22 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       )}
 
       {/* Legend */}
-      <div className="mt-2 flex items-center justify-center gap-3 text-xs" style={{ color: '#8888a0' }}>
+      <div className="text-text-tertiary mt-2 flex items-center justify-center gap-3 text-xs">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#4f8cff' }} />
+          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#E6A87C' }} />
           Licht
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#f59e0b' }} />
+          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#D4845A' }} />
           Matig
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#ef4444' }} />
+          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#C2410C' }} />
           Zwaar
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#9A3412' }} />
+          Zeer zwaar
         </span>
       </div>
     </div>

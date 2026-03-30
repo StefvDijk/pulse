@@ -31,16 +31,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#0a0a0f' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-bg-page">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold" style={{ color: '#f0f0f5' }}>Pulse</h1>
-          <p className="mt-2 text-sm" style={{ color: '#8888a0' }}>Inloggen op je dashboard</p>
+          <h1 className="text-3xl font-bold text-text-primary">Pulse</h1>
+          <p className="mt-2 text-sm text-text-secondary">Inloggen op je dashboard</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="bg-bg-card border border-border-light rounded-[14px] p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium" style={{ color: '#f0f0f5' }}>
+            <label htmlFor="email" className="block text-sm font-medium text-text-primary">
               E-mailadres
             </label>
             <input
@@ -49,18 +49,13 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
-              style={{
-                backgroundColor: '#12121a',
-                border: '1px solid #1a1a2e',
-                color: '#f0f0f5',
-              }}
+              className="w-full bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="stef@example.com"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium" style={{ color: '#f0f0f5' }}>
+            <label htmlFor="password" className="block text-sm font-medium text-text-primary">
               Wachtwoord
             </label>
             <input
@@ -69,18 +64,13 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
-              style={{
-                backgroundColor: '#12121a',
-                border: '1px solid #1a1a2e',
-                color: '#f0f0f5',
-              }}
+              className="w-full bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="text-sm" style={{ color: '#f87171' }}>
+            <p className="text-sm text-status-red">
               {error}
             </p>
           )}
@@ -88,16 +78,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: '#4f8cff', color: '#ffffff' }}
+            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50 bg-accent text-accent-text"
           >
             {loading ? 'Inloggen...' : 'Inloggen'}
           </button>
         </form>
 
-        <p className="text-center text-sm" style={{ color: '#8888a0' }}>
+        <p className="text-center text-sm text-text-secondary">
           Nog geen account?{' '}
-          <Link href="/auth/signup" style={{ color: '#4f8cff' }} className="hover:underline">
+          <Link href="/auth/signup" className="text-accent-link hover:underline">
             Registreren
           </Link>
         </p>

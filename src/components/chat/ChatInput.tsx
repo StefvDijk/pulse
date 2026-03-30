@@ -38,8 +38,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
   return (
     <div
-      className="flex items-end gap-2 rounded-xl p-3"
-      style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
+      className="flex items-end gap-2 rounded-xl p-3 bg-bg-card border border-border-light"
     >
       <textarea
         ref={textareaRef}
@@ -50,15 +49,14 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         placeholder="Stel een vraag of log een maaltijd..."
         rows={1}
         disabled={isLoading}
-        className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:opacity-40"
-        style={{ color: '#f0f0f5', maxHeight: '160px' }}
+        className="flex-1 resize-none bg-transparent text-sm text-text-primary outline-none placeholder:opacity-40"
+        style={{ maxHeight: '160px' }}
         autoFocus
       />
       <button
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-opacity disabled:opacity-30"
-        style={{ backgroundColor: '#4f8cff' }}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent transition-opacity disabled:opacity-30"
         aria-label="Verstuur bericht"
       >
         {isLoading ? (

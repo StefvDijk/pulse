@@ -25,27 +25,17 @@ export function MiniChat() {
       {/* Popup */}
       {isOpen && (
         <div
-          className="absolute bottom-14 right-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl"
-          style={{
-            width: '320px',
-            height: '420px',
-            backgroundColor: '#0a0a0f',
-            border: '1px solid #1a1a2e',
-          }}
+          className="absolute bottom-14 right-0 flex h-[420px] w-[320px] flex-col overflow-hidden rounded-2xl border border-border-light bg-bg-card shadow-2xl"
         >
           {/* Popup header */}
-          <div
-            className="flex shrink-0 items-center justify-between px-3 py-2"
-            style={{ borderBottom: '1px solid #1a1a2e' }}
-          >
-            <span className="text-sm font-medium" style={{ color: '#f0f0f5' }}>
+          <div className="flex shrink-0 items-center justify-between border-b border-border-light px-3 py-2">
+            <span className="text-sm font-medium text-text-primary">
               Chat
             </span>
             <div className="flex items-center gap-2">
               <Link
                 href="/chat"
-                className="flex items-center gap-1 text-xs hover:opacity-80"
-                style={{ color: '#8888a0' }}
+                className="flex items-center gap-1 text-xs text-text-tertiary hover:opacity-80"
                 onClick={() => setIsOpen(false)}
               >
                 Open volledig
@@ -53,8 +43,7 @@ export function MiniChat() {
               </Link>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded p-0.5 hover:opacity-70"
-                style={{ color: '#8888a0' }}
+                className="rounded p-0.5 text-text-tertiary hover:opacity-70"
                 aria-label="Sluit chat"
               >
                 <X size={14} />
@@ -72,8 +61,7 @@ export function MiniChat() {
       {/* FAB button */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105"
-        style={{ backgroundColor: '#4f8cff' }}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-accent shadow-lg transition-transform hover:scale-105"
         aria-label="Open chat"
       >
         {isOpen ? <X size={20} color="white" /> : <MessageCircle size={20} color="white" />}

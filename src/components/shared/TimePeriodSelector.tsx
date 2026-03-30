@@ -16,20 +16,16 @@ const PERIODS: { value: Period; label: string }[] = [
 
 export function TimePeriodSelector({ value, onChange }: TimePeriodSelectorProps) {
   return (
-    <div
-      className="inline-flex rounded-lg p-0.5"
-      style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-    >
+    <div className="inline-flex rounded-lg border border-border-light bg-bg-card p-0.5">
       {PERIODS.map((p) => (
         <button
           key={p.value}
           onClick={() => onChange(p.value)}
-          className="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-          style={
+          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
             value === p.value
-              ? { backgroundColor: '#1a1a2e', color: '#f0f0f5' }
-              : { color: '#8888a0' }
-          }
+              ? 'bg-bg-subtle text-text-primary'
+              : 'text-text-tertiary'
+          }`}
         >
           {p.label}
         </button>

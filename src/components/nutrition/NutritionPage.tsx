@@ -75,26 +75,24 @@ export function NutritionPage() {
     <div className="flex flex-col gap-4 p-4">
       {/* Date navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold" style={{ color: '#f0f0f5' }}>
+        <h1 className="text-xl font-semibold text-text-primary">
           Voeding
         </h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSelectedDate((d) => offsetDate(d, -1))}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded hover:opacity-70"
-            style={{ color: '#8888a0' }}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-text-tertiary hover:opacity-70"
             aria-label="Vorige dag"
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="text-sm" style={{ color: '#f0f0f5' }}>
+          <span className="text-sm text-text-primary">
             {formatDateLabel(selectedDate)}
           </span>
           <button
             onClick={() => setSelectedDate((d) => offsetDate(d, 1))}
             disabled={selectedDate >= today}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded disabled:opacity-20 hover:opacity-70"
-            style={{ color: '#8888a0' }}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-text-tertiary disabled:opacity-20 hover:opacity-70"
             aria-label="Volgende dag"
           >
             <ChevronRight size={18} />
@@ -121,10 +119,7 @@ export function NutritionPage() {
 
           {/* Macro summary + protein tracker */}
           {totalCalories > 0 && (
-            <div
-              className="flex flex-col gap-4 rounded-xl p-4"
-              style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-            >
+            <div className="flex flex-col gap-4 bg-bg-card border border-border-light rounded-[14px] p-4">
               <MacroSummary
                 calories={totalCalories}
                 protein_g={totalProtein}
@@ -139,14 +134,8 @@ export function NutritionPage() {
           )}
 
           {/* Meals list */}
-          <div
-            className="rounded-xl p-4"
-            style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-          >
-            <h2
-              className="mb-3 text-xs font-semibold uppercase tracking-wider"
-              style={{ color: '#8888a0' }}
-            >
+          <div className="bg-bg-card border border-border-light rounded-[14px] p-4">
+            <h2 className="mb-3 text-[17px] font-semibold text-text-primary">
               Maaltijden
             </h2>
             <MealsList meals={meals} onDelete={handleDelete} />
@@ -162,7 +151,7 @@ function NutritionSkeleton() {
     <div className="flex flex-col gap-4">
       <SkeletonCard className="flex flex-col gap-3">
         <div className="flex justify-center">
-          <div className="h-28 w-28 rounded-full" style={{ backgroundColor: '#1a1a2e' }} />
+          <div className="h-28 w-28 rounded-full bg-bg-subtle" />
         </div>
         <SkeletonRect height="h-4" />
       </SkeletonCard>

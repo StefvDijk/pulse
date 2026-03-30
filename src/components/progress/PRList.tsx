@@ -9,10 +9,10 @@ export interface PRListProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  strength: '#8b5cf6',
-  running: '#06b6d4',
-  padel: '#f59e0b',
-  general: '#8888a0',
+  strength: '#2E6F6F',
+  running: '#C2410C',
+  padel: '#B45309',
+  general: '#A8A29E',
 }
 
 function formatDate(dateStr: string): string {
@@ -30,7 +30,7 @@ export function PRList({ records }: PRListProps) {
   if (records.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm" style={{ color: '#8888a0' }}>Nog geen persoonlijke records</p>
+        <p className="text-sm text-text-tertiary">Nog geen persoonlijke records</p>
       </div>
     )
   }
@@ -39,21 +39,23 @@ export function PRList({ records }: PRListProps) {
     <div className="flex flex-col gap-2">
       {records.map((pr) => {
         const delta = pr.previous_record !== null ? pr.value - pr.previous_record : null
-        const categoryColor = CATEGORY_COLORS[pr.record_category] ?? '#8888a0'
+        const categoryColor = CATEGORY_COLORS[pr.record_category] ?? '#A8A29E'
         const recent = isRecent(pr.achieved_at)
 
         return (
           <div
             key={pr.id}
-            className="flex items-center justify-between rounded-lg px-3 py-2.5"
-            style={{
-              backgroundColor: recent ? 'rgba(79, 140, 255, 0.08)' : '#12121a',
-              border: `1px solid ${recent ? 'rgba(79, 140, 255, 0.3)' : '#1a1a2e'}`,
-            }}
+            className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${
+              recent ? '' : 'bg-bg-subtle border-border-light'
+            }`}
+            style={recent ? {
+              backgroundColor: '#E6F0F0',
+              borderColor: '#2E6F6F33',
+            } : undefined}
           >
             <div className="flex items-center gap-2 min-w-0">
               {recent && (
-                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: '#4f8cff22', color: '#4f8cff' }}>
+                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: '#2E6F6F22', color: '#2E6F6F' }}>
                   NIEUW
                 </span>
               )}
@@ -63,26 +65,26 @@ export function PRList({ records }: PRListProps) {
               >
                 {pr.record_category}
               </span>
-              <span className="truncate text-sm font-medium" style={{ color: '#f0f0f5' }}>
+              <span className="truncate text-sm font-medium text-text-primary">
                 {pr.record_type}
               </span>
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-0.5 pl-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>
+                <span className="text-sm font-semibold text-text-primary">
                   {pr.value} {pr.unit}
                 </span>
                 {delta !== null && (
                   <span
                     className="text-xs"
-                    style={{ color: delta >= 0 ? '#22c55e' : '#ef4444' }}
+                    style={{ color: delta >= 0 ? '#16A34A' : '#DC2626' }}
                   >
                     {delta >= 0 ? '+' : ''}{delta.toFixed(delta % 1 === 0 ? 0 : 1)}
                   </span>
                 )}
               </div>
-              <span className="hidden text-xs sm:block" style={{ color: '#8888a0' }}>
+              <span className="hidden text-xs text-text-tertiary sm:block">
                 {formatDate(pr.achieved_at)}
               </span>
             </div>

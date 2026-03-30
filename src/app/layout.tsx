@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl" className={`${inter.className} h-full`}>
-      <body className="min-h-full" style={{ backgroundColor: '#0a0a0f' }}>
+      <body className="min-h-full bg-bg-page">
         <Navigation />
         {/* Desktop: offset voor sidebar */}
         <main className="lg:pl-56 pb-24 lg:pb-0 min-h-screen">

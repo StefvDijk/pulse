@@ -10,8 +10,8 @@ import { EmptyState } from '@/components/shared/EmptyState'
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}>
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide" style={{ color: '#8888a0' }}>
+    <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+      <h2 className="mb-4 text-[17px] font-semibold text-text-primary">
         {title}
       </h2>
       {children}
@@ -35,7 +35,7 @@ export function TrendsPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-      <h1 className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Trends</h1>
+      <h1 className="text-xl font-bold text-text-primary">Trends</h1>
 
       {error && <ErrorAlert message="Kon data niet laden." onRetry={refresh} />}
 

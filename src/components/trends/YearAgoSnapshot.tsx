@@ -25,8 +25,8 @@ function Delta({ current, lastYear }: { current: number | null; lastYear: number
     <span
       className="rounded px-1 py-0.5 text-xs font-medium"
       style={{
-        backgroundColor: positive ? '#22c55e22' : '#ef444422',
-        color: positive ? '#22c55e' : '#ef4444',
+        backgroundColor: positive ? '#16A34A22' : '#DC262622',
+        color: positive ? '#16A34A' : '#DC2626',
       }}
     >
       {positive ? '+' : ''}{pct}%
@@ -81,7 +81,7 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
     <div>
       <div className="mb-3 flex items-center gap-2">
         <ClockIcon />
-        <p className="text-sm" style={{ color: '#8888a0' }}>
+        <p className="text-sm text-text-tertiary">
           {hasLastYear
             ? `Vergelijking week van ${weekLabel} — vorig jaar`
             : `Geen data van ${currentWeek?.week_start ? new Date(currentWeek.week_start).getFullYear() - 1 : 'vorig jaar'} beschikbaar`}
@@ -97,18 +97,17 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
           return (
             <div
               key={m.label}
-              className="flex items-center justify-between gap-2 py-2"
-              style={{ borderBottom: '1px solid #1a1a2e' }}
+              className="flex items-center justify-between gap-2 py-2 border-b border-border-light"
             >
-              <span className="text-sm" style={{ color: '#8888a0' }}>{m.label}</span>
+              <span className="text-sm text-text-tertiary">{m.label}</span>
               <div className="flex items-center gap-3">
                 {hasLastYear && (
-                  <span className="text-xs" style={{ color: '#8888a0' }}>
+                  <span className="text-xs text-text-tertiary">
                     {fmt(m.lastYear)} vorig jaar
                   </span>
                 )}
                 <Delta current={m.current} lastYear={m.lastYear} />
-                <span className="min-w-[50px] text-right text-sm font-medium" style={{ color: '#f0f0f5' }}>
+                <span className="min-w-[50px] text-right text-sm font-medium text-text-primary">
                   {fmt(m.current)}
                 </span>
               </div>
@@ -121,7 +120,7 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
 
 function ClockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: '#8888a0', flexShrink: 0 }}>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-text-tertiary shrink-0">
       <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
       <path d="M7 4v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>

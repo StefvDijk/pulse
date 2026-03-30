@@ -39,6 +39,8 @@ interface GoalData {
   targetUnit: string
 }
 
+const INPUT_CLASSES = 'bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+
 export function OnboardingWizard() {
   const router = useRouter()
   const [step, setStep] = useState(0)
@@ -112,30 +114,26 @@ export function OnboardingWizard() {
     }
   }
 
-  const INPUT_STYLE = {
-    backgroundColor: '#0a0a0f',
-    border: '1px solid #1a1a2e',
-    color: '#f0f0f5',
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}>
-      <div className="w-full max-w-md rounded-2xl p-6" style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="w-full max-w-md rounded-2xl p-6 bg-bg-card border border-border-light">
 
         {/* Step indicator */}
         <div className="mb-6 flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
               <div
-                className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold"
-                style={{
-                  backgroundColor: i === step ? '#4f8cff' : i < step ? '#22c55e' : '#1a1a2e',
-                  color: i <= step ? '#fff' : '#8888a0',
-                }}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                  i === step
+                    ? 'bg-accent text-accent-text'
+                    : i < step
+                      ? 'bg-status-green text-white'
+                      : 'bg-bg-subtle text-text-muted'
+                }`}
               >
                 {i < step ? '✓' : i + 1}
               </div>
-              <span className="hidden text-[10px] sm:block" style={{ color: i === step ? '#f0f0f5' : '#8888a0' }}>
+              <span className={`hidden text-[10px] sm:block ${i === step ? 'text-text-primary' : 'text-text-tertiary'}`}>
                 {s.title}
               </span>
             </div>
@@ -144,8 +142,8 @@ export function OnboardingWizard() {
 
         {/* Header */}
         <div className="mb-5">
-          <h2 className="text-lg font-bold" style={{ color: '#f0f0f5' }}>{STEPS[step].title}</h2>
-          <p className="text-sm" style={{ color: '#8888a0' }}>{STEPS[step].description}</p>
+          <h2 className="text-lg font-bold text-text-primary">{STEPS[step].title}</h2>
+          <p className="text-sm text-text-tertiary">{STEPS[step].description}</p>
         </div>
 
         {/* Step content */}
@@ -154,19 +152,18 @@ export function OnboardingWizard() {
           {step === 0 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: '#8888a0' }}>Naam</label>
+                <label className="text-xs font-medium text-text-tertiary">Naam</label>
                 <input
                   type="text"
                   value={profile.displayName}
                   onChange={(e) => setProfile((p) => ({ ...p, displayName: e.target.value }))}
                   placeholder="Jouw naam"
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: '#8888a0' }}>Gewicht (kg)</label>
+                  <label className="text-xs font-medium text-text-tertiary">Gewicht (kg)</label>
                   <input
                     type="number"
                     value={profile.weightKg}
@@ -174,12 +171,11 @@ export function OnboardingWizard() {
                     placeholder="75"
                     min={20}
                     max={300}
-                    className="rounded-lg px-3 py-2 text-sm outline-none"
-                    style={INPUT_STYLE}
+                    className={INPUT_CLASSES}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: '#8888a0' }}>Lengte (cm)</label>
+                  <label className="text-xs font-medium text-text-tertiary">Lengte (cm)</label>
                   <input
                     type="number"
                     value={profile.heightCm}
@@ -187,8 +183,7 @@ export function OnboardingWizard() {
                     placeholder="175"
                     min={100}
                     max={250}
-                    className="rounded-lg px-3 py-2 text-sm outline-none"
-                    style={INPUT_STYLE}
+                    className={INPUT_CLASSES}
                   />
                 </div>
               </div>
@@ -197,18 +192,17 @@ export function OnboardingWizard() {
 
           {step === 1 && (
             <>
-              <p className="text-xs" style={{ color: '#8888a0' }}>Doel aantal sessies per week</p>
+              <p className="text-xs text-text-tertiary">Doel aantal sessies per week</p>
               {([['gym', 'Gym', sports.gym], ['running', 'Hardlopen', sports.running], ['padel', 'Padel', sports.padel]] as const).map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: '#f0f0f5' }}>{label}</span>
+                  <span className="text-sm text-text-primary">{label}</span>
                   <input
                     type="number"
                     value={sports[key]}
                     onChange={(e) => setSports((s) => ({ ...s, [key]: e.target.value }))}
                     min={0}
                     max={14}
-                    className="w-16 rounded-lg px-3 py-1.5 text-sm outline-none text-center"
-                    style={INPUT_STYLE}
+                    className={`w-16 text-center ${INPUT_CLASSES}`}
                   />
                 </div>
               ))}
@@ -218,41 +212,39 @@ export function OnboardingWizard() {
           {step === 2 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: '#8888a0' }}>Hevy API key</label>
+                <label className="text-xs font-medium text-text-tertiary">Hevy API key</label>
                 <input
                   type="password"
                   value={connections.hevyKey}
                   onChange={(e) => setConnections((c) => ({ ...c, hevyKey: e.target.value }))}
                   placeholder="Optioneel — voor workout sync"
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
-                <p className="text-xs" style={{ color: '#8888a0' }}>Vind je API key in Hevy → Instellingen → API</p>
+                <p className="text-xs text-text-tertiary">Vind je API key in Hevy → Instellingen → API</p>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: '#8888a0' }}>Health Auto Export token</label>
+                <label className="text-xs font-medium text-text-tertiary">Health Auto Export token</label>
                 <input
                   type="password"
                   value={connections.healthToken}
                   onChange={(e) => setConnections((c) => ({ ...c, healthToken: e.target.value }))}
                   placeholder="Optioneel — voor Apple Health sync"
-                  className="rounded-lg px-3 py-2 text-sm outline-none"
-                  style={INPUT_STYLE}
+                  className={INPUT_CLASSES}
                 />
               </div>
-              <p className="text-xs" style={{ color: '#8888a0' }}>Je kunt deze later toevoegen via Instellingen.</p>
+              <p className="text-xs text-text-tertiary">Je kunt deze later toevoegen via Instellingen.</p>
             </>
           )}
 
           {step === 3 && (
             <>
-              <p className="text-xs" style={{ color: '#8888a0' }}>Voeg maximaal 3 doelen toe (optioneel)</p>
+              <p className="text-xs text-text-tertiary">Voeg maximaal 3 doelen toe (optioneel)</p>
               {goals.map((goal, i) => (
-                <div key={i} className="rounded-lg p-3" style={{ backgroundColor: '#0a0a0f', border: '1px solid #1a1a2e' }}>
+                <div key={i} className="rounded-lg p-3 bg-bg-subtle border border-border-light">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium" style={{ color: '#8888a0' }}>Doel {i + 1}</span>
+                    <span className="text-xs font-medium text-text-tertiary">Doel {i + 1}</span>
                     {goals.length > 1 && (
-                      <button onClick={() => removeGoal(i)} className="text-xs" style={{ color: '#ef4444' }}>Verwijder</button>
+                      <button onClick={() => removeGoal(i)} className="text-xs text-status-red">Verwijder</button>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
@@ -261,15 +253,13 @@ export function OnboardingWizard() {
                       value={goal.title}
                       onChange={(e) => updateGoal(i, 'title', e.target.value)}
                       placeholder="Bijv. Bench press 100kg"
-                      className="rounded-lg px-3 py-1.5 text-sm outline-none"
-                      style={INPUT_STYLE}
+                      className={INPUT_CLASSES}
                     />
                     <div className="grid grid-cols-3 gap-2">
                       <select
                         value={goal.category}
                         onChange={(e) => updateGoal(i, 'category', e.target.value)}
-                        className="rounded-lg px-2 py-1.5 text-xs outline-none"
-                        style={INPUT_STYLE}
+                        className="bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       >
                         <option value="strength">Kracht</option>
                         <option value="running">Hardlopen</option>
@@ -284,16 +274,14 @@ export function OnboardingWizard() {
                         placeholder="100"
                         min={0}
                         step="any"
-                        className="rounded-lg px-2 py-1.5 text-xs outline-none"
-                        style={INPUT_STYLE}
+                        className="bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                       <input
                         type="text"
                         value={goal.targetUnit}
                         onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
-                        className="rounded-lg px-2 py-1.5 text-xs outline-none"
-                        style={INPUT_STYLE}
+                        className="bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -302,8 +290,7 @@ export function OnboardingWizard() {
               {goals.length < 3 && (
                 <button
                   onClick={addGoal}
-                  className="text-sm"
-                  style={{ color: '#4f8cff' }}
+                  className="text-sm text-accent-link"
                 >
                   + Nog een doel toevoegen
                 </button>
@@ -316,8 +303,7 @@ export function OnboardingWizard() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push('/')}
-            className="text-sm"
-            style={{ color: '#8888a0' }}
+            className="text-sm text-text-tertiary"
           >
             Overslaan
           </button>
@@ -326,8 +312,7 @@ export function OnboardingWizard() {
             {!isFirst && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium"
-                style={{ backgroundColor: '#1a1a2e', color: '#f0f0f5' }}
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-bg-subtle text-text-primary"
               >
                 Vorige
               </button>
@@ -336,16 +321,14 @@ export function OnboardingWizard() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                style={{ backgroundColor: '#4f8cff', color: '#fff' }}
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-accent text-accent-text disabled:opacity-50"
               >
                 {saving ? 'Opslaan…' : 'Klaar'}
               </button>
             ) : (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium"
-                style={{ backgroundColor: '#4f8cff', color: '#fff' }}
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-accent text-accent-text"
               >
                 Volgende
               </button>

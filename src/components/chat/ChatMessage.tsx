@@ -15,33 +15,32 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
-        style={
+        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
           isUser
-            ? { backgroundColor: '#4f8cff', color: '#ffffff' }
-            : { backgroundColor: '#1a1a2e', color: '#f0f0f5', border: '1px solid #2a2a3e' }
-        }
+            ? 'bg-bg-active text-text-primary'
+            : 'bg-bg-card text-text-primary border border-border-light'
+        }`}
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{content}</p>
         ) : (
-          <div className="prose prose-sm prose-invert max-w-none">
+          <div className="prose prose-sm max-w-none">
             <Markdown
               remarkPlugins={[remarkGfm]}
               components={{
                 // Style headings
                 h1: ({ children }) => (
-                  <h1 className="mb-2 mt-3 text-base font-semibold" style={{ color: '#f0f0f5' }}>
+                  <h1 className="mb-2 mt-3 text-base font-semibold">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="mb-1.5 mt-3 text-sm font-semibold" style={{ color: '#f0f0f5' }}>
+                  <h2 className="mb-1.5 mt-3 text-sm font-semibold">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="mb-1 mt-2 text-sm font-medium" style={{ color: '#c8c8e0' }}>
+                  <h3 className="mb-1 mt-2 text-sm font-medium text-text-secondary">
                     {children}
                   </h3>
                 ),
@@ -59,15 +58,14 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
                 li: ({ children }) => <li className="text-sm">{children}</li>,
                 // Style strong
                 strong: ({ children }) => (
-                  <strong className="font-semibold" style={{ color: '#f0f0f5' }}>
+                  <strong className="font-semibold">
                     {children}
                   </strong>
                 ),
                 // Style code
                 code: ({ children }) => (
                   <code
-                    className="rounded px-1 py-0.5 text-xs"
-                    style={{ backgroundColor: '#0a0a0f', color: '#4f8cff' }}
+                    className="rounded px-1 py-0.5 text-xs bg-bg-subtle text-accent-link"
                   >
                     {children}
                   </code>
@@ -75,21 +73,21 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
                 // Style tables (GFM)
                 table: ({ children }) => (
                   <div className="my-2 overflow-x-auto">
-                    <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                    <table className="w-full border-collapse text-xs">
                       {children}
                     </table>
                   </div>
                 ),
                 thead: ({ children }) => (
-                  <thead style={{ borderBottom: '1px solid #3a3a5c' }}>{children}</thead>
+                  <thead className="border-b border-border-medium">{children}</thead>
                 ),
                 th: ({ children }) => (
-                  <th className="px-2 py-1 text-left font-medium" style={{ color: '#c8c8e0' }}>
+                  <th className="px-2 py-1 text-left font-medium text-text-secondary">
                     {children}
                   </th>
                 ),
                 td: ({ children }) => (
-                  <td className="px-2 py-1" style={{ borderBottom: '1px solid #1a1a2e' }}>
+                  <td className="px-2 py-1 border-b border-border-light">
                     {children}
                   </td>
                 ),
@@ -100,8 +98,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
             </Markdown>
             {isStreaming && (
               <span
-                className="ml-0.5 inline-block h-4 w-0.5 animate-pulse"
-                style={{ backgroundColor: '#4f8cff' }}
+                className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent"
               />
             )}
           </div>

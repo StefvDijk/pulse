@@ -1,35 +1,78 @@
 @import "tailwindcss";
 
-/* ─── Pulse Design Tokens ─────────────────────────────────────────────────── */
+/* ─── Pulse Design Tokens — Mineral Light Theme ─────────────────────────── */
 
 @theme {
   /* Backgrounds */
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #12121a;
-  --color-bg-tertiary: #1a1a2e;
+  --color-bg-page: #F5F3EF;
+  --color-bg-card: #FDFCFA;
+  --color-bg-subtle: #EDEAE4;
+  --color-bg-hover: #F8F6F2;
+  --color-bg-active: #E8E4DC;
 
   /* Text */
-  --color-text-primary: #f0f0f5;
-  --color-text-secondary: #8888a0;
-  --color-text-tertiary: #55556a;
+  --color-text-primary: #1C1917;
+  --color-text-secondary: #57534E;
+  --color-text-tertiary: #A8A29E;
+  --color-text-muted: #D6D3CD;
 
-  /* Accent */
-  --color-accent-primary: #4f8cff;
-  --color-accent-green: #34d399;
-  --color-accent-yellow: #fbbf24;
-  --color-accent-red: #f87171;
-  --color-accent-orange: #fb923c;
+  /* Borders */
+  --color-border-light: #E7E5E0;
+  --color-border-medium: #D4D0C8;
+  --color-border-strong: #B8B4AC;
 
-  /* Sport */
-  --color-sport-gym: #8b5cf6;
-  --color-sport-running: #06b6d4;
-  --color-sport-padel: #f59e0b;
+  /* Accent / CTA */
+  --color-accent: #1C1917;
+  --color-accent-text: #FDFCFA;
+  --color-accent-secondary: #EDEAE4;
+  --color-accent-link: #2E6F6F;
 
-  /* Muscle Heatmap */
-  --color-muscle-light: #3b82f6;
-  --color-muscle-moderate: #3b82f6;
-  --color-muscle-heavy: #f59e0b;
-  --color-muscle-very-heavy: #ef4444;
+  /* Sport: Gym — Slate Teal */
+  --color-sport-gym: #2E6F6F;
+  --color-sport-gym-light: #E6F0F0;
+  --color-sport-gym-dark: #1A4747;
+
+  /* Sport: Running — Terracotta */
+  --color-sport-run: #C2410C;
+  --color-sport-run-light: #FCEEE6;
+  --color-sport-run-dark: #8C2E08;
+
+  /* Sport: Padel — Warm Amber */
+  --color-sport-padel: #B45309;
+  --color-sport-padel-light: #FDF3E3;
+  --color-sport-padel-dark: #7C3A06;
+
+  /* Sport: Cycling — Moss Green */
+  --color-sport-cycle: #4D7C0F;
+  --color-sport-cycle-light: #ECF4E4;
+  --color-sport-cycle-dark: #365908;
+
+  /* Status */
+  --color-status-green: #16A34A;
+  --color-status-green-light: #F0FDF4;
+  --color-status-green-dark: #166534;
+  --color-status-amber: #D97706;
+  --color-status-amber-light: #FFFBEB;
+  --color-status-amber-dark: #92400E;
+  --color-status-red: #DC2626;
+  --color-status-red-light: #FEF2F2;
+  --color-status-red-dark: #991B1B;
+
+  /* Muscle Heatmap — Terracotta Spectrum */
+  --color-muscle-none: #4A4A52;
+  --color-muscle-light: #E6A87C;
+  --color-muscle-moderate: #D4845A;
+  --color-muscle-heavy: #C2410C;
+  --color-muscle-very-heavy: #9A3412;
+
+  /* Chart Colors */
+  --color-chart-push: #C2410C;
+  --color-chart-pull: #2E6F6F;
+  --color-chart-squat: #B45309;
+  --color-chart-hinge: #4D7C0F;
+  --color-chart-protein: #2E6F6F;
+  --color-chart-carbs: #B45309;
+  --color-chart-fat: #C2410C;
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -38,12 +81,12 @@
 /* ─── Base Styles ─────────────────────────────────────────────────────────── */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
-  background-color: #0a0a0f;
-  color: #f0f0f5;
+  background-color: #F5F3EF;
+  color: #1C1917;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,4 +95,70 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
+}
+
+/* ─── Typography Utilities ────────────────────────────────────────────────── */
+
+.text-hero {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #1C1917;
+}
+
+.text-page-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #1C1917;
+}
+
+.text-stat {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #1C1917;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-section-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.text-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1C1917;
+}
+
+.text-body {
+  font-size: 14px;
+  font-weight: 400;
+  color: #57534E;
+}
+
+.text-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #A8A29E;
+}
+
+.text-small-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #A8A29E;
+}
+
+.text-caption {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: #A8A29E;
+}
+
+/* Tabular nums for all stat displays */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

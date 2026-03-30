@@ -15,10 +15,10 @@ const STATUS_LABELS: Record<WorkloadStatus, string> = {
 }
 
 const STATUS_COLORS: Record<WorkloadStatus, string> = {
-  low: '#6b7280',
-  optimal: '#22c55e',
-  warning: '#f59e0b',
-  danger: '#ef4444',
+  low: '#A8A29E',
+  optimal: '#16A34A',
+  warning: '#D97706',
+  danger: '#DC2626',
 }
 
 /**
@@ -66,7 +66,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
         <path
           d={arcPath(0, 180)}
           fill="none"
-          stroke="#1a1a2e"
+          stroke="#E7E5E0"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -76,7 +76,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
         <path
           d={arcPath(0, 54)}
           fill="none"
-          stroke="#374151"
+          stroke="#D4D0C8"
           strokeWidth={strokeWidth}
           strokeLinecap="butt"
         />
@@ -84,7 +84,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
         <path
           d={arcPath(54, 117)}
           fill="none"
-          stroke="#166534"
+          stroke="#16A34A"
           strokeWidth={strokeWidth}
           strokeLinecap="butt"
         />
@@ -92,7 +92,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
         <path
           d={arcPath(117, 135)}
           fill="none"
-          stroke="#92400e"
+          stroke="#D97706"
           strokeWidth={strokeWidth}
           strokeLinecap="butt"
         />
@@ -100,7 +100,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
         <path
           d={arcPath(135, 180)}
           fill="none"
-          stroke="#7f1d1d"
+          stroke="#DC2626"
           strokeWidth={strokeWidth}
           strokeLinecap="butt"
         />
@@ -114,7 +114,7 @@ export function WorkloadMeter({ ratio, status }: WorkloadMeterProps) {
           y={cy + 4}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#f0f0f5"
+          fill="#1C1917"
           fontSize="22"
           fontWeight="bold"
         >

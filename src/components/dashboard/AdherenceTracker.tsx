@@ -22,9 +22,9 @@ function getDayColor(agg: DailyAggregationRow | undefined): string | null {
 
   if (gym === 0 && run === 0 && padel === 0) return null
 
-  if (gym >= run && gym >= padel) return '#8b5cf6' // gym purple
-  if (run >= gym && run >= padel) return '#06b6d4' // run cyan
-  return '#f59e0b' // padel amber
+  if (gym >= run && gym >= padel) return '#2E6F6F' // gym teal
+  if (run >= gym && run >= padel) return '#C2410C' // run terracotta
+  return '#B45309' // padel amber
 }
 
 export function AdherenceTracker({ dailyAggregations, weekStart }: AdherenceTrackerProps) {
@@ -53,19 +53,20 @@ export function AdherenceTracker({ dailyAggregations, weekStart }: AdherenceTrac
 
         return (
           <div key={date} className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-xs" style={{ color: isToday ? '#f0f0f5' : '#8888a0' }}>
+            <span className={`text-xs ${isToday ? 'text-text-primary font-medium' : 'text-text-tertiary'}`}>
               {DAY_LABELS[i]}
             </span>
             <div
               className="flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all"
               style={{
                 backgroundColor: color ?? 'transparent',
-                borderColor: color ?? (isPast ? '#3a3a5c' : '#1a1a2e'),
+                borderColor: color ?? (isPast ? '#D4D0C8' : '#E7E5E0'),
+                borderStyle: !color && !isPast ? 'dashed' : 'solid',
                 opacity: !isPast && !isToday ? 0.4 : 1,
               }}
             >
               {!color && isPast && (
-                <span className="text-xs" style={{ color: '#4a4a6a' }}>
+                <span className="text-xs text-text-muted">
                   —
                 </span>
               )}

@@ -7,17 +7,13 @@ interface ErrorAlertProps {
 
 export function ErrorAlert({ message = 'Er is iets misgegaan. Probeer opnieuw.', onRetry }: ErrorAlertProps) {
   return (
-    <div
-      className="rounded-xl p-4 text-sm"
-      style={{ backgroundColor: '#2d1111', border: '1px solid #5a1a1a', color: '#fca5a5' }}
-    >
+    <div className="rounded-xl border border-status-red/20 bg-status-red-light p-4 text-sm text-status-red-dark">
       <div className="flex items-center justify-between gap-3">
         <span>{message}</span>
         {onRetry && (
           <button
             onClick={onRetry}
-            className="shrink-0 text-xs font-medium underline"
-            style={{ color: '#4f8cff' }}
+            className="shrink-0 text-xs font-medium text-accent-link underline"
           >
             Opnieuw proberen
           </button>

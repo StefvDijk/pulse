@@ -9,20 +9,17 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div
-      className="flex flex-col items-center justify-center rounded-xl p-10 text-center"
-      style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-    >
+    <div className="flex flex-col items-center justify-center rounded-[14px] border border-border-light bg-bg-card p-10 text-center">
       {icon && (
-        <div className="mb-4" style={{ color: '#8888a0' }}>
+        <div className="mb-4 text-text-tertiary">
           {icon}
         </div>
       )}
-      <p className="mb-1 text-base font-semibold" style={{ color: '#f0f0f5' }}>
+      <p className="mb-1 text-base font-semibold text-text-primary">
         {title}
       </p>
       {description && (
-        <p className="mb-5 text-sm" style={{ color: '#8888a0' }}>
+        <p className="mb-5 text-sm text-text-secondary">
           {description}
         </p>
       )}
@@ -30,16 +27,14 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
         'href' in action ? (
           <Link
             href={action.href}
-            className="rounded-lg px-4 py-2 text-sm font-medium"
-            style={{ backgroundColor: '#4f8cff', color: '#fff' }}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-text"
           >
             {action.label}
           </Link>
         ) : (
           <button
             onClick={action.onClick}
-            className="rounded-lg px-4 py-2 text-sm font-medium"
-            style={{ backgroundColor: '#4f8cff', color: '#fff' }}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-text"
           >
             {action.label}
           </button>

@@ -11,11 +11,11 @@ export interface GoalCardProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  strength: '#8b5cf6',
-  running: '#06b6d4',
-  padel: '#f59e0b',
-  nutrition: '#22c55e',
-  general: '#8888a0',
+  strength: '#2E6F6F',
+  running: '#C2410C',
+  padel: '#B45309',
+  nutrition: '#16A34A',
+  general: '#A8A29E',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -42,17 +42,13 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
   const current = goal.current_value ?? 0
   const target = goal.target_value ?? 1
   const pct = Math.min(100, Math.round((current / target) * 100))
-  const categoryColor = CATEGORY_COLORS[goal.category] ?? '#8888a0'
+  const categoryColor = CATEGORY_COLORS[goal.category] ?? '#A8A29E'
   const isCompleted = goal.status === 'completed'
 
   return (
     <div
-      className="rounded-xl p-4"
-      style={{
-        backgroundColor: '#12121a',
-        border: '1px solid #1a1a2e',
-        opacity: isCompleted ? 0.7 : 1,
-      }}
+      className="bg-bg-card border border-border-light rounded-[14px] p-4"
+      style={{ opacity: isCompleted ? 0.7 : 1 }}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -64,14 +60,17 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
               {CATEGORY_LABELS[goal.category] ?? goal.category}
             </span>
             {isCompleted && (
-              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#22c55e22', color: '#22c55e' }}>
+              <span
+                className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ backgroundColor: '#16A34A22', color: '#16A34A' }}
+              >
                 Voltooid
               </span>
             )}
           </div>
-          <p className="text-sm font-medium" style={{ color: '#f0f0f5' }}>{goal.title}</p>
+          <p className="text-sm font-medium text-text-primary">{goal.title}</p>
           {goal.description && (
-            <p className="mt-0.5 text-xs" style={{ color: '#8888a0' }}>{goal.description}</p>
+            <p className="mt-0.5 text-xs text-text-tertiary">{goal.description}</p>
           )}
         </div>
 
@@ -81,15 +80,14 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
               onClick={() => onComplete(goal.id)}
               title="Voltooien"
               className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-green-500/10"
-              style={{ color: '#22c55e' }}
+              style={{ color: '#16A34A' }}
             >
               <CheckIcon />
             </button>
             <button
               onClick={() => onDelete(goal.id)}
               title="Verwijderen"
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-red-500/10"
-              style={{ color: '#8888a0' }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-status-red hover:bg-red-500/10"
             >
               <TrashIcon />
             </button>
@@ -99,23 +97,23 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
 
       {goal.target_value !== null && (
         <>
-          <div className="mb-1.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+          <div className="mb-1.5 h-1.5 overflow-hidden rounded-full bg-bg-subtle">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${pct}%`, backgroundColor: isCompleted ? '#22c55e' : categoryColor }}
+              style={{ width: `${pct}%`, backgroundColor: isCompleted ? '#16A34A' : categoryColor }}
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs" style={{ color: '#8888a0' }}>
+            <span className="text-xs text-text-tertiary">
               {current} / {goal.target_value} {goal.target_unit ?? ''}
             </span>
             <div className="flex items-center gap-2">
               {goal.deadline && (
-                <span className="text-xs" style={{ color: '#8888a0' }}>
+                <span className="text-xs text-text-tertiary">
                   {formatDeadline(goal.deadline)}
                 </span>
               )}
-              <span className="text-xs font-medium" style={{ color: '#f0f0f5' }}>
+              <span className="text-xs font-medium text-text-primary">
                 {pct}%
               </span>
             </div>

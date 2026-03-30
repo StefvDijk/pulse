@@ -165,7 +165,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false }: 
       <div className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}>
         {messages.length === 0 && !isLoading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <p className="text-sm" style={{ color: '#8888a0' }}>
+            <p className="text-sm text-text-tertiary">
               Stel een vraag of log een maaltijd
             </p>
           </div>

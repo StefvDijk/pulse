@@ -29,20 +29,20 @@ function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps
   return (
     <div className="flex items-center gap-3">
       <div className="w-20 shrink-0">
-        <span className="text-sm font-medium" style={{ color: '#f0f0f5' }}>
+        <span className="text-sm font-medium text-text-primary">
           {label}
         </span>
-        <span className="ml-1 text-xs" style={{ color: '#8888a0' }}>
+        <span className="ml-1 text-xs text-text-tertiary">
           {sessions}x
         </span>
       </div>
-      <div className="relative h-4 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: '#1a1a2e' }}>
+      <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-bg-subtle">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-16 shrink-0 text-right text-sm" style={{ color: '#8888a0' }}>
+      <span className="w-16 shrink-0 text-right text-sm text-text-tertiary">
         {formatDuration(minutes)}
       </span>
     </div>
@@ -63,21 +63,21 @@ export function SportSplit({ gymMinutes, runningMinutes, padelMinutes }: SportSp
         label="Gym"
         minutes={gymMinutes}
         maxMinutes={maxMinutes}
-        color="#8b5cf6"
+        color="#2E6F6F"
         sessions={gymSessions}
       />
       <SportBar
         label="Hardlopen"
         minutes={runningMinutes}
         maxMinutes={maxMinutes}
-        color="#06b6d4"
+        color="#C2410C"
         sessions={runningSessions}
       />
       <SportBar
         label="Padel"
         minutes={padelMinutes}
         maxMinutes={maxMinutes}
-        color="#f59e0b"
+        color="#B45309"
         sessions={padelSessions}
       />
     </div>

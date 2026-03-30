@@ -11,16 +11,16 @@ export interface MacroSummaryProps {
 }
 
 const SEGMENTS = [
-  { key: 'protein_g', label: 'Eiwit', color: '#4f8cff' },
-  { key: 'carbs_g', label: 'Koolh.', color: '#f59e0b' },
-  { key: 'fat_g', label: 'Vet', color: '#8b5cf6' },
+  { key: 'protein_g', label: 'Eiwit', color: '#2E6F6F' },
+  { key: 'carbs_g', label: 'Koolh.', color: '#B45309' },
+  { key: 'fat_g', label: 'Vet', color: '#C2410C' },
 ] as const
 
 export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: MacroSummaryProps) {
   const data = [
-    { name: 'Eiwit', value: protein_g, color: '#4f8cff' },
-    { name: 'Koolhydraten', value: carbs_g, color: '#f59e0b' },
-    { name: 'Vet', value: fat_g, color: '#8b5cf6' },
+    { name: 'Eiwit', value: protein_g, color: '#2E6F6F' },
+    { name: 'Koolhydraten', value: carbs_g, color: '#B45309' },
+    { name: 'Vet', value: fat_g, color: '#C2410C' },
   ].filter((d) => d.value > 0)
 
   const hasData = data.length > 0
@@ -47,24 +47,21 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid #3a3a5c', borderRadius: '8px' }}
-                itemStyle={{ color: '#f0f0f5', fontSize: '12px' }}
+                contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
+                itemStyle={{ color: '#1C1917', fontSize: '12px' }}
                 formatter={(value) => [`${Math.round(Number(value))}g`]}
               />
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center rounded-full"
-            style={{ backgroundColor: '#1a1a2e' }}
-          />
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-bg-subtle" />
         )}
         {/* Calories in center */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold leading-none" style={{ color: '#f0f0f5' }}>
+          <span className="text-lg font-bold leading-none text-text-primary">
             {calories}
           </span>
-          <span className="text-xs" style={{ color: '#8888a0' }}>
+          <span className="text-xs text-text-tertiary">
             kcal
           </span>
         </div>
@@ -77,10 +74,10 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-xs" style={{ color: '#8888a0' }}>
+              <span className="text-xs text-text-tertiary">
                 {label}
               </span>
-              <span className="text-xs font-medium" style={{ color: '#f0f0f5' }}>
+              <span className="text-xs font-medium text-text-primary">
                 {Math.round(val)}g
               </span>
             </div>
@@ -88,11 +85,11 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
         })}
         {fiber_g > 0 && (
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: '#22c55e' }} />
-            <span className="text-xs" style={{ color: '#8888a0' }}>
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: '#16A34A' }} />
+            <span className="text-xs text-text-tertiary">
               Vezels
             </span>
-            <span className="text-xs font-medium" style={{ color: '#f0f0f5' }}>
+            <span className="text-xs font-medium text-text-primary">
               {Math.round(fiber_g)}g
             </span>
           </div>

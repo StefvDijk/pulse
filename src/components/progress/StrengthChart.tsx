@@ -20,12 +20,12 @@ export interface StrengthChartProps {
 }
 
 const PATTERNS = [
-  { key: 'horizontal_push', label: 'Push', color: '#4f8cff' },
-  { key: 'vertical_push', label: 'V. Push', color: '#8b5cf6' },
-  { key: 'horizontal_pull', label: 'Pull', color: '#06b6d4' },
-  { key: 'vertical_pull', label: 'V. Pull', color: '#22c55e' },
-  { key: 'squat', label: 'Squat', color: '#f59e0b' },
-  { key: 'hinge', label: 'Hinge', color: '#ef4444' },
+  { key: 'horizontal_push', label: 'Push', color: '#C2410C' },
+  { key: 'vertical_push', label: 'V. Push', color: '#9A3412' },
+  { key: 'horizontal_pull', label: 'Pull', color: '#2E6F6F' },
+  { key: 'vertical_pull', label: 'V. Pull', color: '#1A4747' },
+  { key: 'squat', label: 'Squat', color: '#B45309' },
+  { key: 'hinge', label: 'Hinge', color: '#4D7C0F' },
 ] as const
 
 function formatWeek(dateStr: string): string {
@@ -57,12 +57,12 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1a1a2e" />
-        <XAxis dataKey="week" tick={{ fill: '#8888a0', fontSize: 11 }} tickLine={false} />
-        <YAxis tick={{ fill: '#8888a0', fontSize: 11 }} tickLine={false} axisLine={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E0" />
+        <XAxis dataKey="week" tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} />
+        <YAxis tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} axisLine={false} />
         <Tooltip
-          contentStyle={{ backgroundColor: '#12121a', border: '1px solid #3a3a5c', borderRadius: '8px' }}
-          labelStyle={{ color: '#f0f0f5', fontSize: 12 }}
+          contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
+          labelStyle={{ color: '#1C1917', fontSize: 12 }}
           itemStyle={{ fontSize: 12 }}
           formatter={(value, name) => {
             const key = String(name)
@@ -93,7 +93,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex h-[200px] items-center justify-center">
-      <p className="text-sm" style={{ color: '#8888a0' }}>{message}</p>
+      <p className="text-sm text-text-tertiary">{message}</p>
     </div>
   )
 }

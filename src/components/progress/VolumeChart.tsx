@@ -34,7 +34,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   if (weeks.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-sm" style={{ color: '#8888a0' }}>Geen trainingsdata beschikbaar</p>
+        <p className="text-sm text-text-tertiary">Geen trainingsdata beschikbaar</p>
       </div>
     )
   }
@@ -65,11 +65,11 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   return (
     <ResponsiveContainer width="100%" height={200}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1a1a2e" />
-        <XAxis dataKey="week" tick={{ fill: '#8888a0', fontSize: 11 }} tickLine={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E0" />
+        <XAxis dataKey="week" tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} />
         <YAxis
           yAxisId="minutes"
-          tick={{ fill: '#8888a0', fontSize: 11 }}
+          tick={{ fill: '#A8A29E', fontSize: 11 }}
           tickLine={false}
           axisLine={false}
         />
@@ -78,14 +78,14 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
             yAxisId="ratio"
             orientation="right"
             domain={[0, 2]}
-            tick={{ fill: '#8888a0', fontSize: 11 }}
+            tick={{ fill: '#A8A29E', fontSize: 11 }}
             tickLine={false}
             axisLine={false}
           />
         )}
         <Tooltip
-          contentStyle={{ backgroundColor: '#12121a', border: '1px solid #3a3a5c', borderRadius: '8px' }}
-          labelStyle={{ color: '#f0f0f5', fontSize: 12 }}
+          contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
+          labelStyle={{ color: '#1C1917', fontSize: 12 }}
           itemStyle={{ fontSize: 12 }}
           formatter={(value, name) => {
             const key = String(name)
@@ -97,15 +97,15 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
           wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
           formatter={(value) => SPORT_LABELS[value] ?? value}
         />
-        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill="#8b5cf6" />
-        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill="#06b6d4" />
-        <Bar yAxisId="minutes" dataKey="padel" stackId="vol" fill="#f59e0b" radius={[2, 2, 0, 0]} />
+        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill="#2E6F6F" />
+        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill="#C2410C" />
+        <Bar yAxisId="minutes" dataKey="padel" stackId="vol" fill="#B45309" radius={[4, 4, 0, 0]} />
         {hasAcwr && (
           <Line
             yAxisId="ratio"
             type="monotone"
             dataKey="acwr"
-            stroke="#ef4444"
+            stroke="#DC2626"
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}

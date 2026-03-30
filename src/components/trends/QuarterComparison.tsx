@@ -28,7 +28,10 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   const pct = Math.round(((current - previous) / previous) * 100)
   const positive = pct >= 0
   return (
-    <span className="flex items-center gap-0.5 text-xs" style={{ color: positive ? '#22c55e' : '#ef4444' }}>
+    <span
+      className="flex items-center gap-0.5 text-xs"
+      style={{ color: positive ? '#16A34A' : '#DC2626' }}
+    >
       {positive ? '▲' : '▼'} {Math.abs(pct)}%
     </span>
   )
@@ -45,12 +48,12 @@ interface MetricRowProps {
 function MetricRow({ label, current, previous, unit, decimals = 0 }: MetricRowProps) {
   const fmt = (v: number) => `${v.toFixed(decimals)}${unit ? ' ' + unit : ''}`
   return (
-    <div className="flex items-center justify-between gap-2 py-2" style={{ borderBottom: '1px solid #1a1a2e' }}>
-      <span className="text-sm" style={{ color: '#8888a0' }}>{label}</span>
+    <div className="flex items-center justify-between gap-2 py-2 border-b border-border-light">
+      <span className="text-sm text-text-tertiary">{label}</span>
       <div className="flex items-center gap-3">
-        <span className="text-xs" style={{ color: '#8888a0' }}>{fmt(previous)}</span>
+        <span className="text-xs text-text-tertiary">{fmt(previous)}</span>
         <Delta current={current} previous={previous} />
-        <span className="min-w-[60px] text-right text-sm font-medium" style={{ color: '#f0f0f5' }}>
+        <span className="min-w-[60px] text-right text-sm font-medium text-text-primary">
           {fmt(current)}
         </span>
       </div>
@@ -85,10 +88,10 @@ export function QuarterComparison({ months }: QuarterComparisonProps) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: '#8888a0' }}>Metric</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Metric</span>
         <div className="flex items-center gap-3">
-          <span className="text-xs" style={{ color: '#8888a0' }}>{prevQLabel}</span>
-          <span className="min-w-[60px] text-right text-xs font-medium" style={{ color: '#f0f0f5' }}>{currentQLabel}</span>
+          <span className="text-xs text-text-tertiary">{prevQLabel}</span>
+          <span className="min-w-[60px] text-right text-xs font-medium text-text-primary">{currentQLabel}</span>
         </div>
       </div>
       {metrics.map((m) => (

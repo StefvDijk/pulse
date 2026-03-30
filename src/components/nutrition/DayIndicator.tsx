@@ -22,9 +22,9 @@ function getStatus(current: number, target: number | null): 'under' | 'on_track'
 }
 
 const STATUS_MAP: Record<string, StatusInfo> = {
-  on_track: { label: 'Op schema', color: '#22c55e', bg: '#052e16' },
-  under: { label: 'Te weinig', color: '#f59e0b', bg: '#1c1003' },
-  over: { label: 'Te veel', color: '#ef4444', bg: '#2d1111' },
+  on_track: { label: 'Op schema', color: '#16A34A', bg: '#F0FDF4' },
+  under: { label: 'Te weinig', color: '#D97706', bg: '#FFFBEB' },
+  over: { label: 'Te veel', color: '#DC2626', bg: '#FEF2F2' },
 }
 
 function getMessage(
@@ -78,7 +78,7 @@ export function DayIndicator({ calories, calorieTarget, protein, proteinTarget }
       >
         {statusInfo.label}
       </span>
-      <p className="text-sm" style={{ color: '#f0f0f5' }}>
+      <p className="text-sm text-text-primary">
         {message}
       </p>
     </div>

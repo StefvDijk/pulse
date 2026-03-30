@@ -19,9 +19,9 @@ export interface NutritionInputProps {
 }
 
 const CONFIDENCE_LABELS: Record<string, { label: string; color: string }> = {
-  high: { label: 'Zeker', color: '#22c55e' },
-  medium: { label: 'Redelijk', color: '#f59e0b' },
-  low: { label: 'Schatting', color: '#8888a0' },
+  high: { label: 'Zeker', color: '#16A34A' },
+  medium: { label: 'Redelijk', color: '#D97706' },
+  low: { label: 'Schatting', color: '#A8A29E' },
 }
 
 export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
@@ -75,10 +75,7 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
   return (
     <div className="flex flex-col gap-2">
       {/* Input */}
-      <div
-        className="flex items-end gap-2 rounded-xl p-3"
-        style={{ backgroundColor: '#12121a', border: '1px solid #1a1a2e' }}
-      >
+      <div className="flex items-end gap-2 bg-bg-card border border-border-light rounded-[14px] p-3">
         <textarea
           ref={textareaRef}
           value={value}
@@ -87,14 +84,12 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
           placeholder="Wat heb je gegeten?"
           rows={2}
           disabled={isLoading}
-          className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:opacity-40"
-          style={{ color: '#f0f0f5' }}
+          className="flex-1 resize-none bg-transparent text-sm text-text-primary outline-none placeholder:opacity-40"
         />
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-opacity disabled:opacity-30"
-          style={{ backgroundColor: '#4f8cff' }}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent transition-opacity disabled:opacity-30"
           aria-label="Analyseer"
         >
           {isLoading ? (
@@ -107,18 +102,15 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
 
       {/* Error */}
       {error && (
-        <p className="text-xs" style={{ color: '#f87171' }}>
+        <p className="text-xs text-status-red">
           {error}
         </p>
       )}
 
       {/* Last result preview */}
       {lastResult && (
-        <div
-          className="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
-          style={{ backgroundColor: '#1a1a2e' }}
-        >
-          <span style={{ color: '#f0f0f5' }}>
+        <div className="flex items-center justify-between rounded-lg bg-bg-subtle px-3 py-2 text-xs">
+          <span className="text-text-primary">
             {lastResult.calories} kcal · {lastResult.protein_g}g eiwit · {lastResult.carbs_g}g koolh · {lastResult.fat_g}g vet
           </span>
           {confidence && (
