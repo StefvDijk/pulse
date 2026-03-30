@@ -83,7 +83,18 @@ export async function GET() {
       activeSchema: schemaResult.data,
     }
 
-    return NextResponse.json(data)
+    // Temporary debug info
+    const debug = {
+      userId: user.id,
+      weekStart,
+      weekEndStr,
+      weeklyFound: !!weeklyResult.data,
+      dailyCount: (dailyResult.data ?? []).length,
+      serverTime: new Date().toISOString(),
+    }
+    console.log('Dashboard debug:', JSON.stringify(debug))
+
+    return NextResponse.json({ ...data, _debug: debug })
   } catch (error) {
     console.error('Dashboard API error:', error)
     return NextResponse.json(
