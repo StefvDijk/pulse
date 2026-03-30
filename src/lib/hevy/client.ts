@@ -26,7 +26,7 @@ async function hevyFetch<T>(
 
   const response = await fetch(url.toString(), {
     headers: {
-      'x-api-key': apiKey,
+      'api-key': apiKey,
       'Content-Type': 'application/json',
     },
     cache: 'no-store',
@@ -99,7 +99,7 @@ export async function getExerciseTemplates(apiKey: string): Promise<HevyExercise
     })
 
     const parsed = HevyExerciseTemplatesResponseSchema.parse(raw)
-    pageCount = parsed.pageCount
+    pageCount = parsed.page_count
     allTemplates.push(...parsed.exercise_templates)
     page++
   }

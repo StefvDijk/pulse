@@ -79,7 +79,7 @@ export function mapHevyWorkout(hevy: HevyWorkout, userId: string): MappedWorkout
     const sets = hevyExercise.sets.map((hevySet) => {
       const set: Omit<WorkoutSetInsert, 'workout_exercise_id'> = {
         set_order: hevySet.index,
-        set_type: hevySet.set_type,
+        set_type: hevySet.type,
         weight_kg: hevySet.weight_kg,
         reps: hevySet.reps,
         distance_meters: hevySet.distance_meters,

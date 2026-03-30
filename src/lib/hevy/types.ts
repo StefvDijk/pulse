@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 export const HevySetSchema = z.object({
   index: z.number().int(),
-  set_type: z.enum(['normal', 'warmup', 'dropset', 'failure']),
+  type: z.enum(['normal', 'warmup', 'dropset', 'failure']),
   weight_kg: z.number().nullable(),
   reps: z.number().int().nullable(),
   distance_meters: z.number().nullable(),
@@ -32,7 +32,7 @@ export const HevyWorkoutSchema = z.object({
 
 export const HevyWorkoutsResponseSchema = z.object({
   page: z.number().int(),
-  pageCount: z.number().int(),
+  page_count: z.number().int(),
   workouts: z.array(HevyWorkoutSchema),
 })
 
@@ -47,7 +47,7 @@ export const HevyExerciseTemplateSchema = z.object({
 
 export const HevyExerciseTemplatesResponseSchema = z.object({
   page: z.number().int(),
-  pageCount: z.number().int(),
+  page_count: z.number().int(),
   exercise_templates: z.array(HevyExerciseTemplateSchema),
 })
 

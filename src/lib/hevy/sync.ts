@@ -1,9 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkouts } from '@/lib/hevy/client'
 import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
+import { syncExerciseTemplates } from '@/lib/hevy/template-sync'
 
 export interface SyncResult {
   synced: number
+  templatesSynced: number
   errors: string[]
 }
 
@@ -34,7 +36,13 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   const apiKey = settings.hevy_api_key
   const since = settings.last_hevy_sync_at ? new Date(settings.last_hevy_sync_at) : undefined
 
-  // 2. Fetch all exercise definitions for mapping
+  // 2. Sync exercise templates from Hevy first
+  const templateResult = await syncExerciseTemplates(apiKey)
+  if (templateResult.errors.length > 0) {
+    errors.push(...templateResult.errors.map((e) => `[templates] ${e}`))
+  }
+
+  // 3. Fetch all exercise definitions for mapping (now includes synced templates)
   const { data: definitions, error: definitionsError } = await admin
     .from('exercise_definitions')
     .select('id, name')
@@ -45,7 +53,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
 
   const exerciseDefinitions = definitions ?? []
 
-  // 3. Paginate through all workouts since last sync
+  // 4. Paginate through all workouts since last sync
   let page = 1
   let pageCount = 1
 
@@ -59,16 +67,16 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
       break
     }
 
-    pageCount = response.pageCount
+    pageCount = response.page_count
 
     for (const hevyWorkout of response.workouts) {
       try {
         const mapped = mapHevyWorkoutWithDefinitions(hevyWorkout, userId, exerciseDefinitions)
 
-        // 4. Upsert workout (on conflict hevy_workout_id)
+        // 5. Upsert workout (on conflict user_id + hevy_workout_id)
         const { data: upsertedWorkout, error: workoutError } = await admin
           .from('workouts')
-          .upsert(mapped.workout, { onConflict: 'hevy_workout_id' })
+          .upsert(mapped.workout, { onConflict: 'user_id,hevy_workout_id' })
           .select('id')
           .single()
 
@@ -79,7 +87,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
 
         const workoutId = upsertedWorkout.id
 
-        // 5. Upsert exercises and sets
+        // 6. Upsert exercises and sets
         for (const item of mapped.exercises) {
           if (!item.exerciseDefinitionId) {
             // Skip exercises with no matching definition — already warned in mapper
@@ -133,7 +141,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     page++
   }
 
-  // 6. Update last_hevy_sync_at on success (even partial)
+  // 7. Update last_hevy_sync_at on success (even partial)
   if (synced > 0 || errors.length === 0) {
     const { error: updateError } = await admin
       .from('user_settings')
@@ -145,5 +153,5 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     }
   }
 
-  return { synced, errors }
+  return { synced, templatesSynced: templateResult.synced, errors }
 }
