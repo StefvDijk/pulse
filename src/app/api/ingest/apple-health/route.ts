@@ -3,7 +3,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
-import { categorizeWorkout } from '@/lib/apple-health/types'
 
 // ---------------------------------------------------------------------------
 // POST /api/ingest/apple-health
@@ -71,20 +70,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // DEBUG: log all workout names to verify categorization
-  if (typeof rawBody === 'object' && rawBody !== null) {
-    const body = rawBody as Record<string, unknown>
-    const workouts = (body?.data as Record<string, unknown>)?.workouts
-    if (Array.isArray(workouts)) {
-      const names = workouts.map((w: unknown) => (w as Record<string, unknown>)?.name)
-      console.log('apple-health WORKOUT_NAMES:', JSON.stringify(names))
-    }
-  }
-
   const parseResult = parseHealthPayload(rawBody)
   if (!parseResult.success) {
     console.error('apple-health ingest: payload validation failed', parseResult.error.issues)
-    console.error('apple-health DEBUG raw (first 1000):', JSON.stringify(rawBody).slice(0, 1000))
     return NextResponse.json(
       { error: `Invalid payload: ${parseResult.error.message}` },
       { status: 422 },
@@ -94,8 +82,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const payload = parseResult.data
   const { runs: parsedRuns, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
-
-  // moved debug log to after DB operations
 
   const errors: string[] = []
 
@@ -220,21 +206,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   // ------------------------------------------------------------------
   // 8. Return summary
   // ------------------------------------------------------------------
-  // DEBUG: log FINAL result including errors
-  console.log('apple-health RESULT:', JSON.stringify({
-    runs: runsProcessed,
-    padel: padelProcessed,
-    activity: activityProcessed,
-    errors,
-    parsedCounts: { runs: parsedRuns.length, padel: parsedPadel.length, other: parsedOther.length },
-  }))
-
-  // Build workout categorization debug info from raw payload
-  const allWorkouts = payload.data.workouts.map((w) => ({
-    name: w.name,
-    category: categorizeWorkout(w.name),
-  }))
-
   return NextResponse.json({
     processed: {
       runs: runsProcessed,
@@ -242,10 +213,5 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       activity: activityProcessed,
     },
     errors,
-    _debug: {
-      workoutCount: payload.data.workouts.length,
-      metricCount: payload.data.metrics.length,
-      workouts: allWorkouts,
-    },
   })
 }
