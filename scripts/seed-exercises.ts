@@ -75,6 +75,11 @@ const EXERCISES: ExerciseInsert[] = [
   { name: 'Hanging Leg Raise', primary_muscle_group: 'core', secondary_muscle_groups: ['hip_flexors'], movement_pattern: 'core', is_compound: false, equipment: 'bodyweight' },
   { name: 'Ab Wheel Rollout', primary_muscle_group: 'core', secondary_muscle_groups: ['shoulders'], movement_pattern: 'core', is_compound: false, equipment: 'bodyweight' },
   { name: 'Russian Twist', primary_muscle_group: 'core', secondary_muscle_groups: [], movement_pattern: 'core', is_compound: false, equipment: 'bodyweight' },
+  { name: 'Dead Bug', primary_muscle_group: 'core', secondary_muscle_groups: [], movement_pattern: 'core', is_compound: false, equipment: 'bodyweight' },
+  { name: 'Pallof Press', primary_muscle_group: 'core', secondary_muscle_groups: [], movement_pattern: 'core', is_compound: false, equipment: 'cable' },
+
+  // ── BODYWEIGHT COMPOUND ────────────────────────────────────────────────────
+  { name: 'Push-ups', primary_muscle_group: 'chest', secondary_muscle_groups: ['triceps', 'shoulders'], movement_pattern: 'horizontal_push', is_compound: true, equipment: 'bodyweight' },
 
   // ── CALVES ─────────────────────────────────────────────────────────────────
   { name: 'Calf Raise (Standing)', primary_muscle_group: 'calves', secondary_muscle_groups: [], movement_pattern: 'isolation', is_compound: false, equipment: 'machine' },

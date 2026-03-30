@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { anthropic } from '@/lib/ai/client'
-import { CHAT_SYSTEM_PROMPT } from '@/lib/ai/prompts/chat-system'
+import { streamChat } from '@/lib/ai/client'
+import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
 import { classifyQuestion, assembleContext } from '@/lib/ai/context-assembler'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { analyzeNutrition } from '@/lib/nutrition/analyze'
+import { buildSchemaPrompt } from '@/lib/ai/prompts/schema-generation'
+import { buildWeeklySummaryPrompt } from '@/lib/ai/prompts/weekly-summary'
 
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -101,7 +105,39 @@ export async function POST(request: Request) {
 
     // Classify and assemble context
     const questionType = classifyQuestion(message)
-    const context = await assembleContext(user.id, questionType, supabase)
+    const admin = createAdminClient()
+
+    // Fetch dynamic data for system prompt + context in parallel
+    const [context, schemaResult, injuriesResult, goalsResult] = await Promise.all([
+      assembleContext(user.id, questionType),
+      admin
+        .from('training_schemas')
+        .select('title, schema_type, weeks_planned, start_date')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle(),
+      admin
+        .from('injury_logs')
+        .select('body_location, severity, description, status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(10),
+      admin
+        .from('goals')
+        .select('title, category, target_value, current_value, deadline')
+        .eq('user_id', user.id)
+        .neq('status', 'completed')
+        .limit(10),
+    ])
+
+    const activeSchema = schemaResult.data
+      ? {
+          ...schemaResult.data,
+          current_week: schemaResult.data.start_date
+            ? Math.ceil((Date.now() - new Date(schemaResult.data.start_date).getTime()) / (7 * 86400000)) + 1
+            : undefined,
+        }
+      : null
 
     // Get or create chat session
     let sessionId = session_id
@@ -123,13 +159,13 @@ export async function POST(request: Request) {
       sessionId = newSession.id
     }
 
-    // Fetch last 10 messages for context
+    // Fetch last 20 messages for context
     const { data: history } = await supabase
       .from('chat_messages')
       .select('role, content')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(20)
 
     const historyMessages = (history ?? [])
       .reverse()
@@ -144,13 +180,22 @@ export async function POST(request: Request) {
       message_type: questionType,
     })
 
-    // Build system prompt with context
-    const systemWithContext = CHAT_SYSTEM_PROMPT + context
+    // Build system prompt with dynamic data + assembled context
+    let systemWithContext = buildSystemPrompt({
+      activeSchema,
+      activeInjuries: injuriesResult.data ?? [],
+      activeGoals: goalsResult.data ?? [],
+    }) + context
+
+    // Append specialized prompts based on question type
+    if (questionType === 'schema_request') {
+      systemWithContext += '\n\n' + buildSchemaPrompt({})
+    } else if (questionType === 'weekly_review') {
+      systemWithContext += '\n\n' + buildWeeklySummaryPrompt({})
+    }
 
     // Stream Claude response
-    const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+    const stream = streamChat({
       system: systemWithContext,
       messages: [
         ...historyMessages,
@@ -195,19 +240,16 @@ export async function POST(request: Request) {
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', sessionId)
 
-          // Write-back: nutrition log
+          // Write-back: nutrition log (with full Claude-powered macro analysis)
           if (nutritionLog?.input) {
-            const today = new Date().toISOString().slice(0, 10)
-            await supabase
-              .from('nutrition_logs')
-              .insert({
-                user_id: user.id,
-                date: today,
-                raw_input: nutritionLog.input,
-                meal_type: 'snack',
-                confidence: 'low',
+            try {
+              await analyzeNutrition({
+                userId: user.id,
+                input: nutritionLog.input,
               })
-              .then(() => {})
+            } catch (err) {
+              console.error('Nutrition write-back failed:', err)
+            }
           }
 
           // Write-back: injury log

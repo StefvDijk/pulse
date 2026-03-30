@@ -207,3 +207,14 @@ Stop en vraag Stef om input wanneer:
 - **Claude API kosten:** Chat kan snel oplopen. Gebruik sonnet (niet opus) en hou context compact.
 - **Timezone:** Alle tijden in UTC opslaan. Converteer naar Europe/Amsterdam in de frontend.
 - **Apple Health duplicaten:** Health Auto Export kan dezelfde data meerdere keren sturen. Dedupliceer op `apple_health_id`.
+
+## Huidige Prioriteit: AI-laag bouwen
+
+De data-pipeline is af. De volgende fase is de AI-laag.
+
+- Lees `PRD-AI-LAYER.md` voor de volledige specificatie
+- Lees `CLAUDE-AI-LAYER.md` voor exacte bouwinstructies en volgorde
+- Volg de 10 stappen in CLAUDE-AI-LAYER.md strikt in volgorde
+- Begin met `pnpm add @anthropic-ai/sdk recharts swr react-markdown remark-gfm`
+
+De backlog in BACKLOG.md is niet meer leidend. CLAUDE-AI-LAYER.md is nu het werkdocument.

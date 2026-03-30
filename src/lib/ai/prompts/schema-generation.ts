@@ -1,33 +1,57 @@
 /**
- * Schema generation prompt fragment.
+ * Schema generation prompt builder.
  *
- * Dit wordt gebruikt als aanvulling op CHAT_SYSTEM_PROMPT wanneer de gebruiker
- * een trainingsschema wil genereren. Claude's write-back instructies in
- * CHAT_SYSTEM_PROMPT bevatten al het <schema_generation> formaat.
+ * Genereert een gedetailleerde prompt voor trainingsschema-generatie,
+ * inclusief blessure-beperkingen, schema-eisen en het iteratieve proces.
  */
-export const SCHEMA_GENERATION_GUIDANCE = `
-## Trainingsschema genereren
+export function buildSchemaPrompt(params: {
+  currentSchema?: string
+  blockSummaries?: string
+  progression?: string
+  injuries?: string
+  goals?: string
+}): string {
+  const { currentSchema, blockSummaries, progression, injuries, goals } = params
 
-Wanneer je een trainingsschema genereert:
+  return `## SCHEMA GENERATIE INSTRUCTIES
 
-1. **Vraag altijd eerst** (als je het niet weet):
-   - Hoeveel dagen per week wil de gebruiker trainen?
-   - Wat is het hoofddoel (kracht, spiermassa, conditie, gemengd)?
-   - Zijn er actieve blessures die bepaalde oefeningen uitsluiten?
+Je genereert een nieuw trainingsschema voor Stef. Volg deze instructies exact.
 
-2. **Schema-structuur** (in <schema_generation> blok):
-   - Gebruik 6–16 weken afhankelijk van het doel
-   - Varieer de belasting per week (opbouw → piek → deload)
-   - Deload elke 3–4 weken (50–60% volume)
-   - Kies oefeningen die realistisch zijn voor een zelfstandige sporter (geen exotische machines)
+### BLESSURE-BEPERKINGEN (ALTIJD RESPECTEREN)
+- GEEN overhead pressing (OHP, DB shoulder press) — schouder labrumpathologie
+- Squats alleen tot parallel, niet diep — knieën (OCD, kraakbeentransplantatie 2016)
+- BSS niet na intervaltraining — minstens 1 dag ertussen
+- Leg press: beperkt bereik
+- RDL's met neutrale rug, initiatie vanuit heupen — onderrug
+- Dead bugs, Pallof press, planks altijd in schema houden — core stabiliteit
 
-3. **Oefeningen**: gebruik exact dezelfde namen als in de exercise_definitions tabel waar mogelijk:
-   - Bench Press (Barbell), Squat (Barbell), Deadlift (Barbell), Overhead Press (Barbell)
-   - Pull Up, Barbell Row, Romanian Deadlift (Barbell)
-   - Bulgarian Split Squat, Hip Thrust (Barbell)
-   - Lateral Raise (Dumbbell), Tricep Pushdown, Bicep Curl (Dumbbell)
+### SCHEMA EISEN
+- Maximaal 55 minuten per sessie
+- 4 sessies per week (ma-do), vrijdag hardlopen
+- Progressieve overload: baseer startgewichten op recente progressie-data
+- Varieer oefeningen t.o.v. vorige schema's
+- Deload elke 3-4 weken
+- Altijd pull > push volume (schouder compensatie)
+- Face pulls of band pull-aparts in elke upper dag
 
-4. **Na het genereren**: toon een overzicht van het schema in een leesbare tabel en vraag om bevestiging.
-   - De gebruiker kan zeggen "ziet er goed uit" om het op te slaan
-   - Of "maak het zwaarder/lichter/anders" voor aanpassingen
-`
+### ITERATIEF PROCES
+1. Genereer een compleet schema en toon het als leesbare tabel
+2. Wacht op feedback van Stef
+3. Pas aan op basis van feedback
+4. Pas als Stef "ziet er goed uit" of "akkoord" zegt, genereer de definitieve versie
+
+### OUTPUT FORMAT
+Wanneer Stef het schema bevestigt, voeg een schema_generation write-back blok toe:
+\`\`\`
+<schema_generation>{"title":"<naam>","schema_type":"<type>","weeks_planned":<n>,"start_date":"<YYYY-MM-DD>","workout_schedule":[...]}</schema_generation>
+\`\`\`
+
+Het workout_schedule format per dag:
+{"day":"monday","focus":"Upper A","exercises":[{"name":"<naam>","sets":4,"reps":"8-10","notes":"<notities>"}]}
+
+${currentSchema ? `### HUIDIG SCHEMA\n${currentSchema}` : ''}
+${blockSummaries ? `### VORIGE SCHEMA'S\n${blockSummaries}` : ''}
+${progression ? `### PROGRESSIE DATA\n${progression}` : ''}
+${injuries ? `### ACTIEVE BLESSURES\n${injuries}` : ''}
+${goals ? `### ACTIEVE DOELEN\n${goals}` : ''}`
+}

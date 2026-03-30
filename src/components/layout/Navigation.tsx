@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, TrendingUp, Utensils, BarChart2, MessageCircle } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, TrendingUp, Utensils, BarChart2, MessageCircle, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
   href: string
@@ -20,6 +21,13 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Navigation() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <>
@@ -43,6 +51,14 @@ export function Navigation() {
               </Link>
             )
           })}
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] justify-center"
+            style={{ color: '#8888a0' }}
+          >
+            <LogOut size={20} strokeWidth={1.8} />
+            <span className="text-xs">Uit</span>
+          </button>
         </div>
       </nav>
 
@@ -77,7 +93,7 @@ export function Navigation() {
           })}
         </nav>
 
-        <div className="px-3 py-4" style={{ borderTop: '1px solid #1a1a2e' }}>
+        <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid #1a1a2e' }}>
           <Link
             href="/settings"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
@@ -85,6 +101,14 @@ export function Navigation() {
           >
             Instellingen
           </Link>
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left hover:bg-[#1a1a2e]"
+            style={{ color: '#8888a0' }}
+          >
+            <LogOut size={18} strokeWidth={1.8} />
+            Uitloggen
+          </button>
         </div>
       </aside>
     </>

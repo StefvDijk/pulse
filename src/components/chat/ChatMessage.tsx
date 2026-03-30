@@ -1,6 +1,7 @@
 'use client'
 
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -26,6 +27,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
         ) : (
           <div className="prose prose-sm prose-invert max-w-none">
             <Markdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 // Style headings
                 h1: ({ children }) => (
@@ -70,6 +72,28 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
                     {children}
                   </code>
                 ),
+                // Style tables (GFM)
+                table: ({ children }) => (
+                  <div className="my-2 overflow-x-auto">
+                    <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead style={{ borderBottom: '1px solid #3a3a5c' }}>{children}</thead>
+                ),
+                th: ({ children }) => (
+                  <th className="px-2 py-1 text-left font-medium" style={{ color: '#c8c8e0' }}>
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-2 py-1" style={{ borderBottom: '1px solid #1a1a2e' }}>
+                    {children}
+                  </td>
+                ),
+                tr: ({ children }) => <tr>{children}</tr>,
               }}
             >
               {content}
