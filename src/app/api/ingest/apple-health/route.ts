@@ -11,6 +11,10 @@ import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/ma
 // Deduplication:  upsert on (user_id, apple_health_id)
 // ---------------------------------------------------------------------------
 
+// Historical syncs from Health Auto Export can be large (many months of data)
+export const maxDuration = 60 // seconds
+export const dynamic = 'force-dynamic'
+
 interface IngestResponse {
   processed: {
     runs: number
@@ -66,9 +70,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
+  // DEBUG: log all workout names to verify categorization
+  if (typeof rawBody === 'object' && rawBody !== null) {
+    const body = rawBody as Record<string, unknown>
+    const workouts = (body?.data as Record<string, unknown>)?.workouts
+    if (Array.isArray(workouts)) {
+      const names = workouts.map((w: unknown) => (w as Record<string, unknown>)?.name)
+      console.log('apple-health WORKOUT_NAMES:', JSON.stringify(names))
+    }
+  }
+
   const parseResult = parseHealthPayload(rawBody)
   if (!parseResult.success) {
-    console.error('apple-health ingest: payload validation failed', parseResult.error)
+    console.error('apple-health ingest: payload validation failed', parseResult.error.issues)
+    console.error('apple-health DEBUG raw (first 1000):', JSON.stringify(rawBody).slice(0, 1000))
     return NextResponse.json(
       { error: `Invalid payload: ${parseResult.error.message}` },
       { status: 422 },
@@ -76,8 +91,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   const payload = parseResult.data
-  const { runs: parsedRuns, padel: parsedPadel } = parseWorkouts(payload)
+  const { runs: parsedRuns, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
+
+  // moved debug log to after DB operations
 
   const errors: string[] = []
 
@@ -202,6 +219,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   // ------------------------------------------------------------------
   // 8. Return summary
   // ------------------------------------------------------------------
+  // DEBUG: log FINAL result including errors
+  console.log('apple-health RESULT:', JSON.stringify({
+    runs: runsProcessed,
+    padel: padelProcessed,
+    activity: activityProcessed,
+    errors,
+    parsedCounts: { runs: parsedRuns.length, padel: parsedPadel.length, other: parsedOther.length },
+  }))
+
   return NextResponse.json({
     processed: {
       runs: runsProcessed,
@@ -209,5 +235,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       activity: activityProcessed,
     },
     errors,
+    _debug: {
+      otherWorkoutNames: parsedOther.map((w) => w.name),
+    },
   })
 }

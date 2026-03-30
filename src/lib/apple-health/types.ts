@@ -2,24 +2,62 @@ import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
 // Raw Health Auto Export schemas (parse defensively — format varies!)
+//
+// HAE v2 (current) sends structured objects for workout fields:
+//   duration        → number (seconds)
+//   distance        → { qty: number, units: string }
+//   activeEnergyBurned → { qty: number, units: string }
+//   heartRate       → { avg: { qty, units }, max: { qty, units }, ... }
+//
+// HAE v1 (legacy) sent string values like "30 min", "8.2 km", "155 bpm".
+// Both formats are accepted for backwards compatibility.
 // ---------------------------------------------------------------------------
+
+/** { qty: number, units: string } — used for distance, energy, etc. in HAE v2 */
+export const QuantityValueSchema = z.object({
+  qty: z.number(),
+  units: z.string(),
+})
+
+export type QuantityValue = z.infer<typeof QuantityValueSchema>
+
+/** Heart rate object in HAE v2 workouts */
+export const HeartRateSchema = z.object({
+  min: QuantityValueSchema.optional(),
+  avg: QuantityValueSchema.optional(),
+  max: QuantityValueSchema.optional(),
+})
 
 /**
  * A single workout entry from Health Auto Export.
+ * Supports both HAE v1 (string values) and HAE v2 (structured objects).
  * All fields except name/start are optional because HAE omits them when
  * the data is unavailable.
  */
-export const RawWorkoutSchema = z.object({
-  name: z.string(),
-  start: z.string(),
-  end: z.string().optional(),
-  duration: z.string().optional(),
-  distance: z.string().optional(),
-  activeEnergy: z.string().optional(),
-  avgHeartRate: z.string().optional(),
-  maxHeartRate: z.string().optional(),
-  id: z.string().optional(),
-})
+export const RawWorkoutSchema = z
+  .object({
+    id: z.string().optional(),
+    name: z.string(),
+    start: z.string(),
+    end: z.string().optional(),
+    // v2: number (seconds) — v1: string like "30 min"
+    duration: z.union([z.number(), z.string()]).optional(),
+    // v2: { qty, units } — v1: string like "8.2 km"
+    distance: z.union([QuantityValueSchema, z.string()]).optional(),
+    // v2 fields
+    activeEnergyBurned: QuantityValueSchema.optional(),
+    totalEnergy: QuantityValueSchema.optional(),
+    heartRate: HeartRateSchema.optional(),
+    location: z.string().optional(),
+    isIndoor: z.boolean().optional(),
+    // activeEnergy: HAE v2 sends array, older versions sent string
+    activeEnergy: z.union([z.array(z.any()), QuantityValueSchema, z.string()]).optional(),
+    // avgHeartRate / maxHeartRate: HAE v2 sends { qty, units }, v1 sent string
+    avgHeartRate: z.union([QuantityValueSchema, z.string()]).optional(),
+    maxHeartRate: z.union([QuantityValueSchema, z.string()]).optional(),
+    walkingAndRunningDistance: z.union([QuantityValueSchema, z.string()]).optional(),
+  })
+  .passthrough()
 
 export type RawWorkout = z.infer<typeof RawWorkoutSchema>
 
@@ -99,28 +137,48 @@ export interface ParsedDailyActivity {
 // ---------------------------------------------------------------------------
 
 const RUNNING_NAMES = new Set([
+  // English
   'running',
   'outdoor run',
   'indoor run',
   'treadmill running',
   'treadmill run',
+  // Dutch (Apple Health NL)
+  'buiten rennen',
+  'binnen rennen',
+  'hardlopen',
+  'loopband',
 ])
 
 const PADEL_NAMES = new Set([
+  // English
   'padel',
   'racket sports',
   'squash',
   'tennis',
   'racquetball',
+  'badminton',
+  // Dutch (Apple Health NL)
+  'tennis',
+  'racketsporten',
+  'padel',
+  'squash',
 ])
+
+const RUNNING_KEYWORDS = ['hardlopen', 'rennen', 'running', 'run', 'loopband', 'treadmill', 'joggen']
+const PADEL_KEYWORDS = ['padel', 'tennis', 'squash', 'racket', 'badminton']
 
 /**
  * Categorise a workout based on its Apple Health name.
+ * Uses exact matching first, then keyword matching for localized variants
+ * (e.g. "Buiten hardlopen" on Dutch iPhones).
  */
 export function categorizeWorkout(name: string): WorkoutCategory {
   const lower = name.toLowerCase()
   if (RUNNING_NAMES.has(lower)) return 'running'
   if (PADEL_NAMES.has(lower)) return 'padel'
+  if (RUNNING_KEYWORDS.some((kw) => lower.includes(kw))) return 'running'
+  if (PADEL_KEYWORDS.some((kw) => lower.includes(kw))) return 'padel'
   return 'other'
 }
 

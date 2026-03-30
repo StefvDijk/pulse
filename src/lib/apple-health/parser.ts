@@ -13,6 +13,19 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
+ * Convert a qty+units distance to metres.
+ * HAE v2 sends distance as { qty: 8.2, units: "km" }.
+ */
+function distanceToMeters(qty: number, units: string): number {
+  switch (units.toLowerCase()) {
+    case 'km': return Math.round(qty * 1000)
+    case 'm': return Math.round(qty)
+    case 'mi': return Math.round(qty * 1609.344)
+    default: return Math.round(qty)
+  }
+}
+
+/**
  * Normalise a HAE date string to an ISO-8601 UTC string.
  * HAE timestamps look like "2026-01-15 08:00:00 +0100".
  */
@@ -48,25 +61,65 @@ function extractDate(str: string): string {
 function parseRawWorkout(
   raw: RawHealthPayload['data']['workouts'][number],
 ): ParsedWorkout {
-  const durationSeconds = raw.duration
-    ? parseMetricValue(raw.duration)
-    : undefined
+  // Duration: v2 → number (seconds), v1 → string like "30 min"
+  let durationSeconds: number | undefined
+  if (typeof raw.duration === 'number') {
+    durationSeconds = raw.duration
+  } else if (typeof raw.duration === 'string') {
+    durationSeconds = parseMetricValue(raw.duration)
+  }
 
-  const distanceMeters = raw.distance
-    ? parseMetricValue(raw.distance)
-    : undefined
+  // Distance: v2 → { qty, units }, v1 → string like "8.2 km"
+  // HAE may use walkingAndRunningDistance instead of distance for running workouts
+  let distanceMeters: number | undefined
+  const distField = raw.distance ?? raw.walkingAndRunningDistance
+  if (distField && typeof distField === 'object' && 'qty' in distField) {
+    distanceMeters = distanceToMeters(
+      (distField as { qty: number; units: string }).qty,
+      (distField as { qty: number; units: string }).units,
+    )
+  } else if (typeof distField === 'string') {
+    distanceMeters = parseMetricValue(distField)
+  }
 
-  const calories = raw.activeEnergy
-    ? parseMetricValue(raw.activeEnergy)
-    : undefined
+  // Calories: try activeEnergyBurned.qty, then activeEnergy (array or object or string)
+  let calories: number | undefined
+  if (raw.activeEnergyBurned?.qty !== undefined) {
+    calories = raw.activeEnergyBurned.qty
+  } else if (Array.isArray(raw.activeEnergy)) {
+    // HAE v2 sends activeEnergy as per-minute array of { qty, units } — sum and convert
+    const items = raw.activeEnergy as { qty?: number; units?: string }[]
+    const total = items.reduce((sum, item) => sum + (item?.qty ?? 0), 0)
+    if (total > 0) {
+      const isKJ = items.some((item) => item?.units?.toLowerCase() === 'kj')
+      calories = isKJ ? Math.round(total / 4.184) : total
+    }
+  } else if (raw.activeEnergy && typeof raw.activeEnergy === 'object' && 'qty' in raw.activeEnergy) {
+    calories = (raw.activeEnergy as { qty: number }).qty
+  } else if (typeof raw.activeEnergy === 'string') {
+    calories = parseMetricValue(raw.activeEnergy)
+  }
 
-  const avgHeartRate = raw.avgHeartRate
-    ? parseMetricValue(raw.avgHeartRate)
-    : undefined
+  // Heart rate: try heartRate.avg/max (reference format), then avgHeartRate/maxHeartRate
+  // as { qty, units } object (HAE v2 actual) or string (HAE v1)
+  let avgHeartRate: number | undefined
+  let maxHeartRate: number | undefined
 
-  const maxHeartRate = raw.maxHeartRate
-    ? parseMetricValue(raw.maxHeartRate)
-    : undefined
+  if (raw.heartRate?.avg?.qty !== undefined) {
+    avgHeartRate = raw.heartRate.avg.qty
+  } else if (raw.avgHeartRate && typeof raw.avgHeartRate === 'object' && 'qty' in raw.avgHeartRate) {
+    avgHeartRate = (raw.avgHeartRate as { qty: number }).qty
+  } else if (typeof raw.avgHeartRate === 'string') {
+    avgHeartRate = parseMetricValue(raw.avgHeartRate)
+  }
+
+  if (raw.heartRate?.max?.qty !== undefined) {
+    maxHeartRate = raw.heartRate.max.qty
+  } else if (raw.maxHeartRate && typeof raw.maxHeartRate === 'object' && 'qty' in raw.maxHeartRate) {
+    maxHeartRate = (raw.maxHeartRate as { qty: number }).qty
+  } else if (typeof raw.maxHeartRate === 'string') {
+    maxHeartRate = parseMetricValue(raw.maxHeartRate)
+  }
 
   return {
     appleHealthId: raw.id,
