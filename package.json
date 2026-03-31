@@ -10,7 +10,9 @@
     "seed:exercises": "tsx scripts/seed-exercises.ts",
     "seed:testdata": "tsx scripts/seed-test-data.ts",
     "seed:stef": "tsx scripts/seed-stef-data.ts",
-    "seed:history": "tsx scripts/seed-historical-data.ts"
+    "seed:history": "tsx scripts/seed-historical-data.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -27,6 +29,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
