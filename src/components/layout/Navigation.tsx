@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutGrid, TrendingUp, Utensils, ClipboardList, MessageCircle, LogOut } from 'lucide-react'
+import { LayoutGrid, TrendingUp, ClipboardList, MessageCircle, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
@@ -13,9 +13,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Home', icon: LayoutGrid },
-  { href: '/progress', label: 'Progressie', icon: TrendingUp },
   { href: '/schema', label: 'Schema', icon: ClipboardList },
-  { href: '/nutrition', label: 'Voeding', icon: Utensils },
+  { href: '/progress', label: 'Progressie', icon: TrendingUp },
   { href: '/chat', label: 'Coach', icon: MessageCircle },
 ]
 

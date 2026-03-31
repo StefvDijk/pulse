@@ -2,11 +2,7 @@
 
 import { useMemo } from 'react'
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { WorkloadMeter, type WorkloadStatus } from './WorkloadMeter'
-import { MuscleHeatmap } from './MuscleHeatmap'
-import { SportSplit } from './SportSplit'
 import { AdherenceTracker } from './AdherenceTracker'
-import { TrainingBlockIndicator } from './TrainingBlockIndicator'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -106,76 +102,40 @@ export function DashboardPage() {
   }
 
   const weekly = data.weeklyAggregation
-  const ratio = weekly?.acute_chronic_ratio ?? 0
-  const status = (weekly?.workload_status ?? 'low') as WorkloadStatus
-  const muscleLoad = (weekly?.weekly_muscle_load as Record<string, number>) ?? {}
 
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-2">
-      {/* Row 1: Workload + Training Block */}
-      <DashboardCard title="Workload ratio">
-        <div className="flex items-center justify-center">
-          <WorkloadMeter ratio={ratio} status={status} />
-        </div>
-        {weekly && (
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-lg font-bold tabular-nums text-text-primary">
-                {weekly.total_sessions ?? 0}
-              </p>
-              <p className="text-xs text-text-tertiary">
-                sessies
-              </p>
-            </div>
-            <div>
-              <p className="text-lg font-bold tabular-nums text-text-primary">
-                {Math.round((weekly.total_training_minutes ?? 0) / 60 * 10) / 10}u
-              </p>
-              <p className="text-xs text-text-tertiary">
-                trainingstijd
-              </p>
-            </div>
-            <div>
-              <p className="text-lg font-bold tabular-nums text-text-primary">
-                {Math.round(weekly.total_tonnage_kg ?? 0).toLocaleString('nl-NL')}
-              </p>
-              <p className="text-xs text-text-tertiary">
-                kg tonnage
-              </p>
-            </div>
-          </div>
-        )}
-      </DashboardCard>
-
-      <DashboardCard title="Trainingsblok">
-        <TrainingBlockIndicator schema={data.activeSchema} />
-      </DashboardCard>
-
-      {/* Row 2: Adherence (full width) */}
-      <DashboardCard title="Deze week" className="lg:col-span-2">
+    <div className="flex flex-col gap-4 p-4">
+      {/* Adherence — week overview */}
+      <DashboardCard title="Deze week">
         <AdherenceTracker
           dailyAggregations={data.dailyAggregations}
           weekStart={weekStart}
         />
       </DashboardCard>
 
-      {/* Row 3: Muscle Heatmap (full width) */}
-      <DashboardCard title="Spiergroepbelasting" className="lg:col-span-2">
-        <MuscleHeatmap muscleLoad={muscleLoad} />
-      </DashboardCard>
-
-      {/* Row 4: Sport Split (full width) */}
-      <DashboardCard title="Sport verdeling" className="lg:col-span-2">
-        <SportSplit
-          gymMinutes={weekly?.total_training_minutes ?? 0}
-          runningMinutes={
-            data.dailyAggregations.reduce((sum, d) => sum + (d.running_minutes ?? 0), 0)
-          }
-          padelMinutes={
-            data.dailyAggregations.reduce((sum, d) => sum + (d.padel_minutes ?? 0), 0)
-          }
-        />
-      </DashboardCard>
+      {/* Compact stats */}
+      {weekly && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
+            <p className="text-lg font-bold tabular-nums text-text-primary">
+              {weekly.total_sessions ?? 0}
+            </p>
+            <p className="text-xs text-text-tertiary">sessies</p>
+          </div>
+          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
+            <p className="text-lg font-bold tabular-nums text-text-primary">
+              {Math.round(weekly.total_training_minutes ?? 0)}m
+            </p>
+            <p className="text-xs text-text-tertiary">trainingstijd</p>
+          </div>
+          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
+            <p className="text-lg font-bold tabular-nums text-text-primary">
+              {Math.round(weekly.total_tonnage_kg ?? 0).toLocaleString('nl-NL')}
+            </p>
+            <p className="text-xs text-text-tertiary">kg tonnage</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
