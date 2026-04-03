@@ -18,6 +18,17 @@ type WeeklyReviewRow = Database['public']['Tables']['weekly_reviews']['Row']
 type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
 
 // ---------------------------------------------------------------------------
+// Gap detection types
+// ---------------------------------------------------------------------------
+
+export interface DetectedGap {
+  date: string        // ISO date
+  dayName: string     // "maandag", "donderdag", etc.
+  expected: string    // "Upper A", "Padel", etc.
+  type: 'gym' | 'padel' | 'run'
+}
+
+// ---------------------------------------------------------------------------
 // Exported response type
 // ---------------------------------------------------------------------------
 
@@ -55,6 +66,7 @@ export interface CheckInReviewData {
     weeklyTrainingTarget: Json | null
     proteinTargetPerKg: number | null
   }
+  gaps: DetectedGap[]
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +106,154 @@ function avg(values: (number | null)[]): number | null {
 }
 
 // ---------------------------------------------------------------------------
+// Gap detection helpers
+// ---------------------------------------------------------------------------
+
+const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+
+const DUTCH_DAY_NAMES: Record<string, string> = {
+  monday: 'maandag',
+  tuesday: 'dinsdag',
+  wednesday: 'woensdag',
+  thursday: 'donderdag',
+  friday: 'vrijdag',
+  saturday: 'zaterdag',
+  sunday: 'zondag',
+}
+
+interface ScheduledWorkout {
+  focus: string
+  type: 'gym' | 'padel' | 'run'
+}
+
+/**
+ * Parse the workout_schedule JSONB into a day → workout map.
+ * Supports two formats:
+ *   Array:  [{ day: "monday", focus: "Upper A", ... }]
+ *   Object: { days: { monday: { title: "Upper A", type: "gym", ... } } }
+ */
+function parseWorkoutSchedule(raw: unknown): Map<string, ScheduledWorkout> {
+  const map = new Map<string, ScheduledWorkout>()
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (item && typeof item === 'object' && 'day' in item && 'focus' in item) {
+        const day = String(item.day).toLowerCase()
+        map.set(day, {
+          focus: String(item.focus),
+          type: 'gym',
+        })
+      }
+    }
+  } else if (raw && typeof raw === 'object' && 'days' in raw) {
+    const daysObj = (raw as { days: Record<string, { title?: string; type?: string } | null> }).days
+    if (daysObj && typeof daysObj === 'object') {
+      for (const [dayName, dayData] of Object.entries(daysObj)) {
+        if (dayData && dayData.title) {
+          map.set(dayName.toLowerCase(), {
+            focus: dayData.title,
+            type: (dayData.type as 'gym' | 'padel' | 'run') ?? 'gym',
+          })
+        }
+      }
+    }
+  }
+
+  return map
+}
+
+function detectGaps(
+  weekStart: string,
+  weekEnd: string,
+  schedule: Map<string, ScheduledWorkout>,
+  overrides: Record<string, string | null>,
+  workouts: WorkoutRow[],
+  padelSessions: PadelSessionRow[],
+  runs: RunRow[],
+): DetectedGap[] {
+  const today = new Date().toISOString().slice(0, 10)
+  const gaps: DetectedGap[] = []
+
+  // Build date → day-of-week for the review week (Mon=0 .. Sun=6)
+  const startDate = new Date(weekStart + 'T00:00:00Z')
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate)
+    d.setUTCDate(startDate.getUTCDate() + i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const dayName = DAY_ORDER[i]
+
+    // Only check past days (not today or future)
+    if (dateStr >= today) continue
+
+    // Determine what was planned for this day
+    let expected: ScheduledWorkout | null = null
+
+    // Check overrides first
+    if (dateStr in overrides) {
+      const overrideValue = overrides[dateStr]
+      if (overrideValue === null) {
+        // Forced rest day — no gap possible
+        continue
+      }
+      expected = { focus: overrideValue, type: 'gym' }
+    } else {
+      expected = schedule.get(dayName) ?? null
+    }
+
+    // Check for padel on Monday (fixed pattern, always expected)
+    const isPadelDay = dayName === 'monday'
+
+    if (expected) {
+      // Check if a matching workout exists
+      const hasMatchingWorkout = workouts.some((w) => {
+        const workoutDate = w.started_at.slice(0, 10)
+        return workoutDate === dateStr
+      })
+
+      const hasMatchingRun = runs.some((r) => {
+        const runDate = r.started_at.slice(0, 10)
+        return runDate === dateStr
+      })
+
+      if (!hasMatchingWorkout && !hasMatchingRun) {
+        gaps.push({
+          date: dateStr,
+          dayName: DUTCH_DAY_NAMES[dayName],
+          expected: expected.focus,
+          type: expected.type,
+        })
+      }
+    }
+
+    // Check padel for Monday
+    if (isPadelDay) {
+      const hasPadel = padelSessions.some((p) => {
+        const padelDate = p.started_at.slice(0, 10)
+        return padelDate === dateStr
+      })
+
+      if (!hasPadel) {
+        // Only add if we didn't already add a gap for this date with padel focus
+        const alreadyAdded = gaps.some(
+          (g) => g.date === dateStr && g.expected === 'Padel',
+        )
+        if (!alreadyAdded) {
+          gaps.push({
+            date: dateStr,
+            dayName: DUTCH_DAY_NAMES[dayName],
+            expected: 'Padel',
+            type: 'padel',
+          })
+        }
+      }
+    }
+  }
+
+  return gaps
+}
+
+// ---------------------------------------------------------------------------
 // GET handler
 // ---------------------------------------------------------------------------
 
@@ -130,6 +290,7 @@ export async function GET(request: Request) {
       prsResult,
       prevReviewResult,
       settingsResult,
+      schemaResult,
     ] = await Promise.all([
       // Weekly aggregation for this week
       admin
@@ -207,6 +368,14 @@ export async function GET(request: Request) {
         .select('weekly_training_target, protein_target_per_kg')
         .eq('user_id', user.id)
         .maybeSingle(),
+
+      // Active training schema (for gap detection)
+      admin
+        .from('training_schemas')
+        .select('workout_schedule, scheduled_overrides')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle(),
     ])
 
     // Check for critical errors
@@ -219,10 +388,26 @@ export async function GET(request: Request) {
     if (prsResult.error) throw prsResult.error
     if (prevReviewResult.error) throw prevReviewResult.error
     if (settingsResult.error) throw settingsResult.error
+    // Schema error is non-critical — gaps will be empty
+    if (schemaResult.error) {
+      console.error('Schema query for gap detection failed:', schemaResult.error)
+    }
 
     const agg = aggResult.data
     const nutritionDays = nutritionResult.data ?? []
     const sleepDays = sleepResult.data ?? []
+    const workoutsData = workoutsResult.data ?? []
+    const runsData = runsResult.data ?? []
+    const padelData = padelResult.data ?? []
+
+    // Gap detection
+    let gaps: DetectedGap[] = []
+    const schema = schemaResult.data
+    if (schema) {
+      const schedule = parseWorkoutSchedule(schema.workout_schedule)
+      const overrides = (schema.scheduled_overrides as Record<string, string | null>) ?? {}
+      gaps = detectGaps(weekStart, weekEnd, schedule, overrides, workoutsData, padelData, runsData)
+    }
 
     const data: CheckInReviewData = {
       week: {
@@ -237,9 +422,9 @@ export async function GET(request: Request) {
         completed: agg?.completed_sessions ?? null,
         adherencePercentage: agg?.adherence_percentage ?? null,
       },
-      workouts: workoutsResult.data ?? [],
-      runs: runsResult.data ?? [],
-      padelSessions: padelResult.data ?? [],
+      workouts: workoutsData,
+      runs: runsData,
+      padelSessions: padelData,
       nutrition: {
         days: nutritionDays,
         avgCalories: avg(nutritionDays.map(d => d.total_calories)),
@@ -258,6 +443,7 @@ export async function GET(request: Request) {
         weeklyTrainingTarget: settingsResult.data?.weekly_training_target ?? null,
         proteinTargetPerKg: settingsResult.data?.protein_target_per_kg ?? null,
       },
+      gaps,
     }
 
     return NextResponse.json(data)

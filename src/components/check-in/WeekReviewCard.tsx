@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import {
+  AlertTriangle,
   Dumbbell,
   Footprints,
   Moon,
@@ -224,6 +225,24 @@ export function WeekReviewCard({
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Detected gaps */}
+      {data.gaps.length > 0 && (
+        <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle size={16} className="text-status-amber" />
+            <h3 className="text-card-title">Mogelijk gemist</h3>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {data.gaps.map((gap) => (
+              <div key={`${gap.date}-${gap.type}`} className="flex items-center gap-3 py-1">
+                <span className="text-sm text-status-amber capitalize">{gap.dayName}</span>
+                <span className="text-sm text-text-secondary">{gap.expected} niet gelogd</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
