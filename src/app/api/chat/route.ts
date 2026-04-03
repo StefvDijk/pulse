@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamChat } from '@/lib/ai/client'
+import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
-import { classifyQuestion, assembleContext } from '@/lib/ai/context-assembler'
+import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
+import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
-import { buildSchemaPrompt } from '@/lib/ai/prompts/schema-generation'
-import { buildWeeklySummaryPrompt } from '@/lib/ai/prompts/weekly-summary'
+import { selectSkills } from '@/lib/ai/skills/router'
+import { createToolsForUser } from '@/lib/ai/tools'
 
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -34,11 +35,23 @@ interface SchemaGenerationData {
   workout_schedule: unknown
 }
 
+interface SchemaUpdateData {
+  action: 'replace_exercise' | 'add_exercise' | 'remove_exercise' | 'modify_sets' | 'swap_days'
+  day: string
+  old_exercise?: string
+  new_exercise?: { name: string; sets?: number; reps?: string; notes?: string }
+  exercise_name?: string
+  sets?: number
+  reps?: string
+  swap_with_day?: string
+}
+
 interface WritebackResult {
   cleanText: string
   nutritionLog?: NutritionLogData
   injuryLog?: InjuryLogData
   schemaGeneration?: SchemaGenerationData
+  schemaUpdate?: SchemaUpdateData
 }
 
 function extractWritebacks(text: string): WritebackResult {
@@ -46,6 +59,7 @@ function extractWritebacks(text: string): WritebackResult {
   let nutritionLog: NutritionLogData | undefined
   let injuryLog: InjuryLogData | undefined
   let schemaGeneration: SchemaGenerationData | undefined
+  let schemaUpdate: SchemaUpdateData | undefined
 
   const nutritionMatch = /<nutrition_log>([\s\S]*?)<\/nutrition_log>/i.exec(text)
   if (nutritionMatch) {
@@ -77,7 +91,17 @@ function extractWritebacks(text: string): WritebackResult {
     cleanText = cleanText.replace(schemaMatch[0], '').trim()
   }
 
-  return { cleanText, nutritionLog, injuryLog, schemaGeneration }
+  const schemaUpdateMatch = /<schema_update>([\s\S]*?)<\/schema_update>/i.exec(text)
+  if (schemaUpdateMatch) {
+    try {
+      schemaUpdate = JSON.parse(schemaUpdateMatch[1].trim()) as SchemaUpdateData
+    } catch {
+      // ignore malformed JSON
+    }
+    cleanText = cleanText.replace(schemaUpdateMatch[0], '').trim()
+  }
+
+  return { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate }
 }
 
 export async function POST(request: Request) {
@@ -103,13 +127,13 @@ export async function POST(request: Request) {
 
     const { message, session_id } = parsed.data
 
-    // Classify and assemble context
+    // Classify and assemble thin context (tools fill the rest on-demand)
     const questionType = classifyQuestion(message)
     const admin = createAdminClient()
 
-    // Fetch dynamic data for system prompt + context in parallel
-    const [context, schemaResult, injuriesResult, goalsResult] = await Promise.all([
-      assembleContext(user.id, questionType),
+    // Fetch dynamic data for system prompt + thin context in parallel
+    const [thinContext, schemaResult, injuriesResult, goalsResult, settingsResult] = await Promise.all([
+      assembleThinContext(user.id),
       admin
         .from('training_schemas')
         .select('title, schema_type, weeks_planned, start_date')
@@ -128,6 +152,11 @@ export async function POST(request: Request) {
         .eq('user_id', user.id)
         .neq('status', 'completed')
         .limit(10),
+      admin
+        .from('user_settings')
+        .select('ai_custom_instructions')
+        .eq('user_id', user.id)
+        .maybeSingle(),
     ])
 
     const activeSchema = schemaResult.data
@@ -180,27 +209,32 @@ export async function POST(request: Request) {
       message_type: questionType,
     })
 
-    // Build system prompt with dynamic data + assembled context
+    // Build system prompt with dynamic data + thin context
     let systemWithContext = buildSystemPrompt({
       activeSchema,
       activeInjuries: injuriesResult.data ?? [],
       activeGoals: goalsResult.data ?? [],
-    }) + context
+      customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+    }) + thinContext
 
-    // Append specialized prompts based on question type
-    if (questionType === 'schema_request') {
-      systemWithContext += '\n\n' + buildSchemaPrompt({})
-    } else if (questionType === 'weekly_review') {
-      systemWithContext += '\n\n' + buildWeeklySummaryPrompt({})
+    // Append relevant skill prompts based on question type + keywords
+    const skills = selectSkills(questionType, message)
+    if (skills.length > 0) {
+      systemWithContext += '\n\n' + skills.join('\n\n')
     }
 
-    // Stream Claude response
-    const stream = streamChat({
+    // Model routing: simple greetings use Haiku (fast, cheap), rest uses Sonnet with tools
+    const isSimple = questionType === 'simple_greeting'
+    const tools = isSimple ? undefined : createToolsForUser(user.id)
+
+    const result = streamChat({
       system: systemWithContext,
       messages: [
         ...historyMessages,
         { role: 'user', content: message },
       ],
+      tools,
+      ...(isSimple ? { model: MEMORY_MODEL } : {}),
     })
 
     const encoder = new TextEncoder()
@@ -209,29 +243,24 @@ export async function POST(request: Request) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            if (
-              chunk.type === 'content_block_delta' &&
-              chunk.delta.type === 'text_delta'
-            ) {
-              const text = chunk.delta.text
-              fullResponse += text
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(text)}\n\n`))
-            }
+          for await (const chunk of result.textStream) {
+            fullResponse += chunk
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           }
 
           // Process write-backs after full response
-          const { cleanText, nutritionLog, injuryLog, schemaGeneration } =
+          const { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate } =
             extractWritebacks(fullResponse)
 
           // Save assistant message (clean text)
+          const usage = await result.usage
           await admin.from('chat_messages').insert({
             user_id: user.id,
             session_id: sessionId,
             role: 'assistant',
             content: cleanText,
             message_type: questionType,
-            tokens_used: (await stream.finalMessage()).usage.output_tokens,
+            tokens_used: usage.outputTokens ?? 0,
           })
 
           // Update session
@@ -291,6 +320,18 @@ export async function POST(request: Request) {
               .then(() => {})
           }
 
+          // Write-back: schema update (partial modification)
+          if (schemaUpdate?.action && schemaUpdate.day) {
+            try {
+              await applySchemaUpdate(admin, user.id, schemaUpdate)
+            } catch (err) {
+              console.error('Schema update write-back failed:', err)
+            }
+          }
+
+          // Fire memory extraction after response is sent — non-blocking
+          extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (err) {
@@ -318,5 +359,117 @@ export async function POST(request: Request) {
       { error: 'Internal server error', code: 'INTERNAL_ERROR' },
       { status: 500 },
     )
+  }
+}
+
+// ── Schema update helper ─────────────────────────────────────────────────────
+
+interface WorkoutScheduleItem {
+  day: string
+  focus: string
+  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+  duration_min?: number
+}
+
+async function applySchemaUpdate(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  update: SchemaUpdateData,
+) {
+  const { data: schema } = await admin
+    .from('training_schemas')
+    .select('id, workout_schedule')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!schema) return
+
+  const schedule = (Array.isArray(schema.workout_schedule) ? schema.workout_schedule : []) as unknown as WorkoutScheduleItem[]
+  const dayIndex = schedule.findIndex((s) => s.day.toLowerCase() === update.day.toLowerCase())
+
+  if (dayIndex === -1 && update.action !== 'add_exercise') return
+
+  const updatedSchedule = schedule.map((item, i) => {
+    if (i !== dayIndex) return item
+    const exercises = [...(item.exercises ?? [])]
+
+    switch (update.action) {
+      case 'replace_exercise': {
+        if (!update.old_exercise || !update.new_exercise) return item
+        const exIdx = exercises.findIndex((e) => e.name.toLowerCase() === update.old_exercise!.toLowerCase())
+        if (exIdx === -1) return item
+        return { ...item, exercises: exercises.map((e, j) => (j === exIdx ? update.new_exercise! : e)) }
+      }
+      case 'add_exercise': {
+        if (!update.new_exercise) return item
+        return { ...item, exercises: [...exercises, update.new_exercise] }
+      }
+      case 'remove_exercise': {
+        if (!update.exercise_name) return item
+        return { ...item, exercises: exercises.filter((e) => e.name.toLowerCase() !== update.exercise_name!.toLowerCase()) }
+      }
+      case 'modify_sets': {
+        if (!update.exercise_name) return item
+        return {
+          ...item,
+          exercises: exercises.map((e) =>
+            e.name.toLowerCase() === update.exercise_name!.toLowerCase()
+              ? { ...e, ...(update.sets !== undefined ? { sets: update.sets } : {}), ...(update.reps !== undefined ? { reps: update.reps } : {}) }
+              : e,
+          ),
+        }
+      }
+      case 'swap_days': {
+        // Handled separately below
+        return item
+      }
+      default:
+        return item
+    }
+  })
+
+  // Handle swap_days: swap entire workout schedules between two days
+  if (update.action === 'swap_days' && update.swap_with_day) {
+    const otherIndex = updatedSchedule.findIndex((s) => s.day.toLowerCase() === update.swap_with_day!.toLowerCase())
+    if (otherIndex !== -1 && dayIndex !== -1) {
+      const temp = { ...updatedSchedule[dayIndex], day: updatedSchedule[otherIndex].day }
+      updatedSchedule[dayIndex] = { ...updatedSchedule[otherIndex], day: updatedSchedule[dayIndex].day }
+      updatedSchedule[otherIndex] = temp
+    }
+  }
+
+  await admin
+    .from('training_schemas')
+    .update({ workout_schedule: updatedSchedule as unknown as import('@/types/database').Json })
+    .eq('id', schema.id)
+
+  // Notify coaching memory
+  const description = formatSchemaUpdateDescription(update)
+  await admin.from('coaching_memory').upsert(
+    {
+      user_id: userId,
+      key: `ai_schema_update_${new Date().toISOString().slice(0, 10)}`,
+      category: 'program',
+      value: `Coach heeft het schema aangepast: ${description}`,
+    },
+    { onConflict: 'user_id,key' },
+  )
+}
+
+function formatSchemaUpdateDescription(update: SchemaUpdateData): string {
+  switch (update.action) {
+    case 'replace_exercise':
+      return `${update.old_exercise} vervangen door ${update.new_exercise?.name} op ${update.day}`
+    case 'add_exercise':
+      return `${update.new_exercise?.name} toegevoegd aan ${update.day}`
+    case 'remove_exercise':
+      return `${update.exercise_name} verwijderd uit ${update.day}`
+    case 'modify_sets':
+      return `${update.exercise_name} aangepast naar ${update.sets ?? '?'}×${update.reps ?? '?'} op ${update.day}`
+    case 'swap_days':
+      return `${update.day} en ${update.swap_with_day} omgewisseld`
+    default:
+      return `Wijziging op ${update.day}`
   }
 }

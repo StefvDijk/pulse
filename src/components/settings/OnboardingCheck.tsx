@@ -1,19 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentUserId } from '@/lib/auth'
 import { OnboardingWizard } from './OnboardingWizard'
 
 export async function OnboardingCheck() {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const userId = getCurrentUserId()
+    const supabase = createAdminClient()
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('display_name')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
 
-    // Show wizard if display_name is empty or just whitespace
     if (!profile?.display_name?.trim()) {
       return <OnboardingWizard />
     }

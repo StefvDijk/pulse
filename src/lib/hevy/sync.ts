@@ -2,11 +2,129 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkouts } from '@/lib/hevy/client'
 import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
 import { syncExerciseTemplates } from '@/lib/hevy/template-sync'
+import { syncHevyRoutines } from '@/lib/hevy/routine-sync'
+import type { MappedWorkout } from '@/lib/hevy/mappers'
 
 export interface SyncResult {
   synced: number
   templatesSynced: number
+  routinesSynced: number
   errors: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Workout stats computation
+// ---------------------------------------------------------------------------
+
+interface WorkoutStats {
+  totalVolumeKg: number
+  setCount: number
+  exerciseCount: number
+}
+
+function computeWorkoutStats(mapped: MappedWorkout): WorkoutStats {
+  let totalVolumeKg = 0
+  let setCount = 0
+  const exerciseCount = mapped.exercises.filter((e) => e.exerciseDefinitionId).length
+
+  for (const item of mapped.exercises) {
+    for (const set of item.sets) {
+      if (set.set_type !== 'warmup' && set.weight_kg != null && set.reps != null) {
+        totalVolumeKg += set.weight_kg * set.reps
+        setCount++
+      }
+    }
+  }
+
+  return { totalVolumeKg, setCount, exerciseCount }
+}
+
+// ---------------------------------------------------------------------------
+// PR detection
+// ---------------------------------------------------------------------------
+
+interface PrResult {
+  prCount: number
+  errors: string[]
+}
+
+async function detectAndInsertPRs(
+  mapped: MappedWorkout,
+  workoutId: string,
+  userId: string,
+  workoutStartedAt: string,
+): Promise<PrResult> {
+  const admin = createAdminClient()
+  const errors: string[] = []
+  let prCount = 0
+
+  for (const item of mapped.exercises) {
+    if (!item.exerciseDefinitionId) continue
+
+    // Only process strength exercises: must have at least one set with weight_kg
+    const hasWeight = item.sets.some((s) => s.weight_kg != null && s.weight_kg > 0)
+    if (!hasWeight) continue
+
+    // Find best working set (highest weight × reps, or highest weight if no reps)
+    let bestValue = 0
+    for (const set of item.sets) {
+      if (set.set_type === 'warmup') continue
+      if (set.weight_kg == null) continue
+
+      const value = set.reps != null ? set.weight_kg * set.reps : set.weight_kg
+      if (value > bestValue) {
+        bestValue = value
+      }
+    }
+
+    if (bestValue === 0) continue
+
+    // Check existing PR for this exercise
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existing, error: queryError } = await (admin.from('personal_records') as any)
+      .select('value')
+      .eq('user_id', userId)
+      .eq('exercise_definition_id', item.exerciseDefinitionId)
+      .eq('record_type', 'weight')
+      .order('value', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (queryError) {
+      errors.push(
+        `PR query for exercise "${item.hevyExerciseName}": ${queryError.message}`,
+      )
+      continue
+    }
+
+    const previousRecord: number | null = existing?.value ?? null
+
+    if (previousRecord !== null && bestValue <= previousRecord) continue
+
+    // New PR — insert record
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (admin.from('personal_records') as any).insert({
+      user_id: userId,
+      exercise_definition_id: item.exerciseDefinitionId,
+      record_type: 'weight',
+      record_category: 'strength',
+      value: bestValue,
+      unit: 'kg',
+      achieved_at: workoutStartedAt,
+      workout_id: workoutId,
+      previous_record: previousRecord,
+    })
+
+    if (insertError) {
+      errors.push(
+        `PR insert for exercise "${item.hevyExerciseName}": ${insertError.message}`,
+      )
+    } else {
+      prCount++
+    }
+  }
+
+  return { prCount, errors }
 }
 
 // ---------------------------------------------------------------------------
@@ -18,7 +136,9 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   const errors: string[] = []
   let synced = 0
 
-  // 1. Get user settings (hevy_api_key + last_hevy_sync_at)
+  // 1. Get API key (env var takes precedence over DB) + last sync timestamp
+  const envApiKey = process.env.HEVY_API_KEY ?? null
+
   const { data: settings, error: settingsError } = await admin
     .from('user_settings')
     .select('hevy_api_key, last_hevy_sync_at')
@@ -29,12 +149,13 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     throw new Error(`Failed to fetch user settings: ${settingsError.message}`)
   }
 
-  if (!settings?.hevy_api_key) {
-    throw new Error('No Hevy API key configured for this user')
+  const apiKey = envApiKey ?? settings?.hevy_api_key ?? null
+
+  if (!apiKey) {
+    throw new Error('No Hevy API key configured — set HEVY_API_KEY in .env.local or via Settings')
   }
 
-  const apiKey = settings.hevy_api_key
-  const since = settings.last_hevy_sync_at ? new Date(settings.last_hevy_sync_at) : undefined
+  const since = settings?.last_hevy_sync_at ? new Date(settings.last_hevy_sync_at) : undefined
 
   // 2. Sync exercise templates from Hevy first
   const templateResult = await syncExerciseTemplates(apiKey)
@@ -42,7 +163,13 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     errors.push(...templateResult.errors.map((e) => `[templates] ${e}`))
   }
 
-  // 3. Fetch all exercise definitions for mapping (now includes synced templates)
+  // 3. Sync routines
+  const routineResult = await syncHevyRoutines(apiKey, userId)
+  if (routineResult.errors.length > 0) {
+    errors.push(...routineResult.errors.map((e) => `[routines] ${e}`))
+  }
+
+  // 4. Fetch all exercise definitions for mapping (now includes synced templates)
   const { data: definitions, error: definitionsError } = await admin
     .from('exercise_definitions')
     .select('id, name')
@@ -53,7 +180,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
 
   const exerciseDefinitions = definitions ?? []
 
-  // 4. Paginate through all workouts since last sync
+  // 5. Paginate through all workouts since last sync
   let page = 1
   let pageCount = 1
 
@@ -73,7 +200,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
       try {
         const mapped = mapHevyWorkoutWithDefinitions(hevyWorkout, userId, exerciseDefinitions)
 
-        // 5. Upsert workout (on conflict user_id + hevy_workout_id)
+        // 6. Upsert workout (on conflict user_id + hevy_workout_id)
         const { data: upsertedWorkout, error: workoutError } = await admin
           .from('workouts')
           .upsert(mapped.workout, { onConflict: 'user_id,hevy_workout_id' })
@@ -87,7 +214,15 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
 
         const workoutId = upsertedWorkout.id
 
-        // 6. Upsert exercises and sets
+        // 7. Delete existing exercises + sets for this workout, then re-insert.
+        //    This avoids duplicates because workout_exercises has no unique
+        //    constraint suitable for upsert (no hevy-specific ID per exercise).
+        //    Cascade via FK will delete workout_sets automatically.
+        await admin
+          .from('workout_exercises')
+          .delete()
+          .eq('workout_id', workoutId)
+
         for (const item of mapped.exercises) {
           if (!item.exerciseDefinitionId) {
             // Skip exercises with no matching definition — already warned in mapper
@@ -100,9 +235,9 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
             exercise_definition_id: item.exerciseDefinitionId,
           }
 
-          const { data: upsertedExercise, error: exerciseError } = await admin
+          const { data: insertedExercise, error: exerciseError } = await admin
             .from('workout_exercises')
-            .upsert(exerciseInsert)
+            .insert(exerciseInsert)
             .select('id')
             .single()
 
@@ -113,7 +248,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
             continue
           }
 
-          const workoutExerciseId = upsertedExercise.id
+          const workoutExerciseId = insertedExercise.id
 
           const setsToInsert = item.sets.map((set) => ({
             ...set,
@@ -121,13 +256,52 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
           }))
 
           if (setsToInsert.length > 0) {
-            const { error: setsError } = await admin.from('workout_sets').upsert(setsToInsert)
+            const { error: setsError } = await admin.from('workout_sets').insert(setsToInsert)
 
             if (setsError) {
               errors.push(
                 `Sets for exercise "${item.hevyExerciseName}" in workout ${hevyWorkout.id}: ${setsError.message}`,
               )
             }
+          }
+        }
+
+        // 8. Compute workout stats and update the workout row
+        const stats = computeWorkoutStats(mapped)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: statsError } = await (admin.from('workouts') as any)
+          .update({
+            total_volume_kg: stats.totalVolumeKg,
+            set_count: stats.setCount,
+            exercise_count: stats.exerciseCount,
+          })
+          .eq('id', workoutId)
+
+        if (statsError) {
+          errors.push(`Stats update for workout ${hevyWorkout.id}: ${statsError.message}`)
+        }
+
+        // 9. PR detection — only run if the workout has exercises with weight
+        const prResult = await detectAndInsertPRs(
+          mapped,
+          workoutId,
+          userId,
+          mapped.workout.started_at,
+        )
+
+        if (prResult.errors.length > 0) {
+          errors.push(...prResult.errors.map((e) => `[pr] ${e}`))
+        }
+
+        if (prResult.prCount > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: prCountError } = await (admin.from('workouts') as any)
+            .update({ pr_count: prResult.prCount })
+            .eq('id', workoutId)
+
+          if (prCountError) {
+            errors.push(`PR count update for workout ${hevyWorkout.id}: ${prCountError.message}`)
           }
         }
 
@@ -141,7 +315,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     page++
   }
 
-  // 7. Update last_hevy_sync_at on success (even partial)
+  // 10. Update last_hevy_sync_at on success (even partial)
   if (synced > 0 || errors.length === 0) {
     const { error: updateError } = await admin
       .from('user_settings')
@@ -153,5 +327,10 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     }
   }
 
-  return { synced, templatesSynced: templateResult.synced, errors }
+  return {
+    synced,
+    templatesSynced: templateResult.synced,
+    routinesSynced: routineResult.synced,
+    errors,
+  }
 }

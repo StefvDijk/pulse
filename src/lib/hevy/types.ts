@@ -36,6 +36,39 @@ export const HevyWorkoutsResponseSchema = z.object({
   workouts: z.array(HevyWorkoutSchema),
 })
 
+// ---------------------------------------------------------------------------
+// Routine schemas
+// ---------------------------------------------------------------------------
+
+export const HevyRoutineExerciseSetSchema = z.object({
+  type: z.string(),
+  weight_kg: z.number().nullable().optional(),
+  reps: z.number().int().nullable().optional(),
+  distance_meters: z.number().nullable().optional(),
+  duration_seconds: z.number().nullable().optional(),
+})
+
+export const HevyRoutineExerciseSchema = z.object({
+  index: z.number().int(),
+  title: z.string(),
+  sets: z.array(HevyRoutineExerciseSetSchema),
+  notes: z.string().nullable().optional(),
+})
+
+export const HevyRoutineSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  updated_at: z.string(),
+  folder_id: z.string().nullable().optional(),
+  exercises: z.array(HevyRoutineExerciseSchema),
+})
+
+export const HevyRoutinesResponseSchema = z.object({
+  page: z.number().int(),
+  page_count: z.number().int(),
+  routines: z.array(HevyRoutineSchema),
+})
+
 export const HevyExerciseTemplateSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -61,3 +94,7 @@ export type HevyWorkout = z.infer<typeof HevyWorkoutSchema>
 export type HevyWorkoutsResponse = z.infer<typeof HevyWorkoutsResponseSchema>
 export type HevyExerciseTemplate = z.infer<typeof HevyExerciseTemplateSchema>
 export type HevyExerciseTemplatesResponse = z.infer<typeof HevyExerciseTemplatesResponseSchema>
+export type HevyRoutineExerciseSet = z.infer<typeof HevyRoutineExerciseSetSchema>
+export type HevyRoutineExercise = z.infer<typeof HevyRoutineExerciseSchema>
+export type HevyRoutine = z.infer<typeof HevyRoutineSchema>
+export type HevyRoutinesResponse = z.infer<typeof HevyRoutinesResponseSchema>

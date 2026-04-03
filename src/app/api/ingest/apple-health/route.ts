@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
+import { parseSleepData, parseBodyWeight, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
 import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
+import { computeDailyAggregation } from '@/lib/aggregations/daily'
+import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import type { Database } from '@/types/database'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
@@ -68,6 +72,9 @@ interface IngestResponse {
     runs: number
     padel: number
     activity: number
+    sleep: number
+    bodyWeight: number
+    gymCorrelations: number
   }
   errors: string[]
 }
@@ -87,26 +94,38 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 2. Find user by token
+  // 2. Authenticate — env var takes precedence over DB lookup
   // ------------------------------------------------------------------
   const supabase = createAdminClient()
+  // Strip optional "Bearer " prefix from env var so both formats work
+  const rawEnvToken = process.env.HEALTH_EXPORT_AUTH_TOKEN ?? null
+  const envToken = rawEnvToken?.startsWith('Bearer ') ? rawEnvToken.slice(7).trim() : rawEnvToken
+  const envUserId = process.env.PULSE_USER_ID ?? null
 
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from('user_settings')
-    .select('user_id')
-    .eq('health_auto_export_token', token)
-    .maybeSingle()
+  let userId: string
 
-  if (settingsError) {
-    console.error('apple-health ingest: user lookup error', settingsError)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (envToken && envUserId && token === envToken) {
+    // Single-user mode: token matches env var → use PULSE_USER_ID directly
+    userId = envUserId
+  } else {
+    // Fallback: look up token in DB
+    const { data: settingsRow, error: settingsError } = await supabase
+      .from('user_settings')
+      .select('user_id')
+      .eq('health_auto_export_token', token)
+      .maybeSingle()
+
+    if (settingsError) {
+      console.error('apple-health ingest: user lookup error', settingsError)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    if (!settingsRow) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    userId = settingsRow.user_id
   }
-
-  if (!settingsRow) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-  }
-
-  const userId = settingsRow.user_id
 
   // ------------------------------------------------------------------
   // 3. Parse payload
@@ -130,6 +149,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const payload = parseResult.data
   const { runs: parsedRuns, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
+  const parsedSleep = parseSleepData(payload)
+  const parsedBodyWeight = parseBodyWeight(payload)
+  const parsedGymWorkouts = parseGymWorkouts(payload)
 
   const errors: string[] = []
 
@@ -270,7 +292,129 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 7. Update last_apple_health_sync_at
+  // 7. Upsert sleep logs
+  // ------------------------------------------------------------------
+  let sleepProcessed = 0
+
+  if (parsedSleep.length > 0) {
+    const sleepInserts = parsedSleep.map((s) => ({
+      user_id: userId,
+      date: s.date,
+      total_sleep_minutes: s.totalSleepMinutes,
+      source: 'apple_health' as const,
+    }))
+
+    // Batch in groups of 50
+    for (let i = 0; i < sleepInserts.length; i += 50) {
+      const batch = sleepInserts.slice(i, i + 50)
+      const { error: upsertError } = await supabase
+        .from('sleep_logs')
+        .upsert(batch, {
+          onConflict: 'user_id,date,source',
+          ignoreDuplicates: false,
+        })
+
+      if (upsertError) {
+        console.error('apple-health ingest: sleep upsert error', upsertError)
+        errors.push(`Sleep upsert failed: ${upsertError.message}`)
+      } else {
+        sleepProcessed += batch.length
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 8. Upsert body weight logs
+  // ------------------------------------------------------------------
+  let bodyWeightProcessed = 0
+
+  if (parsedBodyWeight.length > 0) {
+    const weightInserts = parsedBodyWeight.map((w) => ({
+      user_id: userId,
+      date: w.date,
+      weight_kg: w.weightKg,
+      source: 'apple_health' as const,
+    }))
+
+    // Batch in groups of 50
+    for (let i = 0; i < weightInserts.length; i += 50) {
+      const batch = weightInserts.slice(i, i + 50)
+      const { error: upsertError } = await supabase
+        .from('body_weight_logs')
+        .upsert(batch, {
+          onConflict: 'user_id,date,source',
+          ignoreDuplicates: false,
+        })
+
+      if (upsertError) {
+        console.error('apple-health ingest: body weight upsert error', upsertError)
+        errors.push(`Body weight upsert failed: ${upsertError.message}`)
+      } else {
+        bodyWeightProcessed += batch.length
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 9. Correlate Apple Watch gym workouts → Hevy workouts
+  // ------------------------------------------------------------------
+  let gymCorrelations = 0
+
+  for (const gymWorkout of parsedGymWorkouts) {
+    // Only enrich when we have at least one biometric to write
+    if (
+      gymWorkout.avgHeartRate === undefined &&
+      gymWorkout.maxHeartRate === undefined &&
+      gymWorkout.calories === undefined
+    ) {
+      continue
+    }
+
+    const gymStart = new Date(gymWorkout.startedAt)
+    const thirtyMinMs = 30 * 60 * 1000
+    const thirtyMinBefore = new Date(gymStart.getTime() - thirtyMinMs).toISOString()
+    const thirtyMinAfter = new Date(gymStart.getTime() + thirtyMinMs).toISOString()
+
+    const { data: matchedWorkouts, error: lookupError } = await supabase
+      .from('workouts')
+      .select('id, avg_heart_rate')
+      .eq('user_id', userId)
+      .eq('source', 'hevy')
+      .gte('started_at', thirtyMinBefore)
+      .lte('started_at', thirtyMinAfter)
+      .limit(1)
+
+    if (lookupError) {
+      console.error('apple-health ingest: gym correlation lookup error', lookupError)
+      errors.push(`Gym correlation lookup failed: ${lookupError.message}`)
+      continue
+    }
+
+    const matched = matchedWorkouts?.[0]
+    if (!matched) continue
+
+    // Only update when avg_heart_rate is still NULL — don't overwrite existing data
+    if (matched.avg_heart_rate !== null) continue
+
+    const { error: updateError } = await supabase
+      .from('workouts')
+      .update({
+        avg_heart_rate: gymWorkout.avgHeartRate ?? null,
+        max_heart_rate: gymWorkout.maxHeartRate ?? null,
+        calories_burned: gymWorkout.calories ?? null,
+      })
+      .eq('id', matched.id)
+
+    if (updateError) {
+      console.error('apple-health ingest: gym correlation update error', updateError)
+      errors.push(`Gym correlation update failed: ${updateError.message}`)
+    } else {
+      gymCorrelations += 1
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 10. Update last_apple_health_sync_at
   // ------------------------------------------------------------------
   const { error: syncUpdateError } = await supabase
     .from('user_settings')
@@ -282,13 +426,47 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 8. Return summary
+  // 11. Re-aggregate today + current week so dashboard stats are fresh
+  // ------------------------------------------------------------------
+  const totalDataIngested = runsProcessed + padelProcessed + activityProcessed
+  if (totalDataIngested > 0) {
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10)
+      await computeDailyAggregation(userId, todayStr)
+
+      const now = new Date()
+      const day = now.getUTCDay()
+      const offset = day === 0 ? -6 : 1 - day
+      const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
+      await computeWeeklyAggregation(userId, monday.toISOString().slice(0, 10))
+    } catch (aggError) {
+      console.error('apple-health ingest: re-aggregation failed', aggError)
+      errors.push(`Re-aggregation: ${aggError instanceof Error ? aggError.message : String(aggError)}`)
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 12. Fire-and-forget: analyze training progress and store as coaching memory
+  // ------------------------------------------------------------------
+  if (totalDataIngested > 0) {
+    analyzeAfterSync({
+      userId,
+      syncSource: 'apple_health',
+      haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
+    }).catch(() => {})
+  }
+
+  // ------------------------------------------------------------------
+  // 13. Return summary
   // ------------------------------------------------------------------
   return NextResponse.json({
     processed: {
       runs: runsProcessed,
       padel: padelProcessed,
       activity: activityProcessed,
+      sleep: sleepProcessed,
+      bodyWeight: bodyWeightProcessed,
+      gymCorrelations,
     },
     errors,
   })

@@ -7,9 +7,14 @@ import type { Database } from '@/types/database'
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
 
+type SafeUserSettings = Omit<
+  UserSettingsRow,
+  'google_calendar_access_token' | 'google_calendar_refresh_token' | 'google_calendar_token_expiry'
+>
+
 export interface SettingsData {
   profile: ProfileRow
-  settings: UserSettingsRow
+  settings: SafeUserSettings
 }
 
 const ProfileUpdateSchema = z.object({
@@ -31,6 +36,7 @@ const SettingsUpdateSchema = z.object({
     })
     .nullable()
     .optional(),
+  ai_custom_instructions: z.string().max(2000).nullable().optional(),
 })
 
 const PatchBodySchema = z.object({
@@ -51,7 +57,13 @@ export async function GET() {
 
     const [profileResult, settingsResult] = await Promise.all([
       admin.from('profiles').select('*').eq('id', user.id).single(),
-      admin.from('user_settings').select('*').eq('user_id', user.id).single(),
+      admin
+        .from('user_settings')
+        .select(
+          'user_id, hevy_api_key, health_auto_export_token, protein_target_per_kg, weekly_training_target, ai_custom_instructions, last_hevy_sync_at, last_apple_health_sync_at, google_calendar_email, preferred_unit_system, created_at, updated_at',
+        )
+        .eq('user_id', user.id)
+        .single(),
     ])
 
     if (profileResult.error) throw profileResult.error

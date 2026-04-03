@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getExerciseTemplates } from '@/lib/hevy/client'
+import { searchExerciseImage } from '@/lib/wger/client'
 import type { HevyExerciseTemplate } from '@/lib/hevy/types'
 
 // ---------------------------------------------------------------------------
@@ -132,6 +133,29 @@ export async function syncExerciseTemplates(
       errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`)
     } else {
       synced += batch.length
+    }
+  }
+
+  // 3. Fetch wger images for exercises that don't have one yet
+  const { data: missingImages } = await admin
+    .from('exercise_definitions')
+    .select('id, name')
+    .is('image_url', null)
+    .limit(50) // Process in small batches to avoid long sync times
+
+  if (missingImages && missingImages.length > 0) {
+    for (const exercise of missingImages) {
+      try {
+        const imageUrl = await searchExerciseImage(exercise.name)
+        if (imageUrl) {
+          await admin
+            .from('exercise_definitions')
+            .update({ image_url: imageUrl })
+            .eq('id', exercise.id)
+        }
+      } catch {
+        // Non-critical: skip image fetch failures silently
+      }
     }
   }
 

@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { ChatInterface } from './ChatInterface'
 
-export function ChatPage() {
+interface ChatPageProps {
+  initialMessage?: string
+}
+
+export function ChatPage({ initialMessage }: ChatPageProps) {
   const [sessionKey, setSessionKey] = useState(0)
 
   function handleNewSession() {
@@ -27,7 +31,7 @@ export function ChatPage() {
 
       {/* Chat interface fills remaining height */}
       <div className="min-h-0 flex-1">
-        <ChatInterface key={sessionKey} />
+        <ChatInterface key={sessionKey} initialMessage={initialMessage} />
       </div>
     </div>
   )

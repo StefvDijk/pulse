@@ -2,10 +2,11 @@ interface SystemPromptParams {
   activeSchema?: { title: string; schema_type: string; weeks_planned: number | null; current_week?: number } | null
   activeInjuries?: Array<{ body_location: string; severity: string | null; description: string; status: string | null }>
   activeGoals?: Array<{ title: string; category: string; target_value: number | null; current_value: number | null; deadline: string | null }>
+  customInstructions?: string | null
 }
 
 export function buildSystemPrompt(params: SystemPromptParams = {}): string {
-  const { activeSchema, activeInjuries, activeGoals } = params
+  const { activeSchema, activeInjuries, activeGoals, customInstructions } = params
 
   const staticSections = `## 1. ROL & TOON
 
@@ -49,11 +50,10 @@ Je bent Pulse Coach, Stef's personal trainer en voedingscoach.
 
 ## 4. HUIDIG PROGRAMMA
 
-- Week 5-8: 4x/week upper/lower split (Upper A, Lower A, Upper B, Lower B)
-- Ma-do gym, vrijdag hardlopen
+Zie COACHING GEHEUGEN in de DATA-CONTEXT voor het actuele schema en planning.
+Vaste gewoontes die niet veranderen:
 - Padel structureel op maandagavond
-- Runna plan (week 7 van 8), race 11 april
-- Vakantie 13-19 april: bodyweight circuit + 2 easy runs
+- Fietst ~14km retour op kantoordagen (di/do)
 
 ## 5. VOEDING
 
@@ -103,22 +103,45 @@ Refereer altijd aan echte cijfers, niet aan algemeenheden.
 
 ## 9. PROGRESSIE-TRACKING
 
-Barometer-oefeningen (altijd tracken):
-- Push-ups (set 1 max): baseline 8 \u2192 week 4: 20
-- Plank (set 1 max): baseline 1:00 \u2192 week 4: 1:35
-- Pull-up pogingen (elke 2 weken testen): baseline 0
-- DB Bench Press: baseline 10kg \u2192 week 4: 16kg
-- Goblet Squat: baseline 10kg \u2192 week 4: 16kg
-- Lat Pulldown: baseline 25kg \u2192 week 4: 40kg
+Barometer-oefeningen met historische baseline (week 0 = 23 feb 2026):
 
-## 10. GELEERDE LESSEN
+| Oefening | Baseline | Week 4 (29 mrt) | Doel week 8 | Status |
+|----------|----------|-----------------|-------------|--------|
+| Push-ups (set 1) | 8 | 20 | 25+ of elevated feet | ✅ week 4 doel gehaald |
+| Plank (set 1) | 1:00 | 1:35 | 2:00+ | ✅ week 4 doel gehaald |
+| Pull-ups | 0 | 0 | 1 echte (of negatief >8s) | 🔄 elke 2 weken testen |
+| DB Bench Press | 10 kg | 16 kg | 18-20 kg x 10 | 🔄 lopend |
+| Goblet Squat | 10 kg | 16 kg | 20 kg x 10 (→ barbell) | 🔄 lopend |
+| Lat Pulldown | 25 kg | 40 kg | 45 kg x 10 | 🔄 lopend |
+| RDL (per hand) | 10 kg | ~14 kg | 18-20 kg x 10 | 🔄 lopend |
+
+Actuele waarden staan in RECENTE PERSONAL RECORDS en COACHING GEHEUGEN in de DATA-CONTEXT.
+
+## 10. LICHAAMSCOMPOSITIE BASELINE
+
+InBody scans (Train More, Piet Heinkade):
+
+| Datum | Gewicht | Spiermassa | Vetmassa | Vetpct | BMI |
+|-------|---------|------------|----------|--------|-----|
+| 5 mrt 2026 (baseline) | 77.4 kg | 34.7 kg | 15.7 kg | 20.2% | 23.4 |
+| 23 mrt 2026 (+18 dagen) | 79.1 kg | 36.1 kg | 15.4 kg | 19.4% | 23.9 |
+
+Noot: gewichtstoename scan 2 deels creatine-waterretentie (InBody telt intracellulair water als spiermassa).
+Vetmassadaling (-0.3 kg) is het schonere signaal. Echte baseline stabiliseert na 4-6 weken creatine.
+
+Startmetingen (23 feb 2026): buikomtrek 94 cm, borstomtrek 92 cm, bovenarm rechts 26 cm, bovenbeen rechts 58.5 cm.
+Doel: ~16-17% vetpercentage. Scan 3 gepland eind april 2026 (25-27 apr).
+
+## 11. GELEERDE LESSEN
 
 - BSS niet na intervals (kniestress)
 - Eten min 2 uur voor een run (maagklachten)
 - Creatine dagelijks, niet alleen op trainingsdagen
 - Electrolytes na runs en padel, niet na gym
 - Verzadigingsformule: volume + eiwit + vezels
-- Eiwitarme snacks lossen middaghonger niet op`
+- Eiwitarme snacks lossen middaghonger niet op
+- Twee gymdagen achter elkaar kan (bewezen week 2, geen herstelprobleem)
+- 30 minuten slechte training > thuisblijven — altijd doorduwen bij twijfel`
 
   const dynamicSchema = activeSchema
     ? `${activeSchema.title} (${activeSchema.schema_type}, week ${activeSchema.current_week ?? '?'} van ${activeSchema.weeks_planned})`
@@ -157,17 +180,57 @@ Gebruik dit als de gebruiker een blessure of pijnklacht meldt:
 <injury_log>{"body_location":"<lichaamsdeel, bijv. knie links>","severity":"<mild|moderate|severe>","description":"<korte beschrijving>"}</injury_log>
 \`\`\`
 
-### Trainingsschema genereren
-Gebruik dit als de gebruiker een nieuw schema wil. Genereer een volledig schema:
+### Trainingsschema genereren (nieuw schema)
+Gebruik dit als de gebruiker een VOLLEDIG NIEUW schema wil:
 \`\`\`
-<schema_generation>{"title":"<schemanaam>","schema_type":"<strength|hypertrophy|mixed>","weeks_planned":<aantal>,"start_date":"<YYYY-MM-DD>","workout_schedule":[{"week":1,"sessions":[{"day":"monday","focus":"<focus>","exercises":[{"name":"<naam>","sets":3,"reps":"8-10","notes":""}]}]}]}</schema_generation>
-\`\`\``
+<schema_generation>{"title":"<schemanaam>","schema_type":"<strength|hypertrophy|mixed>","weeks_planned":<aantal>,"start_date":"<YYYY-MM-DD>","workout_schedule":[{"day":"monday","focus":"<focus>","duration_min":50,"exercises":[{"name":"<naam>","sets":3,"reps":"8-10","notes":""}]}]}</schema_generation>
+\`\`\`
+
+### Schema aanpassen (partiële wijziging)
+Gebruik dit voor kleine aanpassingen aan het huidige schema (oefening wisselen, sets aanpassen, etc.). NIET voor een volledig nieuw schema.
+
+**Oefening vervangen:**
+\`\`\`
+<schema_update>{"action":"replace_exercise","day":"monday","old_exercise":"Cable Row","new_exercise":{"name":"Meadows Row","sets":3,"reps":"10-12","notes":""}}</schema_update>
+\`\`\`
+
+**Oefening toevoegen:**
+\`\`\`
+<schema_update>{"action":"add_exercise","day":"monday","new_exercise":{"name":"Hammer Curl","sets":3,"reps":"12","notes":""}}</schema_update>
+\`\`\`
+
+**Oefening verwijderen:**
+\`\`\`
+<schema_update>{"action":"remove_exercise","day":"monday","exercise_name":"Cable Row"}</schema_update>
+\`\`\`
+
+**Sets/reps aanpassen:**
+\`\`\`
+<schema_update>{"action":"modify_sets","day":"monday","exercise_name":"Bench Press","sets":5,"reps":"5"}</schema_update>
+\`\`\`
+
+**Dagen omwisselen:**
+\`\`\`
+<schema_update>{"action":"swap_days","day":"monday","swap_with_day":"wednesday"}</schema_update>
+\`\`\`
+
+Gebruik de oefening-namen exact zoals ze in het schema staan (Hevy-namen).`
+
+  const customSection = customInstructions?.trim()
+    ? `## CUSTOM INSTRUCTIES VAN GEBRUIKER
+
+${customInstructions.trim()}
+
+---
+
+`
+    : ''
 
   return `${staticSections}
 
 ---
 
-${dynamicSections}
+${customSection}${dynamicSections}
 
 ---
 

@@ -25,15 +25,18 @@ interface ChatHistoryResponse {
 export interface ChatInterfaceProps {
   sessionId?: string
   compact?: boolean
+  initialMessage?: string
 }
 
-export function ChatInterface({ sessionId: initialSessionId, compact = false }: ChatInterfaceProps) {
+export function ChatInterface({ sessionId: initialSessionId, compact = false, initialMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [isInitializing, setIsInitializing] = useState(true)
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  const initialMessageSentRef = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Load history on mount
@@ -72,6 +75,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false }: 
 
       setShowSuggestions(false)
       setIsLoading(true)
+      setLastFailedMessage(null)
 
       const userMsg: Message = {
         id: `user-${Date.now()}`,
@@ -136,9 +140,10 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false }: 
           {
             id: `error-${Date.now()}`,
             role: 'assistant',
-            content: 'Er is iets misgegaan. Probeer het opnieuw.',
+            content: 'Er is iets misgegaan. Tik op "Opnieuw" of stel je vraag opnieuw.',
           },
         ])
+        setLastFailedMessage(message)
       } finally {
         setStreamingContent('')
         setIsLoading(false)
@@ -146,6 +151,18 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false }: 
     },
     [isLoading, sessionId],
   )
+
+  // Auto-send initialMessage once history has loaded and there are no existing messages
+  useEffect(() => {
+    if (
+      !initialMessage ||
+      isInitializing ||
+      initialMessageSentRef.current ||
+      messages.length > 0
+    ) return
+    initialMessageSentRef.current = true
+    handleSend(initialMessage)
+  }, [initialMessage, isInitializing, messages.length, handleSend])
 
   if (isInitializing) {
     return (
@@ -183,8 +200,22 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false }: 
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggestions + input */}
+      {/* Retry + Suggestions + input */}
       <div className={compact ? 'p-2' : 'p-3'}>
+        {lastFailedMessage && !isLoading && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={() => {
+                // Remove the error message and retry
+                setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
+                handleSend(lastFailedMessage)
+              }}
+              className="rounded-full border border-border-light bg-bg-card px-4 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-hover transition-colors"
+            >
+              Opnieuw proberen
+            </button>
+          </div>
+        )}
         <ChatSuggestions onSelect={handleSend} visible={showSuggestions} />
         <ChatInput onSend={handleSend} isLoading={isLoading} />
       </div>

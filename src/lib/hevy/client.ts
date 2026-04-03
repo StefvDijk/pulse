@@ -4,6 +4,8 @@ import {
   HevyWorkoutsResponseSchema,
   HevyExerciseTemplate,
   HevyExerciseTemplatesResponseSchema,
+  HevyRoutine,
+  HevyRoutinesResponseSchema,
 } from '@/lib/hevy/types'
 
 const BASE_URL = 'https://api.hevyapp.com'
@@ -105,4 +107,24 @@ export async function getExerciseTemplates(apiKey: string): Promise<HevyExercise
   }
 
   return allTemplates
+}
+
+export async function getRoutines(apiKey: string): Promise<HevyRoutine[]> {
+  const allRoutines: HevyRoutine[] = []
+  let page = 1
+  let pageCount = 1
+
+  while (page <= pageCount) {
+    const raw = await hevyFetch<unknown>(apiKey, '/v1/routines', {
+      page: String(page),
+      pageSize: '10',
+    })
+
+    const parsed = HevyRoutinesResponseSchema.parse(raw)
+    pageCount = parsed.page_count
+    allRoutines.push(...parsed.routines)
+    page++
+  }
+
+  return allRoutines
 }

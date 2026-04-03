@@ -6,6 +6,12 @@ export type QuestionType =
   | 'progress_question'
   | 'weekly_review'
   | 'general_chat'
+  | 'simple_greeting'
+
+const GREETING_KEYWORDS = [
+  'hoi', 'hey', 'hallo', 'hi', 'goedemorgen', 'goedemiddag', 'goedenavond',
+  'yo', 'sup', 'hee', 'dag', 'morning',
+]
 
 const NUTRITION_LOG_KEYWORDS = [
   'gegeten', 'geëten', 'had ik', 'ontbijt', 'lunch', 'avondeten', 'diner',
@@ -58,6 +64,12 @@ export function classifyQuestion(message: string): QuestionType {
 
   const has = (keywords: readonly string[]) => keywords.some((kw) => lower.includes(kw))
   const hasQuestionMark = message.includes('?')
+
+  // Simple greeting — short message that's just a hello.
+  // Only matches if the message is short (< 30 chars) and contains a greeting word.
+  if (lower.length < 30 && has(GREETING_KEYWORDS) && !hasQuestionMark) {
+    return 'simple_greeting'
+  }
 
   // Injury report — highest priority among content types.
   // "pijn in mijn knie na het eten" → injury, not nutrition.

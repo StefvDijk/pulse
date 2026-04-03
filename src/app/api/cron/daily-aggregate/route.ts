@@ -22,13 +22,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const admin = createAdminClient()
 
-  // Determine yesterday in UTC
+  // Determine yesterday and today in UTC
   const now = new Date()
   const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
   const yesterdayStr = yesterday.toISOString().slice(0, 10)
+  const todayUTCDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const todayStr = todayUTCDate.toISOString().slice(0, 10)
 
   // Determine if we should also run weekly/monthly
-  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const todayUTC = todayUTCDate
   const isMonday = todayUTC.getUTCDay() === 1
   const isFirstOfMonth = todayUTC.getUTCDate() === 1
 
@@ -74,14 +76,36 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let weeklyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
     let monthlyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
 
-    // Daily
+    // Daily — aggregate both yesterday (final) and today (partial, will be overwritten later)
     try {
       await computeDailyAggregation(userId, yesterdayStr)
     } catch (error) {
       dailyStatus = 'error'
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`[GET /api/cron/daily-aggregate] Daily failed for ${userId}:`, error)
-      userErrors.push(`daily: ${message}`)
+      console.error(`[GET /api/cron/daily-aggregate] Daily (yesterday) failed for ${userId}:`, error)
+      userErrors.push(`daily-yesterday: ${message}`)
+    }
+
+    try {
+      await computeDailyAggregation(userId, todayStr)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[GET /api/cron/daily-aggregate] Daily (today) failed for ${userId}:`, error)
+      userErrors.push(`daily-today: ${message}`)
+    }
+
+    // Always recompute current week so dashboard stays fresh
+    const currentWeekDay = todayUTC.getUTCDay()
+    const currentWeekOffset = currentWeekDay === 0 ? -6 : 1 - currentWeekDay
+    const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() + currentWeekOffset))
+    const currentWeekMondayStr = currentWeekMonday.toISOString().slice(0, 10)
+
+    try {
+      await computeWeeklyAggregation(userId, currentWeekMondayStr)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[GET /api/cron/daily-aggregate] Current week agg failed for ${userId}:`, error)
+      userErrors.push(`weekly-current: ${message}`)
     }
 
     // Weekly (only on Mondays)

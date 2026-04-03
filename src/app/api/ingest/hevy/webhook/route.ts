@@ -21,16 +21,21 @@ const HevyWebhookPayloadSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Verify authorization header when token is configured
+  // Verify authorization header
   const expectedToken = process.env.HEVY_WEBHOOK_SECRET
-  if (expectedToken) {
-    const authHeader = request.headers.get('authorization') ?? ''
-    if (authHeader !== expectedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized', code: 'INVALID_TOKEN' },
-        { status: 401 },
-      )
-    }
+  if (!expectedToken) {
+    console.error('[POST /api/ingest/hevy/webhook] HEVY_WEBHOOK_SECRET not configured')
+    return NextResponse.json(
+      { error: 'Webhook not configured', code: 'SERVER_MISCONFIGURATION' },
+      { status: 503 },
+    )
+  }
+  const authHeader = request.headers.get('authorization') ?? ''
+  if (authHeader !== expectedToken) {
+    return NextResponse.json(
+      { error: 'Unauthorized', code: 'INVALID_TOKEN' },
+      { status: 401 },
+    )
   }
 
   // Parse payload

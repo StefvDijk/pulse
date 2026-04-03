@@ -1,62 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useSettings } from '@/hooks/useSettings'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
-
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
-
-function useSaveStatus(): [SaveStatus, (fn: () => Promise<void>) => void] {
-  const [status, setStatus] = useState<SaveStatus>('idle')
-
-  const save = (fn: () => Promise<void>) => {
-    setStatus('saving')
-    fn()
-      .then(() => {
-        setStatus('saved')
-        setTimeout(() => setStatus('idle'), 2000)
-      })
-      .catch(() => setStatus('error'))
-  }
-
-  return [status, save]
-}
-
-function SaveButton({ status, onClick }: { status: SaveStatus; onClick: () => void }) {
-  const label = status === 'saving' ? 'Opslaan…' : status === 'saved' ? 'Opgeslagen ✓' : 'Opslaan'
-  return (
-    <button
-      onClick={onClick}
-      disabled={status === 'saving'}
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-50 ${
-        status === 'saved' ? 'bg-status-green text-white' : 'bg-accent text-accent-text'
-      }`}
-    >
-      {label}
-    </button>
-  )
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <h2 className="mb-4 text-base font-semibold text-text-primary">{title}</h2>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-text-tertiary">{label}</label>
-      {children}
-    </div>
-  )
-}
-
-const INPUT_CLASSES = 'bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
+import { AIContextSection } from './AIContextSection'
+import { CoachingMemoryEditor } from './CoachingMemoryEditor'
+import { AIContextPreview } from './AIContextPreview'
 
 export function SettingsPage() {
   const { data, isLoading, error, refresh } = useSettings()
+  const searchParams = useSearchParams()
+  const calendarStatus = searchParams.get('calendar') // 'connected' | 'error' | null
+
+  // Google Calendar disconnect
+  const [disconnecting, setDisconnecting] = useState(false)
+
+  async function handleDisconnectCalendar() {
+    setDisconnecting(true)
+    await fetch('/api/calendar/disconnect', { method: 'POST' })
+      .catch(() => null)
+    refresh()
+    setDisconnecting(false)
+  }
 
   // Profile state
   const [displayName, setDisplayName] = useState('')
@@ -253,6 +221,56 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* Google Calendar section */}
+      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+        <SectionHeader title="Google Agenda" />
+
+        {calendarStatus === 'connected' && (
+          <div className="mb-3 rounded-lg bg-status-green-light px-3 py-2 text-sm text-status-green">
+            Google Agenda gekoppeld ✓
+          </div>
+        )}
+        {calendarStatus === 'error' && (
+          <div className="mb-3 rounded-lg bg-status-red-light px-3 py-2 text-sm text-status-red">
+            Koppeling mislukt — probeer opnieuw.
+          </div>
+        )}
+
+        {data?.settings.google_calendar_email ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StatusDot active />
+              <div>
+                <p className="text-sm font-medium text-text-primary">Verbonden</p>
+                {data.settings.google_calendar_email && (
+                  <p className="text-xs text-text-tertiary">{data.settings.google_calendar_email}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleDisconnectCalendar}
+              disabled={disconnecting}
+              className="rounded-lg border border-border-light px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-50"
+            >
+              {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StatusDot active={false} />
+              <p className="text-sm text-text-secondary">Niet gekoppeld</p>
+            </div>
+            <a
+              href="/api/calendar/auth"
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-text transition-opacity hover:opacity-80"
+            >
+              Koppel Google Agenda
+            </a>
+          </div>
+        )}
+      </div>
+
       {/* Training goals section */}
       <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Trainingsdoelen" />
@@ -309,16 +327,19 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Coach section */}
+      <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
+
+      <AIContextSection
+        currentValue={data?.settings.ai_custom_instructions ?? null}
+        onSaved={refresh}
+      />
+
+      <CoachingMemoryEditor />
+
+      <AIContextPreview />
     </div>
   )
 }
 
-function StatusDot({ active }: { active: boolean }) {
-  return (
-    <div
-      className="h-2.5 w-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: active ? '#16A34A' : '#D6D3CD' }}
-      title={active ? 'Verbonden' : 'Niet verbonden'}
-    />
-  )
-}

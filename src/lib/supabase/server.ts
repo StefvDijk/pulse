@@ -1,28 +1,21 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import type { Database } from '@/types/database'
+import { createAdminClient } from './admin'
 
+/**
+ * Single-user mode: returns the admin client (bypasses RLS) with auth.getUser()
+ * patched to return the hardcoded owner user ID from PULSE_USER_ID env var.
+ * No session/cookie handling needed.
+ */
 export async function createClient() {
-  const cookieStore = await cookies()
+  const admin = createAdminClient()
+  const userId = process.env.PULSE_USER_ID
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            )
-          } catch {
-            // Server Component — cookies kunnen niet worden gezet vanuit hier
-          }
-        },
-      },
-    },
-  )
+  if (!userId) throw new Error('PULSE_USER_ID is not set')
+
+  // Patch getUser so all existing route handlers work without modification
+  ;(admin.auth as unknown as Record<string, unknown>).getUser = async () => ({
+    data: { user: { id: userId } },
+    error: null,
+  })
+
+  return admin
 }
