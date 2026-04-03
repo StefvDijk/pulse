@@ -34,6 +34,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      body_composition_logs: {
+        Row: {
+          arm_right_cm: number | null
+          bmi: number | null
+          chest_cm: number | null
+          created_at: string | null
+          date: string
+          fat_mass_kg: number | null
+          fat_pct: number | null
+          id: string
+          muscle_mass_kg: number | null
+          notes: string | null
+          source: string | null
+          thigh_right_cm: number | null
+          updated_at: string | null
+          user_id: string
+          waist_cm: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          arm_right_cm?: number | null
+          bmi?: number | null
+          chest_cm?: number | null
+          created_at?: string | null
+          date: string
+          fat_mass_kg?: number | null
+          fat_pct?: number | null
+          id?: string
+          muscle_mass_kg?: number | null
+          notes?: string | null
+          source?: string | null
+          thigh_right_cm?: number | null
+          updated_at?: string | null
+          user_id: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          arm_right_cm?: number | null
+          bmi?: number | null
+          chest_cm?: number | null
+          created_at?: string | null
+          date?: string
+          fat_mass_kg?: number | null
+          fat_pct?: number | null
+          id?: string
+          muscle_mass_kg?: number | null
+          notes?: string | null
+          source?: string | null
+          thigh_right_cm?: number | null
+          updated_at?: string | null
+          user_id?: string
+          waist_cm?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      body_weight_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          source: string
+          user_id: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          source?: string
+          user_id: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          source?: string
+          user_id?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "body_weight_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -122,6 +214,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      coaching_memory: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          key: string
+          source_date: string
+          updated_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          key: string
+          source_date?: string
+          updated_at?: string
+          user_id: string
+          value: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          key?: string
+          source_date?: string
+          updated_at?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
       }
       daily_activity: {
         Row: {
@@ -314,10 +439,12 @@ export type Database = {
       }
       exercise_definitions: {
         Row: {
+          category: string | null
           created_at: string | null
           equipment: string | null
           hevy_exercise_id: string | null
           id: string
+          image_url: string | null
           is_compound: boolean | null
           movement_pattern: string
           name: string
@@ -326,10 +453,12 @@ export type Database = {
           sport_specificity: string[] | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           equipment?: string | null
           hevy_exercise_id?: string | null
           id?: string
+          image_url?: string | null
           is_compound?: boolean | null
           movement_pattern: string
           name: string
@@ -338,10 +467,12 @@ export type Database = {
           sport_specificity?: string[] | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           equipment?: string | null
           hevy_exercise_id?: string | null
           id?: string
+          image_url?: string | null
           is_compound?: boolean | null
           movement_pattern?: string
           name?: string
@@ -406,6 +537,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hevy_routines: {
+        Row: {
+          created_at: string
+          exercises: Json
+          folder_id: string | null
+          hevy_routine_id: string
+          id: string
+          title: string
+          updated_at: string
+          updated_at_hevy: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exercises?: Json
+          folder_id?: string | null
+          hevy_routine_id: string
+          id?: string
+          title: string
+          updated_at?: string
+          updated_at_hevy?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exercises?: Json
+          folder_id?: string | null
+          hevy_routine_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          updated_at_hevy?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hevy_routines_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -902,6 +1077,65 @@ export type Database = {
           },
         ]
       }
+      sleep_logs: {
+        Row: {
+          awake_minutes: number | null
+          created_at: string
+          date: string
+          deep_sleep_minutes: number | null
+          id: string
+          light_sleep_minutes: number | null
+          rem_sleep_minutes: number | null
+          sleep_efficiency: number | null
+          sleep_end: string | null
+          sleep_start: string | null
+          source: string
+          total_sleep_minutes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awake_minutes?: number | null
+          created_at?: string
+          date: string
+          deep_sleep_minutes?: number | null
+          id?: string
+          light_sleep_minutes?: number | null
+          rem_sleep_minutes?: number | null
+          sleep_efficiency?: number | null
+          sleep_end?: string | null
+          sleep_start?: string | null
+          source?: string
+          total_sleep_minutes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awake_minutes?: number | null
+          created_at?: string
+          date?: string
+          deep_sleep_minutes?: number | null
+          id?: string
+          light_sleep_minutes?: number | null
+          rem_sleep_minutes?: number | null
+          sleep_efficiency?: number | null
+          sleep_end?: string | null
+          sleep_start?: string | null
+          source?: string
+          total_sleep_minutes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sleep_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_schemas: {
         Row: {
           ai_generated: boolean | null
@@ -913,6 +1147,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           progression_rules: Json | null
+          scheduled_overrides: Json | null
           schema_type: string
           start_date: string
           title: string
@@ -931,6 +1166,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           progression_rules?: Json | null
+          scheduled_overrides?: Json | null
           schema_type: string
           start_date: string
           title: string
@@ -949,6 +1185,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           progression_rules?: Json | null
+          scheduled_overrides?: Json | null
           schema_type?: string
           start_date?: string
           title?: string
@@ -969,7 +1206,12 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          ai_custom_instructions: string | null
           created_at: string | null
+          google_calendar_access_token: string | null
+          google_calendar_email: string | null
+          google_calendar_refresh_token: string | null
+          google_calendar_token_expiry: string | null
           health_auto_export_token: string | null
           hevy_api_key: string | null
           last_apple_health_sync_at: string | null
@@ -981,7 +1223,12 @@ export type Database = {
           weekly_training_target: Json | null
         }
         Insert: {
+          ai_custom_instructions?: string | null
           created_at?: string | null
+          google_calendar_access_token?: string | null
+          google_calendar_email?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
@@ -993,7 +1240,12 @@ export type Database = {
           weekly_training_target?: Json | null
         }
         Update: {
+          ai_custom_instructions?: string | null
           created_at?: string | null
+          google_calendar_access_token?: string | null
+          google_calendar_email?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
@@ -1115,6 +1367,75 @@ export type Database = {
           },
         ]
       }
+      weekly_reviews: {
+        Row: {
+          calendar_synced: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          highlights: Json | null
+          id: string
+          inbody_fat_mass_kg: number | null
+          inbody_fat_pct: number | null
+          inbody_muscle_mass_kg: number | null
+          inbody_waist_cm: number | null
+          inbody_weight_kg: number | null
+          manual_additions: Json | null
+          next_week_plan: Json | null
+          sessions_completed: number | null
+          sessions_planned: number | null
+          summary_text: string | null
+          updated_at: string | null
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }
+        Insert: {
+          calendar_synced?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          highlights?: Json | null
+          id?: string
+          inbody_fat_mass_kg?: number | null
+          inbody_fat_pct?: number | null
+          inbody_muscle_mass_kg?: number | null
+          inbody_waist_cm?: number | null
+          inbody_weight_kg?: number | null
+          manual_additions?: Json | null
+          next_week_plan?: Json | null
+          sessions_completed?: number | null
+          sessions_planned?: number | null
+          summary_text?: string | null
+          updated_at?: string | null
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }
+        Update: {
+          calendar_synced?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          highlights?: Json | null
+          id?: string
+          inbody_fat_mass_kg?: number | null
+          inbody_fat_pct?: number | null
+          inbody_muscle_mass_kg?: number | null
+          inbody_waist_cm?: number | null
+          inbody_weight_kg?: number | null
+          manual_additions?: Json | null
+          next_week_plan?: Json | null
+          sessions_completed?: number | null
+          sessions_planned?: number | null
+          summary_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+          week_end?: string
+          week_number?: number
+          week_start?: string
+        }
+        Relationships: []
+      }
       workout_exercises: {
         Row: {
           created_at: string | null
@@ -1206,39 +1527,60 @@ export type Database = {
       }
       workouts: {
         Row: {
+          avg_heart_rate: number | null
+          calories_burned: number | null
           created_at: string | null
           duration_seconds: number | null
           ended_at: string | null
+          exercise_count: number | null
           hevy_workout_id: string | null
           id: string
+          max_heart_rate: number | null
           notes: string | null
+          pr_count: number | null
+          set_count: number | null
           source: string
           started_at: string
           title: string
+          total_volume_kg: number | null
           user_id: string
         }
         Insert: {
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
           created_at?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          exercise_count?: number | null
           hevy_workout_id?: string | null
           id?: string
+          max_heart_rate?: number | null
           notes?: string | null
+          pr_count?: number | null
+          set_count?: number | null
           source?: string
           started_at: string
           title: string
+          total_volume_kg?: number | null
           user_id: string
         }
         Update: {
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
           created_at?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          exercise_count?: number | null
           hevy_workout_id?: string | null
           id?: string
+          max_heart_rate?: number | null
           notes?: string | null
+          pr_count?: number | null
+          set_count?: number | null
           source?: string
           started_at?: string
           title?: string
+          total_volume_kg?: number | null
           user_id?: string
         }
         Relationships: [
