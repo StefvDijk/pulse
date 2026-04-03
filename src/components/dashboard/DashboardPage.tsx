@@ -1,149 +1,115 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useDashboardData } from '@/hooks/useDashboardData'
-import { AdherenceTracker } from './AdherenceTracker'
+import { useSchemaWeek } from '@/hooks/useSchemaWeek'
+import { ReadinessSignal } from '@/components/home/ReadinessSignal'
+import { CheckInBadge } from '@/components/home/CheckInBadge'
+import { TodayWorkoutCard } from '@/components/home/TodayWorkoutCard'
+import { WeekAtAGlance } from '@/components/home/WeekAtAGlance'
+import { DailyHealthBar } from '@/components/home/DailyHealthBar'
+import { SyncButton } from '@/components/home/SyncButton'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
-import { EmptyState } from '@/components/shared/EmptyState'
 
-function getIsoWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setUTCDate(d.getUTCDate() + diff)
-  return d.toISOString().slice(0, 10)
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 6) return 'Goedenacht'
+  if (hour < 12) return 'Goedemorgen'
+  if (hour < 18) return 'Goedemiddag'
+  return 'Goedenavond'
 }
 
-function DashboardSkeleton() {
+function HomeSkeleton() {
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-2">
+    <div className="flex flex-col gap-4 p-4">
       <SkeletonCard className="flex flex-col gap-3">
-        <SkeletonLine width="w-1/3" />
-        <div className="flex justify-center py-2">
-          <div className="h-24 w-24 rounded-full bg-bg-subtle" />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <SkeletonRect height="h-10" />
-          <SkeletonRect height="h-10" />
-          <SkeletonRect height="h-10" />
-        </div>
+        <SkeletonLine width="w-2/5" />
+        <SkeletonLine width="w-1/4" height="h-3" />
+        <SkeletonRect height="h-32" />
       </SkeletonCard>
-      <SkeletonCard className="flex flex-col gap-3">
-        <SkeletonLine width="w-1/3" />
-        <SkeletonRect height="h-20" />
-      </SkeletonCard>
-      <SkeletonCard className="flex flex-col gap-3 lg:col-span-2">
-        <SkeletonLine width="w-1/4" />
+      <SkeletonCard className="flex flex-col gap-2">
         <div className="flex gap-2">
-          {[1,2,3,4,5,6,7].map(i => (
-            <div key={i} className="h-10 flex-1 rounded-full bg-bg-subtle" />
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="h-8 flex-1 rounded-full bg-bg-subtle" />
           ))}
         </div>
       </SkeletonCard>
-      <SkeletonCard className="flex flex-col gap-3 lg:col-span-2">
-        <SkeletonLine width="w-1/4" />
-        <SkeletonRect height="h-40" />
-      </SkeletonCard>
-    </div>
-  )
-}
-
-function DashboardCard({
-  title,
-  children,
-  className,
-}: {
-  title: string
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div
-      className={`bg-bg-card border border-border-light rounded-[14px] p-[14px_16px] ${className ?? ''}`}
-    >
-      <h2 className="mb-4 text-[17px] font-semibold text-text-primary">
-        {title}
-      </h2>
-      {children}
+      <div className="grid grid-cols-3 gap-3">
+        <SkeletonCard className="flex flex-col items-center gap-2">
+          <SkeletonLine width="w-1/2" />
+          <SkeletonLine width="w-2/3" height="h-3" />
+        </SkeletonCard>
+        <SkeletonCard className="flex flex-col items-center gap-2">
+          <SkeletonLine width="w-1/2" />
+          <SkeletonLine width="w-2/3" height="h-3" />
+        </SkeletonCard>
+        <SkeletonCard className="flex flex-col items-center gap-2">
+          <SkeletonLine width="w-1/2" />
+          <SkeletonLine width="w-2/3" height="h-3" />
+        </SkeletonCard>
+      </div>
     </div>
   )
 }
 
 export function DashboardPage() {
-  const { data, error, isLoading, refresh } = useDashboardData()
-  const weekStart = useMemo(() => getIsoWeekStart(new Date()), [])
+  const { data: schemaWeek, error: schemaError, isLoading: schemaLoading, today, refresh: refreshSchema } = useSchemaWeek()
 
-  if (isLoading || !data) {
-    return <DashboardSkeleton />
+  if (schemaLoading) {
+    return <HomeSkeleton />
   }
 
-  if (error) {
+  if (schemaError) {
     return (
       <div className="p-4">
-        <ErrorAlert message="Kan dashboard niet laden." onRetry={refresh} />
-      </div>
-    )
-  }
-
-  const isEmpty = !data.weeklyAggregation && data.dailyAggregations.length === 0
-
-  if (isEmpty) {
-    return (
-      <div className="p-4">
-        <EmptyState
-          icon={<DumbbellIcon />}
-          title="Start je eerste workout om je dashboard te vullen"
-          description="Koppel Hevy of log een workout om je trainingsdata te zien."
-          action={{ label: 'Ga naar instellingen', href: '/settings' }}
+        <ErrorAlert
+          message="Kan homepage niet laden."
+          onRetry={refreshSchema}
         />
       </div>
     )
   }
 
-  const weekly = data.weeklyAggregation
+  const greeting = getGreeting()
+  const firstName = schemaWeek?.displayName?.split(' ')[0] ?? ''
+
+  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+  const todayDay = today ?? schemaWeek?.days.find((d) => d.date === todayStr)
+
+  const tomorrowWorkout = useMemo(() => {
+    if (!schemaWeek || !todayDay) return null
+    const todayIndex = schemaWeek.days.findIndex((d) => d.date === todayDay.date)
+    if (todayIndex === -1 || todayIndex >= schemaWeek.days.length - 1) return null
+    return schemaWeek.days[todayIndex + 1]?.workout?.title ?? null
+  }, [schemaWeek, todayDay])
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Adherence — week overview */}
-      <DashboardCard title="Deze week">
-        <AdherenceTracker
-          dailyAggregations={data.dailyAggregations}
-          weekStart={weekStart}
-        />
-      </DashboardCard>
+      {/* Greeting */}
+      <h1 className="text-xl font-semibold text-text-primary">
+        {greeting}{firstName ? `, ${firstName}` : ''}
+      </h1>
 
-      {/* Compact stats */}
-      {weekly && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
-            <p className="text-lg font-bold tabular-nums text-text-primary">
-              {weekly.total_sessions ?? 0}
-            </p>
-            <p className="text-xs text-text-tertiary">sessies</p>
-          </div>
-          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
-            <p className="text-lg font-bold tabular-nums text-text-primary">
-              {Math.round(weekly.total_training_minutes ?? 0)}m
-            </p>
-            <p className="text-xs text-text-tertiary">trainingstijd</p>
-          </div>
-          <div className="bg-bg-card border border-border-light rounded-[14px] p-3 text-center">
-            <p className="text-lg font-bold tabular-nums text-text-primary">
-              {Math.round(weekly.total_tonnage_kg ?? 0).toLocaleString('nl-NL')}
-            </p>
-            <p className="text-xs text-text-tertiary">kg tonnage</p>
-          </div>
-        </div>
-      )}
+      {/* Check-in nudge (Sa/Su/Mo only, hides after review) */}
+      <CheckInBadge />
+
+      {/* Readiness Signal — the "one big thing" */}
+      <ReadinessSignal />
+
+      {/* Today's workout */}
+      <TodayWorkoutCard
+        day={todayDay}
+        tomorrowWorkout={tomorrowWorkout}
+      />
+
+      {/* Week at a glance */}
+      {schemaWeek && <WeekAtAGlance days={schemaWeek.days} />}
+
+      {/* Daily health metrics (steps, HR, HRV, sleep, weight) */}
+      <DailyHealthBar />
+
+      {/* Sync button */}
+      <SyncButton />
     </div>
-  )
-}
-
-function DumbbellIcon() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6.5 6.5h11M6.5 17.5h11M3 9v6M21 9v6M6.5 6.5v11M17.5 6.5v11" />
-    </svg>
   )
 }
