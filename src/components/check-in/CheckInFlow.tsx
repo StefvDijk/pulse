@@ -191,6 +191,12 @@ export function CheckInFlow() {
         >
           Naar home
         </Link>
+        <Link
+          href="/check-in/history"
+          className="mt-1 text-sm font-medium text-accent-link"
+        >
+          Bekijk je check-in historie
+        </Link>
       </div>
     )
   }
