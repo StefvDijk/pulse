@@ -35,8 +35,9 @@ export async function listEvents(
 
   const { data } = await calendar.events.list({
     calendarId: 'primary',
-    timeMin: `${startDate}T00:00:00+02:00`,
-    timeMax: `${endDate}T23:59:59+02:00`,
+    timeMin: `${startDate}T00:00:00`,
+    timeMax: `${endDate}T23:59:59`,
+    timeZone: 'Europe/Amsterdam',
     singleEvents: true,
     orderBy: 'startTime',
     maxResults: 100,
