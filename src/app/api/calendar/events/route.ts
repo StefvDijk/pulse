@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getValidTokens, createOAuthClient } from '@/lib/google/oauth'
-import { listEvents } from '@/lib/google/calendar'
-import { google } from 'googleapis'
+import { getValidTokens } from '@/lib/google/oauth'
+import { listEvents, createEvents } from '@/lib/google/calendar'
 import { z } from 'zod'
 
 /* ── GET: list calendar events ──────────────────────────── */
@@ -99,32 +98,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const oauth2Client = createOAuthClient()
-    oauth2Client.setCredentials({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-    })
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
-
-    const results = await Promise.all(
-      parsed.data.events.map(async (evt) => {
-        const startDateTime = `${evt.date}T${evt.startTime}:00`
-        const endDateTime = `${evt.date}T${evt.endTime}:00`
-
-        const { data } = await calendar.events.insert({
-          calendarId: 'primary',
-          requestBody: {
-            summary: evt.title,
-            description: evt.description ?? '',
-            start: { dateTime: startDateTime, timeZone: 'Europe/Amsterdam' },
-            end: { dateTime: endDateTime, timeZone: 'Europe/Amsterdam' },
-          },
-        })
-
-        return { id: data.id, title: evt.title, htmlLink: data.htmlLink }
-      }),
-    )
+    const results = await createEvents(user.id, parsed.data.events)
 
     return NextResponse.json({ created: results }, { status: 201 })
   } catch (error) {

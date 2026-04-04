@@ -13,6 +13,21 @@ export interface CalendarEvent {
   description: string | null
 }
 
+export interface CreateEventInput {
+  title: string
+  date: string         // YYYY-MM-DD
+  startTime: string    // HH:MM
+  endTime: string      // HH:MM
+  location?: string
+  description?: string
+}
+
+export interface CreatedEvent {
+  id: string
+  title: string
+  htmlLink: string
+}
+
 /* ── List events ────────────────────────────────────────── */
 
 export async function listEvents(
@@ -58,4 +73,50 @@ export async function listEvents(
       description: event.description ?? null,
     }
   })
+}
+
+/* ── Create events (batch) ─────────────────────────────── */
+
+export async function createEvents(
+  userId: string,
+  events: ReadonlyArray<CreateEventInput>,
+): Promise<CreatedEvent[]> {
+  const tokens = await getValidTokens(userId)
+  if (!tokens) {
+    throw new Error('Google Calendar not connected')
+  }
+
+  const oauth2Client = createOAuthClient()
+  oauth2Client.setCredentials({
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+  })
+
+  const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+
+  const results = await Promise.all(
+    events.map(async (evt) => {
+      const startDateTime = `${evt.date}T${evt.startTime}:00`
+      const endDateTime = `${evt.date}T${evt.endTime}:00`
+
+      const { data } = await calendar.events.insert({
+        calendarId: 'primary',
+        requestBody: {
+          summary: evt.title,
+          description: evt.description ?? '',
+          location: evt.location ?? undefined,
+          start: { dateTime: startDateTime, timeZone: 'Europe/Amsterdam' },
+          end: { dateTime: endDateTime, timeZone: 'Europe/Amsterdam' },
+        },
+      })
+
+      return {
+        id: data.id ?? '',
+        title: evt.title,
+        htmlLink: data.htmlLink ?? '',
+      }
+    }),
+  )
+
+  return results
 }

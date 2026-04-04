@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createEvents, type CreateEventInput } from '@/lib/google/calendar'
+import { getValidTokens } from '@/lib/google/oauth'
 import type { Database, Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
@@ -16,6 +18,17 @@ const InBodyDataSchema = z.object({
   waist_cm: z.number().positive().optional(),
 })
 
+const PlannedSessionSchema = z.object({
+  day: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  workout: z.string(),
+  type: z.enum(['gym', 'padel', 'run']),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  location: z.string().nullable(),
+  reason: z.string(),
+})
+
 const ConfirmRequestSchema = z.object({
   week_start: z.string().date(),
   week_end: z.string().date(),
@@ -28,6 +41,8 @@ const ConfirmRequestSchema = z.object({
   highlights: z.unknown().optional(),
   manual_additions: z.unknown().optional(),
   inbody_data: InBodyDataSchema.optional(),
+  planned_sessions: z.array(PlannedSessionSchema).optional(),
+  sync_to_calendar: z.boolean().optional().default(false),
 })
 
 // ---------------------------------------------------------------------------
@@ -56,6 +71,12 @@ export async function POST(request: Request) {
 
     // Build the review record
     const inbody = input.inbody_data
+    const nextWeekPlan = {
+      focusNextWeek: input.focus_next_week,
+      keyInsights: input.key_insights,
+      ...(input.planned_sessions ? { sessions: input.planned_sessions } : {}),
+    }
+
     const reviewRecord: Database['public']['Tables']['weekly_reviews']['Insert'] = {
       user_id: user.id,
       week_start: input.week_start,
@@ -66,7 +87,7 @@ export async function POST(request: Request) {
       sessions_completed: input.sessions_completed ?? null,
       highlights: (input.highlights as Json) ?? null,
       manual_additions: (input.manual_additions as Json) ?? null,
-      next_week_plan: { focusNextWeek: input.focus_next_week, keyInsights: input.key_insights },
+      next_week_plan: nextWeekPlan as Json,
       completed_at: new Date().toISOString(),
       inbody_weight_kg: inbody?.weight_kg ?? null,
       inbody_fat_pct: inbody?.fat_pct ?? null,
@@ -114,6 +135,14 @@ export async function POST(request: Request) {
         console.error('Coaching memory save failed (non-fatal):', memoryError)
       })
 
+    // Sync planned sessions to Google Calendar (fire-and-forget)
+    if (input.sync_to_calendar && input.planned_sessions?.length) {
+      syncSessionsToCalendar(admin, user.id, review.id, input.planned_sessions)
+        .catch((calendarError) => {
+          console.error('Calendar sync failed (non-fatal):', calendarError)
+        })
+    }
+
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
     console.error('Check-in confirm POST error:', error)
@@ -122,6 +151,58 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
+}
+
+// ---------------------------------------------------------------------------
+// Fire-and-forget: sync planned sessions to Google Calendar
+// ---------------------------------------------------------------------------
+
+interface PlannedSession {
+  day: string
+  date: string
+  workout: string
+  type: 'gym' | 'padel' | 'run'
+  time: string
+  endTime: string
+  location: string | null
+  reason: string
+}
+
+const SESSION_TITLE_MAP: Record<PlannedSession['type'], (session: PlannedSession) => string> = {
+  gym: (s) => `\u{1F4AA} ${s.workout}`,
+  run: () => '\u{1F3C3} Hardlopen',
+  padel: () => '\u{1F3BE} Padel',
+}
+
+function plannedSessionToEvent(session: PlannedSession): CreateEventInput {
+  const titleFn = SESSION_TITLE_MAP[session.type]
+  return {
+    title: titleFn(session),
+    date: session.date,
+    startTime: session.time,
+    endTime: session.endTime,
+    ...(session.location ? { location: session.location } : {}),
+  }
+}
+
+async function syncSessionsToCalendar(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  reviewId: string,
+  sessions: PlannedSession[],
+): Promise<void> {
+  // Check if user has Google Calendar connected
+  const tokens = await getValidTokens(userId)
+  if (!tokens) return
+
+  const calendarEvents = sessions.map(plannedSessionToEvent)
+  await createEvents(userId, calendarEvents)
+
+  // Mark the review as calendar-synced
+  await admin
+    .from('weekly_reviews')
+    .update({ calendar_synced: true })
+    .eq('id', reviewId)
 }
 
 // ---------------------------------------------------------------------------
