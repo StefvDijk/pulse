@@ -145,7 +145,7 @@ export async function POST(request: Request) {
 
     // Update scheduled overrides on training schema (fire-and-forget)
     if (input.planned_sessions?.length) {
-      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start, input.week_end)
+      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start)
         .catch((overrideError) => {
           console.error('Scheduled override update failed (non-fatal):', overrideError)
         })
@@ -245,7 +245,6 @@ async function updateScheduledOverrides(
   userId: string,
   sessions: PlannedSession[],
   weekStart: string,
-  weekEnd: string,
 ): Promise<void> {
   // Load active training schema
   const { data: schema } = await admin
