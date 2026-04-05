@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Loader2,
   Pencil,
@@ -389,13 +389,18 @@ export function WeekPlanCard({
   }, [plan])
 
   // Build week dates array
-  const weekDates: string[] = []
-  const cursor = new Date(weekStart + 'T00:00:00Z')
-  const endDate = new Date(weekEnd + 'T00:00:00Z')
-  while (cursor <= endDate) {
-    weekDates.push(cursor.toISOString().slice(0, 10))
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-  }
+  const weekDates = useMemo(() => {
+    const dates: string[] = []
+    let current = new Date(weekStart + 'T00:00:00Z')
+    const end = new Date(weekEnd + 'T00:00:00Z')
+    while (current <= end) {
+      dates.push(current.toISOString().slice(0, 10))
+      const next = new Date(current)
+      next.setUTCDate(next.getUTCDate() + 1)
+      current = next
+    }
+    return dates
+  }, [weekStart, weekEnd])
 
   // Build conflict lookup
   const conflictMap = new Map<string, DayConflict>()
@@ -450,8 +455,8 @@ export function WeekPlanCard({
   const handleRetry = useCallback(() => {
     hasFetched.current = false
     reset()
-    generate(weekStart, weekEnd)
-  }, [reset, generate, weekStart, weekEnd])
+    // useEffect re-triggers because plan becomes null and hasFetched is false
+  }, [reset])
 
   const handleContinue = useCallback(() => {
     onNext(sessions, syncToCalendar)

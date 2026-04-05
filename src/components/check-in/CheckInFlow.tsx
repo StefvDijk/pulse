@@ -271,10 +271,10 @@ export function CheckInFlow() {
             weekEnd={data.week.weekEnd}
           />
         )}
-        {step === 4 && (
+        {step === 4 && analysis && (
           <ConfirmationCard
             reviewData={data}
-            analysis={analysis!}
+            analysis={analysis}
             manualAdditions={manualAdditions}
             plannedSessions={plannedSessions}
             syncToCalendar={syncToCalendar}
