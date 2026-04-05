@@ -355,7 +355,7 @@ CREATE POLICY "Users can manage own body comp logs"
 | ~~WC-105~~ | ~~Gap detection (niet-gelogde sessies)~~ | **DONE** (69cd699) — detecteert gemiste gym/padel/run sessies | — |
 | ~~WC-106~~ | ~~`scheduled_overrides` updaten bij confirm~~ | **DONE** (42d4e66) — merge overrides op active schema | WC-103 |
 | ~~WC-107~~ | ~~Check-in historie pagina~~ | **DONE** (24772a4) — `/check-in/history` met API + UI | — |
-| WC-108 | Weekplan aanpassen (dag verschuiven, workout wisselen) | Interactieve UI voor plan tweaking | WC-103 |
+| ~~WC-108~~ | ~~Weekplan aanpassen (dag verschuiven, workout wisselen)~~ | **DONE** (e1573e3) — Planning stap 3 met editable weekplan UI | WC-103 |
 
 ---
 
