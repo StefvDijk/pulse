@@ -348,13 +348,13 @@ CREATE POLICY "Users can manage own body comp logs"
 
 | ID | Feature | Reden uitgesteld | Afhankelijk van |
 |----|---------|-----------------|-----------------|
-| WC-101 | Google Calendar lezen (`listEvents`) | Complexe OAuth + event parsing, niet nodig voor kern flow | — |
-| WC-102 | Agenda conflict detectie | Agent moet events interpreteren (kantoor, borrel, reisdag) | WC-101 |
-| WC-103 | Weekplan voorstel genereren (Fase 3 uit plan) | Volledige planning-stap met schema inpassen op beschikbare dagen | WC-101, WC-102 |
-| WC-104 | Google Calendar events schrijven bij confirm | Workouts als events aanmaken met titels, locatie, tijden | WC-103 |
-| WC-105 | Gap detection (niet-gelogde sessies) | Schema-matching logic complex; padel/hardlopen pattern detection | — |
-| WC-106 | `scheduled_overrides` updaten bij confirm | Hoort bij planning flow | WC-103 |
-| WC-107 | Check-in historie pagina (`/api/check-in/history`) | Eerst kern werkend, dan terugkijken | — |
+| ~~WC-101~~ | ~~Google Calendar lezen (`listEvents`)~~ | **DONE** (cd606d0) — `listEvents` + OAuth token refresh | — |
+| ~~WC-102~~ | ~~Agenda conflict detectie~~ | **DONE** (11d6c24) — pure `analyzeConflicts` functie | WC-101 |
+| ~~WC-103~~ | ~~Weekplan voorstel genereren~~ | **DONE** (3b49f53) — AI plan generator + hooks + UI | WC-101, WC-102 |
+| ~~WC-104~~ | ~~Google Calendar events schrijven bij confirm~~ | **DONE** (a22553e) — fire-and-forget sync bij confirm | WC-103 |
+| ~~WC-105~~ | ~~Gap detection (niet-gelogde sessies)~~ | **DONE** (69cd699) — detecteert gemiste gym/padel/run sessies | — |
+| ~~WC-106~~ | ~~`scheduled_overrides` updaten bij confirm~~ | **DONE** (42d4e66) — merge overrides op active schema | WC-103 |
+| ~~WC-107~~ | ~~Check-in historie pagina~~ | **DONE** (24772a4) — `/check-in/history` met API + UI | — |
 | WC-108 | Weekplan aanpassen (dag verschuiven, workout wisselen) | Interactieve UI voor plan tweaking | WC-103 |
 
 ---
