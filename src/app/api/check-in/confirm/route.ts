@@ -143,6 +143,14 @@ export async function POST(request: Request) {
         })
     }
 
+    // Update scheduled overrides on training schema (fire-and-forget)
+    if (input.planned_sessions?.length) {
+      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start, input.week_end)
+        .catch((overrideError) => {
+          console.error('Scheduled override update failed (non-fatal):', overrideError)
+        })
+    }
+
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
     console.error('Check-in confirm POST error:', error)
@@ -203,6 +211,94 @@ async function syncSessionsToCalendar(
     .from('weekly_reviews')
     .update({ calendar_synced: true })
     .eq('id', reviewId)
+}
+
+// ---------------------------------------------------------------------------
+// Fire-and-forget: update scheduled_overrides on active training schema
+// ---------------------------------------------------------------------------
+
+const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+
+function parseDefaultSchedule(raw: unknown): Map<string, string> {
+  const map = new Map<string, string>()
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (item && typeof item === 'object' && 'day' in item && 'focus' in item) {
+        map.set(String(item.day).toLowerCase(), String(item.focus))
+      }
+    }
+  } else if (raw && typeof raw === 'object' && 'days' in raw) {
+    const days = (raw as Record<string, unknown>).days
+    if (days && typeof days === 'object') {
+      for (const [day, info] of Object.entries(days as Record<string, unknown>)) {
+        if (info && typeof info === 'object' && 'title' in info) {
+          map.set(day.toLowerCase(), String((info as Record<string, unknown>).title))
+        }
+      }
+    }
+  }
+  return map
+}
+
+async function updateScheduledOverrides(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  sessions: PlannedSession[],
+  weekStart: string,
+  weekEnd: string,
+): Promise<void> {
+  // Load active training schema
+  const { data: schema } = await admin
+    .from('training_schemas')
+    .select('id, workout_schedule, scheduled_overrides')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single()
+
+  if (!schema) return
+
+  const defaultSchedule = parseDefaultSchedule(schema.workout_schedule)
+  const existingOverrides = (schema.scheduled_overrides ?? {}) as Record<string, string | null>
+
+  // Build a lookup: date → planned workout name
+  const plannedByDate = new Map<string, string>()
+  for (const session of sessions) {
+    plannedByDate.set(session.date, session.workout)
+  }
+
+  // Iterate all 7 days of the week, computing overrides where needed
+  const newOverrides: Record<string, string | null> = {}
+  const weekStartDate = new Date(weekStart)
+
+  WEEK_DAYS.forEach((dayName, index) => {
+    const date = new Date(weekStartDate)
+    date.setUTCDate(weekStartDate.getUTCDate() + index)
+    const dateStr = date.toISOString().slice(0, 10)
+
+    const defaultWorkout = defaultSchedule.get(dayName)
+    const plannedWorkout = plannedByDate.get(dateStr)
+
+    if (plannedWorkout !== undefined) {
+      // There is a planned session on this day
+      if (plannedWorkout !== defaultWorkout) {
+        // Differs from default → override
+        newOverrides[dateStr] = plannedWorkout
+      }
+      // Matches default → no override needed
+    } else if (defaultWorkout !== undefined) {
+      // Default has a workout but nothing planned → force rest
+      newOverrides[dateStr] = null
+    }
+    // No default and no planned → nothing to do
+  })
+
+  // Merge: new overrides take precedence over existing
+  const mergedOverrides = { ...existingOverrides, ...newOverrides }
+
+  await admin
+    .from('training_schemas')
+    .update({ scheduled_overrides: mergedOverrides as Json })
+    .eq('id', schema.id)
 }
 
 // ---------------------------------------------------------------------------
