@@ -8,8 +8,10 @@ import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Sk
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { WeekReviewCard } from '@/components/check-in/WeekReviewCard'
 import { CoachAnalysisCard } from '@/components/check-in/CoachAnalysisCard'
+import { WeekPlanCard } from '@/components/check-in/WeekPlanCard'
 import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
+import type { PlannedSession } from '@/hooks/useWeekPlan'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -25,8 +27,8 @@ export interface ManualAddition {
 // Step labels
 // ---------------------------------------------------------------------------
 
-const STEPS = ['Review', 'Analyse', 'Bevestig'] as const
-type StepNumber = 1 | 2 | 3
+const STEPS = ['Review', 'Analyse', 'Planning', 'Bevestig'] as const
+type StepNumber = 1 | 2 | 3 | 4
 
 // ---------------------------------------------------------------------------
 // Skeleton for loading state
@@ -124,6 +126,8 @@ export function CheckInFlow() {
   const [step, setStep] = useState<StepNumber>(1)
   const [manualAdditions, setManualAdditions] = useState<ManualAddition[]>([])
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null)
+  const [plannedSessions, setPlannedSessions] = useState<PlannedSession[] | null>(null)
+  const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
   const handleAddManual = useCallback((addition: ManualAddition) => {
@@ -138,8 +142,14 @@ export function CheckInFlow() {
     setAnalysis(result)
   }, [])
 
-  const handleGoToConfirm = useCallback(() => {
+  const handleGoToPlanning = useCallback(() => {
     setStep(3)
+  }, [])
+
+  const handlePlanComplete = useCallback((sessions: PlannedSession[], sync: boolean) => {
+    setPlannedSessions(sessions)
+    setSyncToCalendar(sync)
+    setStep(4)
   }, [])
 
   const handleConfirmed = useCallback(() => {
@@ -250,14 +260,24 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             analysis={analysis}
             onAnalysisComplete={handleAnalysisComplete}
-            onNext={handleGoToConfirm}
+            onNext={handleGoToPlanning}
           />
         )}
         {step === 3 && (
+          <WeekPlanCard
+            reviewData={data}
+            onNext={handlePlanComplete}
+            weekStart={data.week.weekStart}
+            weekEnd={data.week.weekEnd}
+          />
+        )}
+        {step === 4 && (
           <ConfirmationCard
             reviewData={data}
             analysis={analysis!}
             manualAdditions={manualAdditions}
+            plannedSessions={plannedSessions}
+            syncToCalendar={syncToCalendar}
             onConfirmed={handleConfirmed}
           />
         )}

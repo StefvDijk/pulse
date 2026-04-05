@@ -6,11 +6,13 @@ import {
   Dumbbell,
   Footprints,
   Loader2,
+  Calendar,
 } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
+import type { PlannedSession } from '@/hooks/useWeekPlan'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -20,6 +22,8 @@ interface ConfirmationCardProps {
   reviewData: CheckInReviewData
   analysis: AnalyzeResponse
   manualAdditions: ManualAddition[]
+  plannedSessions: PlannedSession[] | null
+  syncToCalendar: boolean
   onConfirmed: () => void
 }
 
@@ -27,10 +31,29 @@ interface ConfirmationCardProps {
 // Component
 // ---------------------------------------------------------------------------
 
+const DAY_ABBREVS_SHORT: Record<string, string> = {
+  maandag: 'Ma',
+  dinsdag: 'Di',
+  woensdag: 'Wo',
+  donderdag: 'Do',
+  vrijdag: 'Vr',
+  zaterdag: 'Za',
+  zondag: 'Zo',
+  ma: 'Ma',
+  di: 'Di',
+  wo: 'Wo',
+  do: 'Do',
+  vr: 'Vr',
+  za: 'Za',
+  zo: 'Zo',
+}
+
 export function ConfirmationCard({
   reviewData,
   analysis,
   manualAdditions,
+  plannedSessions,
+  syncToCalendar,
   onConfirmed,
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
@@ -79,6 +102,8 @@ export function ConfirmationCard({
               waist_cm?: number
             })
           : undefined,
+        planned_sessions: plannedSessions ?? undefined,
+        sync_to_calendar: syncToCalendar,
       }
 
       const res = await fetch('/api/check-in/confirm', {
@@ -163,6 +188,37 @@ export function ConfirmationCard({
           </div>
         )}
       </div>
+
+      {/* Planned sessions summary */}
+      {plannedSessions && plannedSessions.length > 0 && (
+        <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar size={16} className="text-text-tertiary" />
+            <h3 className="text-card-title">Weekplan</h3>
+            <span className="text-xs text-text-tertiary">
+              {plannedSessions.length} {plannedSessions.length === 1 ? 'sessie' : 'sessies'}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {plannedSessions.map((s) => (
+              <div
+                key={s.date}
+                className="flex items-center justify-between py-1"
+              >
+                <span className="text-sm text-text-primary">
+                  {DAY_ABBREVS_SHORT[s.day] ?? s.day}: {s.workout}
+                </span>
+                <span className="text-xs text-text-tertiary">{s.time}</span>
+              </div>
+            ))}
+          </div>
+          {syncToCalendar && (
+            <p className="mt-2 text-xs text-text-tertiary">
+              Wordt gesynchroniseerd naar Google Agenda
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Coach quote */}
       <div className="rounded-2xl bg-bg-card border border-border-light p-5">
