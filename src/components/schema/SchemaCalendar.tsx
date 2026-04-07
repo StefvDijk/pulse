@@ -38,25 +38,25 @@ function SportIcon({ sport, size = 9, className }: { sport: SportType; size?: nu
 
 function sportColorClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-sport-run'
-    case 'padel': return 'bg-sport-padel'
-    default: return 'bg-sport-gym'
+    case 'run': return 'bg-system-orange'
+    case 'padel': return 'bg-system-yellow'
+    default: return 'bg-system-blue'
   }
 }
 
 function sportLightClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-sport-run-light'
-    case 'padel': return 'bg-sport-padel-light'
-    default: return 'bg-sport-gym-light'
+    case 'run': return 'bg-system-orange/10'
+    case 'padel': return 'bg-system-yellow/10'
+    default: return 'bg-system-blue/10'
   }
 }
 
 function sportTextClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'text-sport-run'
-    case 'padel': return 'text-sport-padel'
-    default: return 'text-sport-gym'
+    case 'run': return 'text-system-orange'
+    case 'padel': return 'text-system-yellow'
+    default: return 'text-system-blue'
   }
 }
 
@@ -89,27 +89,27 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-card shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-surface-primary shadow-2xl">
         <div className="px-5 pt-5 pb-3">
-          <h3 className="text-sm font-semibold text-text-primary">
+          <h3 className="text-sm font-semibold text-label-primary">
             {day.workoutFocus} verplaatsen
           </h3>
-          <p className="text-xs text-text-tertiary mt-0.5">Kies een nieuwe dag</p>
+          <p className="text-xs text-label-tertiary mt-0.5">Kies een nieuwe dag</p>
         </div>
         <div className="flex flex-col gap-1 px-3 pb-4">
           {availableDays.map((target) => (
             <button
               key={target.date}
               onClick={() => onMove(target.date)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-bg-subtle transition-colors"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-system-gray6 transition-colors"
             >
-              <ArrowRight size={14} className="text-text-tertiary" />
-              <span className="text-sm text-text-primary">
+              <ArrowRight size={14} className="text-label-tertiary" />
+              <span className="text-sm text-label-primary">
                 {DAY_HEADERS[new Date(target.date + 'T00:00:00Z').getUTCDay() === 0 ? 6 : new Date(target.date + 'T00:00:00Z').getUTCDay() - 1]}
               </span>
-              <span className="text-xs text-text-tertiary">{formatDateShort(target.date)}</span>
+              <span className="text-xs text-label-tertiary">{formatDateShort(target.date)}</span>
               {target.workoutFocus && (
-                <span className="ml-auto text-xs text-text-tertiary">
+                <span className="ml-auto text-xs text-label-tertiary">
                   ({target.workoutFocus})
                 </span>
               )}
@@ -138,8 +138,8 @@ function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
   if (day.status === 'rest' || !day.workoutFocus) {
     return (
       <div className={`flex flex-col items-center gap-1 py-2 ${isPast && !isCurrentWeek ? 'opacity-40' : 'opacity-60'}`}>
-        <span className="text-[11px] text-text-tertiary tabular-nums">{dateNum}</span>
-        <span className="text-[10px] text-text-tertiary">—</span>
+        <span className="text-[11px] text-label-tertiary tabular-nums">{dateNum}</span>
+        <span className="text-[10px] text-label-tertiary">—</span>
       </div>
     )
   }
@@ -154,10 +154,10 @@ function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
           ? 'bg-text-primary/5 ring-1 ring-text-primary'
           : day.status === 'completed'
             ? sportLightClass(sport)
-            : 'hover:bg-bg-subtle'
+            : 'hover:bg-system-gray6'
       } ${isPast && day.status !== 'completed' && !isCurrentWeek ? 'opacity-50' : ''}`}
     >
-      <span className={`text-[11px] tabular-nums ${isToday ? 'font-bold text-text-primary' : 'text-text-tertiary'}`}>
+      <span className={`text-[11px] tabular-nums ${isToday ? 'font-bold text-label-primary' : 'text-label-tertiary'}`}>
         {dateNum}
       </span>
       {day.status === 'completed' ? (
@@ -166,18 +166,18 @@ function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
         </div>
       ) : (
         <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
-          isToday ? 'bg-text-primary' : 'border border-border-medium'
+          isToday ? 'bg-text-primary' : 'border border-separator'
         }`}>
-          <SportIcon sport={sport} size={9} className={isToday ? 'text-white' : 'text-text-tertiary'} />
+          <SportIcon sport={sport} size={9} className={isToday ? 'text-white' : 'text-label-tertiary'} />
         </div>
       )}
       <span className={`text-[9px] font-medium leading-tight text-center max-w-full truncate ${
-        day.status === 'completed' ? sportTextClass(sport) : isToday ? 'text-text-primary' : 'text-text-secondary'
+        day.status === 'completed' ? sportTextClass(sport) : isToday ? 'text-label-primary' : 'text-label-secondary'
       }`}>
         {day.workoutFocus}
       </span>
       {day.status !== 'completed' && (
-        <MoreHorizontal size={10} className="text-text-tertiary mt-0.5" />
+        <MoreHorizontal size={10} className="text-label-tertiary mt-0.5" />
       )}
     </button>
   )
@@ -213,25 +213,25 @@ export function SchemaCalendar({
   }
 
   return (
-    <div className="rounded-2xl border border-border-light bg-bg-card overflow-hidden">
+    <div className="rounded-2xl border border-separator bg-surface-primary overflow-hidden">
       {/* Week selector header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border-light">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-separator">
         <button
           onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
           disabled={selectedWeek <= 1}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-bg-subtle disabled:opacity-30"
+          className="p-1 rounded-lg text-label-tertiary hover:bg-system-gray6 disabled:opacity-30"
         >
           <ChevronLeft size={18} />
         </button>
 
         <div className="text-center">
-          <h3 className="text-sm font-semibold text-text-primary">
+          <h3 className="text-sm font-semibold text-label-primary">
             Week {selectedWeek}
             {selectedWeek === currentWeek && (
-              <span className="ml-1.5 text-[10px] font-normal text-sport-gym">(huidige)</span>
+              <span className="ml-1.5 text-[10px] font-normal text-system-blue">(huidige)</span>
             )}
           </h3>
-          <p className="text-[11px] text-text-tertiary mt-0.5">
+          <p className="text-[11px] text-label-tertiary mt-0.5">
             {formatDateRange(week.days)}
             {' · '}
             {week.sessionsCompleted}/{week.sessionsPlanned} sessies
@@ -241,16 +241,16 @@ export function SchemaCalendar({
         <button
           onClick={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
           disabled={selectedWeek >= weeks.length}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-bg-subtle disabled:opacity-30"
+          className="p-1 rounded-lg text-label-tertiary hover:bg-system-gray6 disabled:opacity-30"
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-border-light">
+      <div className="grid grid-cols-7 border-b border-separator">
         {DAY_HEADERS.map((label) => (
-          <div key={label} className="py-1.5 text-center text-[10px] font-medium text-text-tertiary uppercase">
+          <div key={label} className="py-1.5 text-center text-[10px] font-medium text-label-tertiary uppercase">
             {label}
           </div>
         ))}
@@ -269,17 +269,17 @@ export function SchemaCalendar({
       </div>
 
       {/* Week dots navigation */}
-      <div className="flex items-center justify-center gap-1.5 py-3 border-t border-border-light">
+      <div className="flex items-center justify-center gap-1.5 py-3 border-t border-separator">
         {weeks.map((w) => (
           <button
             key={w.weekNumber}
             onClick={() => setSelectedWeek(w.weekNumber)}
             className={`h-2 rounded-full transition-all ${
               w.weekNumber === selectedWeek
-                ? 'w-4 bg-sport-gym'
+                ? 'w-4 bg-system-blue'
                 : w.isComplete
-                  ? 'w-2 bg-sport-gym/40'
-                  : 'w-2 bg-bg-subtle'
+                  ? 'w-2 bg-system-blue/40'
+                  : 'w-2 bg-system-gray6'
             }`}
           />
         ))}
@@ -287,10 +287,10 @@ export function SchemaCalendar({
 
       {/* Push to calendar button */}
       {calendarConnected && (
-        <div className="border-t border-border-light px-4 py-3">
+        <div className="border-t border-separator px-4 py-3">
           <button
             onClick={onPushToCalendar}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-text"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-system-blue px-4 py-2.5 text-sm font-medium text-white"
           >
             <Calendar size={14} />
             Week {selectedWeek} inplannen in agenda

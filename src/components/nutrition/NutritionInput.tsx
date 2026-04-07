@@ -75,7 +75,7 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
   return (
     <div className="flex flex-col gap-2">
       {/* Input */}
-      <div className="flex items-end gap-2 bg-bg-card border border-border-light rounded-[14px] p-3">
+      <div className="flex items-end gap-2 bg-surface-primary border border-separator rounded-[14px] p-3">
         <textarea
           ref={textareaRef}
           value={value}
@@ -84,12 +84,12 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
           placeholder="Wat heb je gegeten?"
           rows={2}
           disabled={isLoading}
-          className="flex-1 resize-none bg-transparent text-sm text-text-primary outline-none placeholder:opacity-40"
+          className="flex-1 resize-none bg-transparent text-sm text-label-primary outline-none placeholder:opacity-40"
         />
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent transition-opacity disabled:opacity-30"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-system-blue transition-opacity disabled:opacity-30"
           aria-label="Analyseer"
         >
           {isLoading ? (
@@ -102,15 +102,15 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
 
       {/* Error */}
       {error && (
-        <p className="text-xs text-status-red">
+        <p className="text-xs text-system-red">
           {error}
         </p>
       )}
 
       {/* Last result preview */}
       {lastResult && (
-        <div className="flex items-center justify-between rounded-lg bg-bg-subtle px-3 py-2 text-xs">
-          <span className="text-text-primary">
+        <div className="flex items-center justify-between rounded-lg bg-system-gray6 px-3 py-2 text-xs">
+          <span className="text-label-primary">
             {lastResult.calories} kcal · {lastResult.protein_g}g eiwit · {lastResult.carbs_g}g koolh · {lastResult.fat_g}g vet
           </span>
           {confidence && (

@@ -83,22 +83,22 @@ export function SyncButton() {
       <button
         onClick={handleSync}
         disabled={status === 'syncing'}
-        className="flex items-center gap-1.5 rounded-xl border border-border-light px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-subtle disabled:opacity-50 transition-colors"
+        className="flex items-center gap-1.5 rounded-full bg-system-blue/10 px-4 py-2 text-caption1 font-semibold text-system-blue hover:bg-system-blue/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
       >
         {status === 'syncing' ? (
-          <RefreshCw size={12} className="animate-spin" />
+          <RefreshCw size={12} strokeWidth={2} className="animate-spin" />
         ) : status === 'success' ? (
-          <Check size={12} className="text-status-green" />
+          <Check size={12} strokeWidth={2} className="text-system-green" />
         ) : status === 'error' ? (
-          <AlertCircle size={12} className="text-status-red" />
+          <AlertCircle size={12} strokeWidth={2} className="text-system-red" />
         ) : (
-          <RefreshCw size={12} />
+          <RefreshCw size={12} strokeWidth={2} />
         )}
         {status === 'syncing' ? 'Synchroniseren...' : 'Data synchroniseren'}
       </button>
 
       {message && (
-        <span className={`text-xs ${status === 'error' ? 'text-status-red' : 'text-text-tertiary'}`}>
+        <span className={`text-caption1 ${status === 'error' ? 'text-system-red' : 'text-label-tertiary'}`}>
           {message}
         </span>
       )}

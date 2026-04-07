@@ -46,13 +46,13 @@ const BACK_REGIONS: MuscleRegion[] = [
   { id: 'rotator_cuff_r', label: 'Rotator cuff', shape: 'ellipse', cx: 142, cy: 75, rx: 10, ry: 8 },
 ]
 
-/** Map muscle load (0-100) to a terracotta fill color. */
+/** Map muscle load (0-100) to an Apple system color (warm intensity ramp). */
 function loadToColor(load: number): string {
   if (load <= 0) return 'transparent'
-  if (load <= 25) return '#E6A87C'
-  if (load <= 50) return '#D4845A'
-  if (load <= 75) return '#C2410C'
-  return '#9A3412'
+  if (load <= 25) return 'var(--color-system-yellow)'
+  if (load <= 50) return 'var(--color-system-orange)'
+  if (load <= 75) return 'var(--color-system-orange)'
+  return 'var(--color-system-red)'
 }
 
 /** Map muscle load (0-100) to opacity. */
@@ -91,42 +91,42 @@ function BodySilhouette({
     <>
       {/* Simple body outline */}
       {/* Head */}
-      <ellipse cx={100} cy={32} rx={18} ry={22} fill="#E7E5E0" stroke="#D4D0C8" strokeWidth={1.5} />
+      <ellipse cx={100} cy={32} rx={18} ry={22} fill="var(--color-system-gray5)" stroke="var(--color-separator-opaque)" strokeWidth={1.5} />
       {/* Neck */}
-      <rect x={91} y={52} width={18} height={10} fill="#E7E5E0" />
+      <rect x={91} y={52} width={18} height={10} fill="var(--color-system-gray5)" />
       {/* Torso */}
       <path
         d="M 65 62 L 135 62 L 128 145 L 72 145 Z"
-        fill="#EDEAE4"
-        stroke="#D4D0C8"
+        fill="var(--color-system-gray6)"
+        stroke="var(--color-separator-opaque)"
         strokeWidth={1.5}
       />
       {/* Left arm */}
       <path
         d="M 65 62 L 40 68 L 36 130 L 52 130 L 55 68 L 68 70 Z"
-        fill="#EDEAE4"
-        stroke="#D4D0C8"
+        fill="var(--color-system-gray6)"
+        stroke="var(--color-separator-opaque)"
         strokeWidth={1.5}
       />
       {/* Right arm */}
       <path
         d="M 135 62 L 160 68 L 164 130 L 148 130 L 145 68 L 132 70 Z"
-        fill="#EDEAE4"
-        stroke="#D4D0C8"
+        fill="var(--color-system-gray6)"
+        stroke="var(--color-separator-opaque)"
         strokeWidth={1.5}
       />
       {/* Left leg */}
       <path
         d="M 72 145 L 68 200 L 74 255 L 93 255 L 96 200 L 95 145 Z"
-        fill="#EDEAE4"
-        stroke="#D4D0C8"
+        fill="var(--color-system-gray6)"
+        stroke="var(--color-separator-opaque)"
         strokeWidth={1.5}
       />
       {/* Right leg */}
       <path
         d="M 105 145 L 104 200 L 107 255 L 126 255 L 132 200 L 128 145 Z"
-        fill="#EDEAE4"
-        stroke="#D4D0C8"
+        fill="var(--color-system-gray6)"
+        stroke="var(--color-separator-opaque)"
         strokeWidth={1.5}
       />
 
@@ -176,7 +176,7 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       <div className="flex gap-4">
         {/* Front */}
         <div className="flex-1">
-          <p className="text-text-tertiary mb-1 text-center text-xs">
+          <p className="text-label-tertiary mb-1 text-center text-caption1">
             Voorkant
           </p>
           <svg
@@ -195,7 +195,7 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
 
         {/* Back */}
         <div className="flex-1">
-          <p className="text-text-tertiary mb-1 text-center text-xs">
+          <p className="text-label-tertiary mb-1 text-center text-caption1">
             Achterkant
           </p>
           <svg
@@ -216,7 +216,7 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="bg-bg-card border-border-medium text-text-primary pointer-events-none absolute z-10 rounded border px-2 py-1 text-xs shadow"
+          className="glass text-label-primary pointer-events-none absolute z-10 rounded-xl px-3 py-1.5 text-caption1 font-medium"
           style={{
             left: tooltip.x + 8,
             top: tooltip.y - 28,
@@ -227,21 +227,21 @@ export function MuscleHeatmap({ muscleLoad }: MuscleHeatmapProps) {
       )}
 
       {/* Legend */}
-      <div className="text-text-tertiary mt-2 flex items-center justify-center gap-3 text-xs">
+      <div className="text-label-tertiary mt-2 flex items-center justify-center gap-3 text-caption1">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#E6A87C' }} />
+          <span className="inline-block h-2 w-4 rounded-full bg-system-yellow" />
           Licht
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#D4845A' }} />
+          <span className="inline-block h-2 w-4 rounded-full bg-system-orange" />
           Matig
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#C2410C' }} />
+          <span className="inline-block h-2 w-4 rounded-full bg-system-orange opacity-90" />
           Zwaar
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded" style={{ backgroundColor: '#9A3412' }} />
+          <span className="inline-block h-2 w-4 rounded-full bg-system-red" />
           Zeer zwaar
         </span>
       </div>

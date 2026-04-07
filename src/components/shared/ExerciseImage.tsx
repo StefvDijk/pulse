@@ -22,7 +22,7 @@ export function ExerciseImage({ imageUrl, muscleGroup, name, size = 'md' }: Exer
 
   return (
     <div
-      className={`${size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'} shrink-0 overflow-hidden rounded-full bg-bg-subtle`}
+      className={`${size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'} shrink-0 overflow-hidden rounded-full bg-system-gray6`}
       title={name}
     >
       <Image

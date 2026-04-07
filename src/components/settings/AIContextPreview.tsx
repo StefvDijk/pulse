@@ -27,22 +27,22 @@ export function AIContextPreview() {
   )
 
   return (
-    <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+    <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
       <SectionHeader title="Context Preview" />
-      <p className="mb-3 text-xs text-text-tertiary">
+      <p className="mb-3 text-xs text-label-tertiary">
         Dit is wat de AI coach over je weet. Klik om uit te klappen.
       </p>
 
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg bg-bg-subtle px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover transition-colors"
+        className="flex w-full items-center justify-between rounded-lg bg-system-gray6 px-3 py-2 text-sm text-label-secondary hover:bg-system-gray6 transition-colors"
       >
         <span className="flex items-center gap-1.5">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           Volledige AI context
         </span>
         {data && (
-          <span className="text-xs text-text-tertiary">
+          <span className="text-xs text-label-tertiary">
             ~{Math.round(data.totalChars / 1000)}k tekens
           </span>
         )}
@@ -54,7 +54,7 @@ export function AIContextPreview() {
             <button
               onClick={() => mutate()}
               disabled={isLoading}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-bg-hover disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-label-tertiary hover:text-label-secondary hover:bg-system-gray6 disabled:opacity-50"
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
               Vernieuw
@@ -64,11 +64,11 @@ export function AIContextPreview() {
           {isLoading ? (
             <div className="flex flex-col gap-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-4 animate-pulse rounded bg-bg-subtle" />
+                <div key={i} className="h-4 animate-pulse rounded bg-system-gray6" />
               ))}
             </div>
           ) : data ? (
-            <pre className="max-h-96 overflow-y-auto rounded-lg bg-bg-subtle p-3 text-xs text-text-secondary font-mono whitespace-pre-wrap leading-relaxed">
+            <pre className="max-h-96 overflow-y-auto rounded-lg bg-system-gray6 p-3 text-xs text-label-secondary font-mono whitespace-pre-wrap leading-relaxed">
               {data.systemPrompt}
               {'\n\n--- DATA CONTEXT ---\n\n'}
               {data.thinContext}

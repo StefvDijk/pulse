@@ -2,6 +2,7 @@
 
 import { Dumbbell, CheckCircle2, Moon, TrendingUp } from 'lucide-react'
 import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
+import { Card } from '@/components/ui'
 
 interface TodayWorkoutCardProps {
   day: SchemaWeekDay | undefined
@@ -73,8 +74,8 @@ function SetSummary({ exercise }: { exercise: ExerciseData }) {
 
   return (
     <div className="flex items-center justify-between py-2.5">
-      <span className="text-sm text-text-primary">{exercise.name}</span>
-      <span className="text-sm tabular-nums text-text-secondary">
+      <span className="text-subhead text-label-primary">{exercise.name}</span>
+      <span className="text-subhead tabular-nums text-label-secondary">
         {workingSets.length}×{reps ?? '?'}
         {weight ? ` · ${weight}kg` : ''}
       </span>
@@ -88,21 +89,21 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
   // Rest day
   if (day.status === 'rest' || !day.workout) {
     return (
-      <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+      <Card padding="lg">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-subtle">
-            <Moon size={20} className="text-text-tertiary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-system-gray6">
+            <Moon size={20} strokeWidth={1.5} className="text-label-tertiary" />
           </div>
           <div>
-            <p className="text-base font-semibold text-text-primary">Rustdag</p>
-            <p className="text-sm text-text-tertiary">
+            <p className="text-headline text-label-primary">Rustdag</p>
+            <p className="text-subhead text-label-secondary">
               {tomorrowWorkout
                 ? `Morgen: ${tomorrowWorkout}`
                 : 'Geniet van je herstel'}
             </p>
           </div>
         </div>
-      </div>
+      </Card>
     )
   }
 
@@ -112,33 +113,33 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
     : formatSets(day.lastPerformance?.exercises ?? [])
 
   return (
-    <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+    <Card padding="lg">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              isCompleted ? 'bg-status-green-light' : 'bg-sport-gym-light'
+              isCompleted ? 'bg-system-green/10' : 'bg-system-blue/10'
             }`}
           >
             {isCompleted ? (
-              <CheckCircle2 size={20} className="text-status-green" />
+              <CheckCircle2 size={20} strokeWidth={1.5} className="text-system-green" />
             ) : (
-              <Dumbbell size={20} className="text-sport-gym" />
+              <Dumbbell size={20} strokeWidth={1.5} className="text-system-blue" />
             )}
           </div>
           <div>
-            <p className="text-base font-semibold text-text-primary">
+            <p className="text-headline text-label-primary">
               {day.workout.title}
             </p>
-            <p className="text-sm text-text-tertiary">
+            <p className="text-subhead text-label-secondary">
               {day.workout.subtitle}
               {day.workout.duration_min ? ` · ~${day.workout.duration_min} min` : ''}
             </p>
           </div>
         </div>
         {isCompleted && (
-          <span className="rounded-full bg-status-green-light px-2.5 py-1 text-xs font-medium text-status-green">
+          <span className="rounded-full bg-system-green/10 px-2.5 py-1 text-caption1 font-semibold text-system-green">
             Gedaan
           </span>
         )}
@@ -147,8 +148,8 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
       {/* Achievement highlight for completed workouts */}
       {isCompleted && (
         <div className="mt-3 flex items-center gap-1.5">
-          <TrendingUp size={14} className="text-sport-gym" />
-          <span className="text-sm font-medium text-sport-gym">
+          <TrendingUp size={14} strokeWidth={1.5} className="text-system-blue" />
+          <span className="text-subhead font-medium text-system-blue">
             {findAchievement(
               day.completedWorkout?.exercises ?? [],
               day.lastPerformance?.exercises ?? [],
@@ -159,7 +160,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Compact summary for completed workouts */}
       {isCompleted && (
-        <p className="mt-1.5 text-xs text-text-tertiary">
+        <p className="mt-1.5 text-caption1 text-label-tertiary">
           {day.completedWorkout?.duration_seconds != null
             ? `${formatDuration(day.completedWorkout.duration_seconds)} · `
             : ''}
@@ -169,7 +170,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Exercise list */}
       {exercises.length > 0 && (
-        <div className="mt-4 divide-y divide-border-light">
+        <div className="mt-4 divide-y divide-separator">
           {exercises.map((exercise) => (
             <SetSummary key={exercise.exercise_order} exercise={exercise} />
           ))}
@@ -178,10 +179,10 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Reference note for planned workouts */}
       {!isCompleted && day.lastPerformance && (
-        <p className="mt-3 text-xs text-text-tertiary">
+        <p className="mt-3 text-caption1 text-label-tertiary">
           Op basis van je sessie van {day.lastPerformance.date}
         </p>
       )}
-    </div>
+    </Card>
   )
 }

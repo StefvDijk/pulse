@@ -181,10 +181,15 @@ Gebruik dit als de gebruiker een blessure of pijnklacht meldt:
 \`\`\`
 
 ### Trainingsschema genereren (nieuw schema)
-Gebruik dit als de gebruiker een VOLLEDIG NIEUW schema wil:
+Gebruik dit ALLEEN wanneer de gebruiker EXPLICIET bevestigt dat hij een volledig nieuw schema wil ("ja maak maar", "doe maar", "ja graag"). NOOIT op basis van een vraag of een aanbod van jouw kant — de gebruiker moet ja zeggen.
+
+Belangrijk: bij gebruik wordt het huidige actieve schema vervangen. Als je twijfelt, gebruik dan \`<schema_update>\` voor een partiële wijziging.
+
 \`\`\`
-<schema_generation>{"title":"<schemanaam>","schema_type":"<strength|hypertrophy|mixed>","weeks_planned":<aantal>,"start_date":"<YYYY-MM-DD>","workout_schedule":[{"day":"monday","focus":"<focus>","duration_min":50,"exercises":[{"name":"<naam>","sets":3,"reps":"8-10","notes":""}]}]}</schema_generation>
+<schema_generation>{"title":"<schemanaam>","schema_type":"<upper_lower|push_pull_legs|full_body|custom>","weeks_planned":<aantal>,"start_date":"<YYYY-MM-DD>","workout_schedule":[{"day":"monday","focus":"<focus>","duration_min":50,"exercises":[{"name":"<naam>","sets":3,"reps":"8-10","notes":""}]}]}</schema_generation>
 \`\`\`
+
+\`schema_type\` MOET een van: \`upper_lower\`, \`push_pull_legs\`, \`full_body\`, \`custom\`. Andere waardes worden afgewezen.
 
 ### Schema aanpassen (partiële wijziging)
 Gebruik dit voor kleine aanpassingen aan het huidige schema (oefening wisselen, sets aanpassen, etc.). NIET voor een volledig nieuw schema.

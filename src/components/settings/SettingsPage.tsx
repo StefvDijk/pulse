@@ -131,10 +131,10 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-      <h1 className="text-xl font-bold text-text-primary">Instellingen</h1>
+      <h1 className="text-xl font-bold text-label-primary">Instellingen</h1>
 
       {/* Profile section */}
-      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Profiel" />
         <div className="flex flex-col gap-4">
           <Field label="Naam">
@@ -188,7 +188,7 @@ export function SettingsPage() {
       </div>
 
       {/* Connections section */}
-      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Koppelingen" />
         <div className="flex flex-col gap-4">
           <Field label="Hevy API key">
@@ -222,16 +222,16 @@ export function SettingsPage() {
       </div>
 
       {/* Google Calendar section */}
-      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Google Agenda" />
 
         {calendarStatus === 'connected' && (
-          <div className="mb-3 rounded-lg bg-status-green-light px-3 py-2 text-sm text-status-green">
+          <div className="mb-3 rounded-lg bg-system-green/10 px-3 py-2 text-sm text-system-green">
             Google Agenda gekoppeld ✓
           </div>
         )}
         {calendarStatus === 'error' && (
-          <div className="mb-3 rounded-lg bg-status-red-light px-3 py-2 text-sm text-status-red">
+          <div className="mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
             Koppeling mislukt — probeer opnieuw.
           </div>
         )}
@@ -241,16 +241,16 @@ export function SettingsPage() {
             <div className="flex items-center gap-2">
               <StatusDot active />
               <div>
-                <p className="text-sm font-medium text-text-primary">Verbonden</p>
+                <p className="text-sm font-medium text-label-primary">Verbonden</p>
                 {data.settings.google_calendar_email && (
-                  <p className="text-xs text-text-tertiary">{data.settings.google_calendar_email}</p>
+                  <p className="text-xs text-label-tertiary">{data.settings.google_calendar_email}</p>
                 )}
               </div>
             </div>
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnecting}
-              className="rounded-lg border border-border-light px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-50"
+              className="rounded-lg border border-separator px-3 py-1.5 text-sm text-label-secondary transition-colors hover:bg-system-gray6 disabled:opacity-50"
             >
               {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
             </button>
@@ -259,11 +259,11 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <StatusDot active={false} />
-              <p className="text-sm text-text-secondary">Niet gekoppeld</p>
+              <p className="text-sm text-label-secondary">Niet gekoppeld</p>
             </div>
             <a
               href="/api/calendar/auth"
-              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-text transition-opacity hover:opacity-80"
+              className="rounded-lg bg-system-blue px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
             >
               Koppel Google Agenda
             </a>
@@ -272,7 +272,7 @@ export function SettingsPage() {
       </div>
 
       {/* Training goals section */}
-      <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
+      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
         <SectionHeader title="Trainingsdoelen" />
         <div className="flex flex-col gap-4">
           <Field label="Proteïne doel (g/kg lichaamsgewicht)">
@@ -288,7 +288,7 @@ export function SettingsPage() {
             />
           </Field>
           <div>
-            <p className="mb-2 text-xs font-medium text-text-tertiary">Wekelijkse sessies</p>
+            <p className="mb-2 text-xs font-medium text-label-tertiary">Wekelijkse sessies</p>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Gym">
                 <input
@@ -329,7 +329,7 @@ export function SettingsPage() {
       </div>
 
       {/* AI Coach section */}
-      <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
+      <h2 className="mt-4 text-lg font-semibold text-label-primary">AI Coach</h2>
 
       <AIContextSection
         currentValue={data?.settings.ai_custom_instructions ?? null}

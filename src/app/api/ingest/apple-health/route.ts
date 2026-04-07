@@ -80,6 +80,7 @@ interface IngestResponse {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<IngestResponse | { error: string }>> {
+  try {
   // ------------------------------------------------------------------
   // 1. Extract Bearer token
   // ------------------------------------------------------------------
@@ -453,7 +454,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       userId,
       syncSource: 'apple_health',
       haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
-    }).catch(() => {})
+    }).catch((err: unknown) => {
+      console.error('[ingest/apple-health] analyzeAfterSync failed:', err)
+    })
   }
 
   // ------------------------------------------------------------------
@@ -470,4 +473,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     },
     errors,
   })
+  } catch (error) {
+    console.error('[POST /api/ingest/apple-health] Unhandled error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    )
+  }
 }

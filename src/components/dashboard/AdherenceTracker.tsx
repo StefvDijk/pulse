@@ -53,7 +53,7 @@ export function AdherenceTracker({ dailyAggregations, weekStart }: AdherenceTrac
 
         return (
           <div key={date} className="flex flex-1 flex-col items-center gap-1">
-            <span className={`text-xs ${isToday ? 'text-text-primary font-medium' : 'text-text-tertiary'}`}>
+            <span className={`text-xs ${isToday ? 'text-label-primary font-medium' : 'text-label-tertiary'}`}>
               {DAY_LABELS[i]}
             </span>
             <div
@@ -66,7 +66,7 @@ export function AdherenceTracker({ dailyAggregations, weekStart }: AdherenceTrac
               }}
             >
               {!color && isPast && (
-                <span className="text-xs text-text-muted">
+                <span className="text-xs text-label-tertiary">
                   —
                 </span>
               )}

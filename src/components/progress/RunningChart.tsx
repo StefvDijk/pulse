@@ -9,9 +9,16 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
 } from 'recharts'
 import type { Database } from '@/types/database'
+import {
+  appleAxisTick,
+  appleBarRadius,
+  appleChartColors,
+  appleTooltipItemStyle,
+  appleTooltipLabelStyle,
+  appleTooltipStyle,
+} from '@/lib/chart-styles'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -40,7 +47,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
   if (!hasData) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-sm text-text-tertiary">Geen hardloopdata voor deze periode</p>
+        <p className="text-subhead text-label-tertiary">Geen hardloopdata voor deze periode</p>
       </div>
     )
   }
@@ -48,25 +55,25 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
   return (
     <ResponsiveContainer width="100%" height={200}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E0" />
-        <XAxis dataKey="week" tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} />
+        <XAxis dataKey="week" tick={appleAxisTick} tickLine={false} axisLine={false} />
         <YAxis
           yAxisId="km"
-          tick={{ fill: '#A8A29E', fontSize: 11 }}
+          tick={appleAxisTick}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
           yAxisId="avg"
           orientation="right"
-          tick={{ fill: '#A8A29E', fontSize: 11 }}
+          tick={appleAxisTick}
           tickLine={false}
           axisLine={false}
         />
         <Tooltip
-          contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
-          labelStyle={{ color: '#1C1917', fontSize: 12 }}
-          itemStyle={{ fontSize: 12 }}
+          contentStyle={appleTooltipStyle}
+          labelStyle={appleTooltipLabelStyle}
+          itemStyle={appleTooltipItemStyle}
+          cursor={{ fill: 'var(--color-system-gray6)', opacity: 0.5 }}
           formatter={(value, name) => {
             const key = String(name)
             if (key === 'km') return [`${value} km`, 'Totaal']
@@ -74,13 +81,19 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
             return [`${value}`, key]
           }}
         />
-        <Bar yAxisId="km" dataKey="km" fill="#C2410C" opacity={0.7} radius={[4, 4, 0, 0]} />
+        <Bar
+          yAxisId="km"
+          dataKey="km"
+          fill={appleChartColors.orange}
+          opacity={0.85}
+          radius={appleBarRadius}
+        />
         <Line
           yAxisId="avg"
           type="monotone"
           dataKey="avgKm"
-          stroke="#C2410C"
-          strokeWidth={2}
+          stroke={appleChartColors.orange}
+          strokeWidth={2.5}
           dot={false}
           activeDot={{ r: 4 }}
         />

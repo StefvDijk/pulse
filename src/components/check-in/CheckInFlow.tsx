@@ -70,7 +70,7 @@ function StepIndicator({ current }: { current: StepNumber }) {
             {i > 0 && (
               <div
                 className={`h-px w-4 ${
-                  isDone ? 'bg-status-green' : 'bg-border-light'
+                  isDone ? 'bg-system-green' : 'bg-border-light'
                 }`}
               />
             )}
@@ -78,10 +78,10 @@ function StepIndicator({ current }: { current: StepNumber }) {
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
                   isDone
-                    ? 'bg-status-green-light text-status-green'
+                    ? 'bg-system-green/10 text-system-green'
                     : isActive
-                      ? 'bg-accent text-accent-text'
-                      : 'bg-bg-subtle text-text-tertiary'
+                      ? 'bg-system-blue text-white'
+                      : 'bg-system-gray6 text-label-tertiary'
                 }`}
               >
                 {isDone ? (
@@ -92,7 +92,7 @@ function StepIndicator({ current }: { current: StepNumber }) {
               </div>
               <span
                 className={`text-xs font-medium ${
-                  isActive ? 'text-text-primary' : 'text-text-tertiary'
+                  isActive ? 'text-label-primary' : 'text-label-tertiary'
                 }`}
               >
                 {label}
@@ -186,24 +186,24 @@ export function CheckInFlow() {
   if (confirmed) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-status-green-light">
-          <CheckCircle2 size={32} className="text-status-green" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-system-green/10">
+          <CheckCircle2 size={32} className="text-system-green" />
         </div>
-        <h1 className="text-page-title">
+        <h1 className="text-title1 font-bold tracking-tight text-label-primary">
           Week {data.week.weekNumber} afgesloten!
         </h1>
-        <p className="text-center text-sm text-text-secondary">
+        <p className="text-center text-sm text-label-secondary">
           Je check-in is opgeslagen. Goed bezig!
         </p>
         <Link
           href="/"
-          className="mt-4 rounded-xl bg-accent px-6 py-2.5 text-sm font-medium text-accent-text"
+          className="mt-4 rounded-xl bg-system-blue px-6 py-2.5 text-sm font-medium text-white"
         >
           Naar home
         </Link>
         <Link
           href="/check-in/history"
-          className="mt-1 text-sm font-medium text-accent-link"
+          className="mt-1 text-sm font-medium text-system-blue"
         >
           Bekijk je check-in historie
         </Link>
@@ -218,21 +218,21 @@ export function CheckInFlow() {
         {step > 1 ? (
           <button
             onClick={() => setStep((s) => (s - 1) as StepNumber)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-subtle text-text-tertiary"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
           >
             <ChevronLeft size={18} />
           </button>
         ) : (
           <Link
             href="/"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-subtle text-text-tertiary"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
           >
             <ChevronLeft size={18} />
           </Link>
         )}
         <div>
-          <h1 className="text-section-title">Week {data.week.weekNumber}</h1>
-          <p className="text-xs text-text-tertiary">
+          <h1 className="text-headline text-label-primary">Week {data.week.weekNumber}</h1>
+          <p className="text-xs text-label-tertiary">
             {formatDateRange(data.week.weekStart, data.week.weekEnd)}
           </p>
         </div>

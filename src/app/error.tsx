@@ -9,16 +9,16 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md bg-bg-card border border-border-light rounded-[14px] p-6 text-center">
-        <p className="mb-2 text-base font-semibold text-status-red">
+      <div className="w-full max-w-md bg-surface-primary border border-separator rounded-[14px] p-6 text-center">
+        <p className="mb-2 text-base font-semibold text-system-red">
           Er is iets misgegaan
         </p>
-        <p className="mb-5 text-sm text-text-secondary">
+        <p className="mb-5 text-sm text-label-secondary">
           {error.message || 'Een onverwachte fout is opgetreden.'}
         </p>
         <button
           onClick={reset}
-          className="rounded-lg px-4 py-2 text-sm font-medium bg-accent text-accent-text"
+          className="rounded-lg px-4 py-2 text-sm font-medium bg-system-blue text-white"
         >
           Opnieuw laden
         </button>

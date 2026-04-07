@@ -26,7 +26,7 @@ export function PRList({ records }: PRListProps) {
   if (records.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-text-tertiary">Nog geen persoonlijke records</p>
+        <p className="text-sm text-label-tertiary">Nog geen persoonlijke records</p>
       </div>
     )
   }
@@ -51,26 +51,26 @@ export function PRList({ records }: PRListProps) {
             key={pr.id}
             className={`relative rounded-2xl p-3.5 ${
               recent
-                ? 'bg-sport-gym-light border border-sport-gym/20'
-                : 'bg-bg-card border border-border-light'
+                ? 'bg-system-blue/10 border border-system-blue/20'
+                : 'bg-surface-primary border border-separator'
             }`}
           >
             {/* NIEUW badge */}
             {recent && (
-              <span className="absolute -top-2 right-3 rounded-full bg-sport-gym px-2 py-0.5 text-[10px] font-semibold text-white">
+              <span className="absolute -top-2 right-3 rounded-full bg-system-blue px-2 py-0.5 text-[10px] font-semibold text-white">
                 NIEUW
               </span>
             )}
 
             {/* Exercise name */}
-            <p className="text-xs font-medium text-text-primary truncate">
+            <p className="text-xs font-medium text-label-primary truncate">
               {pr.exercise_definitions?.name ?? pr.record_type}
             </p>
 
             {/* PR value */}
-            <p className="mt-1 text-xl font-bold tabular-nums text-text-primary">
+            <p className="mt-1 text-xl font-bold tabular-nums text-label-primary">
               {pr.value}
-              <span className="text-sm font-normal text-text-tertiary ml-0.5">
+              <span className="text-sm font-normal text-label-tertiary ml-0.5">
                 {pr.unit}
               </span>
             </p>
@@ -79,7 +79,7 @@ export function PRList({ records }: PRListProps) {
             {delta !== null && (
               <span
                 className={`mt-1 inline-block text-xs font-medium ${
-                  delta >= 0 ? 'text-status-green' : 'text-status-red'
+                  delta >= 0 ? 'text-system-green' : 'text-system-red'
                 }`}
               >
                 {delta >= 0 ? '+' : ''}
@@ -90,7 +90,7 @@ export function PRList({ records }: PRListProps) {
             )}
 
             {/* Date */}
-            <p className="mt-1.5 text-[10px] text-text-tertiary">
+            <p className="mt-1.5 text-[10px] text-label-tertiary">
               {formatDate(pr.achieved_at)}
             </p>
           </div>

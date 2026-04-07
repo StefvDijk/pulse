@@ -113,13 +113,13 @@ export function CoachAnalysisCard({
   // Loading state
   if (loading) {
     return (
-      <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 size={28} className="animate-spin text-sport-gym" />
-          <p className="text-sm font-medium text-text-secondary">
+          <Loader2 size={28} className="animate-spin text-system-blue" />
+          <p className="text-sm font-medium text-label-secondary">
             Coach analyseert je week...
           </p>
-          <p className="text-xs text-text-tertiary">Dit duurt meestal 5-10 seconden</p>
+          <p className="text-xs text-label-tertiary">Dit duurt meestal 5-10 seconden</p>
         </div>
       </div>
     )
@@ -141,14 +141,14 @@ export function CoachAnalysisCard({
   return (
     <div className="flex flex-col gap-3">
       {/* Analysis card */}
-      <div className="rounded-2xl bg-bg-card border border-border-light p-5">
+      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={16} className="text-sport-gym" />
-          <h3 className="text-card-title">Coach analyse</h3>
+          <Sparkles size={16} className="text-system-blue" />
+          <h3 className="text-subhead font-semibold text-label-primary">Coach analyse</h3>
         </div>
 
         {/* Summary */}
-        <p className="text-sm text-text-secondary leading-relaxed mb-4">
+        <p className="text-sm text-label-secondary leading-relaxed mb-4">
           {analysis.summary}
         </p>
 
@@ -156,16 +156,16 @@ export function CoachAnalysisCard({
         <div className="flex flex-col gap-2 mb-4">
           {analysis.keyInsights.map((insight, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sport-gym" />
-              <p className="text-sm text-text-primary">{insight}</p>
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-system-blue" />
+              <p className="text-sm text-label-primary">{insight}</p>
             </div>
           ))}
         </div>
 
         {/* Focus next week */}
-        <div className="rounded-xl bg-sport-gym-light border border-sport-gym/10 p-4">
-          <p className="text-xs font-medium text-sport-gym mb-1">Focus volgende week</p>
-          <p className="text-sm text-sport-gym-dark leading-relaxed">
+        <div className="rounded-xl bg-system-blue/10 border border-system-blue/10 p-4">
+          <p className="text-xs font-medium text-system-blue mb-1">Focus volgende week</p>
+          <p className="text-sm text-system-blue leading-relaxed">
             {analysis.focusNextWeek}
           </p>
         </div>
@@ -174,7 +174,7 @@ export function CoachAnalysisCard({
       {/* Continue button */}
       <button
         onClick={onNext}
-        className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-text"
+        className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white"
       >
         Bevestigen en opslaan
       </button>

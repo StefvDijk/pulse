@@ -29,20 +29,20 @@ function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps
   return (
     <div className="flex items-center gap-3">
       <div className="w-20 shrink-0">
-        <span className="text-sm font-medium text-text-primary">
+        <span className="text-sm font-medium text-label-primary">
           {label}
         </span>
-        <span className="ml-1 text-xs text-text-tertiary">
+        <span className="ml-1 text-xs text-label-tertiary">
           {sessions}x
         </span>
       </div>
-      <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-bg-subtle">
+      <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-system-gray6">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-16 shrink-0 text-right text-sm text-text-tertiary">
+      <span className="w-16 shrink-0 text-right text-sm text-label-tertiary">
         {formatDuration(minutes)}
       </span>
     </div>

@@ -208,13 +208,11 @@ Stop en vraag Stef om input wanneer:
 - **Timezone:** Alle tijden in UTC opslaan. Converteer naar Europe/Amsterdam in de frontend.
 - **Apple Health duplicaten:** Health Auto Export kan dezelfde data meerdere keren sturen. Dedupliceer op `apple_health_id`.
 
-## Huidige Prioriteit: AI-laag bouwen
+## Huidige Prioriteit
 
-De data-pipeline is af. De volgende fase is de AI-laag.
+De data-pipeline, AI-laag, en UX redesign zijn af. Openstaand werk:
 
-- Lees `PRD-AI-LAYER.md` voor de volledige specificatie
-- Lees `CLAUDE-AI-LAYER.md` voor exacte bouwinstructies en volgorde
-- Volg de 10 stappen in CLAUDE-AI-LAYER.md strikt in volgorde
-- Begin met `pnpm add @anthropic-ai/sdk recharts swr react-markdown remark-gfm`
-
-De backlog in BACKLOG.md is niet meer leidend. CLAUDE-AI-LAYER.md is nu het werkdocument.
+- **Homescreen verbeteringen:** Zie `PLAN-HOMESCREEN-REDESIGN.md` (cleanup, readiness signal, coach nudge)
+- **Weekly check-in v1.1:** Zie `PLAN-WEEKLY-CHECKIN.md` (Google Calendar write, week plan proposals, interactive adjustments)
+- **Design systeem:** Zie `PULSE-DESIGN-SYSTEM.md` voor UI standaarden
+- **Product spec:** Zie `PRD.md` voor de volledige productspecificatie

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { motion } from 'motion/react'
 import { useSchemaWeek } from '@/hooks/useSchemaWeek'
 import { ReadinessSignal } from '@/components/home/ReadinessSignal'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
@@ -10,6 +11,7 @@ import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { SyncButton } from '@/components/home/SyncButton'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
+import { listContainer, listItem, springContent } from '@/lib/motion-presets'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -30,7 +32,7 @@ function HomeSkeleton() {
       <SkeletonCard className="flex flex-col gap-2">
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="h-8 flex-1 rounded-full bg-bg-subtle" />
+            <div key={i} className="h-8 flex-1 rounded-full bg-system-gray6" />
           ))}
         </div>
       </SkeletonCard>
@@ -55,6 +57,16 @@ function HomeSkeleton() {
 export function DashboardPage() {
   const { data: schemaWeek, error: schemaError, isLoading: schemaLoading, today, refresh: refreshSchema } = useSchemaWeek()
 
+  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+  const todayDay = today ?? schemaWeek?.days.find((d) => d.date === todayStr) ?? null
+
+  const tomorrowWorkout = useMemo(() => {
+    if (!schemaWeek || !todayDay) return null
+    const todayIndex = schemaWeek.days.findIndex((d) => d.date === todayDay.date)
+    if (todayIndex === -1 || todayIndex >= schemaWeek.days.length - 1) return null
+    return schemaWeek.days[todayIndex + 1]?.workout?.title ?? null
+  }, [schemaWeek, todayDay])
+
   if (schemaLoading) {
     return <HomeSkeleton />
   }
@@ -73,43 +85,56 @@ export function DashboardPage() {
   const greeting = getGreeting()
   const firstName = schemaWeek?.displayName?.split(' ')[0] ?? ''
 
-  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-  const todayDay = today ?? schemaWeek?.days.find((d) => d.date === todayStr)
-
-  const tomorrowWorkout = useMemo(() => {
-    if (!schemaWeek || !todayDay) return null
-    const todayIndex = schemaWeek.days.findIndex((d) => d.date === todayDay.date)
-    if (todayIndex === -1 || todayIndex >= schemaWeek.days.length - 1) return null
-    return schemaWeek.days[todayIndex + 1]?.workout?.title ?? null
-  }, [schemaWeek, todayDay])
-
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <motion.div
+      className="flex flex-col gap-4 p-4"
+      variants={listContainer}
+      initial="initial"
+      animate="animate"
+    >
       {/* Greeting */}
-      <h1 className="text-xl font-semibold text-text-primary">
+      <motion.h1
+        variants={listItem}
+        transition={springContent}
+        className="text-title1 font-bold tracking-tight text-label-primary"
+      >
         {greeting}{firstName ? `, ${firstName}` : ''}
-      </h1>
+      </motion.h1>
 
       {/* Check-in nudge (Sa/Su/Mo only, hides after review) */}
-      <CheckInBadge />
+      <motion.div variants={listItem} transition={springContent}>
+        <CheckInBadge />
+      </motion.div>
 
       {/* Readiness Signal — the "one big thing" */}
-      <ReadinessSignal />
+      <motion.div variants={listItem} transition={springContent}>
+        <ReadinessSignal />
+      </motion.div>
 
       {/* Today's workout */}
-      <TodayWorkoutCard
-        day={todayDay}
-        tomorrowWorkout={tomorrowWorkout}
-      />
+      <motion.div variants={listItem} transition={springContent}>
+        <TodayWorkoutCard
+          day={todayDay ?? undefined}
+          tomorrowWorkout={tomorrowWorkout}
+        />
+      </motion.div>
 
       {/* Week at a glance */}
-      {schemaWeek && <WeekAtAGlance days={schemaWeek.days} />}
+      {schemaWeek && (
+        <motion.div variants={listItem} transition={springContent}>
+          <WeekAtAGlance days={schemaWeek.days} />
+        </motion.div>
+      )}
 
       {/* Daily health metrics (steps, HR, HRV, sleep, weight) */}
-      <DailyHealthBar />
+      <motion.div variants={listItem} transition={springContent}>
+        <DailyHealthBar />
+      </motion.div>
 
       {/* Sync button */}
-      <SyncButton />
-    </div>
+      <motion.div variants={listItem} transition={springContent}>
+        <SyncButton />
+      </motion.div>
+    </motion.div>
   )
 }

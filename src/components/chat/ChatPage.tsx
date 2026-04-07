@@ -17,13 +17,13 @@ export function ChatPage({ initialMessage }: ChatPageProps) {
   return (
     <div className="flex h-[calc(100dvh-4rem)] flex-col lg:h-screen">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-border-light px-4 py-3">
-        <h1 className="text-lg font-semibold text-text-primary">
+      <div className="flex shrink-0 items-center justify-between border-b border-separator px-4 py-3">
+        <h1 className="text-lg font-semibold text-label-primary">
           Coach
         </h1>
         <button
           onClick={handleNewSession}
-          className="rounded-lg border border-border-medium bg-bg-subtle px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-active"
+          className="rounded-lg border border-separator bg-system-gray6 px-3 py-1.5 text-xs text-label-secondary transition-colors hover:bg-system-gray5"
         >
           Nieuwe sessie
         </button>

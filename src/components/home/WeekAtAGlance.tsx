@@ -2,6 +2,7 @@
 
 import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
 import type { SchemaWeekDay } from '@/hooks/useSchemaWeek'
+import { Card } from '@/components/ui'
 
 interface WeekAtAGlanceProps {
   days: SchemaWeekDay[]
@@ -34,26 +35,26 @@ function SportIcon({ sport, size = 14 }: { sport: SportType; size?: number }) {
 function sportBgClass(sport: SportType): string {
   switch (sport) {
     case 'gym':
-      return 'bg-sport-gym'
+      return 'bg-system-blue'
     case 'run':
-      return 'bg-sport-run'
+      return 'bg-system-orange'
     case 'padel':
-      return 'bg-sport-padel'
+      return 'bg-system-yellow'
     default:
-      return 'bg-sport-gym'
+      return 'bg-system-blue'
   }
 }
 
 function sportTextClass(sport: SportType): string {
   switch (sport) {
     case 'gym':
-      return 'text-sport-gym'
+      return 'text-system-blue'
     case 'run':
-      return 'text-sport-run'
+      return 'text-system-orange'
     case 'padel':
-      return 'text-sport-padel'
+      return 'text-system-yellow'
     default:
-      return 'text-text-tertiary'
+      return 'text-label-tertiary'
   }
 }
 
@@ -67,8 +68,8 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
     <div className="flex flex-1 flex-col items-center gap-1.5">
       {/* Day label */}
       <span
-        className={`text-xs font-medium uppercase ${
-          isToday ? 'text-text-primary' : 'text-text-tertiary'
+        className={`text-caption2 font-medium uppercase tracking-wider ${
+          isToday ? 'text-system-blue' : 'text-label-tertiary'
         }`}
       >
         {day.dayLabel}
@@ -80,10 +81,10 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
           isCompleted
             ? `${sportBgClass(sport)} text-white`
             : isToday
-              ? 'bg-text-primary text-white ring-2 ring-text-primary ring-offset-2 ring-offset-bg-card'
+              ? 'bg-system-blue text-white ring-2 ring-system-blue/30 ring-offset-2 ring-offset-surface-primary'
               : isRest
-                ? 'bg-bg-subtle'
-                : `border-2 border-border-medium bg-transparent ${sportTextClass(sport)}`
+                ? 'bg-system-gray6'
+                : `border-2 border-separator bg-transparent ${sportTextClass(sport)}`
         }`}
       >
         {!isRest && <SportIcon sport={sport} />}
@@ -91,8 +92,8 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
 
       {/* Workout name (abbreviated) */}
       <span
-        className={`text-[10px] leading-tight text-center truncate w-full ${
-          isToday ? 'font-medium text-text-secondary' : 'text-text-tertiary'
+        className={`text-caption2 leading-tight text-center truncate w-full ${
+          isToday ? 'font-medium text-label-secondary' : 'text-label-tertiary'
         }`}
       >
         {isRest ? '' : day.workout?.title ?? ''}
@@ -145,7 +146,7 @@ export function WeekAtAGlance({ days }: WeekAtAGlanceProps) {
   const summary = buildSessionSummary(days)
 
   return (
-    <div className="rounded-2xl bg-bg-card border border-border-light p-4">
+    <Card padding="md">
       <div className="flex items-start justify-between gap-1">
         {days.map((day) => (
           <DayPill key={day.date} day={day} />
@@ -153,10 +154,10 @@ export function WeekAtAGlance({ days }: WeekAtAGlanceProps) {
       </div>
 
       {summary && (
-        <p className="mt-3 text-xs text-text-tertiary text-center">
+        <p className="mt-3 text-caption1 text-label-tertiary text-center">
           {summary}
         </p>
       )}
-    </div>
+    </Card>
   )
 }

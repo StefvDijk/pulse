@@ -12,9 +12,9 @@ interface SchemaExerciseListProps {
 function ViewRow({ exercise }: { exercise: SchemaExercise }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-text-primary truncate flex-1">{exercise.name}</span>
+      <span className="text-sm text-label-primary truncate flex-1">{exercise.name}</span>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm tabular-nums text-text-secondary">
+        <span className="text-sm tabular-nums text-label-secondary">
           {exercise.sets && exercise.reps
             ? `${exercise.sets}×${exercise.reps}`
             : exercise.sets
@@ -45,7 +45,7 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         <button
           onClick={() => onMoveUp(index)}
           disabled={isFirst}
-          className="text-text-tertiary hover:text-text-primary disabled:opacity-20 p-0.5"
+          className="text-label-tertiary hover:text-label-primary disabled:opacity-20 p-0.5"
           title="Omhoog"
         >
           <GripVertical size={14} />
@@ -57,7 +57,7 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="text"
         value={exercise.name}
         onChange={(e) => onUpdate(index, { ...exercise, name: e.target.value })}
-        className="flex-1 min-w-0 rounded-lg border border-border-light bg-bg-subtle px-2 py-1.5 text-sm text-text-primary outline-none focus:border-sport-gym"
+        className="flex-1 min-w-0 rounded-lg border border-separator bg-system-gray6 px-2 py-1.5 text-sm text-label-primary outline-none focus:border-system-blue"
         placeholder="Oefening naam"
       />
 
@@ -66,7 +66,7 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="number"
         value={exercise.sets ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, sets: e.target.value ? Number(e.target.value) : undefined })}
-        className="w-14 rounded-lg border border-border-light bg-bg-subtle px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-sport-gym"
+        className="w-14 rounded-lg border border-separator bg-system-gray6 px-2 py-1.5 text-sm text-label-primary text-center outline-none focus:border-system-blue"
         placeholder="Sets"
         min={1}
         max={10}
@@ -77,14 +77,14 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="text"
         value={exercise.reps ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, reps: e.target.value || undefined })}
-        className="w-16 rounded-lg border border-border-light bg-bg-subtle px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-sport-gym"
+        className="w-16 rounded-lg border border-separator bg-system-gray6 px-2 py-1.5 text-sm text-label-primary text-center outline-none focus:border-system-blue"
         placeholder="Reps"
       />
 
       {/* Delete */}
       <button
         onClick={() => onRemove(index)}
-        className="shrink-0 p-1.5 text-text-tertiary hover:text-status-red rounded-lg hover:bg-status-red-light"
+        className="shrink-0 p-1.5 text-label-tertiary hover:text-system-red rounded-lg hover:bg-system-red/10"
         title="Verwijderen"
       >
         <Trash2 size={14} />
@@ -127,13 +127,13 @@ export function SchemaExerciseList({ exercises, editing, onUpdate }: SchemaExerc
   if (!editing) {
     if (exercises.length === 0) {
       return (
-        <p className="text-xs text-text-tertiary py-2">
+        <p className="text-xs text-label-tertiary py-2">
           Geen oefeningen gedefinieerd — klik <span className="font-medium">Bewerken</span> om toe te voegen
         </p>
       )
     }
     return (
-      <div className="divide-y divide-border-light">
+      <div className="divide-y divide-separator">
         {exercises.map((exercise, i) => (
           <ViewRow key={`${exercise.name}-${i}`} exercise={exercise} />
         ))}
@@ -147,9 +147,9 @@ export function SchemaExerciseList({ exercises, editing, onUpdate }: SchemaExerc
       {exercises.length > 0 && (
         <div className="flex items-center gap-2 px-1 pb-1">
           <span className="w-5" />
-          <span className="flex-1 text-[11px] font-medium text-text-tertiary uppercase">Oefening</span>
-          <span className="w-14 text-[11px] font-medium text-text-tertiary uppercase text-center">Sets</span>
-          <span className="w-16 text-[11px] font-medium text-text-tertiary uppercase text-center">Reps</span>
+          <span className="flex-1 text-[11px] font-medium text-label-tertiary uppercase">Oefening</span>
+          <span className="w-14 text-[11px] font-medium text-label-tertiary uppercase text-center">Sets</span>
+          <span className="w-16 text-[11px] font-medium text-label-tertiary uppercase text-center">Reps</span>
           <span className="w-8" />
         </div>
       )}
@@ -170,7 +170,7 @@ export function SchemaExerciseList({ exercises, editing, onUpdate }: SchemaExerc
 
       <button
         onClick={handleAdd}
-        className="flex items-center gap-1.5 mt-1 rounded-lg border border-dashed border-border-medium px-3 py-2 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:border-border-light hover:bg-bg-subtle/50"
+        className="flex items-center gap-1.5 mt-1 rounded-lg border border-dashed border-separator px-3 py-2 text-xs font-medium text-label-tertiary hover:text-label-secondary hover:border-separator hover:bg-system-gray6/50"
       >
         <Plus size={14} />
         Oefening toevoegen

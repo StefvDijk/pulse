@@ -27,7 +27,7 @@ export function SaveButton({ status, onClick }: { status: SaveStatus; onClick: (
       onClick={onClick}
       disabled={status === 'saving'}
       className={`rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-50 ${
-        status === 'saved' ? 'bg-status-green text-white' : 'bg-accent text-accent-text'
+        status === 'saved' ? 'bg-system-green text-white' : 'bg-system-blue text-white'
       }`}
     >
       {label}
@@ -37,14 +37,14 @@ export function SaveButton({ status, onClick }: { status: SaveStatus; onClick: (
 
 export function SectionHeader({ title }: { title: string }) {
   return (
-    <h2 className="mb-4 text-base font-semibold text-text-primary">{title}</h2>
+    <h2 className="mb-4 text-base font-semibold text-label-primary">{title}</h2>
   )
 }
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-text-tertiary">{label}</label>
+      <label className="text-xs font-medium text-label-tertiary">{label}</label>
       {children}
     </div>
   )
@@ -60,4 +60,4 @@ export function StatusDot({ active }: { active: boolean }) {
   )
 }
 
-export const INPUT_CLASSES = 'bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+export const INPUT_CLASSES = 'bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none'

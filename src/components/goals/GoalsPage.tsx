@@ -42,10 +42,10 @@ export function GoalsPage() {
     <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Doelen</h1>
+        <h1 className="text-xl font-bold text-label-primary">Doelen</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium bg-accent text-accent-text"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium bg-system-blue text-white"
         >
           <PlusIcon />
           Doel toevoegen
@@ -56,8 +56,8 @@ export function GoalsPage() {
 
       {/* Add goal form */}
       {showForm && (
-        <div className="bg-bg-card border border-border-light rounded-[14px] p-[14px_16px]">
-          <h2 className="mb-4 text-sm font-semibold text-text-primary">Nieuw doel</h2>
+        <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+          <h2 className="mb-4 text-sm font-semibold text-label-primary">Nieuw doel</h2>
           <GoalForm
             onSave={handleSave}
             onCancel={() => setShowForm(false)}
@@ -71,12 +71,12 @@ export function GoalsPage() {
         <>
           {/* Active goals */}
           {activeGoals.length === 0 && !showForm ? (
-            <div className="flex flex-col items-center justify-center gap-3 bg-bg-card border border-border-light rounded-[14px] p-10">
+            <div className="flex flex-col items-center justify-center gap-3 bg-surface-primary border border-separator rounded-[14px] p-10">
               <TargetIcon />
-              <p className="text-sm text-text-tertiary">Nog geen actieve doelen</p>
+              <p className="text-sm text-label-tertiary">Nog geen actieve doelen</p>
               <button
                 onClick={() => setShowForm(true)}
-                className="text-sm font-medium text-accent-link"
+                className="text-sm font-medium text-system-blue"
               >
                 + Voeg je eerste doel toe
               </button>
@@ -99,7 +99,7 @@ export function GoalsPage() {
             <div>
               <button
                 onClick={() => setShowCompleted((v) => !v)}
-                className="flex items-center gap-2 text-sm font-medium text-text-tertiary"
+                className="flex items-center gap-2 text-sm font-medium text-label-tertiary"
               >
                 <ChevronIcon open={showCompleted} />
                 Voltooid ({completedGoals.length})
@@ -149,7 +149,7 @@ function PlusIcon() {
 
 function TargetIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-text-muted">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-label-tertiary">
       <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" />
       <circle cx="16" cy="16" r="8" stroke="currentColor" strokeWidth="2" />
       <circle cx="16" cy="16" r="2" fill="currentColor" />

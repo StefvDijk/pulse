@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 const RequestSchema = z.object({
   input: z.string().min(1).max(1000),
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
+    }
+
+    // Rate limit: 30 requests per minute per user
+    const rl = checkRateLimit(`nutrition:${user.id}`, { limit: 30, windowMs: 60_000 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+      )
     }
 
     const body = await request.json()

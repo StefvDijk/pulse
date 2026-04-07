@@ -15,27 +15,27 @@ interface LevelConfig {
 const LEVEL_CONFIG: Record<ReadinessLevel, LevelConfig> = {
   good: {
     label: 'Goed hersteld',
-    dotClass: 'bg-status-green',
-    bgClass: 'bg-status-green-light',
-    textClass: 'text-status-green-dark',
+    dotClass: 'bg-system-green',
+    bgClass: 'bg-system-green/10',
+    textClass: 'text-system-green',
   },
   normal: {
     label: 'Klaar om te trainen',
-    dotClass: 'bg-status-amber',
-    bgClass: 'bg-status-amber-light',
-    textClass: 'text-status-amber-dark',
+    dotClass: 'bg-system-orange',
+    bgClass: 'bg-system-orange/10',
+    textClass: 'text-system-orange',
   },
   fatigued: {
     label: 'Vermoeid',
-    dotClass: 'bg-status-red',
-    bgClass: 'bg-status-red-light',
-    textClass: 'text-status-red-dark',
+    dotClass: 'bg-system-red',
+    bgClass: 'bg-system-red/10',
+    textClass: 'text-system-red',
   },
   rest_day: {
     label: 'Rustdag',
-    dotClass: 'bg-text-tertiary',
-    bgClass: 'bg-bg-subtle',
-    textClass: 'text-text-secondary',
+    dotClass: 'bg-system-gray',
+    bgClass: 'bg-system-gray6',
+    textClass: 'text-label-secondary',
   },
 }
 
@@ -112,20 +112,20 @@ export function ReadinessSignal() {
   const metrics = buildMetricsLine(data)
 
   return (
-    <div className={`rounded-2xl border border-border-light ${config.bgClass} p-4`}>
+    <div className={`rounded-2xl border border-separator ${config.bgClass} p-4`}>
       <div className="flex items-center gap-2">
         <span className={`inline-block h-2.5 w-2.5 rounded-full ${config.dotClass}`} />
-        <span className={`text-sm font-semibold ${config.textClass}`}>
+        <span className={`text-subhead font-semibold ${config.textClass}`}>
           {config.label}
         </span>
       </div>
 
-      <p className="mt-2 text-[15px] leading-snug text-text-primary">
+      <p className="mt-2 text-subhead leading-snug text-label-primary">
         {coaching}
       </p>
 
       {metrics && (
-        <p className="mt-2 text-xs text-text-tertiary">
+        <p className="mt-2 text-caption1 text-label-tertiary">
           {metrics}
         </p>
       )}

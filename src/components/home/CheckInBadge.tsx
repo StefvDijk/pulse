@@ -33,13 +33,13 @@ export function CheckInBadge() {
 
   return (
     <Link href="/check-in" className="block">
-      <div className="rounded-2xl bg-sport-gym-light border border-sport-gym/20 p-4 flex items-center gap-3 transition-colors hover:bg-sport-gym/10">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sport-gym/10">
-          <ClipboardCheck size={20} className="text-sport-gym" />
+      <div className="rounded-2xl bg-system-blue/10 border border-system-blue/20 p-4 flex items-center gap-3 transition-all duration-150 hover:bg-system-blue/15 active:scale-[0.99]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-system-blue/15">
+          <ClipboardCheck size={20} strokeWidth={1.5} className="text-system-blue" />
         </div>
         <div>
-          <p className="text-card-title">Week {data.weekNumber} afsluiten</p>
-          <p className="text-caption text-text-tertiary">
+          <p className="text-headline text-label-primary">Week {data.weekNumber} afsluiten</p>
+          <p className="text-caption1 text-label-secondary">
             Bekijk je voortgang en sluit af met de coach
           </p>
         </div>

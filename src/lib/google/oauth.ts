@@ -1,7 +1,35 @@
+import crypto from 'crypto'
 import { google } from 'googleapis'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+
+function getStateSecret(): string {
+  const secret = process.env.CRON_SECRET
+  if (!secret) throw new Error('CRON_SECRET is required for OAuth state signing')
+  return secret
+}
+
+/** Sign the user ID into an HMAC-protected state parameter */
+export function signOAuthState(userId: string): string {
+  const hmac = crypto.createHmac('sha256', getStateSecret()).update(userId).digest('hex')
+  return `${userId}.${hmac}`
+}
+
+/** Verify and extract the user ID from a signed state parameter. Returns null if invalid. */
+export function verifyOAuthState(state: string): string | null {
+  const dotIndex = state.lastIndexOf('.')
+  if (dotIndex === -1) return null
+
+  const userId = state.slice(0, dotIndex)
+  const signature = state.slice(dotIndex + 1)
+  const expected = crypto.createHmac('sha256', getStateSecret()).update(userId).digest('hex')
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return null
+  }
+  return userId
+}
 
 export function createOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID
@@ -69,18 +97,26 @@ export async function getValidTokens(userId: string): Promise<StoredTokens | nul
       })
       .eq('user_id', userId)
 
+    if (!credentials.access_token) {
+      throw new Error('Token refresh did not return an access_token')
+    }
+
     return {
-      access_token: credentials.access_token!,
+      access_token: credentials.access_token,
       refresh_token: settings.google_calendar_refresh_token,
       expiry: newExpiry,
       email: settings.google_calendar_email ?? '',
     }
   }
 
+  if (!settings.google_calendar_access_token || !settings.google_calendar_token_expiry) {
+    return null
+  }
+
   return {
-    access_token: settings.google_calendar_access_token!,
+    access_token: settings.google_calendar_access_token,
     refresh_token: settings.google_calendar_refresh_token,
-    expiry: settings.google_calendar_token_expiry!,
+    expiry: settings.google_calendar_token_expiry,
     email: settings.google_calendar_email ?? '',
   }
 }

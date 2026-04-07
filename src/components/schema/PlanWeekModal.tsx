@@ -92,16 +92,16 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-card shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-surface-primary shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-text-primary">Plan je week</h2>
-            <p className="text-xs text-text-tertiary mt-0.5">Workouts toevoegen aan Google Agenda</p>
+            <h2 className="text-base font-semibold text-label-primary">Plan je week</h2>
+            <p className="text-xs text-label-tertiary mt-0.5">Workouts toevoegen aan Google Agenda</p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-subtle text-text-tertiary hover:bg-bg-hover"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray6"
           >
             <X size={16} />
           </button>
@@ -109,18 +109,18 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
 
         {status === 'success' ? (
           <div className="flex flex-col items-center gap-3 px-5 py-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-status-green-light">
-              <Check size={28} className="text-status-green" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-system-green/10">
+              <Check size={28} className="text-system-green" />
             </div>
-            <p className="text-base font-semibold text-text-primary">
+            <p className="text-base font-semibold text-label-primary">
               {createdCount} {createdCount === 1 ? 'workout' : 'workouts'} ingepland
             </p>
-            <p className="text-sm text-text-tertiary text-center">
+            <p className="text-sm text-label-tertiary text-center">
               Check je Google Agenda voor de details.
             </p>
             <button
               onClick={onClose}
-              className="mt-2 rounded-xl bg-accent px-6 py-2.5 text-sm font-medium text-accent-text"
+              className="mt-2 rounded-xl bg-system-blue px-6 py-2.5 text-sm font-medium text-white"
             >
               Sluiten
             </button>
@@ -133,7 +133,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                 <div
                   key={entry.day.date}
                   className={`rounded-xl border p-3 transition-colors ${
-                    entry.include ? 'border-border-light bg-bg-card' : 'border-border-light bg-bg-subtle opacity-60'
+                    entry.include ? 'border-separator bg-surface-primary' : 'border-separator bg-system-gray6 opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -142,14 +142,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="checkbox"
                         checked={entry.include}
                         onChange={(e) => updateEntry(i, { include: e.target.checked })}
-                        className="h-4 w-4 rounded accent-sport-gym"
+                        className="h-4 w-4 rounded system-blue-system-blue"
                         id={`entry-${i}`}
                       />
                       <label htmlFor={`entry-${i}`} className="cursor-pointer">
-                        <span className="text-sm font-medium text-text-primary">
+                        <span className="text-sm font-medium text-label-primary">
                           {entry.day.workout!.title}
                         </span>
-                        <span className="ml-1.5 text-xs text-text-tertiary capitalize">
+                        <span className="ml-1.5 text-xs text-label-tertiary capitalize">
                           {entry.day.dayLabel} {entry.day.date.slice(5)}
                         </span>
                       </label>
@@ -162,14 +162,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="time"
                         value={entry.startTime}
                         onChange={(e) => updateEntry(i, { startTime: e.target.value })}
-                        className="rounded-lg border border-border-light bg-bg-subtle px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-separator bg-system-gray6 px-2 py-1 text-xs text-label-primary outline-none"
                       />
-                      <span className="text-xs text-text-tertiary">–</span>
+                      <span className="text-xs text-label-tertiary">–</span>
                       <input
                         type="time"
                         value={entry.endTime}
                         onChange={(e) => updateEntry(i, { endTime: e.target.value })}
-                        className="rounded-lg border border-border-light bg-bg-subtle px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-separator bg-system-gray6 px-2 py-1 text-xs text-label-primary outline-none"
                       />
                     </div>
                   )}
@@ -178,20 +178,20 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             </div>
 
             {status === 'error' && (
-              <div className="mx-5 mb-3 rounded-lg bg-status-red-light px-3 py-2 text-sm text-status-red">
+              <div className="mx-5 mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
                 Kon niet inplannen. Probeer opnieuw.
               </div>
             )}
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border-light bg-bg-card px-5 py-4">
-              <span className="text-sm text-text-tertiary">
+            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-separator bg-surface-primary px-5 py-4">
+              <span className="text-sm text-label-tertiary">
                 {includedCount} van {entries.length} workout{entries.length !== 1 ? 's' : ''}
               </span>
               <button
                 onClick={handleSubmit}
                 disabled={status === 'loading' || includedCount === 0}
-                className="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-text disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {status === 'loading' ? (
                   <Loader2 size={16} className="animate-spin" />

@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
 import { selectSkills } from '@/lib/ai/skills/router'
 import { createToolsForUser } from '@/lib/ai/tools'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -113,6 +114,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
+    }
+
+    // Rate limit: 20 requests per minute per user
+    const rl = checkRateLimit(`chat:${user.id}`, { limit: 20, windowMs: 60_000 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+      )
     }
 
     const body = await request.json()
@@ -297,27 +307,58 @@ export async function POST(request: Request) {
           }
 
           // Write-back: schema generation
+          // Insert FIRST, only deactivate previous schema if insert succeeds.
+          // This prevents the user from being left with no active schema if the
+          // INSERT fails (e.g. validation error, CHECK constraint violation).
           if (schemaGeneration?.title) {
-            // Deactivate previous schema
-            await admin
-              .from('training_schemas')
-              .update({ is_active: false })
-              .eq('user_id', user.id)
-              .eq('is_active', true)
+            try {
+              const allowedSchemaTypes = ['upper_lower', 'push_pull_legs', 'full_body', 'custom'] as const
+              const requestedType = schemaGeneration.schema_type as typeof allowedSchemaTypes[number]
+              const safeSchemaType = (allowedSchemaTypes as readonly string[]).includes(requestedType)
+                ? requestedType
+                : 'custom'
 
-            await admin
-              .from('training_schemas')
-              .insert({
-                user_id: user.id,
+              const { data: inserted, error: insertError } = await admin
+                .from('training_schemas')
+                .insert({
+                  user_id: user.id,
+                  title: schemaGeneration.title,
+                  schema_type: safeSchemaType,
+                  weeks_planned: schemaGeneration.weeks_planned ?? 8,
+                  start_date: schemaGeneration.start_date ?? new Date().toISOString().slice(0, 10),
+                  workout_schedule: (schemaGeneration.workout_schedule ?? []) as import('@/types/database').Json,
+                  is_active: false,
+                  ai_generated: true,
+                })
+                .select('id')
+                .single()
+
+              if (insertError || !inserted) {
+                throw insertError ?? new Error('Insert returned no row')
+              }
+
+              // Deactivate previous active schemas, then activate the new one.
+              const { error: deactivateError } = await admin
+                .from('training_schemas')
+                .update({ is_active: false })
+                .eq('user_id', user.id)
+                .eq('is_active', true)
+                .neq('id', inserted.id)
+
+              if (deactivateError) throw deactivateError
+
+              const { error: activateError } = await admin
+                .from('training_schemas')
+                .update({ is_active: true })
+                .eq('id', inserted.id)
+
+              if (activateError) throw activateError
+            } catch (err) {
+              console.error('Schema generation write-back failed:', err, {
                 title: schemaGeneration.title,
-                schema_type: schemaGeneration.schema_type ?? 'mixed',
-                weeks_planned: schemaGeneration.weeks_planned ?? 8,
-                start_date: schemaGeneration.start_date ?? new Date().toISOString().slice(0, 10),
-                workout_schedule: (schemaGeneration.workout_schedule ?? []) as import('@/types/database').Json,
-                is_active: true,
-                ai_generated: true,
+                schema_type: schemaGeneration.schema_type,
               })
-              .then(() => {})
+            }
           }
 
           // Write-back: schema update (partial modification)

@@ -46,29 +46,29 @@ function SetRow({
       className={`flex items-center gap-3 py-2 ${isWarmup ? 'opacity-50' : ''}`}
     >
       {/* Set number */}
-      <span className="w-5 text-xs text-text-tertiary text-right shrink-0">
+      <span className="w-5 text-xs text-label-tertiary text-right shrink-0">
         {isWarmup ? 'W' : isDropset ? 'D' : index + 1}
       </span>
 
       {/* Weight + reps */}
       <div className="flex flex-1 items-center gap-2">
         {set.weight_kg != null && (
-          <span className="text-sm font-medium tabular-nums text-text-primary">
+          <span className="text-sm font-medium tabular-nums text-label-primary">
             {set.weight_kg} kg
           </span>
         )}
         {set.reps != null && (
-          <span className="text-sm text-text-secondary">
+          <span className="text-sm text-label-secondary">
             × {set.reps}
           </span>
         )}
         {set.distance_meters != null && set.distance_meters > 0 && (
-          <span className="text-sm text-text-secondary tabular-nums">
+          <span className="text-sm text-label-secondary tabular-nums">
             {(set.distance_meters / 1000).toFixed(2)} km
           </span>
         )}
         {set.duration_seconds != null && set.duration_seconds > 0 && !set.distance_meters && (
-          <span className="text-sm text-text-secondary tabular-nums">
+          <span className="text-sm text-label-secondary tabular-nums">
             {Math.round(set.duration_seconds)}s
           </span>
         )}
@@ -83,7 +83,7 @@ function SetRow({
 
       {/* RPE */}
       {set.rpe != null && (
-        <span className="text-xs text-text-tertiary shrink-0">
+        <span className="text-xs text-label-tertiary shrink-0">
           RPE {set.rpe}
         </span>
       )}
@@ -104,7 +104,7 @@ function ExerciseCard({
   const warmupSets = exercise.sets.filter((s) => s.set_type === 'warmup')
 
   return (
-    <div className="rounded-2xl bg-bg-card border border-border-light p-4">
+    <div className="rounded-2xl bg-surface-primary border border-separator p-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <ExerciseImage
@@ -115,7 +115,7 @@ function ExerciseCard({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary truncate">
+            <span className="text-sm font-semibold text-label-primary truncate">
               {exercise.name}
             </span>
             {exercise.is_pr && (
@@ -124,7 +124,7 @@ function ExerciseCard({
               </span>
             )}
           </div>
-          <span className="text-xs text-text-tertiary">
+          <span className="text-xs text-label-tertiary">
             {workingSets.length} {workingSets.length === 1 ? 'set' : 'sets'}
             {warmupSets.length > 0 && ` + ${warmupSets.length} opwarming`}
           </span>
@@ -132,7 +132,7 @@ function ExerciseCard({
       </div>
 
       {/* Sets */}
-      <div className="divide-y divide-border-light">
+      <div className="divide-y divide-separator">
         {exercise.sets.map((set, i) => {
           const workingIndex = exercise.sets
             .filter((s) => s.set_type !== 'warmup')
@@ -151,7 +151,7 @@ function ExerciseCard({
 
       {/* Notes */}
       {exercise.notes && (
-        <p className="mt-2 text-xs text-text-tertiary italic">{exercise.notes}</p>
+        <p className="mt-2 text-xs text-label-tertiary italic">{exercise.notes}</p>
       )}
     </div>
   )
@@ -181,7 +181,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         {[1, 2, 3].map((i) => (
           <SkeletonCard key={i} className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-bg-subtle" />
+              <div className="h-9 w-9 rounded-full bg-system-gray6" />
               <SkeletonLine width="w-1/3" />
             </div>
             <SkeletonRect height="h-24" />
@@ -196,11 +196,11 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-text-tertiary"
+          className="flex items-center gap-1.5 text-sm text-label-tertiary"
         >
           <ArrowLeft size={15} /> Terug
         </button>
-        <p className="text-sm text-text-tertiary">Workout niet gevonden.</p>
+        <p className="text-sm text-label-tertiary">Workout niet gevonden.</p>
       </div>
     )
   }
@@ -214,64 +214,64 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       {/* Back button */}
       <button
         onClick={() => router.back()}
-        className="flex w-fit items-center gap-1.5 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+        className="flex w-fit items-center gap-1.5 text-sm text-label-tertiary hover:text-label-primary transition-colors"
       >
         <ArrowLeft size={15} /> Terug
       </button>
 
       {/* Workout header card */}
-      <div className="rounded-2xl bg-bg-card border border-border-light p-4">
-        <h1 className="text-xl font-bold text-text-primary mb-1">{workout.title}</h1>
-        <p className="text-sm text-text-tertiary mb-4">
+      <div className="rounded-2xl bg-surface-primary border border-separator p-4">
+        <h1 className="text-xl font-bold text-label-primary mb-1">{workout.title}</h1>
+        <p className="text-sm text-label-tertiary mb-4">
           {formatDate(workout.started_at)} · {formatTime(workout.started_at)}
         </p>
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {workout.duration_seconds != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-bg-subtle px-3 py-2">
-              <Clock size={14} className="text-text-tertiary shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
+              <Clock size={14} className="text-label-tertiary shrink-0" />
               <div>
-                <p className="text-sm font-semibold tabular-nums text-text-primary">
+                <p className="text-sm font-semibold tabular-nums text-label-primary">
                   {formatDuration(workout.duration_seconds)}
                 </p>
-                <p className="text-[10px] text-text-tertiary">Duur</p>
+                <p className="text-[10px] text-label-tertiary">Duur</p>
               </div>
             </div>
           )}
           {workout.total_volume_kg != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-bg-subtle px-3 py-2">
-              <span className="text-text-tertiary text-sm shrink-0">⚡</span>
+            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
+              <span className="text-label-tertiary text-sm shrink-0">⚡</span>
               <div>
-                <p className="text-sm font-semibold tabular-nums text-text-primary">
+                <p className="text-sm font-semibold tabular-nums text-label-primary">
                   {Math.round(workout.total_volume_kg).toLocaleString('nl-NL')} kg
                 </p>
-                <p className="text-[10px] text-text-tertiary">Volume</p>
+                <p className="text-[10px] text-label-tertiary">Volume</p>
               </div>
             </div>
           )}
           {workout.calories_burned != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-bg-subtle px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
               <Flame size={14} className="text-orange-400 shrink-0" />
               <div>
-                <p className="text-sm font-semibold tabular-nums text-text-primary">
+                <p className="text-sm font-semibold tabular-nums text-label-primary">
                   {workout.calories_burned} kcal
                 </p>
-                <p className="text-[10px] text-text-tertiary">Calorieën</p>
+                <p className="text-[10px] text-label-tertiary">Calorieën</p>
               </div>
             </div>
           )}
           {workout.avg_heart_rate != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-bg-subtle px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
               <Heart size={14} className="text-red-400 shrink-0" />
               <div>
-                <p className="text-sm font-semibold tabular-nums text-text-primary">
+                <p className="text-sm font-semibold tabular-nums text-label-primary">
                   {workout.avg_heart_rate} bpm
                   {workout.max_heart_rate && (
-                    <span className="text-text-tertiary font-normal text-xs"> / {workout.max_heart_rate}</span>
+                    <span className="text-label-tertiary font-normal text-xs"> / {workout.max_heart_rate}</span>
                   )}
                 </p>
-                <p className="text-[10px] text-text-tertiary">Hartslag</p>
+                <p className="text-[10px] text-label-tertiary">Hartslag</p>
               </div>
             </div>
           )}
@@ -289,7 +289,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
         {/* Previous session link */}
         {workout.previous && (
-          <div className="mt-3 flex items-center justify-between text-xs text-text-tertiary">
+          <div className="mt-3 flex items-center justify-between text-xs text-label-tertiary">
             <span>
               Vorige sessie: {new Date(workout.previous.started_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
             </span>
@@ -312,9 +312,9 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       </div>
 
       {workout.notes && (
-        <div className="rounded-2xl bg-bg-card border border-border-light p-4">
-          <p className="text-sm font-medium text-text-secondary mb-1">Notities</p>
-          <p className="text-sm text-text-primary">{workout.notes}</p>
+        <div className="rounded-2xl bg-surface-primary border border-separator p-4">
+          <p className="text-sm font-medium text-label-secondary mb-1">Notities</p>
+          <p className="text-sm text-label-primary">{workout.notes}</p>
         </div>
       )}
     </div>

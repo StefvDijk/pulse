@@ -17,7 +17,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
   if (points.length < 2) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <p className="text-sm text-text-tertiary">
+        <p className="text-subhead text-label-tertiary">
           {points.length === 0
             ? 'Nog geen data voor deze oefening'
             : 'Minimaal 2 sessies nodig voor een chart'}
@@ -86,15 +86,15 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
     <div className="flex flex-col gap-3">
       {/* Delta badge */}
       <div className="flex items-center gap-2">
-        <span className="text-2xl font-bold tabular-nums text-text-primary">
+        <span className="text-title2 font-bold tabular-nums text-label-primary">
           {lastWeight}kg
         </span>
         {deltaKg !== 0 && (
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            className={`rounded-full px-2 py-0.5 text-caption1 font-semibold ${
               deltaKg > 0
-                ? 'bg-status-green-light text-status-green'
-                : 'bg-status-red-light text-status-red'
+                ? 'bg-system-green/10 text-system-green'
+                : 'bg-system-red/10 text-system-red'
             }`}
           >
             {deltaKg > 0 ? '+' : ''}{deltaKg}kg ({deltaKg > 0 ? '+' : ''}{deltaPct}%)
@@ -103,7 +103,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
       </div>
 
       {/* Best set summary */}
-      <p className="text-xs text-text-tertiary">
+      <p className="text-caption1 text-label-tertiary">
         Beste set: {points[prIndex].maxWeight}kg × {points[prIndex].repsAtMax} reps
         {' · '}
         {formatDate(points[prIndex].date)}
@@ -117,8 +117,8 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
       >
         <defs>
           <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-sport-gym)" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="var(--color-sport-gym)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--color-system-blue)" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="var(--color-system-blue)" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -130,14 +130,14 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
               x2={W - PAD_RIGHT}
               y1={yScale(tick)}
               y2={yScale(tick)}
-              stroke="var(--color-border-light)"
+              stroke="var(--color-separator)"
               strokeWidth="1"
             />
             <text
               x={PAD_LEFT - 8}
               y={yScale(tick) + 4}
               textAnchor="end"
-              className="fill-text-tertiary"
+              className="fill-label-tertiary"
               fontSize="10"
             >
               {tick}
@@ -152,7 +152,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
         <path
           d={linePath}
           fill="none"
-          stroke="var(--color-sport-gym)"
+          stroke="var(--color-system-blue)"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -165,8 +165,8 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
             cx={xScale(i)}
             cy={yScale(p.maxWeight)}
             r={i === prIndex ? 5 : 3}
-            fill={i === prIndex ? 'var(--color-sport-gym)' : 'var(--color-bg-card)'}
-            stroke="var(--color-sport-gym)"
+            fill={i === prIndex ? 'var(--color-system-blue)' : 'var(--color-surface-primary)'}
+            stroke="var(--color-system-blue)"
             strokeWidth="2"
           />
         ))}
@@ -181,7 +181,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
               x={xScale(i)}
               y={yScale(p.maxWeight) - 12}
               textAnchor="middle"
-              className={isPR ? 'fill-sport-gym' : 'fill-text-secondary'}
+              className={isPR ? 'fill-system-blue' : 'fill-label-secondary'}
               fontSize="10"
               fontWeight="600"
             >

@@ -42,7 +42,9 @@ export async function POST(): Promise<NextResponse> {
       userId: user.id,
       syncSource: 'hevy',
       syncResult: result,
-    }).catch(() => {})
+    }).catch((err: unknown) => {
+      console.error('[ingest/hevy/sync] analyzeAfterSync failed:', err)
+    })
 
     return NextResponse.json(result)
   } catch (error) {

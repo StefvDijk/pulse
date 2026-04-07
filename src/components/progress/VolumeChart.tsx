@@ -10,9 +10,17 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  CartesianGrid,
 } from 'recharts'
 import type { Database } from '@/types/database'
+import {
+  appleAxisTick,
+  appleBarRadius,
+  appleChartColors,
+  appleTooltipItemStyle,
+  appleTooltipLabelStyle,
+  appleTooltipStyle,
+  sportColors,
+} from '@/lib/chart-styles'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -34,7 +42,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   if (weeks.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-sm text-text-tertiary">Geen trainingsdata beschikbaar</p>
+        <p className="text-subhead text-label-tertiary">Geen trainingsdata beschikbaar</p>
       </div>
     )
   }
@@ -65,11 +73,10 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   return (
     <ResponsiveContainer width="100%" height={200}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E0" />
-        <XAxis dataKey="week" tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} />
+        <XAxis dataKey="week" tick={appleAxisTick} tickLine={false} axisLine={false} />
         <YAxis
           yAxisId="minutes"
-          tick={{ fill: '#A8A29E', fontSize: 11 }}
+          tick={appleAxisTick}
           tickLine={false}
           axisLine={false}
         />
@@ -78,15 +85,16 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
             yAxisId="ratio"
             orientation="right"
             domain={[0, 2]}
-            tick={{ fill: '#A8A29E', fontSize: 11 }}
+            tick={appleAxisTick}
             tickLine={false}
             axisLine={false}
           />
         )}
         <Tooltip
-          contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
-          labelStyle={{ color: '#1C1917', fontSize: 12 }}
-          itemStyle={{ fontSize: 12 }}
+          contentStyle={appleTooltipStyle}
+          labelStyle={appleTooltipLabelStyle}
+          itemStyle={appleTooltipItemStyle}
+          cursor={{ fill: 'var(--color-system-gray6)', opacity: 0.5 }}
           formatter={(value, name) => {
             const key = String(name)
             if (key === 'acwr') return [`${Number(value).toFixed(2)}`, 'ACWR']
@@ -94,19 +102,25 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
           }}
         />
         <Legend
-          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+          wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'var(--color-label-secondary)' }}
           formatter={(value) => SPORT_LABELS[value] ?? value}
         />
-        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill="#2E6F6F" />
-        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill="#C2410C" />
-        <Bar yAxisId="minutes" dataKey="padel" stackId="vol" fill="#B45309" radius={[4, 4, 0, 0]} />
+        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill={sportColors.gym} />
+        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill={sportColors.run} />
+        <Bar
+          yAxisId="minutes"
+          dataKey="padel"
+          stackId="vol"
+          fill={sportColors.padel}
+          radius={appleBarRadius}
+        />
         {hasAcwr && (
           <Line
             yAxisId="ratio"
             type="monotone"
             dataKey="acwr"
-            stroke="#DC2626"
-            strokeWidth={2}
+            stroke={appleChartColors.red}
+            strokeWidth={2.5}
             dot={false}
             activeDot={{ r: 4 }}
             name="acwr"

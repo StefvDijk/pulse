@@ -9,9 +9,15 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  CartesianGrid,
 } from 'recharts'
 import type { Database } from '@/types/database'
+import {
+  appleAxisTick,
+  appleChartColors,
+  appleTooltipItemStyle,
+  appleTooltipLabelStyle,
+  appleTooltipStyle,
+} from '@/lib/chart-styles'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -20,12 +26,12 @@ export interface StrengthChartProps {
 }
 
 const PATTERNS = [
-  { key: 'horizontal_push', label: 'Push', color: '#C2410C' },
-  { key: 'vertical_push', label: 'V. Push', color: '#9A3412' },
-  { key: 'horizontal_pull', label: 'Pull', color: '#2E6F6F' },
-  { key: 'vertical_pull', label: 'V. Pull', color: '#1A4747' },
-  { key: 'squat', label: 'Squat', color: '#B45309' },
-  { key: 'hinge', label: 'Hinge', color: '#4D7C0F' },
+  { key: 'horizontal_push', label: 'Push', color: appleChartColors.orange },
+  { key: 'vertical_push', label: 'V. Push', color: appleChartColors.red },
+  { key: 'horizontal_pull', label: 'Pull', color: appleChartColors.blue },
+  { key: 'vertical_pull', label: 'V. Pull', color: appleChartColors.indigo },
+  { key: 'squat', label: 'Squat', color: appleChartColors.purple },
+  { key: 'hinge', label: 'Hinge', color: appleChartColors.green },
 ] as const
 
 function formatWeek(dateStr: string): string {
@@ -57,13 +63,13 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E0" />
-        <XAxis dataKey="week" tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} />
-        <YAxis tick={{ fill: '#A8A29E', fontSize: 11 }} tickLine={false} axisLine={false} />
+        <XAxis dataKey="week" tick={appleAxisTick} tickLine={false} axisLine={false} />
+        <YAxis tick={appleAxisTick} tickLine={false} axisLine={false} />
         <Tooltip
-          contentStyle={{ backgroundColor: '#FDFCFA', border: '1px solid #E7E5E0', borderRadius: '8px' }}
-          labelStyle={{ color: '#1C1917', fontSize: 12 }}
-          itemStyle={{ fontSize: 12 }}
+          contentStyle={appleTooltipStyle}
+          labelStyle={appleTooltipLabelStyle}
+          itemStyle={appleTooltipItemStyle}
+          cursor={{ stroke: 'var(--color-separator)', strokeWidth: 1 }}
           formatter={(value, name) => {
             const key = String(name)
             const pattern = PATTERNS.find((p) => p.key === key)
@@ -71,7 +77,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
           }}
         />
         <Legend
-          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+          wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'var(--color-label-secondary)' }}
           formatter={(value) => PATTERNS.find((p) => p.key === value)?.label ?? value}
         />
         {activePatterns.map((p) => (
@@ -80,7 +86,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
             type="monotone"
             dataKey={p.key}
             stroke={p.color}
-            strokeWidth={2}
+            strokeWidth={2.5}
             dot={false}
             activeDot={{ r: 4 }}
           />
@@ -93,7 +99,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex h-[200px] items-center justify-center">
-      <p className="text-sm text-text-tertiary">{message}</p>
+      <p className="text-subhead text-label-tertiary">{message}</p>
     </div>
   )
 }

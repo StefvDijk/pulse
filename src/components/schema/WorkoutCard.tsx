@@ -18,17 +18,17 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
   return (
     <div className="flex items-center justify-between py-2.5">
       <div className="flex flex-1 items-center gap-2 min-w-0">
-        <span className="text-sm text-text-primary truncate">{exercise.name}</span>
+        <span className="text-sm text-label-primary truncate">{exercise.name}</span>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm tabular-nums text-text-secondary">
+        <span className="text-sm tabular-nums text-label-secondary">
           {workingSets.length > 0
             ? `${workingSets.length}×${reps ?? '?'}${weight ? ` · ${weight}kg` : ''}`
             : '—'}
         </span>
         <Link
           href={`/chat?context=exercise&name=${encodeURIComponent(exercise.name)}&workout=${encodeURIComponent(workoutTitle)}`}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary hover:bg-bg-subtle hover:text-sport-gym transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-label-tertiary hover:bg-system-gray6 hover:text-system-blue transition-colors"
           title={`Vraag de coach over ${exercise.name}`}
         >
           <MessageCircle size={14} />
@@ -56,8 +56,8 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
 
   return (
     <div
-      className={`rounded-2xl border bg-bg-card overflow-hidden transition-colors ${
-        isToday ? 'border-text-primary' : 'border-border-light'
+      className={`rounded-2xl border bg-surface-primary overflow-hidden transition-colors ${
+        isToday ? 'border-text-primary' : 'border-separator'
       }`}
     >
       {/* Header — clickable to expand */}
@@ -69,30 +69,30 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
             isCompleted
-              ? 'bg-sport-gym text-white'
+              ? 'bg-system-blue text-white'
               : isToday
                 ? 'bg-text-primary text-white'
-                : 'border-2 border-border-medium bg-transparent'
+                : 'border-2 border-separator bg-transparent'
           }`}
         >
           {isCompleted ? (
             <Check size={16} strokeWidth={3} />
           ) : (
-            <Dumbbell size={14} className={isToday ? 'text-white' : 'text-text-tertiary'} />
+            <Dumbbell size={14} className={isToday ? 'text-white' : 'text-label-tertiary'} />
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary truncate">
+            <span className="text-sm font-semibold text-label-primary truncate">
               {day.workout.title}
             </span>
-            <span className="text-xs text-text-tertiary shrink-0">
+            <span className="text-xs text-label-tertiary shrink-0">
               {day.dayLabel}
             </span>
           </div>
-          <p className="text-xs text-text-tertiary mt-0.5">
+          <p className="text-xs text-label-tertiary mt-0.5">
             {day.workout.subtitle}
             {day.workout.duration_min ? ` · ~${day.workout.duration_min} min` : ''}
           </p>
@@ -101,7 +101,7 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
         {/* Expand chevron */}
         <ChevronDown
           size={16}
-          className={`text-text-tertiary transition-transform shrink-0 ${
+          className={`text-label-tertiary transition-transform shrink-0 ${
             expanded ? 'rotate-180' : ''
           }`}
         />
@@ -109,8 +109,8 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
 
       {/* Expanded exercise list */}
       {expanded && exercises.length > 0 && (
-        <div className="border-t border-border-light px-4 pb-3">
-          <div className="divide-y divide-border-light">
+        <div className="border-t border-separator px-4 pb-3">
+          <div className="divide-y divide-separator">
             {exercises.map((exercise) => (
               <ExerciseRow
                 key={exercise.exercise_order}
@@ -120,7 +120,7 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
             ))}
           </div>
           {!isCompleted && day.lastPerformance && (
-            <p className="mt-2 text-xs text-text-tertiary">
+            <p className="mt-2 text-xs text-label-tertiary">
               Gebaseerd op sessie van {day.lastPerformance.date}
             </p>
           )}
@@ -128,8 +128,8 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
       )}
 
       {expanded && exercises.length === 0 && (
-        <div className="border-t border-border-light px-4 py-3">
-          <p className="text-xs text-text-tertiary">Geen oefeningen beschikbaar</p>
+        <div className="border-t border-separator px-4 py-3">
+          <p className="text-xs text-label-tertiary">Geen oefeningen beschikbaar</p>
         </div>
       )}
     </div>

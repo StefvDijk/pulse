@@ -18,7 +18,7 @@ const MUSCLE_COLORS: Record<string, { label: string; bg: string; text: string }>
   rotator_cuff:{ label: 'Rotator',   bg: 'bg-pink-500/20',    text: 'text-pink-400' },
 }
 
-const DEFAULT = { label: '—', bg: 'bg-border-medium', text: 'text-text-tertiary' }
+const DEFAULT = { label: '—', bg: 'bg-border-medium', text: 'text-label-tertiary' }
 
 interface MuscleGroupDotProps {
   muscleGroup: string

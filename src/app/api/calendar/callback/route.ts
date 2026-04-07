@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createOAuthClient } from '@/lib/google/oauth'
+import { createOAuthClient, verifyOAuthState } from '@/lib/google/oauth'
 import { google } from 'googleapis'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const state = searchParams.get('state') // user ID
+  const state = searchParams.get('state')
   const error = searchParams.get('error')
 
   const origin = new URL(request.url).origin
 
   if (error || !code || !state) {
+    return NextResponse.redirect(`${origin}/settings?calendar=error`)
+  }
+
+  // Verify HMAC-signed state to prevent CSRF
+  const userId = verifyOAuthState(state)
+  if (!userId) {
+    console.error('[GET /api/calendar/callback] Invalid OAuth state signature')
     return NextResponse.redirect(`${origin}/settings?calendar=error`)
   }
 
@@ -39,11 +46,11 @@ export async function GET(request: Request) {
           : null,
         google_calendar_email: userInfo.email ?? null,
       })
-      .eq('user_id', state)
+      .eq('user_id', userId)
 
     return NextResponse.redirect(`${origin}/settings?calendar=connected`)
   } catch (err) {
-    console.error('Google Calendar callback error:', err)
+    console.error('[GET /api/calendar/callback] Error:', err)
     return NextResponse.redirect(`${origin}/settings?calendar=error`)
   }
 }

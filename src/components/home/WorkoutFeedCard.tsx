@@ -50,12 +50,12 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
 
   return (
     <Link href={`/workouts/${workout.id}`} className="block">
-      <div className="rounded-2xl bg-bg-card border border-border-light p-4 transition-colors hover:border-border-medium active:scale-[0.99]">
+      <div className="rounded-2xl bg-surface-primary border border-separator p-4 transition-colors hover:border-separator active:scale-[0.99]">
         {/* Header row */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-text-primary truncate">
+              <h3 className="text-base font-semibold text-label-primary truncate">
                 {workout.title}
               </h3>
               {hasPRs && (
@@ -65,7 +65,7 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-text-tertiary mt-0.5">
+            <p className="text-xs text-label-tertiary mt-0.5">
               {formatDate(workout.started_at)} · {formatTime(workout.started_at)}
             </p>
           </div>
@@ -74,24 +74,24 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
         {/* Stats row */}
         <div className="flex items-center gap-3 mb-3 flex-wrap">
           {workout.duration_seconds != null && (
-            <span className="flex items-center gap-1 text-xs text-text-secondary">
-              <Clock size={11} className="text-text-tertiary" />
+            <span className="flex items-center gap-1 text-xs text-label-secondary">
+              <Clock size={11} className="text-label-tertiary" />
               {formatDuration(workout.duration_seconds)}
             </span>
           )}
           {workout.total_volume_kg != null && (
-            <span className="text-xs text-text-secondary font-medium tabular-nums">
+            <span className="text-xs text-label-secondary font-medium tabular-nums">
               {formatVolume(workout.total_volume_kg)}
             </span>
           )}
           {workout.calories_burned != null && (
-            <span className="flex items-center gap-1 text-xs text-text-secondary">
+            <span className="flex items-center gap-1 text-xs text-label-secondary">
               <Flame size={11} className="text-orange-400" />
               {workout.calories_burned} kcal
             </span>
           )}
           {workout.avg_heart_rate != null && (
-            <span className="flex items-center gap-1 text-xs text-text-secondary">
+            <span className="flex items-center gap-1 text-xs text-label-secondary">
               <Heart size={11} className="text-red-400" />
               {workout.avg_heart_rate} bpm
             </span>
@@ -100,7 +100,7 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
 
         {/* Exercise list */}
         {top3Exercises.length > 0 && (
-          <div className="flex flex-col divide-y divide-border-light">
+          <div className="flex flex-col divide-y divide-separator">
             {top3Exercises.map((exercise, i) => (
               <div key={i} className="flex items-center gap-3 py-2">
                 <ExerciseImage
@@ -110,9 +110,9 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
                   size="sm"
                 />
                 <div className="flex flex-1 items-center justify-between min-w-0 gap-2">
-                  <span className="text-sm text-text-primary truncate">{exercise.name}</span>
+                  <span className="text-sm text-label-primary truncate">{exercise.name}</span>
                   {exercise.set_summary && (
-                    <span className="text-xs tabular-nums text-text-tertiary shrink-0">
+                    <span className="text-xs tabular-nums text-label-tertiary shrink-0">
                       {exercise.set_summary}
                     </span>
                   )}
@@ -120,7 +120,7 @@ export function WorkoutFeedCard({ workout }: WorkoutFeedCardProps) {
               </div>
             ))}
             {workout.exercises.length > 4 && (
-              <p className="pt-2 text-xs text-text-tertiary">
+              <p className="pt-2 text-xs text-label-tertiary">
                 +{workout.exercises.length - 4} oefeningen meer
               </p>
             )}

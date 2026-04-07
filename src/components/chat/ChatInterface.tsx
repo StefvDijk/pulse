@@ -60,7 +60,9 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
           setShowSuggestions(false)
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        console.error('[ChatInterface] Failed to load history:', err)
+      })
       .finally(() => setIsInitializing(false))
   }, [sessionId])
 
@@ -100,7 +102,10 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         const newSessionId = res.headers.get('X-Session-Id')
         if (newSessionId) setSessionId(newSessionId)
 
-        const reader = res.body!.getReader()
+        if (!res.body) {
+          throw new Error('Empty response body')
+        }
+        const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''
 
@@ -182,7 +187,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       <div className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}>
         {messages.length === 0 && !isLoading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <p className="text-sm text-text-tertiary">
+            <p className="text-subhead text-label-tertiary">
               Stel een vraag of log een maaltijd
             </p>
           </div>
@@ -210,7 +215,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
                 setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
                 handleSend(lastFailedMessage)
               }}
-              className="rounded-full border border-border-light bg-bg-card px-4 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-hover transition-colors"
+              className="rounded-full bg-system-blue/10 px-4 py-1.5 text-caption1 font-semibold text-system-blue transition-all duration-150 active:scale-95 hover:bg-system-blue/15"
             >
               Opnieuw proberen
             </button>

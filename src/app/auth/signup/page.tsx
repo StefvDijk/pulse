@@ -38,16 +38,16 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-bg-page">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-bg-grouped">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-text-primary">Pulse</h1>
-          <p className="mt-2 text-sm text-text-secondary">Account aanmaken</p>
+          <h1 className="text-3xl font-bold text-label-primary">Pulse</h1>
+          <p className="mt-2 text-sm text-label-secondary">Account aanmaken</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-bg-card border border-border-light rounded-[14px] p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface-primary border border-separator rounded-[14px] p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="name" className="block text-sm font-medium text-label-primary">
               Naam
             </label>
             <input
@@ -56,13 +56,13 @@ export default function SignupPage() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="Stef"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="email" className="block text-sm font-medium text-label-primary">
               E-mailadres
             </label>
             <input
@@ -71,13 +71,13 @@ export default function SignupPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="stef@example.com"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="password" className="block text-sm font-medium text-label-primary">
               Wachtwoord
             </label>
             <input
@@ -87,13 +87,13 @@ export default function SignupPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-bg-subtle border border-border-light text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="Minimaal 6 tekens"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-status-red">
+            <p className="text-sm text-system-red">
               {error}
             </p>
           )}
@@ -101,15 +101,15 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50 bg-accent text-accent-text"
+            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50 bg-system-blue text-white"
           >
             {loading ? 'Account aanmaken...' : 'Registreren'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-text-secondary">
+        <p className="text-center text-sm text-label-secondary">
           Al een account?{' '}
-          <Link href="/auth/login" className="text-accent-link hover:underline">
+          <Link href="/auth/login" className="text-system-blue hover:underline">
             Inloggen
           </Link>
         </p>

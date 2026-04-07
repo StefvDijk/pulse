@@ -62,7 +62,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         userId: user_id,
         syncSource: 'hevy',
         syncResult: result,
-      }).catch(() => {})
+      }).catch((err: unknown) => {
+        console.error('[cron/hevy-sync] analyzeAfterSync failed:', err)
+      })
 
       results.push({ userId: user_id, ...result })
     } catch (error) {

@@ -1,81 +1,145 @@
 @import "tailwindcss";
 
-/* ─── Pulse Design Tokens — Mineral Light Theme ─────────────────────────── */
+/* ─── Dark mode variant — class-based (ready for future toggle) ──────────── */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Pulse Design Tokens — Apple HIG ────────────────────────────────────── */
 
 @theme {
+  /* ───────────────────────────────────────────────────────────────────────
+   *  TYPOGRAPHY — Apple Type Scale
+   *  Exact maten van de Apple HIG type spec.
+   *  ─────────────────────────────────────────────────────────────────────── */
+
+  /* Font stacks — SF Pro via -apple-system (geen externe webfont) */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Apple Type Scale */
+  --text-caption2: 11px;
+  --text-caption2--line-height: 13px;
+  --text-caption2--letter-spacing: 0.07em;
+
+  --text-caption1: 12px;
+  --text-caption1--line-height: 16px;
+
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+
+  --text-subhead: 15px;
+  --text-subhead--line-height: 20px;
+
+  --text-body: 17px;
+  --text-body--line-height: 22px;
+
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-headline--font-weight: 600;
+
+  --text-title3: 20px;
+  --text-title3--line-height: 25px;
+
+  --text-title2: 22px;
+  --text-title2--line-height: 28px;
+
+  --text-title1: 28px;
+  --text-title1--line-height: 34px;
+
+  --text-large-title: 34px;
+  --text-large-title--line-height: 41px;
+
+  /* ───────────────────────────────────────────────────────────────────────
+   *  COLORS — Apple System Colors (light mode)
+   *  Dark mode overrides staan in `.dark { }` block hieronder.
+   *  ─────────────────────────────────────────────────────────────────────── */
+
+  /* Apple System Colors — semantic accents */
+  --color-system-blue: #007AFF;
+  --color-system-green: #34C759;
+  --color-system-orange: #FF9500;
+  --color-system-red: #FF3B30;
+  --color-system-purple: #AF52DE;
+  --color-system-teal: #5AC8FA;
+  --color-system-yellow: #FFCC00;
+  --color-system-indigo: #5856D6;
+  --color-system-pink: #FF2D55;
+
+  /* Apple Gray Scale — light mode */
+  --color-system-gray: #8E8E93;
+  --color-system-gray2: #AEAEB2;
+  --color-system-gray3: #C7C7CC;
+  --color-system-gray4: #D1D1D6;
+  --color-system-gray5: #E5E5EA;
+  --color-system-gray6: #F2F2F7;
+
+  /* Apple Semantic Labels — light mode */
+  --color-label-primary: #000000;
+  --color-label-secondary: rgba(60, 60, 67, 0.6);
+  --color-label-tertiary: rgba(60, 60, 67, 0.3);
+
+  /* Apple Backgrounds — light mode */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F2F2F7;
+  --color-bg-tertiary: #FFFFFF;
+  --color-bg-grouped: #F2F2F7;
+
+  /* Apple Surfaces — light mode */
+  --color-surface-primary: #FFFFFF;
+  --color-surface-secondary: rgba(255, 255, 255, 0.8);
+
+  /* Apple Separators — light mode */
+  --color-separator: rgba(60, 60, 67, 0.29);
+  --color-separator-opaque: #C6C6C8;
+
+  /* Apple Shadows — subtiel, gelayerd */
+  --shadow-apple-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-apple: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-apple-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-apple-lg: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-apple-float: 0 16px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Apple HIG Dark Mode Overrides ──────────────────────────────────────── */
+
+.dark {
+  /* System Colors — iets helderder voor dark mode */
+  --color-system-blue: #0A84FF;
+  --color-system-green: #30D158;
+  --color-system-orange: #FF9F0A;
+  --color-system-red: #FF453A;
+  --color-system-purple: #BF5AF2;
+  --color-system-teal: #64D2FF;
+  --color-system-yellow: #FFD60A;
+  --color-system-indigo: #5E5CE6;
+  --color-system-pink: #FF375F;
+
+  /* Gray Scale — dark mode (geïnverteerde range) */
+  --color-system-gray: #8E8E93;
+  --color-system-gray2: #636366;
+  --color-system-gray3: #48484A;
+  --color-system-gray4: #3A3A3C;
+  --color-system-gray5: #2C2C2E;
+  --color-system-gray6: #1C1C1E;
+
+  /* Semantic Labels */
+  --color-label-primary: #FFFFFF;
+  --color-label-secondary: rgba(235, 235, 245, 0.6);
+  --color-label-tertiary: rgba(235, 235, 245, 0.3);
+
   /* Backgrounds */
-  --color-bg-page: #F5F3EF;
-  --color-bg-card: #FDFCFA;
-  --color-bg-subtle: #EDEAE4;
-  --color-bg-hover: #F8F6F2;
-  --color-bg-active: #E8E4DC;
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #1C1C1E;
+  --color-bg-tertiary: #2C2C2E;
+  --color-bg-grouped: #000000;
 
-  /* Text */
-  --color-text-primary: #1C1917;
-  --color-text-secondary: #57534E;
-  --color-text-tertiary: #A8A29E;
-  --color-text-muted: #D6D3CD;
+  /* Surfaces */
+  --color-surface-primary: #1C1C1E;
+  --color-surface-secondary: rgba(28, 28, 30, 0.8);
 
-  /* Borders */
-  --color-border-light: #E7E5E0;
-  --color-border-medium: #D4D0C8;
-  --color-border-strong: #B8B4AC;
-
-  /* Accent / CTA */
-  --color-accent: #1C1917;
-  --color-accent-text: #FDFCFA;
-  --color-accent-secondary: #EDEAE4;
-  --color-accent-link: #2E6F6F;
-
-  /* Sport: Gym — Slate Teal */
-  --color-sport-gym: #2E6F6F;
-  --color-sport-gym-light: #E6F0F0;
-  --color-sport-gym-dark: #1A4747;
-
-  /* Sport: Running — Terracotta */
-  --color-sport-run: #C2410C;
-  --color-sport-run-light: #FCEEE6;
-  --color-sport-run-dark: #8C2E08;
-
-  /* Sport: Padel — Warm Amber */
-  --color-sport-padel: #B45309;
-  --color-sport-padel-light: #FDF3E3;
-  --color-sport-padel-dark: #7C3A06;
-
-  /* Sport: Cycling — Moss Green */
-  --color-sport-cycle: #4D7C0F;
-  --color-sport-cycle-light: #ECF4E4;
-  --color-sport-cycle-dark: #365908;
-
-  /* Status */
-  --color-status-green: #16A34A;
-  --color-status-green-light: #F0FDF4;
-  --color-status-green-dark: #166534;
-  --color-status-amber: #D97706;
-  --color-status-amber-light: #FFFBEB;
-  --color-status-amber-dark: #92400E;
-  --color-status-red: #DC2626;
-  --color-status-red-light: #FEF2F2;
-  --color-status-red-dark: #991B1B;
-
-  /* Muscle Heatmap — Terracotta Spectrum */
-  --color-muscle-none: #4A4A52;
-  --color-muscle-light: #E6A87C;
-  --color-muscle-moderate: #D4845A;
-  --color-muscle-heavy: #C2410C;
-  --color-muscle-very-heavy: #9A3412;
-
-  /* Chart Colors */
-  --color-chart-push: #C2410C;
-  --color-chart-pull: #2E6F6F;
-  --color-chart-squat: #B45309;
-  --color-chart-hinge: #4D7C0F;
-  --color-chart-protein: #2E6F6F;
-  --color-chart-carbs: #B45309;
-  --color-chart-fat: #C2410C;
-
-  /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Separators */
+  --color-separator: rgba(84, 84, 88, 0.6);
+  --color-separator-opaque: #38383A;
 }
 
 /* ─── Base Styles ─────────────────────────────────────────────────────────── */
@@ -84,9 +148,13 @@
   color-scheme: light;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 html {
-  background-color: #F5F3EF;
-  color: #1C1917;
+  background-color: var(--color-bg-grouped);
+  color: var(--color-label-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -97,68 +165,22 @@ body {
   min-height: 100dvh;
 }
 
-/* ─── Typography Utilities ────────────────────────────────────────────────── */
+/* ─── Apple HIG Utility Classes ──────────────────────────────────────────── */
 
-.text-hero {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: #1C1917;
-}
-
-.text-page-title {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: #1C1917;
-}
-
-.text-stat {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: #1C1917;
-  font-variant-numeric: tabular-nums;
-}
-
-.text-section-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #1C1917;
-}
-
-.text-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1C1917;
-}
-
-.text-body {
-  font-size: 14px;
-  font-weight: 400;
-  color: #57534E;
-}
-
-.text-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #A8A29E;
-}
-
-.text-small-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: #A8A29E;
-}
-
-.text-caption {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  color: #A8A29E;
-}
-
-/* Tabular nums for all stat displays */
+/* Tabular nums for stat displays */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Glass effect — spaarzaam gebruiken (tab bar, modals, chat overlay) */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dark .glass {
+  background: rgba(28, 28, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }

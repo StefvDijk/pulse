@@ -26,7 +26,7 @@ export function BodyComposition({ records }: BodyCompositionProps) {
   if (bodyRecords.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-text-tertiary">
+        <p className="text-sm text-label-tertiary">
           Nog geen InBody data — voeg scans toe via de Coach
         </p>
       </div>
@@ -65,17 +65,17 @@ export function BodyComposition({ records }: BodyCompositionProps) {
 
           return (
             <div key={type} className="flex flex-col items-center text-center">
-              <p className="text-xs text-text-tertiary">{LABELS[type]}</p>
-              <p className="mt-1 text-lg font-bold tabular-nums text-text-primary">
+              <p className="text-xs text-label-tertiary">{LABELS[type]}</p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-label-primary">
                 {record.value}
-                <span className="text-xs font-normal text-text-tertiary ml-0.5">
+                <span className="text-xs font-normal text-label-tertiary ml-0.5">
                   {record.unit}
                 </span>
               </p>
               {delta !== null && (
                 <span
                   className={`text-xs font-medium ${
-                    isPositiveChange ? 'text-status-green' : 'text-status-red'
+                    isPositiveChange ? 'text-system-green' : 'text-system-red'
                   }`}
                 >
                   {delta >= 0 ? '+' : ''}
@@ -88,7 +88,7 @@ export function BodyComposition({ records }: BodyCompositionProps) {
       </div>
 
       {latestDate && (
-        <p className="text-xs text-text-tertiary text-center">
+        <p className="text-xs text-label-tertiary text-center">
           Laatste scan:{' '}
           {new Date(latestDate).toLocaleDateString('nl-NL', {
             day: 'numeric',
