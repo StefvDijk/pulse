@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSettings } from '@/hooks/useSettings'
+import { createClient } from '@/lib/supabase/client'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
@@ -44,6 +45,32 @@ export function SettingsPage() {
   const [runTarget, setRunTarget] = useState('')
   const [padelTarget, setPadelTarget] = useState('')
   const [goalsStatus, saveGoals] = useSaveStatus()
+
+  // Password change state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordStatus, savePassword] = useSaveStatus()
+
+  async function handleChangePassword() {
+    setPasswordError(null)
+    if (newPassword.length < 8) {
+      setPasswordError('Wachtwoord moet minimaal 8 tekens zijn')
+      throw new Error('validation')
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Wachtwoorden komen niet overeen')
+      throw new Error('validation')
+    }
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setPasswordError(error.message)
+      throw error
+    }
+    setNewPassword('')
+    setConfirmPassword('')
+  }
 
   useEffect(() => {
     if (!data) return
@@ -324,6 +351,41 @@ export function SettingsPage() {
           </div>
           <div className="flex justify-end">
             <SaveButton status={goalsStatus} onClick={() => saveGoals(handleSaveGoals)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Account section */}
+      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+        <SectionHeader title="Wachtwoord wijzigen" />
+        <div className="flex flex-col gap-4">
+          <Field label="Nieuw wachtwoord">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minimaal 8 tekens"
+              autoComplete="new-password"
+              className={INPUT_CLASSES}
+            />
+          </Field>
+          <Field label="Bevestig nieuw wachtwoord">
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              className={INPUT_CLASSES}
+            />
+          </Field>
+          {passwordError && (
+            <p className="text-sm text-system-red">{passwordError}</p>
+          )}
+          <div className="flex justify-end">
+            <SaveButton
+              status={passwordStatus}
+              onClick={() => savePassword(handleChangePassword)}
+            />
           </div>
         </div>
       </div>
