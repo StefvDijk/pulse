@@ -127,8 +127,13 @@ export function SchemaPageContent() {
         weeks={data.weeks}
         currentWeek={data.currentWeek}
         calendarConnected={calendarConnected}
+        templateSchedule={data.schedule}
         onReschedule={handleReschedule}
         onPushToCalendar={() => setCalendarModalOpen(true)}
+        onSchemaChanged={() => {
+          mutate()
+          refreshWeek()
+        }}
       />
 
       {/* Google Calendar modal (reused from existing) */}

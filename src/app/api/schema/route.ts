@@ -17,6 +17,10 @@ interface CompletedWorkoutRow {
   title: string
 }
 
+interface DatedActivityRow {
+  started_at: string
+}
+
 /* ── Helpers ───────────────────────────────────────────────── */
 
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
@@ -123,23 +127,73 @@ export async function GET() {
       return { weekNumber: weekNum, days }
     })
 
-    // Fetch all completed workouts in the schema period
+    // Fetch all completed activities in the schema period (parallel).
+    // We need workouts, runs and padel sessions so a scheduled "Hardlopen" or
+    // "Padel" day matches the right data source — same approach as /api/schema/week.
     const schemaStartDate = weeks[0].days[0].date
     const schemaEndDate = weeks[totalWeeks - 1].days[6].date
+    const fromIso = `${schemaStartDate}T00:00:00Z`
+    const toIso = `${schemaEndDate}T23:59:59Z`
 
-    const { data: completedWorkouts } = await admin
-      .from('workouts')
-      .select('started_at, title')
-      .eq('user_id', user.id)
-      .gte('started_at', `${schemaStartDate}T00:00:00Z`)
-      .lte('started_at', `${schemaEndDate}T23:59:59Z`)
-      .order('started_at', { ascending: true })
+    const [workoutsResult, padelResult, runsResult] = await Promise.all([
+      admin
+        .from('workouts')
+        .select('started_at, title')
+        .eq('user_id', user.id)
+        .gte('started_at', fromIso)
+        .lte('started_at', toIso),
+      admin
+        .from('padel_sessions')
+        .select('started_at')
+        .eq('user_id', user.id)
+        .gte('started_at', fromIso)
+        .lte('started_at', toIso),
+      admin
+        .from('runs')
+        .select('started_at')
+        .eq('user_id', user.id)
+        .gte('started_at', fromIso)
+        .lte('started_at', toIso),
+    ])
 
-    // Build completed dates map: date -> workout title
-    const completedMap: Record<string, string> = {}
-    for (const w of (completedWorkouts ?? []) as CompletedWorkoutRow[]) {
+    if (workoutsResult.error) throw workoutsResult.error
+    if (padelResult.error) throw padelResult.error
+    if (runsResult.error) throw runsResult.error
+
+    // Group workouts by date so multiple workouts on the same day all count.
+    const workoutsByDate = new Map<string, Set<string>>()
+    for (const w of (workoutsResult.data ?? []) as CompletedWorkoutRow[]) {
       const date = w.started_at.slice(0, 10)
-      completedMap[date] = w.title
+      const titles = workoutsByDate.get(date) ?? new Set<string>()
+      titles.add(w.title.toLowerCase().trim())
+      workoutsByDate.set(date, titles)
+    }
+
+    const runDates = new Set<string>()
+    for (const r of (runsResult.data ?? []) as DatedActivityRow[]) {
+      runDates.add(r.started_at.slice(0, 10))
+    }
+
+    const padelDates = new Set<string>()
+    for (const p of (padelResult.data ?? []) as DatedActivityRow[]) {
+      padelDates.add(p.started_at.slice(0, 10))
+    }
+
+    function isFocusCompleted(date: string, focus: string): boolean {
+      const focusLower = focus.toLowerCase().trim()
+
+      // Run-type day → check runs table.
+      if (focusLower.includes('hardlopen') || focusLower.includes('run')) {
+        if (runDates.has(date)) return true
+      }
+
+      // Padel-type day → check padel_sessions table.
+      if (focusLower.includes('padel')) {
+        if (padelDates.has(date)) return true
+      }
+
+      // Gym workouts: title must match a workout logged on that date.
+      return workoutsByDate.get(date)?.has(focusLower) ?? false
     }
 
     // Enrich weeks with completion status
@@ -147,11 +201,7 @@ export async function GET() {
 
     const enrichedWeeks = weeks.map((week) => {
       const enrichedDays = week.days.map((day) => {
-        const completed = day.workoutFocus
-          ? Object.entries(completedMap).some(
-              ([date, title]) => date === day.date && title.toLowerCase().trim() === day.workoutFocus!.toLowerCase().trim(),
-            )
-          : false
+        const completed = day.workoutFocus ? isFocusCompleted(day.date, day.workoutFocus) : false
 
         const status: 'completed' | 'today' | 'planned' | 'rest' = !day.workoutFocus
           ? 'rest'

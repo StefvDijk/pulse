@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, MoreHorizontal, ArrowRight, Calendar } from 'lucide-react'
-import type { SchemaWeek, SchemaDay } from '@/hooks/useSchema'
+import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, MoreHorizontal, ArrowRight, Calendar, Pencil } from 'lucide-react'
+import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
+import { EditWeekModal } from './EditWeekModal'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
   currentWeek: number
   calendarConnected: boolean
+  templateSchedule: SchemaScheduleItem[]
   onReschedule: (fromDate: string, toDate: string, workoutFocus: string) => Promise<void>
   onPushToCalendar: () => void
+  onSchemaChanged: () => void
 }
 
 const DAY_HEADERS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'] as const
@@ -189,12 +192,15 @@ export function SchemaCalendar({
   weeks,
   currentWeek,
   calendarConnected,
+  templateSchedule,
   onReschedule,
   onPushToCalendar,
+  onSchemaChanged,
 }: SchemaCalendarProps) {
   const [selectedWeek, setSelectedWeek] = useState(currentWeek)
   const [rescheduleDay, setRescheduleDay] = useState<SchemaDay | null>(null)
   const [moving, setMoving] = useState(false)
+  const [editingWeek, setEditingWeek] = useState(false)
 
   const week = weeks[selectedWeek - 1]
   if (!week) return null
@@ -236,6 +242,13 @@ export function SchemaCalendar({
             {' · '}
             {week.sessionsCompleted}/{week.sessionsPlanned} sessies
           </p>
+          <button
+            onClick={() => setEditingWeek(true)}
+            className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-system-gray6 px-2.5 py-0.5 text-[10px] font-medium text-label-secondary hover:bg-system-gray5"
+          >
+            <Pencil size={10} />
+            Aanpassen
+          </button>
         </div>
 
         <button
@@ -305,6 +318,17 @@ export function SchemaCalendar({
           weekDays={week.days}
           onMove={handleMove}
           onClose={() => setRescheduleDay(null)}
+        />
+      )}
+
+      {/* Edit-week modal */}
+      {editingWeek && (
+        <EditWeekModal
+          weekNumber={selectedWeek}
+          days={week.days}
+          templateSchedule={templateSchedule}
+          onClose={() => setEditingWeek(false)}
+          onSaved={onSchemaChanged}
         />
       )}
     </div>
