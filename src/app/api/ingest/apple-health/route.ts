@@ -149,12 +149,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   const payload = parseResult.data
+
+  // Debug: log incoming metric names and data point counts
+  const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
+  console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
+
   const { runs: parsedRuns, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
   const parsedSleep = parseSleepData(payload)
   const parsedBodyWeight = parseBodyWeight(payload)
   const parsedGymWorkouts = parseGymWorkouts(payload)
   const parsedBodyComposition = parseBodyComposition(payload)
+
+  console.log(`apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`)
+  if (parsedBodyComposition.length > 0) {
+    console.log('apple-health ingest: bodyComp entries:', JSON.stringify(parsedBodyComposition.slice(0, 5)))
+  }
 
   const errors: string[] = []
 
@@ -518,6 +528,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       gymCorrelations,
     },
     errors,
+    debug: {
+      metricNames: payload.data.metrics.map((m) => m.name),
+      bodyCompParsed: parsedBodyComposition.length,
+      bodyWeightParsed: parsedBodyWeight.length,
+    },
   })
   } catch (error) {
     console.error('[POST /api/ingest/apple-health] Unhandled error:', error)
