@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useReadiness } from '@/hooks/useReadiness'
 import type { ReadinessData } from '@/types/readiness'
 
@@ -77,26 +78,29 @@ function formatSleepDuration(totalMinutes: number): string {
   return `${hours}u${String(mins).padStart(2, '0')}m`
 }
 
-function buildMetricsLine(data: ReadinessData): string | null {
-  const parts: string[] = []
+interface MetricsParts {
+  acwrLabel: string | null
+  otherParts: string | null
+}
 
-  if (data.acwr !== null) {
-    parts.push(`ACWR ${data.acwr.toFixed(2)}`)
-  }
+function buildMetricsParts(data: ReadinessData): MetricsParts {
+  const acwrLabel = data.acwr !== null ? `ACWR ${data.acwr.toFixed(2)}` : null
 
+  const others: string[] = []
   if (data.sleepMinutes !== null) {
-    parts.push(`${formatSleepDuration(data.sleepMinutes)} slaap`)
+    others.push(`${formatSleepDuration(data.sleepMinutes)} slaap`)
   }
-
   if (data.restingHR !== null) {
-    parts.push(`HR ${data.restingHR}`)
+    others.push(`HR ${data.restingHR}`)
   }
-
   if (data.hrv !== null) {
-    parts.push(`HRV ${data.hrv}`)
+    others.push(`HRV ${data.hrv}`)
   }
 
-  return parts.length > 0 ? parts.join(' \u00B7 ') : null
+  return {
+    acwrLabel,
+    otherParts: others.length > 0 ? others.join(' \u00B7 ') : null,
+  }
 }
 
 export function ReadinessSignal() {
@@ -109,7 +113,7 @@ export function ReadinessSignal() {
 
   const config = LEVEL_CONFIG[data.level]
   const coaching = getCoachingText(data)
-  const metrics = buildMetricsLine(data)
+  const { acwrLabel, otherParts } = buildMetricsParts(data)
 
   return (
     <div className={`rounded-2xl border border-separator ${config.bgClass} p-4`}>
@@ -124,9 +128,18 @@ export function ReadinessSignal() {
         {coaching}
       </p>
 
-      {metrics && (
+      {(acwrLabel || otherParts) && (
         <p className="mt-2 text-caption1 text-label-tertiary">
-          {metrics}
+          {acwrLabel && (
+            <Link
+              href="/belasting"
+              className="text-system-blue active:opacity-60 transition-opacity"
+            >
+              {acwrLabel}
+            </Link>
+          )}
+          {acwrLabel && otherParts && ' \u00B7 '}
+          {otherParts}
         </p>
       )}
     </div>
