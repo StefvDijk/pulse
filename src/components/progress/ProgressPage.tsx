@@ -118,7 +118,7 @@ export function ProgressPage() {
 
           {/* Body Composition */}
           <Card title="Lichaamssamenstelling">
-            <BodyComposition records={progressData?.personalRecords ?? []} />
+            <BodyComposition />
           </Card>
         </>
       )}

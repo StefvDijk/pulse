@@ -18,7 +18,7 @@ export interface BodyCompDelta {
 
 const CreateBodyCompSchema = z.object({
   date: z.string().date(),
-  source: z.enum(['inbody', 'manual', 'smart_scale']).default('inbody'),
+  source: z.enum(['inbody', 'manual', 'smart_scale', 'apple_health']).default('inbody'),
   weight_kg: z.number().min(30).max(300),
   muscle_mass_kg: z.number().min(10).max(150).optional(),
   fat_mass_kg: z.number().min(0).max(150).optional(),

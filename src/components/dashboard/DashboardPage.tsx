@@ -9,6 +9,7 @@ import { TodayWorkoutCard } from '@/components/home/TodayWorkoutCard'
 import { WeekAtAGlance } from '@/components/home/WeekAtAGlance'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { SyncButton } from '@/components/home/SyncButton'
+import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
@@ -129,6 +130,11 @@ export function DashboardPage() {
       {/* Daily health metrics (steps, HR, HRV, sleep, weight) */}
       <motion.div variants={listItem} transition={springContent}>
         <DailyHealthBar />
+      </motion.div>
+
+      {/* Muscle heatmap — last 7 days */}
+      <motion.div variants={listItem} transition={springContent}>
+        <MuscleMapCard />
       </motion.div>
 
       {/* Sync button */}

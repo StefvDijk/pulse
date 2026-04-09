@@ -1,102 +1,201 @@
 'use client'
 
-import { Scale } from 'lucide-react'
-import type { Database } from '@/types/database'
+import { Scale, TrendingDown, TrendingUp, Minus } from 'lucide-react'
+import { useBodyComposition, type BodyCompEntry } from '@/hooks/useBodyComposition'
 
-type PRRow = Database['public']['Tables']['personal_records']['Row']
-
-interface BodyCompositionProps {
-  records: PRRow[]
+interface MetricProps {
+  label: string
+  value: number | null
+  unit: string
+  delta: number | null
+  /** true = higher is better (e.g. muscle), false = lower is better (e.g. fat) */
+  higherIsBetter: boolean
 }
 
-const BODY_COMP_TYPES = ['muscle_mass', 'fat_mass', 'body_fat_percentage'] as const
+function Metric({ label, value, unit, delta, higherIsBetter }: MetricProps) {
+  if (value === null) return null
 
-const LABELS: Record<string, string> = {
-  muscle_mass: 'Spiermassa',
-  fat_mass: 'Vetmassa',
-  body_fat_percentage: 'Vetpercentage',
-}
+  const isPositive = delta !== null && delta > 0
+  const isNegative = delta !== null && delta < 0
+  const isGood = higherIsBetter ? isPositive : isNegative
+  const isBad = higherIsBetter ? isNegative : isPositive
 
-export function BodyComposition({ records }: BodyCompositionProps) {
-  // Filter to body composition records
-  const bodyRecords = records.filter(
-    (r) => BODY_COMP_TYPES.includes(r.record_type as typeof BODY_COMP_TYPES[number]),
+  return (
+    <div className="flex flex-col items-center text-center gap-0.5">
+      <p className="text-xs text-label-tertiary">{label}</p>
+      <p className="text-lg font-bold tabular-nums text-label-primary">
+        {value % 1 === 0 ? value : value.toFixed(1)}
+        <span className="text-xs font-normal text-label-tertiary ml-0.5">{unit}</span>
+      </p>
+      {delta !== null && delta !== 0 && (
+        <span
+          className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+            isGood ? 'text-system-green' : isBad ? 'text-system-red' : 'text-label-tertiary'
+          }`}
+        >
+          {isPositive ? (
+            <TrendingUp className="h-3 w-3" />
+          ) : isNegative ? (
+            <TrendingDown className="h-3 w-3" />
+          ) : (
+            <Minus className="h-3 w-3" />
+          )}
+          {delta > 0 ? '+' : ''}
+          {delta % 1 === 0 ? delta : delta.toFixed(1)}
+        </span>
+      )}
+    </div>
   )
+}
 
-  if (bodyRecords.length === 0) {
+function computeDelta(current: BodyCompEntry, previous: BodyCompEntry | undefined) {
+  if (!previous) {
+    return { weight: null, fatPct: null, leanMass: null, fatMass: null, bmi: null, bmr: null }
+  }
+
+  const diff = (a: number | null, b: number | null) =>
+    a !== null && b !== null ? Math.round((a - b) * 10) / 10 : null
+
+  return {
+    weight: diff(current.weight_kg, previous.weight_kg),
+    fatPct: diff(current.fat_pct, previous.fat_pct),
+    leanMass: diff(current.lean_body_mass_kg, previous.lean_body_mass_kg),
+    fatMass: diff(current.fat_mass_kg, previous.fat_mass_kg),
+    bmi: diff(current.bmi, previous.bmi),
+    bmr: diff(current.bmr_kcal, previous.bmr_kcal),
+  }
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  apple_health: 'Apple Health',
+  inbody: 'InBody',
+  manual: 'Handmatig',
+  smart_scale: 'Smart Scale',
+  weekly_checkin: 'Weekly Check-in',
+}
+
+export function BodyComposition() {
+  const { entries, isLoading, error } = useBodyComposition(2)
+
+  if (isLoading) {
+    return (
+      <div className="flex h-24 items-center justify-center">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-label-tertiary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-24 items-center justify-center">
+        <p className="text-sm text-system-red">Laden mislukt</p>
+      </div>
+    )
+  }
+
+  const latest = entries[0]
+  const previous = entries[1]
+
+  if (!latest) {
     return (
       <div className="flex h-24 items-center justify-center">
         <p className="text-sm text-label-tertiary">
-          Nog geen InBody data — voeg scans toe via de Coach
+          Nog geen body composition data — sync via InBody + Apple Health
         </p>
       </div>
     )
   }
 
-  // Get the most recent record per type
-  const latestByType = new Map<string, PRRow>()
-  for (const r of bodyRecords) {
-    const existing = latestByType.get(r.record_type)
-    if (!existing || r.achieved_at > existing.achieved_at) {
-      latestByType.set(r.record_type, r)
-    }
-  }
+  const delta = computeDelta(latest, previous)
 
-  const latestDate = Array.from(latestByType.values())
-    .map((r) => r.achieved_at)
-    .sort()
-    .pop()
+  // Use lean_body_mass_kg, fall back to muscle_mass_kg
+  const leanMass = latest.lean_body_mass_kg ?? latest.muscle_mass_kg
+  const prevLeanMass = previous
+    ? (previous.lean_body_mass_kg ?? previous.muscle_mass_kg)
+    : null
+  const leanMassDelta =
+    leanMass !== null && prevLeanMass !== null
+      ? Math.round((leanMass - prevLeanMass) * 10) / 10
+      : delta.leanMass
+
+  const leanMassLabel = latest.lean_body_mass_kg !== null ? 'Lean Mass' : 'Spiermassa'
+
+  const source = SOURCE_LABELS[latest.source ?? 'inbody'] ?? latest.source
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Primary metrics */}
       <div className="grid grid-cols-3 gap-3">
-        {BODY_COMP_TYPES.map((type) => {
-          const record = latestByType.get(type)
-          if (!record) return null
-
-          const delta =
-            record.previous_record !== null
-              ? record.value - record.previous_record
-              : null
-
-          // For fat_mass and body_fat_percentage, decrease is good
-          const isPositiveChange =
-            type === 'muscle_mass' ? (delta ?? 0) >= 0 : (delta ?? 0) <= 0
-
-          return (
-            <div key={type} className="flex flex-col items-center text-center">
-              <p className="text-xs text-label-tertiary">{LABELS[type]}</p>
-              <p className="mt-1 text-lg font-bold tabular-nums text-label-primary">
-                {record.value}
-                <span className="text-xs font-normal text-label-tertiary ml-0.5">
-                  {record.unit}
-                </span>
-              </p>
-              {delta !== null && (
-                <span
-                  className={`text-xs font-medium ${
-                    isPositiveChange ? 'text-system-green' : 'text-system-red'
-                  }`}
-                >
-                  {delta >= 0 ? '+' : ''}
-                  {delta % 1 === 0 ? delta : delta.toFixed(1)}
-                </span>
-              )}
-            </div>
-          )
-        })}
+        <Metric
+          label="Gewicht"
+          value={latest.weight_kg}
+          unit="kg"
+          delta={delta.weight}
+          higherIsBetter={false}
+        />
+        <Metric
+          label="Vetpercentage"
+          value={latest.fat_pct}
+          unit="%"
+          delta={delta.fatPct}
+          higherIsBetter={false}
+        />
+        <Metric
+          label={leanMassLabel}
+          value={leanMass}
+          unit="kg"
+          delta={leanMassDelta}
+          higherIsBetter={true}
+        />
       </div>
 
-      {latestDate && (
-        <p className="text-xs text-label-tertiary text-center">
-          Laatste scan:{' '}
-          {new Date(latestDate).toLocaleDateString('nl-NL', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
+      {/* Secondary metrics — only show if available */}
+      {(latest.fat_mass_kg !== null || latest.bmi !== null || latest.bmr_kcal !== null) && (
+        <div className="grid grid-cols-3 gap-3 border-t border-separator pt-3">
+          <Metric
+            label="Vetmassa"
+            value={latest.fat_mass_kg}
+            unit="kg"
+            delta={delta.fatMass}
+            higherIsBetter={false}
+          />
+          <Metric
+            label="BMI"
+            value={latest.bmi}
+            unit=""
+            delta={delta.bmi}
+            higherIsBetter={false}
+          />
+          <Metric
+            label="BMR"
+            value={latest.bmr_kcal}
+            unit="kcal"
+            delta={delta.bmr}
+            higherIsBetter={true}
+          />
+        </div>
       )}
+
+      {/* Metadata */}
+      <p className="text-xs text-label-tertiary text-center">
+        Laatste meting:{' '}
+        {new Date(latest.date).toLocaleDateString('nl-NL', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })}
+        {' · '}
+        {source}
+        {previous && (
+          <>
+            {' · vs. '}
+            {new Date(previous.date).toLocaleDateString('nl-NL', {
+              day: 'numeric',
+              month: 'short',
+            })}
+          </>
+        )}
+      </p>
     </div>
   )
 }
