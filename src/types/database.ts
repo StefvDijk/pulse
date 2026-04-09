@@ -39,6 +39,7 @@ export type Database = {
           arm_right_cm: number | null
           bmi: number | null
           bmr_kcal: number | null
+          body_water_pct: number | null
           chest_cm: number | null
           created_at: string | null
           date: string
@@ -48,10 +49,12 @@ export type Database = {
           lean_body_mass_kg: number | null
           muscle_mass_kg: number | null
           notes: string | null
+          skeletal_muscle_mass_kg: number | null
           source: string | null
           thigh_right_cm: number | null
           updated_at: string | null
           user_id: string
+          visceral_fat_level: number | null
           waist_cm: number | null
           weight_kg: number | null
         }
@@ -59,6 +62,7 @@ export type Database = {
           arm_right_cm?: number | null
           bmi?: number | null
           bmr_kcal?: number | null
+          body_water_pct?: number | null
           chest_cm?: number | null
           created_at?: string | null
           date: string
@@ -68,10 +72,12 @@ export type Database = {
           lean_body_mass_kg?: number | null
           muscle_mass_kg?: number | null
           notes?: string | null
+          skeletal_muscle_mass_kg?: number | null
           source?: string | null
           thigh_right_cm?: number | null
           updated_at?: string | null
           user_id: string
+          visceral_fat_level?: number | null
           waist_cm?: number | null
           weight_kg?: number | null
         }
@@ -79,6 +85,7 @@ export type Database = {
           arm_right_cm?: number | null
           bmi?: number | null
           bmr_kcal?: number | null
+          body_water_pct?: number | null
           chest_cm?: number | null
           created_at?: string | null
           date?: string
@@ -88,10 +95,12 @@ export type Database = {
           lean_body_mass_kg?: number | null
           muscle_mass_kg?: number | null
           notes?: string | null
+          skeletal_muscle_mass_kg?: number | null
           source?: string | null
           thigh_right_cm?: number | null
           updated_at?: string | null
           user_id?: string
+          visceral_fat_level?: number | null
           waist_cm?: number | null
           weight_kg?: number | null
         }

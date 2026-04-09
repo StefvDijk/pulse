@@ -376,8 +376,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
           : null,
       muscle_mass_kg: null,
       lean_body_mass_kg: c.leanBodyMassKg ?? null,
+      skeletal_muscle_mass_kg: c.skeletalMuscleMassKg ?? null,
       bmi: c.bmi ?? null,
       bmr_kcal: c.bmrKcal ?? null,
+      visceral_fat_level: c.visceralFatLevel ?? null,
+      body_water_pct: c.bodyWaterPct ?? null,
     }))
 
     for (let i = 0; i < compInserts.length; i += 50) {

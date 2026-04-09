@@ -128,8 +128,11 @@ export interface ParsedBodyComposition {
   weightKg: number | undefined
   fatPct: number | undefined
   leanBodyMassKg: number | undefined
+  skeletalMuscleMassKg: number | undefined
   bmi: number | undefined
   bmrKcal: number | undefined
+  visceralFatLevel: number | undefined
+  bodyWaterPct: number | undefined
 }
 
 /** Apple Health metric name variants (HAE sends snake_case or camelCase) */
@@ -142,6 +145,17 @@ const BODY_COMP_METRICS: Record<string, keyof Omit<ParsedBodyComposition, 'date'
   bodyMassIndex: 'bmi',
   basal_energy_burned: 'bmrKcal',
   basalEnergyBurned: 'bmrKcal',
+  // InBody extra metrics (may or may not be available via HealthKit/HAE)
+  skeletal_muscle_mass: 'skeletalMuscleMassKg',
+  skeletalMuscleMass: 'skeletalMuscleMassKg',
+  visceral_fat: 'visceralFatLevel',
+  visceralFat: 'visceralFatLevel',
+  visceral_fat_rating: 'visceralFatLevel',
+  visceralFatRating: 'visceralFatLevel',
+  body_water: 'bodyWaterPct',
+  bodyWater: 'bodyWaterPct',
+  body_water_percentage: 'bodyWaterPct',
+  bodyWaterPercentage: 'bodyWaterPct',
 }
 
 /** Unit conversions for body composition metrics */
@@ -163,6 +177,21 @@ function convertBodyCompValue(field: string, qty: number, units: string | undefi
   if (field === 'bmrKcal') {
     // basal_energy_burned: usually in kcal, could be kJ
     return u === 'kj' ? Math.round(qty / 4.184) : Math.round(qty)
+  }
+
+  if (field === 'skeletalMuscleMassKg') {
+    return u === 'lb' ? Math.round(qty * 0.453592 * 100) / 100 : Math.round(qty * 100) / 100
+  }
+
+  if (field === 'visceralFatLevel') {
+    // Visceral fat level is a dimensionless scale (InBody: 1-59)
+    return Math.round(qty * 10) / 10
+  }
+
+  if (field === 'bodyWaterPct') {
+    // Body water: might come as fraction (0-1) or percentage
+    const pct = qty <= 1 ? qty * 100 : qty
+    return Math.round(pct * 10) / 10
   }
 
   // bmi: dimensionless, just round
@@ -191,8 +220,11 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
         weightKg: undefined,
         fatPct: undefined,
         leanBodyMassKg: undefined,
+        skeletalMuscleMassKg: undefined,
         bmi: undefined,
         bmrKcal: undefined,
+        visceralFatLevel: undefined,
+        bodyWaterPct: undefined,
       }
       byDate.set(date, {
         ...existing,
@@ -215,8 +247,11 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
         weightKg: undefined,
         fatPct: undefined,
         leanBodyMassKg: undefined,
+        skeletalMuscleMassKg: undefined,
         bmi: undefined,
         bmrKcal: undefined,
+        visceralFatLevel: undefined,
+        bodyWaterPct: undefined,
       }
       byDate.set(date, {
         ...existing,
@@ -230,8 +265,11 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
     .filter(([, v]) =>
       v.fatPct !== undefined ||
       v.leanBodyMassKg !== undefined ||
+      v.skeletalMuscleMassKg !== undefined ||
       v.bmi !== undefined ||
-      v.bmrKcal !== undefined,
+      v.bmrKcal !== undefined ||
+      v.visceralFatLevel !== undefined ||
+      v.bodyWaterPct !== undefined,
     )
     .map(([date, values]) => ({ date, ...values }))
 }
