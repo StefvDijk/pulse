@@ -260,14 +260,14 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
     }
   }
 
-  // Only return dates that have at least one composition metric (not just weight)
+  // Only return dates that have a real body-scan metric.
+  // Exclude bmr_kcal (Apple Watch daily resting energy) and bmi alone —
+  // these would create noise entries for every day.
   return Array.from(byDate.entries())
     .filter(([, v]) =>
       v.fatPct !== undefined ||
       v.leanBodyMassKg !== undefined ||
       v.skeletalMuscleMassKg !== undefined ||
-      v.bmi !== undefined ||
-      v.bmrKcal !== undefined ||
       v.visceralFatLevel !== undefined ||
       v.bodyWaterPct !== undefined,
     )

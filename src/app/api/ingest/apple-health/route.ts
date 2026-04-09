@@ -374,24 +374,34 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   let bodyCompositionProcessed = 0
 
   if (parsedBodyComposition.length > 0) {
-    const compInserts = parsedBodyComposition.map((c) => ({
-      user_id: userId,
-      date: c.date,
-      source: 'apple_health' as const,
-      weight_kg: c.weightKg ?? null,
-      fat_pct: c.fatPct ?? null,
-      fat_mass_kg:
-        c.weightKg !== undefined && c.fatPct !== undefined
-          ? Math.round(c.weightKg * (c.fatPct / 100) * 100) / 100
-          : null,
-      muscle_mass_kg: null,
-      lean_body_mass_kg: c.leanBodyMassKg ?? null,
-      skeletal_muscle_mass_kg: c.skeletalMuscleMassKg ?? null,
-      bmi: c.bmi ?? null,
-      bmr_kcal: c.bmrKcal ?? null,
-      visceral_fat_level: c.visceralFatLevel ?? null,
-      body_water_pct: c.bodyWaterPct ?? null,
-    }))
+    const compInserts = parsedBodyComposition.map((c) => {
+      // Derive weight from lean_body_mass + fat_pct when body_mass is missing
+      // weight = lean_body_mass / (1 - fat_pct / 100)
+      const weightKg = c.weightKg
+        ?? (c.leanBodyMassKg !== undefined && c.fatPct !== undefined && c.fatPct < 100
+          ? Math.round(c.leanBodyMassKg / (1 - c.fatPct / 100) * 100) / 100
+          : undefined)
+
+      const fatMassKg = weightKg !== undefined && c.fatPct !== undefined
+        ? Math.round(weightKg * (c.fatPct / 100) * 100) / 100
+        : undefined
+
+      return {
+        user_id: userId,
+        date: c.date,
+        source: 'apple_health' as const,
+        weight_kg: weightKg ?? null,
+        fat_pct: c.fatPct ?? null,
+        fat_mass_kg: fatMassKg ?? null,
+        muscle_mass_kg: null,
+        lean_body_mass_kg: c.leanBodyMassKg ?? null,
+        skeletal_muscle_mass_kg: c.skeletalMuscleMassKg ?? null,
+        bmi: c.bmi ?? null,
+        bmr_kcal: c.bmrKcal ?? null,
+        visceral_fat_level: c.visceralFatLevel ?? null,
+        body_water_pct: c.bodyWaterPct ?? null,
+      }
+    })
 
     for (let i = 0; i < compInserts.length; i += 50) {
       const batch = compInserts.slice(i, i + 50)
