@@ -119,6 +119,124 @@ export function parseBodyWeight(payload: RawHealthPayload): ParsedBodyWeight[] {
 }
 
 // ---------------------------------------------------------------------------
+// Body composition (InBody → Apple Health → HAE)
+// ---------------------------------------------------------------------------
+
+export interface ParsedBodyComposition {
+  /** YYYY-MM-DD */
+  date: string
+  weightKg: number | undefined
+  fatPct: number | undefined
+  leanBodyMassKg: number | undefined
+  bmi: number | undefined
+  bmrKcal: number | undefined
+}
+
+/** Apple Health metric name variants (HAE sends snake_case or camelCase) */
+const BODY_COMP_METRICS: Record<string, keyof Omit<ParsedBodyComposition, 'date'>> = {
+  body_fat_percentage: 'fatPct',
+  bodyFatPercentage: 'fatPct',
+  lean_body_mass: 'leanBodyMassKg',
+  leanBodyMass: 'leanBodyMassKg',
+  body_mass_index: 'bmi',
+  bodyMassIndex: 'bmi',
+  basal_energy_burned: 'bmrKcal',
+  basalEnergyBurned: 'bmrKcal',
+}
+
+/** Unit conversions for body composition metrics */
+function convertBodyCompValue(field: string, qty: number, units: string | undefined): number {
+  const u = units?.toLowerCase() ?? ''
+
+  if (field === 'leanBodyMassKg') {
+    // lean_body_mass: Apple Health stores in kg, HAE may send lb
+    return u === 'lb' ? Math.round(qty * 0.453592 * 100) / 100 : Math.round(qty * 100) / 100
+  }
+
+  if (field === 'fatPct') {
+    // body_fat_percentage: Apple Health stores as 0-1 fraction, HAE may send as percentage
+    // Values <= 1 are likely fractions, > 1 are percentages
+    const pct = qty <= 1 ? qty * 100 : qty
+    return Math.round(pct * 10) / 10
+  }
+
+  if (field === 'bmrKcal') {
+    // basal_energy_burned: usually in kcal, could be kJ
+    return u === 'kj' ? Math.round(qty / 4.184) : Math.round(qty)
+  }
+
+  // bmi: dimensionless, just round
+  return Math.round(qty * 10) / 10
+}
+
+/**
+ * Parse body composition metrics from Apple Health payload.
+ * Collects body_fat_percentage, lean_body_mass, body_mass_index, and
+ * basal_energy_burned into per-date entries. Also pulls in body_mass (weight)
+ * to create a complete composition snapshot per date.
+ * Returns empty array when no composition metrics are present — never throws.
+ */
+export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyComposition[] {
+  const byDate = new Map<string, Omit<ParsedBodyComposition, 'date'>>()
+
+  // First, collect weight from body_mass so we have full snapshots
+  for (const metric of payload.data.metrics) {
+    if (!BODY_MASS_METRIC_NAMES.has(metric.name)) continue
+    const isLbs = metric.units?.toLowerCase() === 'lb'
+
+    for (const point of metric.data) {
+      if (point.qty === undefined) continue
+      const date = extractDate(point.date)
+      const existing = byDate.get(date) ?? {
+        weightKg: undefined,
+        fatPct: undefined,
+        leanBodyMassKg: undefined,
+        bmi: undefined,
+        bmrKcal: undefined,
+      }
+      byDate.set(date, {
+        ...existing,
+        weightKg: isLbs
+          ? Math.round(point.qty * 0.453592 * 100) / 100
+          : Math.round(point.qty * 100) / 100,
+      })
+    }
+  }
+
+  // Then collect all body composition metrics
+  for (const metric of payload.data.metrics) {
+    const field = BODY_COMP_METRICS[metric.name]
+    if (!field) continue
+
+    for (const point of metric.data) {
+      if (point.qty === undefined) continue
+      const date = extractDate(point.date)
+      const existing = byDate.get(date) ?? {
+        weightKg: undefined,
+        fatPct: undefined,
+        leanBodyMassKg: undefined,
+        bmi: undefined,
+        bmrKcal: undefined,
+      }
+      byDate.set(date, {
+        ...existing,
+        [field]: convertBodyCompValue(field, point.qty, metric.units),
+      })
+    }
+  }
+
+  // Only return dates that have at least one composition metric (not just weight)
+  return Array.from(byDate.entries())
+    .filter(([, v]) =>
+      v.fatPct !== undefined ||
+      v.leanBodyMassKg !== undefined ||
+      v.bmi !== undefined ||
+      v.bmrKcal !== undefined,
+    )
+    .map(([date, values]) => ({ date, ...values }))
+}
+
+// ---------------------------------------------------------------------------
 // Gym workout parsing (for Hevy correlation)
 // ---------------------------------------------------------------------------
 

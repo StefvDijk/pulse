@@ -38,12 +38,14 @@ export type Database = {
         Row: {
           arm_right_cm: number | null
           bmi: number | null
+          bmr_kcal: number | null
           chest_cm: number | null
           created_at: string | null
           date: string
           fat_mass_kg: number | null
           fat_pct: number | null
           id: string
+          lean_body_mass_kg: number | null
           muscle_mass_kg: number | null
           notes: string | null
           source: string | null
@@ -56,12 +58,14 @@ export type Database = {
         Insert: {
           arm_right_cm?: number | null
           bmi?: number | null
+          bmr_kcal?: number | null
           chest_cm?: number | null
           created_at?: string | null
           date: string
           fat_mass_kg?: number | null
           fat_pct?: number | null
           id?: string
+          lean_body_mass_kg?: number | null
           muscle_mass_kg?: number | null
           notes?: string | null
           source?: string | null
@@ -74,12 +78,14 @@ export type Database = {
         Update: {
           arm_right_cm?: number | null
           bmi?: number | null
+          bmr_kcal?: number | null
           chest_cm?: number | null
           created_at?: string | null
           date?: string
           fat_mass_kg?: number | null
           fat_pct?: number | null
           id?: string
+          lean_body_mass_kg?: number | null
           muscle_mass_kg?: number | null
           notes?: string | null
           source?: string | null

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
-import { parseSleepData, parseBodyWeight, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
+import { parseSleepData, parseBodyWeight, parseBodyComposition, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
 import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
@@ -74,6 +74,7 @@ interface IngestResponse {
     activity: number
     sleep: number
     bodyWeight: number
+    bodyComposition: number
     gymCorrelations: number
   }
   errors: string[]
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const parsedSleep = parseSleepData(payload)
   const parsedBodyWeight = parseBodyWeight(payload)
   const parsedGymWorkouts = parseGymWorkouts(payload)
+  const parsedBodyComposition = parseBodyComposition(payload)
 
   const errors: string[] = []
 
@@ -357,7 +359,47 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 9. Correlate Apple Watch gym workouts → Hevy workouts
+  // 9. Upsert body composition logs (InBody via Apple Health)
+  // ------------------------------------------------------------------
+  let bodyCompositionProcessed = 0
+
+  if (parsedBodyComposition.length > 0) {
+    const compInserts = parsedBodyComposition.map((c) => ({
+      user_id: userId,
+      date: c.date,
+      source: 'apple_health' as const,
+      weight_kg: c.weightKg ?? null,
+      fat_pct: c.fatPct ?? null,
+      fat_mass_kg:
+        c.weightKg !== undefined && c.fatPct !== undefined
+          ? Math.round(c.weightKg * (c.fatPct / 100) * 100) / 100
+          : null,
+      muscle_mass_kg: null,
+      lean_body_mass_kg: c.leanBodyMassKg ?? null,
+      bmi: c.bmi ?? null,
+      bmr_kcal: c.bmrKcal ?? null,
+    }))
+
+    for (let i = 0; i < compInserts.length; i += 50) {
+      const batch = compInserts.slice(i, i + 50)
+      const { error: upsertError } = await supabase
+        .from('body_composition_logs')
+        .upsert(batch, {
+          onConflict: 'user_id,date,source',
+          ignoreDuplicates: false,
+        })
+
+      if (upsertError) {
+        console.error('apple-health ingest: body composition upsert error', upsertError)
+        errors.push(`Body composition upsert failed: ${upsertError.message}`)
+      } else {
+        bodyCompositionProcessed += batch.length
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 10. Correlate Apple Watch gym workouts → Hevy workouts
   // ------------------------------------------------------------------
   let gymCorrelations = 0
 
@@ -415,7 +457,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 10. Update last_apple_health_sync_at
+  // 11. Update last_apple_health_sync_at
   // ------------------------------------------------------------------
   const { error: syncUpdateError } = await supabase
     .from('user_settings')
@@ -427,7 +469,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 11. Re-aggregate today + current week so dashboard stats are fresh
+  // 12. Re-aggregate today + current week so dashboard stats are fresh
   // ------------------------------------------------------------------
   const totalDataIngested = runsProcessed + padelProcessed + activityProcessed
   if (totalDataIngested > 0) {
@@ -447,7 +489,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 12. Fire-and-forget: analyze training progress and store as coaching memory
+  // 13. Fire-and-forget: analyze training progress and store as coaching memory
   // ------------------------------------------------------------------
   if (totalDataIngested > 0) {
     analyzeAfterSync({
@@ -460,7 +502,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 13. Return summary
+  // 14. Return summary
   // ------------------------------------------------------------------
   return NextResponse.json({
     processed: {
@@ -469,6 +511,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       activity: activityProcessed,
       sleep: sleepProcessed,
       bodyWeight: bodyWeightProcessed,
+      bodyComposition: bodyCompositionProcessed,
       gymCorrelations,
     },
     errors,
