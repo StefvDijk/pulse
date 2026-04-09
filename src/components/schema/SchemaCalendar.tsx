@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, MoreHorizontal, ArrowRight, Calendar, Pencil } from 'lucide-react'
 import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { EditWeekModal } from './EditWeekModal'
+import { DayDetailSheet } from './DayDetailSheet'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
@@ -25,6 +26,7 @@ function classifySport(focus: string | null): SportType {
   if (t.includes('upper') || t.includes('lower')) return 'gym'
   if (t.includes('hardlopen') || t.includes('run')) return 'run'
   if (t.includes('padel')) return 'padel'
+  if (t.includes('bodyweight') || t.includes('circuit')) return 'gym'
   return 'gym'
 }
 
@@ -130,9 +132,10 @@ interface DayCellProps {
   day: SchemaDay
   isCurrentWeek: boolean
   onOpenMenu: () => void
+  onOpenDetail: () => void
 }
 
-function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
+function DayCell({ day, isCurrentWeek, onOpenMenu, onOpenDetail }: DayCellProps) {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
   const isToday = day.date === today
   const isPast = day.date < today
@@ -150,9 +153,9 @@ function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
   const sport = classifySport(day.workoutFocus)
 
   return (
-    <button
-      onClick={day.status !== 'completed' ? onOpenMenu : undefined}
-      className={`flex flex-col items-center gap-1 rounded-xl py-2 px-1 transition-colors ${
+    <div
+      onClick={onOpenDetail}
+      className={`flex flex-col items-center gap-1 rounded-xl py-2 px-1 transition-colors cursor-pointer ${
         isToday
           ? 'bg-text-primary/5 ring-1 ring-text-primary'
           : day.status === 'completed'
@@ -180,9 +183,14 @@ function DayCell({ day, isCurrentWeek, onOpenMenu }: DayCellProps) {
         {day.workoutFocus}
       </span>
       {day.status !== 'completed' && (
-        <MoreHorizontal size={10} className="text-label-tertiary mt-0.5" />
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenMenu() }}
+          className="mt-0.5 p-0.5 rounded hover:bg-system-gray6"
+        >
+          <MoreHorizontal size={10} className="text-label-tertiary" />
+        </button>
       )}
-    </button>
+    </div>
   )
 }
 
@@ -199,6 +207,7 @@ export function SchemaCalendar({
 }: SchemaCalendarProps) {
   const [selectedWeek, setSelectedWeek] = useState(currentWeek)
   const [rescheduleDay, setRescheduleDay] = useState<SchemaDay | null>(null)
+  const [detailDay, setDetailDay] = useState<SchemaDay | null>(null)
   const [moving, setMoving] = useState(false)
   const [editingWeek, setEditingWeek] = useState(false)
 
@@ -277,6 +286,7 @@ export function SchemaCalendar({
             day={day}
             isCurrentWeek={selectedWeek === currentWeek}
             onOpenMenu={() => setRescheduleDay(day)}
+            onOpenDetail={() => setDetailDay(day)}
           />
         ))}
       </div>
@@ -318,6 +328,14 @@ export function SchemaCalendar({
           weekDays={week.days}
           onMove={handleMove}
           onClose={() => setRescheduleDay(null)}
+        />
+      )}
+
+      {/* Day detail sheet */}
+      {detailDay && detailDay.workoutFocus && (
+        <DayDetailSheet
+          day={detailDay}
+          onClose={() => setDetailDay(null)}
         />
       )}
 

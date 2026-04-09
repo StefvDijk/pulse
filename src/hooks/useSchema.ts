@@ -20,6 +20,7 @@ export interface SchemaDay {
   date: string
   dayName: string
   workoutFocus: string | null
+  exercises?: SchemaExercise[]
   status: 'completed' | 'today' | 'planned' | 'rest'
 }
 

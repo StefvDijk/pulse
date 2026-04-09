@@ -66,10 +66,23 @@ function computeCurrentWeek(startDate: string, totalWeeks: number): number {
   return Math.max(1, Math.min(totalWeeks, diffWeeks + 1))
 }
 
-function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], overrides: Record<string, string | null>): Array<{
+interface OverrideObject {
+  focus: string
+  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+  duration_min?: number
+}
+
+type OverrideValue = string | null | OverrideObject
+
+function isOverrideObject(val: OverrideValue): val is OverrideObject {
+  return val !== null && typeof val === 'object' && 'focus' in val
+}
+
+function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], overrides: Record<string, OverrideValue>): Array<{
   date: string
   dayName: string
   workoutFocus: string | null
+  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
 }> {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
@@ -79,7 +92,11 @@ function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], ove
 
     // Check override first
     if (dateStr in overrides) {
-      return { date: dateStr, dayName, workoutFocus: overrides[dateStr] }
+      const val = overrides[dateStr]
+      if (isOverrideObject(val)) {
+        return { date: dateStr, dayName, workoutFocus: val.focus, exercises: val.exercises }
+      }
+      return { date: dateStr, dayName, workoutFocus: val }
     }
 
     // Fall back to template schedule
@@ -116,7 +133,7 @@ export async function GET() {
     const totalWeeks = schema.weeks_planned ?? 4
     const currentWeek = computeCurrentWeek(schema.start_date, totalWeeks)
     const schedule = parseSchedule(schema.workout_schedule)
-    const overrides = (schema.scheduled_overrides as Record<string, string | null>) ?? {}
+    const overrides = (schema.scheduled_overrides as Record<string, OverrideValue>) ?? {}
     const workoutsPerWeek = schedule.length
 
     // Build all week dates
@@ -213,7 +230,10 @@ export async function GET() {
                 ? 'planned' // missed — still show as planned
                 : 'planned'
 
-        return { ...day, status }
+        // For template days without override exercises, look up from schedule
+        const exercises = day.exercises ?? schedule.find((s) => s.day.toLowerCase() === day.dayName)?.exercises
+
+        return { ...day, status, exercises }
       })
 
       const sessionsPlanned = enrichedDays.filter((d) => d.workoutFocus).length
