@@ -63,6 +63,43 @@ function getMuscleLabel(entry: BodyCompEntry): string {
   return 'Spiermassa'
 }
 
+/** Lean-to-fat ratio: how many kg lean mass per kg fat */
+function getLeanFatRatio(entry: BodyCompEntry): number | null {
+  const lean = getMuscleValue(entry)
+  const fat = entry.fat_mass_kg
+  if (lean === null || fat === null || fat === 0) return null
+  return Math.round((lean / fat) * 100) / 100
+}
+
+interface CompositionBarProps {
+  fatPct: number
+  label: string
+}
+
+function CompositionBar({ fatPct, label }: CompositionBarProps) {
+  const leanPct = 100 - fatPct
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex h-3 w-full overflow-hidden rounded-full">
+        <div
+          className="bg-system-blue transition-all duration-500"
+          style={{ width: `${leanPct}%` }}
+        />
+        <div
+          className="bg-orange-400/80 transition-all duration-500"
+          style={{ width: `${fatPct}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-label-tertiary">
+        <span>Lean {leanPct.toFixed(1)}%</span>
+        <span>{label}</span>
+        <span>Vet {fatPct.toFixed(1)}%</span>
+      </div>
+    </div>
+  )
+}
+
 const SOURCE_LABELS: Record<string, string> = {
   apple_health: 'Apple Health',
   inbody: 'InBody',
@@ -124,8 +161,25 @@ export function BodyComposition() {
     ? new Date(baseline.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })
     : null
 
+  // Lean-to-fat ratio
+  const ratio = getLeanFatRatio(latest)
+  const baselineRatio = baseline ? getLeanFatRatio(baseline) : null
+  const ratioDelta = !isSameEntry && ratio !== null && baselineRatio !== null
+    ? Math.round((ratio - baselineRatio) * 100) / 100
+    : null
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Composition bar — current vs baseline */}
+      {latest.fat_pct !== null && (
+        <div className="flex flex-col gap-2">
+          <CompositionBar fatPct={latest.fat_pct} label="Nu" />
+          {baseline && !isSameEntry && baseline.fat_pct !== null && (
+            <CompositionBar fatPct={baseline.fat_pct} label="Start" />
+          )}
+        </div>
+      )}
+
       {/* Primary 2×2 grid */}
       <div className="grid grid-cols-2 gap-4">
         <ProgressMetric
@@ -157,6 +211,40 @@ export function BodyComposition() {
           higherIsBetter={true}
         />
       </div>
+
+      {/* Lean-to-fat ratio */}
+      {ratio !== null && (
+        <div className="border-t border-separator pt-3">
+          <div className="flex items-baseline justify-between">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-label-tertiary">Lean-to-fat ratio</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-xl font-bold tabular-nums text-label-primary">
+                  {ratio.toFixed(2)}
+                </p>
+                {ratioDelta !== null && ratioDelta !== 0 && (
+                  <span
+                    className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+                      ratioDelta > 0 ? 'text-system-green' : 'text-system-red'
+                    }`}
+                  >
+                    {ratioDelta > 0 ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    {ratioDelta > 0 ? '+' : ''}
+                    {ratioDelta.toFixed(2)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-label-tertiary text-right max-w-[140px]">
+              Kg lean mass per kg vet. Hoger = betere compositie.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Secondary metrics — only if available */}
       {(latest.visceral_fat_level !== null || latest.body_water_pct !== null) && (
