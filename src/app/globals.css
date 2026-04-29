@@ -153,6 +153,15 @@
   --gradient-coach:  linear-gradient(135deg, rgba(10,132,255,0.10), rgba(124,58,237,0.06));
   --gradient-ember:  radial-gradient(circle at 30% 30%, #FF5E3A 0%, #7C2D12 50%, transparent 80%);
 
+  /* Time-of-day ambient tints — applied as a fixed full-screen overlay
+   * behind all content. Each variant is intentionally subtle (low alpha)
+   * so the home screen feels like it shifts with the hour without recoloring
+   * any UI element. Inspired by Lumy's circadian theming. */
+  --gradient-time-dawn:  radial-gradient(ellipse at 50% 0%, rgba(255, 153, 102, 0.18), transparent 65%);
+  --gradient-time-day:   radial-gradient(ellipse at 50% 0%, rgba(135, 206, 250, 0.10), transparent 65%);
+  --gradient-time-dusk:  radial-gradient(ellipse at 50% 0%, rgba(217, 119, 87, 0.16), transparent 65%);
+  --gradient-time-night: radial-gradient(ellipse at 50% 0%, rgba(94, 92, 230, 0.12), transparent 70%);
+
   /* Card radii (v2) */
   --radius-card-sm: 10px;
   --radius-card-md: 16px;

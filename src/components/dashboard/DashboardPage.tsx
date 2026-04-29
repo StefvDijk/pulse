@@ -3,6 +3,8 @@
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import { useSchemaWeek } from '@/hooks/useSchemaWeek'
+import { HomeHero } from '@/components/home/HomeHero'
+import { PulseTriad } from '@/components/home/PulseTriad'
 import { ReadinessSignal } from '@/components/home/ReadinessSignal'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { TodayWorkoutCard } from '@/components/home/TodayWorkoutCard'
@@ -107,7 +109,17 @@ export function DashboardPage() {
         <CheckInBadge />
       </motion.div>
 
-      {/* Readiness Signal — the "one big thing" */}
+      {/* Home Hero — editorial-scale day metric (UXR-040) */}
+      <motion.div variants={listItem} transition={springContent}>
+        <HomeHero day={todayDay ?? undefined} />
+      </motion.div>
+
+      {/* Pulse Triad — Train · Recover · Fuel rings (UXR-060) */}
+      <motion.div variants={listItem} transition={springContent}>
+        <PulseTriad />
+      </motion.div>
+
+      {/* Readiness Signal — the "how does today feel" card */}
       <motion.div variants={listItem} transition={springContent}>
         <ReadinessSignal />
       </motion.div>
