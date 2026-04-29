@@ -142,7 +142,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="checkbox"
                         checked={entry.include}
                         onChange={(e) => updateEntry(i, { include: e.target.checked })}
-                        className="h-4 w-4 rounded system-blue-system-blue"
+                        className="h-4 w-4 rounded accent-[#0A84FF]"
                         id={`entry-${i}`}
                       />
                       <label htmlFor={`entry-${i}`} className="cursor-pointer">

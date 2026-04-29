@@ -101,7 +101,7 @@ export function WeekTier({ weekStart }: Props) {
         </div>
         {/* Round marker */}
         <div
-          className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface-primary ${data.colorClass}`}
+          className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg-surface ${data.colorClass}`}
           style={{ left: `${(data.position ?? 0) * 100}%` }}
           aria-hidden="true"
         />

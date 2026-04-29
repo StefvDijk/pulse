@@ -81,7 +81,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
           isCompleted
             ? `${sportBgClass(sport)} text-white`
             : isToday
-              ? 'bg-[#0A84FF] text-white ring-2 ring-[#0A84FF]/30 ring-offset-2 ring-offset-surface-primary'
+              ? 'bg-[#0A84FF] text-white ring-2 ring-[#0A84FF]/30 ring-offset-2 ring-offset-bg-surface'
               : isRest
                 ? 'bg-white/[0.06]'
                 : `border-2 border-bg-border bg-transparent ${sportTextClass(sport)}`
