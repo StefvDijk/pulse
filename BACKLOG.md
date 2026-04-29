@@ -8,6 +8,53 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 - Acceptatiecriteria zijn observable: getest in browser, of via een test-script. Geen "code is geschreven" criteria.
 - Status: ⬜ open · 🟡 in progress · ✅ done (gemerged + getest)
 
+---
+
+## ⏯️ Continue here (volgende sessie)
+
+**Branch:** `redesign-pulse.v2` (5 commits ahead van `main`).
+Laatste commit: `7cc6602 — feat: sprint 4 + UXR-120 — visual richness + journal foundation` (2026-04-29).
+
+**Project setup op nieuwe machine:**
+1. `git clone … && git checkout redesign-pulse.v2`
+2. `corepack pnpm install` (geen lokale `pnpm` op PATH — gebruik `corepack pnpm` voor alles, ook `tsc --noEmit`, `lint`, `dev`)
+3. Lees memory in `~/.claude/projects/C--Users-Stef-Desktop-dev-prive-pulse-pulse/memory/` — bevat user-profile, project-tooling, chat-error-pattern, vercel-access (productie URL `https://pulse-two-omega.vercel.app`), en de UX-redesign-context.
+
+**Preconditions die je nog moet draaien (anders falen Sprint 5/6 stories):**
+
+| # | Actie | Waarom |
+|---|---|---|
+| 1 | Apply migration `20260429000001_metric_baselines.sql` | Sprint 3 baseline-engine — `metric_baselines` tabel moet bestaan |
+| 2 | Apply migration `20260429000002_weekly_lessons.sql` | Sprint 5 journal — `weekly_lessons` tabel moet bestaan |
+| 3 | `supabase gen types typescript --local > src/types/database.ts` | Verwijdert de `(admin as any)` casts in `src/lib/baselines/{aggregate,lookup}.ts` (zoek-en-vervang na regen) |
+| 4 | Optioneel: `pnpm backfill:baselines --days=60` | Anders pas na 30+ dagen cron-runs is er baseline-data |
+
+Tot stappen 1-3 gedaan zijn:
+- Daily-aggregate cron logt baselines-error per user maar faalt niet
+- Sprint 5 stories UXR-121/122 kunnen niet worden geïmplementeerd
+- Sprint 5 UXR-110 (sport-correlations) en Sprint 6 UXR-150/160 die op baselines leunen kunnen wel ge-coded worden maar lopen leeg op productie
+
+**Aanbevolen volgende stap:**
+1. Stap 1-3 uitvoeren (5-10 min werk in Supabase + 1 commando voor types)
+2. Test Sprint 4 in productie (Today's Move card, BodyCompositionCard, MiniMuscleHeatmap op /workouts feed)
+3. Sprint 5 starten met UXR-110 (*de* differentiator volgens het plan — sport-correlations) of UXR-121+UXR-122 (journal/lessons feed) — afhankelijk van wat je eerst wilt zien
+4. Sprint 6 daarna voor polishing — UXR-150 (baseline tags overal) is dan een quick win omdat de engine al draait
+
+**Bestaande PR's / branches:**
+- `redesign-pulse.v2` is de werkbranch. Geen PR aangemaakt vanwege `gh-cli` account-mismatch (gh-cli ingelogd als `StefHienfeld`, repo-owner is `StefvDijk`). Manual PR-link: https://github.com/StefvDijk/pulse/pull/new/redesign-pulse.v2 — of fix met `gh auth switch` op de nieuwe machine.
+
+**Geplande remote agent:**
+- Routine `trig_015bkvY44TnLTxqtnHWzS4Ap` — "Pulse weekly review (Sprint 0+1)" runs eenmalig op **2026-05-06 09:00 Europe/Amsterdam**. Beheer: https://claude.ai/code/routines/trig_015bkvY44TnLTxqtnHWzS4Ap
+
+**Belangrijke bestanden om te lezen vóór je begint:**
+- `PLAN-UX-REDESIGN.md` — visie, 4 tiers, signature design moves
+- `PLAN-IMPLEMENTATION.md` — agent/skill orchestratie per story, sprint-volgorde, quality gates
+- `PULSE-DESIGN-SYSTEM.md` — bestaande tokens (Pulse v2 brand-claude coral et al)
+- `CLAUDE.md` — werkwijze (kleine stappen, NL communicatie, etc.)
+- `src/app/globals.css` — design tokens incl. `--color-brand-claude` (Coach Orb), `--color-status-good/warn/bad`, `--gradient-time-{dawn,day,dusk,night}`
+
+---
+
 ## Status overview
 
 | Sprint | Stories | Status |
@@ -16,10 +63,12 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 | Sprint 1 — Coaching tone & corridor | UXR-010, UXR-011, UXR-020, UXR-030 | ✅ done (commit 661d149) |
 | Sprint 2 — Homescreen identity | UXR-040, UXR-050, UXR-060 | ✅ done (commit 5b7297c) |
 | Sprint 3 — Foundation: baseline-engine | UXR-100, UXR-101, UXR-102 | ✅ done (commit a3cc046) — **vereist migration + types regen** |
-| Sprint 4 — Visuele rijkheid | UXR-070, UXR-080, UXR-090 | ✅ done — pending preview test |
-| Sprint 5 — Differentiator features | UXR-110, UXR-120, UXR-121, UXR-122 | UXR-120 ✅ done · rest ⬜ open |
+| Sprint 4 — Visuele rijkheid | UXR-070, UXR-080, UXR-090 | ✅ done (commit 7cc6602) — pending preview test |
+| Sprint 5 — Differentiator features | UXR-110, UXR-120, UXR-121, UXR-122 | UXR-120 ✅ done (commit 7cc6602) · UXR-110/121/122 ⬜ open |
 | Sprint 6 — Polishing | UXR-130, UXR-140, UXR-150, UXR-160 | ⬜ open |
 | Later | UXR-200, UXR-210, UXR-220 | ⬜ open |
+
+**16 van 23 stories done.** 7 stories open: UXR-110, UXR-121, UXR-122, UXR-130, UXR-140, UXR-150, UXR-160 (+ 3 Later).
 
 ---
 
