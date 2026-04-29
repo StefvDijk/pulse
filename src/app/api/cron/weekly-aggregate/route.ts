@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { extractWeeklyLessons } from '@/lib/ai/lessons-extractor'
 
 /**
  * GET /api/cron/weekly-aggregate
@@ -41,12 +42,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const results: Array<{ userId: string; status: 'ok' | 'error'; error?: string }> = []
+  const results: Array<{
+    userId: string
+    status: 'ok' | 'error'
+    error?: string
+    lessonsInserted?: number
+  }> = []
 
   for (const { id: userId } of profiles ?? []) {
     try {
       await computeWeeklyAggregation(userId, prevWeekMondayStr)
-      results.push({ userId, status: 'ok' })
+      // Run lessons extractor after aggregation — failures inside the
+      // extractor are caught and logged, never thrown.
+      const { inserted } = await extractWeeklyLessons(userId, prevWeekMondayStr)
+      results.push({ userId, status: 'ok', lessonsInserted: inserted })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error(`[GET /api/cron/weekly-aggregate] Failed for user ${userId}:`, error)
@@ -55,11 +64,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const totalErrors = results.filter((r) => r.status === 'error').length
+  const totalLessonsInserted = results.reduce((s, r) => s + (r.lessonsInserted ?? 0), 0)
 
   return NextResponse.json({
     weekStart: prevWeekMondayStr,
     processed: results.length,
     totalErrors,
+    totalLessonsInserted,
     results,
   })
 }

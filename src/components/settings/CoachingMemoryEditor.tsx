@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Pencil, Trash2, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useCoachingMemory, type CoachingMemoryEntry } from '@/hooks/useCoachingMemory'
 import { SectionHeader, INPUT_CLASSES } from './shared'
 
@@ -179,7 +179,19 @@ function CategoryGroup({
 
 export function CoachingMemoryEditor() {
   const { memories, isLoading, updateMemory, deleteMemory } = useCoachingMemory()
-  const groups = groupByCategory(memories)
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return memories
+    return memories.filter((m) =>
+      m.value.toLowerCase().includes(q) ||
+      m.key.toLowerCase().includes(q) ||
+      getCategoryLabel(m.category).toLowerCase().includes(q),
+    )
+  }, [memories, query])
+
+  const groups = groupByCategory(filtered)
   const categoryOrder = Object.keys(CATEGORY_LABELS)
   const sortedCategories = [
     ...categoryOrder.filter((c) => groups[c]),
@@ -193,6 +205,24 @@ export function CoachingMemoryEditor() {
         Feiten die de AI coach heeft onthouden uit jullie gesprekken.
       </p>
 
+      {memories.length > 0 && (
+        <div className="relative mb-3">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Zoek in herinneringen..."
+            className={`${INPUT_CLASSES} w-full pl-9`}
+            aria-label="Zoek in coaching geheugen"
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
@@ -202,6 +232,10 @@ export function CoachingMemoryEditor() {
       ) : memories.length === 0 ? (
         <p className="py-4 text-center text-sm text-label-tertiary">
           Nog geen herinneringen. Chat met je coach om het geheugen te vullen.
+        </p>
+      ) : filtered.length === 0 ? (
+        <p className="py-4 text-center text-sm text-label-tertiary">
+          Geen resultaten voor &ldquo;{query}&rdquo;.
         </p>
       ) : (
         <div className="flex flex-col gap-3">

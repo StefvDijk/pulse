@@ -9,6 +9,7 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
 import { AIContextSection } from './AIContextSection'
 import { CoachingMemoryEditor } from './CoachingMemoryEditor'
+import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
 
 export function SettingsPage() {
@@ -399,6 +400,8 @@ export function SettingsPage() {
       />
 
       <CoachingMemoryEditor />
+
+      <WeeklyLessonsTimeline />
 
       <AIContextPreview />
     </div>
