@@ -302,8 +302,23 @@ export function OnboardingWizard() {
         {/* Navigation */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.push('/')}
-            className="text-sm text-text-tertiary"
+            onClick={async () => {
+              setSaving(true)
+              try {
+                await fetch('/api/settings', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    profile: { display_name: profile.displayName.trim() || 'Stef' },
+                  }),
+                })
+              } catch {
+                // ignore — fall through to redirect
+              }
+              window.location.assign('/')
+            }}
+            disabled={saving}
+            className="rounded-lg px-3 py-2 text-sm text-text-tertiary hover:text-text-primary disabled:opacity-50"
           >
             Overslaan
           </button>
