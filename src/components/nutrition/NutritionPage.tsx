@@ -72,31 +72,28 @@ export function NutritionPage() {
   const totalFiber = summary?.total_fiber_g ?? 0
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Date navigation */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-label-primary">
-          Voeding
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedDate((d) => offsetDate(d, -1))}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-label-tertiary hover:opacity-70"
-            aria-label="Vorige dag"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-sm text-label-primary">
-            {formatDateLabel(selectedDate)}
-          </span>
-          <button
-            onClick={() => setSelectedDate((d) => offsetDate(d, 1))}
-            disabled={selectedDate >= today}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-label-tertiary disabled:opacity-20 hover:opacity-70"
-            aria-label="Volgende dag"
-          >
-            <ChevronRight size={18} />
-          </button>
+    <div className="flex flex-col gap-3 px-4 pb-24 pt-[60px]">
+      <div className="pt-1">
+        <div className="text-[13px] text-text-tertiary">Voeding · {formatDateLabel(selectedDate).toLowerCase()}</div>
+        <div className="mt-1 flex items-center justify-between">
+          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-text-primary">Op koers</h1>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSelectedDate((d) => offsetDate(d, -1))}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary active:opacity-60"
+              aria-label="Vorige dag"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => setSelectedDate((d) => offsetDate(d, 1))}
+              disabled={selectedDate >= today}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary disabled:opacity-20 active:opacity-60"
+              aria-label="Volgende dag"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -119,7 +116,7 @@ export function NutritionPage() {
 
           {/* Macro summary + protein tracker */}
           {totalCalories > 0 && (
-            <div className="flex flex-col gap-4 bg-surface-primary border border-separator rounded-[14px] p-4">
+            <div className="flex flex-col gap-4 bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[18px]">
               <MacroSummary
                 calories={totalCalories}
                 protein_g={totalProtein}
@@ -134,7 +131,7 @@ export function NutritionPage() {
           )}
 
           {/* Meals list */}
-          <div className="bg-surface-primary border border-separator rounded-[14px] p-4">
+          <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[18px]">
             <h2 className="mb-3 text-[17px] font-semibold text-label-primary">
               Maaltijden
             </h2>
