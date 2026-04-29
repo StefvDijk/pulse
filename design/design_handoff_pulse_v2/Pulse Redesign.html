@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"/>
+<title>Pulse — Redesign</title>
+<meta name="viewport" content="width=1600"/>
+<style>
+  /* SF Pro from Apple's CDN — same font Apple Fitness+ uses */
+  @font-face {
+    font-family: 'SF Pro Display';
+    font-weight: 400;
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-regular-webfont.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'SF Pro Display';
+    font-weight: 500;
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-medium-webfont.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'SF Pro Display';
+    font-weight: 600;
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-semibold-webfont.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'SF Pro Display';
+    font-weight: 700;
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-bold-webfont.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'SF Pro Display';
+    font-weight: 800;
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-heavy-webfont.woff2') format('woff2');
+    font-display: swap;
+  }
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  /* hide scrollbars inside phone frames */
+  .phone-scroll::-webkit-scrollbar { display: none; }
+  .phone-scroll { scrollbar-width: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="tokens.js"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="screens/Home.jsx"></script>
+<script type="text/babel" src="screens/Other.jsx"></script>
+<script type="text/babel" src="screens/More.jsx"></script>
+
+<script type="text/babel">
+const PHONE_W = 390, PHONE_H = 800;
+
+// ─── Tab bar (bottom nav) ───
+function TabBar({ active = 'home' }) {
+  const t = window.PulseTokens;
+  const tabs = [
+    { id: 'home', label: 'Home', icon: 'M3 11l9-8 9 8v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z' },
+    { id: 'schema', label: 'Schema', icon: 'M5 4h14v16H5zM8 2v4M16 2v4M5 10h14' },
+    { id: 'progress', label: 'Progressie', icon: 'M3 17l6-6 4 4 8-8M14 7h7v7' },
+    { id: 'nutrition', label: 'Voeding', icon: 'M12 3a4 4 0 014 4v3H8V7a4 4 0 014-4zM6 10h12l-1 11H7z' },
+    { id: 'coach', label: 'Coach', icon: 'M21 12c0 4-4 7-9 7-1.4 0-2.7-.2-3.9-.7L3 20l1.7-4.5C3.6 14.2 3 13.1 3 12c0-4 4-7 9-7s9 3 9 7z' },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: 86,
+      background: 'rgba(30,34,48,0.85)',
+      backdropFilter: 'blur(24px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      borderTop: `0.5px solid ${t.bg.borderStrong}`,
+      display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start',
+      paddingTop: 10, zIndex: 50,
+    }}>
+      {tabs.map(tab => {
+        const isActive = tab.id === active;
+        return (
+          <div key={tab.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flex: 1 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d={tab.icon} stroke={isActive ? '#fff' : 'rgba(255,255,255,0.45)'} strokeWidth={isActive ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div style={{ fontSize: 10, fontWeight: isActive ? 600 : 500, color: isActive ? '#fff' : 'rgba(255,255,255,0.45)', letterSpacing: 0.1 }}>{tab.label}</div>
+            {isActive && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#00E5C7', marginTop: 1, boxShadow: '0 0 8px #00E5C7' }}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Phone frame wrapper ───
+function Phone({ children, activeTab = 'home', hideTabs = false, statusDark = true }) {
+  return (
+    <window.IOSDevice width={PHONE_W} height={PHONE_H} dark={statusDark}>
+      <div className="phone-scroll" style={{ height: '100%', overflowY: 'auto', position: 'relative', background: '#15171F' }}>
+        {children}
+        {!hideTabs && <TabBar active={activeTab}/>}
+      </div>
+    </window.IOSDevice>
+  );
+}
+
+// ─── Wrap each screen in a phone ───
+function App() {
+  return (
+    <window.DesignCanvas>
+      <window.DCSection id="home" title="Home" subtitle="Data-rich">
+        <window.DCArtboard id="home-data" label="Home" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="home"><window.HomeData/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="schema" title="Schema" subtitle="Weekoverzicht + workout-detail">
+        <window.DCArtboard id="schema-week" label="Week overzicht" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="schema"><window.SchemaWeek/></Phone>
+        </window.DCArtboard>
+        <window.DCArtboard id="schema-detail" label="Workout detail" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="schema"><window.SchemaDetail/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="progress" title="Progressie" subtitle="Charts + records">
+        <window.DCArtboard id="progress-main" label="Charts + PRs" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="progress"><window.Progress/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="nutrition" title="Voeding" subtitle="Macros + AI logging">
+        <window.DCArtboard id="nutrition-main" label="Vandaag" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="nutrition"><window.Nutrition/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="coach" title="Coach" subtitle="AI chat met data-context">
+        <window.DCArtboard id="coach-main" label="Chat" width={PHONE_W} height={PHONE_H}>
+          <Phone activeTab="coach"><window.Coach/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="workload" title="Belasting" subtitle="Acute vs chronische workload">
+        <window.DCArtboard id="workload-main" label="Workload" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.Workload/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="goals" title="Doelen" subtitle="Actieve doelen + voortgang">
+        <window.DCArtboard id="goals-main" label="Goals" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.Goals/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="trends" title="Trends" subtitle="Maand/kwartaal/jaar vergelijking">
+        <window.DCArtboard id="trends-main" label="Trends" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.Trends/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="checkin" title="Check-in" subtitle="Wekelijkse review + planning">
+        <window.DCArtboard id="checkin-main" label="Check-in" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.CheckIn/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="workout-detail" title="Workout detail" subtitle="Sets, PRs, hartslag">
+        <window.DCArtboard id="workout-detail-main" label="Workout" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.WorkoutDetail/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+
+      <window.DCSection id="settings" title="Instellingen" subtitle="Profiel + verbindingen">
+        <window.DCArtboard id="settings-main" label="Settings" width={PHONE_W} height={PHONE_H}>
+          <Phone hideTabs><window.Settings/></Phone>
+        </window.DCArtboard>
+      </window.DCSection>
+    </window.DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
