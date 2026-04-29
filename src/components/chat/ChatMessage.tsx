@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { CoachOrb } from '@/components/shared/CoachOrb'
 
 export interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -85,7 +86,7 @@ function ChatMessageImpl({ role, content, isStreaming }: ChatMessageProps) {
               {content}
             </Markdown>
             {isStreaming && (
-              <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-system-blue" />
+              <CoachOrb size={12} state="streaming" className="ml-1.5 align-middle" />
             )}
           </div>
         )}

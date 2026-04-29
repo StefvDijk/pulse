@@ -1,146 +1,210 @@
 'use client'
 
 import Link from 'next/link'
-import { useReadiness } from '@/hooks/useReadiness'
-import type { ReadinessData } from '@/types/readiness'
+import { useReadinessSummary } from '@/hooks/useReadinessSummary'
+import { CoachOrb, type CoachOrbState } from '@/components/shared/CoachOrb'
+import type { ReadinessSummary } from '@/app/api/readiness/summary/route'
 
-type ReadinessLevel = ReadinessData['level']
+type ReadinessLevel = ReadinessSummary['level']
 
 interface LevelConfig {
   label: string
-  dotClass: string
+  orbState: CoachOrbState
   bgClass: string
   textClass: string
+  ringColor: string
+  trackColor: string
 }
 
 const LEVEL_CONFIG: Record<ReadinessLevel, LevelConfig> = {
   good: {
     label: 'Goed hersteld',
-    dotClass: 'bg-system-green',
+    orbState: 'ready',
     bgClass: 'bg-system-green/10',
     textClass: 'text-system-green',
+    ringColor: 'var(--color-status-good)',
+    trackColor: 'rgba(34, 214, 122, 0.18)',
   },
   normal: {
     label: 'Klaar om te trainen',
-    dotClass: 'bg-system-orange',
+    orbState: 'warning',
     bgClass: 'bg-system-orange/10',
     textClass: 'text-system-orange',
+    ringColor: 'var(--color-status-warn)',
+    trackColor: 'rgba(255, 176, 32, 0.18)',
   },
   fatigued: {
     label: 'Vermoeid',
-    dotClass: 'bg-system-red',
+    orbState: 'alert',
     bgClass: 'bg-system-red/10',
     textClass: 'text-system-red',
+    ringColor: 'var(--color-status-bad)',
+    trackColor: 'rgba(255, 77, 109, 0.18)',
   },
   rest_day: {
     label: 'Rustdag',
-    dotClass: 'bg-system-gray',
+    orbState: 'idle',
     bgClass: 'bg-system-gray6',
     textClass: 'text-label-secondary',
+    ringColor: 'var(--color-brand-claude)',
+    trackColor: 'rgba(217, 119, 87, 0.18)',
   },
 }
 
-function getCoachingText(data: ReadinessData): string {
-  const { level, todayWorkout, tomorrowWorkout } = data
+// ── Sub-components ───────────────────────────────────────────────────────────
 
-  if (level === 'good' && todayWorkout) {
-    return `${todayWorkout} staat op schema — ga ervoor.`
-  }
-
-  if (level === 'normal' && todayWorkout) {
-    return `${todayWorkout} vandaag. Luister naar je lichaam.`
-  }
-
-  if (level === 'fatigued' && todayWorkout) {
-    return 'Je lichaam is vermoeid. Overweeg een lichte sessie of rustdag.'
-  }
-
-  if (level === 'rest_day' && tomorrowWorkout) {
-    return `Rustdag. Morgen: ${tomorrowWorkout}.`
-  }
-
-  if (level === 'rest_day') {
-    return 'Rustdag. Geniet van je herstel.'
-  }
-
-  // Fallback for good/normal without today workout (shouldn't normally happen
-  // since no-workout → rest_day, but handle gracefully)
-  if (tomorrowWorkout) {
-    return `Morgen: ${tomorrowWorkout}.`
-  }
-
-  return 'Geniet van je herstel.'
+interface ScoreRingProps {
+  score: number
+  ringColor: string
+  trackColor: string
+  size?: number
 }
 
-function formatSleepDuration(totalMinutes: number): string {
-  const hours = Math.floor(totalMinutes / 60)
-  const mins = totalMinutes % 60
-  return `${hours}u${String(mins).padStart(2, '0')}m`
+function ScoreRing({ score, ringColor, trackColor, size = 132 }: ScoreRingProps) {
+  const stroke = 8
+  const radius = (size - stroke) / 2
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference * (1 - Math.max(0, Math.min(100, score)) / 100)
+  const center = size / 2
+
+  return (
+    <div className="relative inline-flex" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={trackColor}
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={ringColor}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-large-title font-semibold tabular-nums text-label-primary">
+          {score}
+        </span>
+        <span className="text-caption2 uppercase tracking-wide text-label-tertiary">
+          readiness
+        </span>
+      </div>
+    </div>
+  )
 }
 
-interface MetricsParts {
-  acwrLabel: string | null
-  otherParts: string | null
+interface BreakdownBarProps {
+  label: string
+  value: number | null
+  color: string
+  trackColor: string
 }
 
-function buildMetricsParts(data: ReadinessData): MetricsParts {
-  const acwrLabel = data.acwr !== null ? `ACWR ${data.acwr.toFixed(2)}` : null
+function BreakdownBar({ label, value, color, trackColor }: BreakdownBarProps) {
+  const hasValue = value !== null
+  const pct = hasValue ? Math.max(0, Math.min(100, value)) : 0
 
-  const others: string[] = []
-  if (data.sleepMinutes !== null) {
-    others.push(`${formatSleepDuration(data.sleepMinutes)} slaap`)
-  }
-  if (data.restingHR !== null) {
-    others.push(`HR ${data.restingHR}`)
-  }
-  if (data.hrv !== null) {
-    others.push(`HRV ${data.hrv}`)
-  }
-
-  return {
-    acwrLabel,
-    otherParts: others.length > 0 ? others.join(' \u00B7 ') : null,
-  }
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-12 shrink-0 text-caption1 text-label-secondary">{label}</span>
+      <div
+        className="relative h-1.5 flex-1 overflow-hidden rounded-full"
+        style={{ background: trackColor }}
+      >
+        {hasValue && (
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${pct}%`,
+              background: color,
+              transition: 'width 600ms ease-out',
+            }}
+          />
+        )}
+      </div>
+      <span className="w-10 shrink-0 text-right text-caption1 tabular-nums text-label-tertiary">
+        {hasValue ? `${pct}%` : '—'}
+      </span>
+    </div>
+  )
 }
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function ReadinessSignal() {
-  const { data, isLoading } = useReadiness()
+  const { data, isLoading } = useReadinessSummary()
 
-  // Show nothing while loading — appear smoothly once data arrives
-  if (isLoading || !data) {
-    return null
-  }
+  if (isLoading || !data) return null
 
   const config = LEVEL_CONFIG[data.level]
-  const coaching = getCoachingText(data)
-  const { acwrLabel, otherParts } = buildMetricsParts(data)
+  const acwrLabel = data.acwr !== null ? `ACWR ${data.acwr.toFixed(2)}` : null
 
   return (
     <div className={`rounded-2xl border border-separator ${config.bgClass} p-4`}>
-      <div className="flex items-center gap-2">
-        <span className={`inline-block h-2.5 w-2.5 rounded-full ${config.dotClass}`} />
+      {/* Header: orb + label */}
+      <div className="flex items-center gap-2.5">
+        <CoachOrb size={16} state={config.orbState} />
         <span className={`text-subhead font-semibold ${config.textClass}`}>
           {config.label}
         </span>
       </div>
 
-      <p className="mt-2 text-subhead leading-snug text-label-primary">
-        {coaching}
+      {/* Coach sentence */}
+      <p className="mt-3 text-subhead leading-snug text-label-primary">
+        {data.sentence}
       </p>
 
-      {(acwrLabel || otherParts) && (
-        <p className="mt-2 text-caption1 text-label-tertiary">
-          {acwrLabel && (
-            <Link
-              href="/belasting"
-              className="text-system-blue active:opacity-60 transition-opacity"
-            >
-              {acwrLabel}
-            </Link>
-          )}
-          {acwrLabel && otherParts && ' \u00B7 '}
-          {otherParts}
-        </p>
+      {/* Hero score ring */}
+      <div className="mt-4 flex justify-center">
+        <ScoreRing
+          score={data.score}
+          ringColor={config.ringColor}
+          trackColor={config.trackColor}
+        />
+      </div>
+
+      {/* Metric breakdown */}
+      <div className="mt-4 space-y-2">
+        <BreakdownBar
+          label="Slaap"
+          value={data.breakdown.sleep}
+          color={config.ringColor}
+          trackColor={config.trackColor}
+        />
+        <BreakdownBar
+          label="HRV"
+          value={data.breakdown.hrv}
+          color={config.ringColor}
+          trackColor={config.trackColor}
+        />
+        <BreakdownBar
+          label="RHR"
+          value={data.breakdown.rhr}
+          color={config.ringColor}
+          trackColor={config.trackColor}
+        />
+      </div>
+
+      {/* ACWR drilldown link */}
+      {acwrLabel && (
+        <div className="mt-3 text-caption1 text-label-tertiary">
+          <Link
+            href="/belasting"
+            className="text-system-blue transition-opacity active:opacity-60"
+          >
+            {acwrLabel}
+          </Link>
+        </div>
       )}
     </div>
   )
