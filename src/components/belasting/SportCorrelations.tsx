@@ -20,12 +20,12 @@ function ContributionBar({ data }: { data: SportCorrelationsData }) {
   const hasData = data.contributions.some((c) => c.share > 0)
   if (!hasData) {
     return (
-      <div className="h-3 w-full rounded-full bg-system-gray6" aria-label="Geen sport-data deze week" />
+      <div className="h-3 w-full rounded-full bg-white/[0.06]" aria-label="Geen sport-data deze week" />
     )
   }
 
   return (
-    <div className="flex h-3 w-full overflow-hidden rounded-full bg-system-gray6" role="img" aria-label="Verdeling belasting per sport, afgelopen 7 dagen">
+    <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/[0.06]" role="img" aria-label="Verdeling belasting per sport, afgelopen 7 dagen">
       {data.contributions.map((c) =>
         c.share > 0 ? (
           <div
@@ -61,7 +61,7 @@ function FatigueRow({
       <span className="text-caption1 tabular-nums text-text-tertiary">
         {Math.round(share * 100)}%
       </span>
-      <div className="relative h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-system-gray6">
+      <div className="relative h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full"
           style={{ width: `${score}%`, backgroundColor: SPORT_COLOR_VAR[sport] }}
@@ -96,7 +96,7 @@ export function SportCorrelations() {
   const allZero = data.fatigue.every((f) => f.score === 0)
 
   return (
-    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm">
+    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6">
       <div className="flex items-baseline justify-between">
         <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
           Per sport · laatste 72u

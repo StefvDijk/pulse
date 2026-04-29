@@ -56,7 +56,7 @@ function HistorySkeleton() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-system-gray6">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.06]">
         <ClipboardCheck size={24} className="text-text-tertiary" />
       </div>
       <p className="text-headline text-text-primary">Nog geen check-ins</p>
@@ -65,7 +65,7 @@ function EmptyState() {
       </p>
       <Link
         href="/check-in"
-        className="mt-2 rounded-xl bg-system-blue px-5 py-2 text-sm font-medium text-white"
+        className="mt-2 rounded-xl bg-[#0A84FF] px-5 py-2 text-sm font-medium text-white"
       >
         Eerste check-in starten
       </Link>
@@ -99,7 +99,7 @@ function HistoryCard({
   completedAt,
 }: HistoryCardProps) {
   return (
-    <div className="rounded-2xl border border-bg-border bg-bg-surface p-5 transition-colors hover:bg-system-gray6">
+    <div className="rounded-2xl border border-bg-border bg-bg-surface p-5 transition-colors hover:bg-white/[0.06]">
       {/* Week header */}
       <div className="flex items-center justify-between">
         <div>
@@ -109,7 +109,7 @@ function HistoryCard({
           </p>
         </div>
         {sessionsCompleted !== null && (
-          <div className="flex items-center gap-1.5 rounded-full bg-system-gray6 px-2.5 py-1">
+          <div className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1">
             <span className="text-xs font-medium text-text-secondary">
               {sessionsCompleted}/{sessionsPlanned ?? '?'} sessies
             </span>
@@ -155,7 +155,7 @@ export function CheckInHistoryPage() {
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
         <Link
           href="/"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
         >
           <ChevronLeft size={18} />
         </Link>

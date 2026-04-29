@@ -57,7 +57,7 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="text"
         value={exercise.name}
         onChange={(e) => onUpdate(index, { ...exercise, name: e.target.value })}
-        className="flex-1 min-w-0 rounded-lg border border-bg-border bg-system-gray6 px-2 py-1.5 text-sm text-text-primary outline-none focus:border-system-blue"
+        className="flex-1 min-w-0 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-sm text-text-primary outline-none focus:border-[#0A84FF]"
         placeholder="Oefening naam"
       />
 
@@ -66,7 +66,7 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="number"
         value={exercise.sets ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, sets: e.target.value ? Number(e.target.value) : undefined })}
-        className="w-14 rounded-lg border border-bg-border bg-system-gray6 px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-system-blue"
+        className="w-14 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-[#0A84FF]"
         placeholder="Sets"
         min={1}
         max={10}
@@ -77,14 +77,14 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         type="text"
         value={exercise.reps ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, reps: e.target.value || undefined })}
-        className="w-16 rounded-lg border border-bg-border bg-system-gray6 px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-system-blue"
+        className="w-16 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-sm text-text-primary text-center outline-none focus:border-[#0A84FF]"
         placeholder="Reps"
       />
 
       {/* Delete */}
       <button
         onClick={() => onRemove(index)}
-        className="shrink-0 p-1.5 text-text-tertiary hover:text-system-red rounded-lg hover:bg-system-red/10"
+        className="shrink-0 p-1.5 text-text-tertiary hover:text-[var(--color-status-bad)] rounded-lg hover:bg-[var(--color-status-bad)]/10"
         title="Verwijderen"
       >
         <Trash2 size={14} />
@@ -170,7 +170,7 @@ export function SchemaExerciseList({ exercises, editing, onUpdate }: SchemaExerc
 
       <button
         onClick={handleAdd}
-        className="flex items-center gap-1.5 mt-1 rounded-lg border border-dashed border-bg-border px-3 py-2 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:border-bg-border hover:bg-system-gray6/50"
+        className="flex items-center gap-1.5 mt-1 rounded-lg border border-dashed border-bg-border px-3 py-2 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:border-bg-border hover:bg-white/[0.06]/50"
       >
         <Plus size={14} />
         Oefening toevoegen

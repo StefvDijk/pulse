@@ -46,7 +46,7 @@ function ChartTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
   return (
-    <div className="rounded-xl border border-bg-border bg-bg-surface p-3 shadow-apple-md">
+    <div className="rounded-xl border border-bg-border bg-bg-surface p-3">
       <p className="text-caption2 uppercase tracking-wide text-text-tertiary">
         Week {point.dateLabel}
       </p>
@@ -103,8 +103,8 @@ export function TonnageTrend({ weeks = 8 }: TonnageTrendProps) {
         >
           <defs>
             <linearGradient id="tonnage-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-system-blue)" stopOpacity={0.32} />
-              <stop offset="100%" stopColor="var(--color-system-blue)" stopOpacity={0.04} />
+              <stop offset="0%" stopColor="#0A84FF" stopOpacity={0.32} />
+              <stop offset="100%" stopColor="#0A84FF" stopOpacity={0.04} />
             </linearGradient>
           </defs>
 
@@ -119,13 +119,13 @@ export function TonnageTrend({ weeks = 8 }: TonnageTrendProps) {
               <ReferenceLine
                 key={block.start_date}
                 x={matchedWeek.dateLabel}
-                stroke="var(--color-system-purple)"
+                stroke="#A78BFA"
                 strokeDasharray="4 4"
                 strokeOpacity={0.5}
                 label={{
                   value: block.title,
                   position: 'top',
-                  fill: 'var(--color-system-purple)',
+                  fill: '#A78BFA',
                   fontSize: 9,
                   fontWeight: 600,
                 }}
@@ -156,10 +156,10 @@ export function TonnageTrend({ weeks = 8 }: TonnageTrendProps) {
           <Area
             type="monotone"
             dataKey="tonnage"
-            stroke="var(--color-system-blue)"
+            stroke="#0A84FF"
             strokeWidth={2}
             fill="url(#tonnage-fill)"
-            dot={{ r: 3, fill: 'var(--color-system-blue)', stroke: 'var(--color-surface-primary)', strokeWidth: 1.5 }}
+            dot={{ r: 3, fill: '#0A84FF', stroke: 'var(--color-bg-surface)', strokeWidth: 1.5 }}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />

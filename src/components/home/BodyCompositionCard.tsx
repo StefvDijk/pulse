@@ -110,8 +110,8 @@ function MetricRow({ label, series, unit, color, higherIsBetter }: MetricRowProp
   const sentimentClass = !hasDelta
     ? 'text-text-tertiary'
     : isGood
-      ? 'text-system-green'
-      : 'text-system-red'
+      ? 'text-[var(--color-status-good)]'
+      : 'text-[var(--color-status-bad)]'
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -143,7 +143,7 @@ function CompositionBar({ fatPct }: CompositionBarProps) {
   return (
     <div className="space-y-1.5">
       <div className="flex h-2 w-full overflow-hidden rounded-full">
-        <div className="bg-system-blue" style={{ width: `${leanPct}%` }} />
+        <div className="bg-[#0A84FF]" style={{ width: `${leanPct}%` }} />
         <div className="bg-orange-400/80" style={{ width: `${fatPct}%` }} />
       </div>
       <div className="flex justify-between text-caption2 text-text-tertiary">
@@ -186,8 +186,8 @@ export function BodyCompositionCard() {
   if (isLoading) {
     return (
       <div className="rounded-2xl border border-bg-border bg-bg-surface p-4">
-        <div className="h-3 w-24 rounded-full bg-system-gray6" />
-        <div className="mt-3 h-16 rounded-2xl bg-system-gray6" />
+        <div className="h-3 w-24 rounded-full bg-white/[0.06]" />
+        <div className="mt-3 h-16 rounded-2xl bg-white/[0.06]" />
       </div>
     )
   }
@@ -198,7 +198,7 @@ export function BodyCompositionCard() {
   return (
     <Link
       href="/progress"
-      className="block rounded-2xl border border-bg-border bg-bg-surface p-4 shadow-apple-sm transition-opacity active:opacity-80"
+      className="block rounded-2xl border border-bg-border bg-bg-surface p-4 transition-opacity active:opacity-80"
     >
       <div className="flex items-baseline justify-between">
         <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
@@ -212,14 +212,14 @@ export function BodyCompositionCard() {
           label="Gewicht"
           series={weight}
           unit="kg"
-          color="var(--color-system-blue)"
+          color="#0A84FF"
           higherIsBetter={false}
         />
         <MetricRow
           label="Vetmassa"
           series={fat}
           unit="kg"
-          color="var(--color-system-orange)"
+          color="var(--color-status-warn)"
           higherIsBetter={false}
         />
         <MetricRow

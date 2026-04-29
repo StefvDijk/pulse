@@ -133,19 +133,19 @@ export function ConfirmationCard({
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           {/* Total sessions */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
             <span className="text-title2 font-bold tabular-nums text-text-primary">{totalSessions}</span>
             <span className="text-xs text-text-tertiary">sessies</span>
           </div>
 
           {/* Breakdown */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
             <div className="flex items-center gap-1">
-              <Dumbbell size={12} className="text-system-blue" />
+              <Dumbbell size={12} className="text-[#0A84FF]" />
               <span className="text-sm font-semibold text-text-primary">{gymCount}</span>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
-              <Footprints size={12} className="text-system-orange" />
+              <Footprints size={12} className="text-[var(--color-status-warn)]" />
               <span className="text-sm font-semibold text-text-primary">{runCount}</span>
             </div>
             {padelCount > 0 && (
@@ -157,7 +157,7 @@ export function ConfirmationCard({
           </div>
 
           {/* Nutrition */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
             <span className="text-title2 font-bold tabular-nums text-text-primary">
               {reviewData.nutrition.avgProteinG != null
                 ? `${Math.round(reviewData.nutrition.avgProteinG)}g`
@@ -235,7 +235,7 @@ export function ConfirmationCard({
       <button
         onClick={handleConfirm}
         disabled={saving}
-        className="flex items-center justify-center gap-2 rounded-xl bg-system-blue px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
       >
         {saving ? (
           <Loader2 size={16} className="animate-spin" />

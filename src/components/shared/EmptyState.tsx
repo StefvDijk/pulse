@@ -27,14 +27,14 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
         'href' in action ? (
           <Link
             href={action.href}
-            className="rounded-lg bg-system-blue px-4 py-2 text-sm font-medium text-white"
+            className="rounded-lg bg-[#0A84FF] px-4 py-2 text-sm font-medium text-white"
           >
             {action.label}
           </Link>
         ) : (
           <button
             onClick={action.onClick}
-            className="rounded-lg bg-system-blue px-4 py-2 text-sm font-medium text-white"
+            className="rounded-lg bg-[#0A84FF] px-4 py-2 text-sm font-medium text-white"
           >
             {action.label}
           </button>

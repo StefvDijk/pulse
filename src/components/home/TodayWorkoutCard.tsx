@@ -91,7 +91,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
     return (
       <Card padding="lg">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-system-gray6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06]">
             <Moon size={20} strokeWidth={1.5} className="text-text-tertiary" />
           </div>
           <div>
@@ -119,13 +119,13 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              isCompleted ? 'bg-system-green/10' : 'bg-system-blue/10'
+              isCompleted ? 'bg-[var(--color-status-good)]/10' : 'bg-[#0A84FF]/10'
             }`}
           >
             {isCompleted ? (
-              <CheckCircle2 size={20} strokeWidth={1.5} className="text-system-green" />
+              <CheckCircle2 size={20} strokeWidth={1.5} className="text-[var(--color-status-good)]" />
             ) : (
-              <Dumbbell size={20} strokeWidth={1.5} className="text-system-blue" />
+              <Dumbbell size={20} strokeWidth={1.5} className="text-[#0A84FF]" />
             )}
           </div>
           <div>
@@ -139,7 +139,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
           </div>
         </div>
         {isCompleted && (
-          <span className="rounded-full bg-system-green/10 px-2.5 py-1 text-caption1 font-semibold text-system-green">
+          <span className="rounded-full bg-[var(--color-status-good)]/10 px-2.5 py-1 text-caption1 font-semibold text-[var(--color-status-good)]">
             Gedaan
           </span>
         )}
@@ -148,8 +148,8 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
       {/* Achievement highlight for completed workouts */}
       {isCompleted && (
         <div className="mt-3 flex items-center gap-1.5">
-          <TrendingUp size={14} strokeWidth={1.5} className="text-system-blue" />
-          <span className="text-subhead font-medium text-system-blue">
+          <TrendingUp size={14} strokeWidth={1.5} className="text-[#0A84FF]" />
+          <span className="text-subhead font-medium text-[#0A84FF]">
             {findAchievement(
               day.completedWorkout?.exercises ?? [],
               day.lastPerformance?.exercises ?? [],

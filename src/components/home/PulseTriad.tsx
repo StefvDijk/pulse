@@ -107,15 +107,15 @@ export function PulseTriad() {
   if (isLoading || !data) {
     return (
       <div
-        className="rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm"
+        className="rounded-3xl border border-bg-border bg-bg-surface p-5"
         aria-hidden="true"
       >
         <div className="flex items-start justify-around gap-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-2">
-              <div className="h-3 w-12 rounded-full bg-system-gray6" />
-              <div className="h-24 w-24 rounded-full bg-system-gray6" />
-              <div className="h-3 w-20 rounded-full bg-system-gray6" />
+              <div className="h-3 w-12 rounded-full bg-white/[0.06]" />
+              <div className="h-24 w-24 rounded-full bg-white/[0.06]" />
+              <div className="h-3 w-20 rounded-full bg-white/[0.06]" />
             </div>
           ))}
         </div>
@@ -124,7 +124,7 @@ export function PulseTriad() {
   }
 
   return (
-    <div className="rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm">
+    <div className="rounded-3xl border border-bg-border bg-bg-surface p-5">
       <div className="flex items-start justify-around gap-3">
         <PillarRing
           title={PILLARS.train.title}

@@ -27,14 +27,14 @@ function LessonItem({ lesson }: { lesson: WeeklyLessonEntry }) {
   return (
     <li className="relative pl-5">
       <span
-        className="absolute left-0 top-1.5 h-2 w-2 rounded-full bg-system-blue"
+        className="absolute left-0 top-1.5 h-2 w-2 rounded-full bg-[#0A84FF]"
         aria-hidden="true"
       />
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
         <span className="text-xs font-medium text-text-tertiary">
           Week van {formatWeekLabel(lesson.week_start)}
         </span>
-        <span className="rounded-full bg-system-gray6 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-secondary">
+        <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-secondary">
           {label}
         </span>
       </div>
@@ -56,7 +56,7 @@ export function WeeklyLessonsTimeline() {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-system-gray6" />
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-white/[0.06]" />
           ))}
         </div>
       ) : lessons.length === 0 ? (

@@ -59,7 +59,7 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-full bg-system-gray6" />
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-white/[0.06]" />
         )}
         {/* Calories in center */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">

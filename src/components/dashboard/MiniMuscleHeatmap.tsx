@@ -47,10 +47,10 @@ function MiniBody({ parts, outline, viewBox, volume }: MiniBodyProps) {
         const isDecorative = DECORATIVE_SLUGS.has(part.slug)
 
         const fill = isDecorative
-          ? 'var(--color-system-gray4)'
+          ? 'rgba(255,255,255,0.10)'
           : tier
             ? tier.fill
-            : 'var(--color-system-gray5)'
+            : 'rgba(255,255,255,0.08)'
         const fillOpacity = isDecorative ? 0.4 : (tier?.opacity ?? 0.4)
 
         return paths.map((d, pathIdx) => (

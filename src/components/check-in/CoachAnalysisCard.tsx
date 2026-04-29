@@ -156,16 +156,16 @@ export function CoachAnalysisCard({
         <div className="flex flex-col gap-2 mb-4">
           {analysis.keyInsights.map((insight, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-system-blue" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0A84FF]" />
               <p className="text-sm text-text-primary">{insight}</p>
             </div>
           ))}
         </div>
 
         {/* Focus next week */}
-        <div className="rounded-xl bg-system-blue/10 border border-system-blue/10 p-4">
-          <p className="text-xs font-medium text-system-blue mb-1">Focus volgende week</p>
-          <p className="text-sm text-system-blue leading-relaxed">
+        <div className="rounded-xl bg-[#0A84FF]/10 border border-[#0A84FF]/10 p-4">
+          <p className="text-xs font-medium text-[#0A84FF] mb-1">Focus volgende week</p>
+          <p className="text-sm text-[#0A84FF] leading-relaxed">
             {analysis.focusNextWeek}
           </p>
         </div>
@@ -174,7 +174,7 @@ export function CoachAnalysisCard({
       {/* Continue button */}
       <button
         onClick={onNext}
-        className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white"
+        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white"
       >
         Bevestigen en opslaan
       </button>

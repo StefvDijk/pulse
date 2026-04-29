@@ -10,7 +10,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
       <div className="w-full max-w-md bg-bg-surface border border-bg-border rounded-[14px] p-6 text-center">
-        <p className="mb-2 text-base font-semibold text-system-red">
+        <p className="mb-2 text-base font-semibold text-[var(--color-status-bad)]">
           Kan pagina niet laden
         </p>
         <p className="mb-5 text-sm text-text-secondary">
@@ -18,7 +18,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
         </p>
         <button
           onClick={reset}
-          className="rounded-lg px-4 py-2 text-sm font-medium bg-system-blue text-white"
+          className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white"
         >
           Opnieuw laden
         </button>

@@ -48,7 +48,7 @@ export function GoalProgress({ goals }: GoalProgressProps) {
         return (
           <div
             key={goal.id}
-            className="rounded-lg p-3 bg-system-gray6 border border-bg-border"
+            className="rounded-lg p-3 bg-white/[0.06] border border-bg-border"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -74,7 +74,7 @@ export function GoalProgress({ goals }: GoalProgressProps) {
               </div>
             </div>
 
-            <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-system-gray6">
+            <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${pct}%`, backgroundColor: categoryColor }}

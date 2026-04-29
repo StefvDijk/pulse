@@ -93,8 +93,8 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
           <span
             className={`rounded-full px-2 py-0.5 text-caption1 font-semibold ${
               deltaKg > 0
-                ? 'bg-system-green/10 text-system-green'
-                : 'bg-system-red/10 text-system-red'
+                ? 'bg-[var(--color-status-good)]/10 text-[var(--color-status-good)]'
+                : 'bg-[var(--color-status-bad)]/10 text-[var(--color-status-bad)]'
             }`}
           >
             {deltaKg > 0 ? '+' : ''}{deltaKg}kg ({deltaKg > 0 ? '+' : ''}{deltaPct}%)
@@ -117,8 +117,8 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
       >
         <defs>
           <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-system-blue)" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="var(--color-system-blue)" stopOpacity="0" />
+            <stop offset="0%" stopColor="#0A84FF" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#0A84FF" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -137,7 +137,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
               x={PAD_LEFT - 8}
               y={yScale(tick) + 4}
               textAnchor="end"
-              className="fill-label-tertiary"
+              className="fill-text-tertiary"
               fontSize="10"
             >
               {tick}
@@ -152,7 +152,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
         <path
           d={linePath}
           fill="none"
-          stroke="var(--color-system-blue)"
+          stroke="#0A84FF"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -165,8 +165,8 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
             cx={xScale(i)}
             cy={yScale(p.maxWeight)}
             r={i === prIndex ? 5 : 3}
-            fill={i === prIndex ? 'var(--color-system-blue)' : 'var(--color-surface-primary)'}
-            stroke="var(--color-system-blue)"
+            fill={i === prIndex ? '#0A84FF' : 'var(--color-bg-surface)'}
+            stroke="#0A84FF"
             strokeWidth="2"
           />
         ))}
@@ -181,7 +181,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
               x={xScale(i)}
               y={yScale(p.maxWeight) - 12}
               textAnchor="middle"
-              className={isPR ? 'fill-system-blue' : 'fill-label-secondary'}
+              className={isPR ? 'fill-[#0A84FF]' : 'fill-text-secondary'}
               fontSize="10"
               fontWeight="600"
             >

@@ -11,11 +11,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-system-blue text-white font-semibold hover:brightness-110 active:scale-[0.98]',
+    'bg-[#0A84FF] text-white font-semibold hover:brightness-110 active:scale-[0.98]',
   secondary:
-    'bg-system-blue/10 text-system-blue font-semibold hover:bg-system-blue/15 active:scale-[0.98]',
+    'bg-[#0A84FF]/10 text-[#0A84FF] font-semibold hover:bg-[#0A84FF]/15 active:scale-[0.98]',
   ghost:
-    'text-system-blue font-medium hover:bg-system-blue/5 active:scale-[0.98]',
+    'text-[#0A84FF] font-medium hover:bg-[#0A84FF]/5 active:scale-[0.98]',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -29,7 +29,7 @@ const baseClasses = [
   'rounded-full',
   'transition-all duration-150',
   'disabled:opacity-50 disabled:pointer-events-none',
-  'focus:outline-none focus-visible:ring-2 focus-visible:ring-system-blue/40 focus-visible:ring-offset-2',
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A84FF]/40 focus-visible:ring-offset-2',
 ].join(' ')
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

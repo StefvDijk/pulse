@@ -78,7 +78,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="text-subhead font-semibold text-text-primary truncate">Mijn Schema</h2>
-            <span className="shrink-0 rounded-lg bg-system-blue/10 px-2 py-0.5 text-[11px] font-medium text-system-blue">
+            <span className="shrink-0 rounded-lg bg-[#0A84FF]/10 px-2 py-0.5 text-[11px] font-medium text-[#0A84FF]">
               {typeLabel}
             </span>
           </div>
@@ -96,20 +96,20 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
       {expanded && (
         <div className="border-t border-bg-border">
           {/* Action bar */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-system-gray6/50">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.06]/50">
             {editing ? (
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-system-blue px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                 >
                   {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                   Opslaan
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-system-gray6"
+                  className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
                 >
                   <X size={12} />
                   Annuleren
@@ -118,7 +118,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
             ) : (
               <button
                 onClick={handleStartEdit}
-                className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-system-gray6"
+                className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
               >
                 <Pencil size={12} />
                 Bewerken
@@ -126,7 +126,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
             )}
             <Link
               href="/chat?context=schema"
-              className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-system-gray6"
+              className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
             >
               <MessageCircle size={12} />
               Wijzig via Coach
@@ -143,10 +143,10 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
                   {/* Workout header */}
                   <button
                     onClick={() => setExpandedWorkout(isExpanded ? null : workout.focus)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-system-gray6/30"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.06]/30"
                   >
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-system-blue/10">
-                      <Dumbbell size={13} className="text-system-blue" />
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0A84FF]/10">
+                      <Dumbbell size={13} className="text-[#0A84FF]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold text-text-primary">

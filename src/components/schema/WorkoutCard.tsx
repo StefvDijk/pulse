@@ -28,7 +28,7 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
         </span>
         <Link
           href={`/chat?context=exercise&name=${encodeURIComponent(exercise.name)}&workout=${encodeURIComponent(workoutTitle)}`}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary hover:bg-system-gray6 hover:text-system-blue transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] hover:text-[#0A84FF] transition-colors"
           title={`Vraag de coach over ${exercise.name}`}
         >
           <MessageCircle size={14} />
@@ -69,7 +69,7 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
             isCompleted
-              ? 'bg-system-blue text-white'
+              ? 'bg-[#0A84FF] text-white'
               : isToday
                 ? 'bg-text-primary text-white'
                 : 'border-2 border-bg-border bg-transparent'

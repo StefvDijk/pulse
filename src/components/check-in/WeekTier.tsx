@@ -54,7 +54,7 @@ function contributorBadge(contributor: BurnTierContributor): {
   if (Math.abs(pct) < 5) return { label: '~gemiddeld', className: 'text-text-tertiary' }
   return {
     label: pct > 0 ? `+${pct}%` : `${pct}%`,
-    className: pct > 0 ? 'text-system-green' : 'text-system-red',
+    className: pct > 0 ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]',
   }
 }
 
@@ -76,7 +76,7 @@ export function WeekTier({ weekStart }: Props) {
         className="flex w-full items-center gap-2 text-left"
         aria-expanded={expanded}
       >
-        <Flame size={16} className="text-system-orange" aria-hidden="true" />
+        <Flame size={16} className="text-[var(--color-status-warn)]" aria-hidden="true" />
         <h3 className="flex-1 text-subhead font-semibold text-text-primary">
           Burn Bar
         </h3>
@@ -92,16 +92,16 @@ export function WeekTier({ weekStart }: Props) {
 
       {/* Tier bar */}
       <div className="relative mt-3">
-        <div className="flex h-2 overflow-hidden rounded-full bg-system-gray6">
-          <div className="flex-1 bg-system-red/30" />
-          <div className="flex-1 bg-system-orange/30" />
-          <div className="flex-1 bg-system-green/30" />
-          <div className="flex-1 bg-system-blue/30" />
-          <div className="flex-1 bg-system-purple/30" />
+        <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="flex-1 bg-[var(--color-status-bad)]/30" />
+          <div className="flex-1 bg-[var(--color-status-warn)]/30" />
+          <div className="flex-1 bg-[var(--color-status-good)]/30" />
+          <div className="flex-1 bg-[#0A84FF]/30" />
+          <div className="flex-1 bg-[#A78BFA]/30" />
         </div>
         {/* Round marker */}
         <div
-          className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface-primary shadow-apple-sm ${data.colorClass}`}
+          className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface-primary ${data.colorClass}`}
           style={{ left: `${(data.position ?? 0) * 100}%` }}
           aria-hidden="true"
         />

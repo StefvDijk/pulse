@@ -24,7 +24,7 @@ const TARGET_TYPES = [
   { value: 'count', label: 'Aantal (bijv. sessies per week)' },
 ] as const
 
-const INPUT_CLASSES = 'bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
 
 export function GoalForm({ onSave, onCancel }: GoalFormProps) {
   const [title, setTitle] = useState('')
@@ -74,7 +74,7 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <p className="rounded-lg p-2 text-sm bg-system-red/10 text-system-red">
+        <p className="rounded-lg p-2 text-sm bg-[var(--color-status-bad)]/10 text-[var(--color-status-bad)]">
           {error}
         </p>
       )}
@@ -171,7 +171,7 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
         <button
           type="submit"
           disabled={saving || !title.trim()}
-          className="rounded-lg px-4 py-2 text-sm font-medium bg-system-blue text-white transition-opacity disabled:opacity-50"
+          className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white transition-opacity disabled:opacity-50"
         >
           {saving ? 'Opslaan…' : 'Opslaan'}
         </button>

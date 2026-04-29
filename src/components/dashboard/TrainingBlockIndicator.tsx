@@ -25,7 +25,7 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
   if (!schema) {
     return (
       <div
-        className="flex items-center justify-center rounded-lg border border-bg-border bg-system-gray6 p-4"
+        className="flex items-center justify-center rounded-lg border border-bg-border bg-white/[0.06] p-4"
       >
         <p className="text-sm text-text-tertiary">
           Geen actief trainingsschema
@@ -61,7 +61,7 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
         </span>
       </div>
 
-      <div className="relative h-2 overflow-hidden rounded-full bg-system-gray6">
+      <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: phaseColor }}

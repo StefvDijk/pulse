@@ -55,7 +55,7 @@ export function GoalSparkline({ goalId, color, enabled = true }: Props) {
           fill="none"
         />
       </svg>
-      <span className={`text-caption2 tabular-nums ${delta >= 0 ? 'text-system-green' : 'text-system-red'}`}>
+      <span className={`text-caption2 tabular-nums ${delta >= 0 ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'}`}>
         {delta >= 0 ? '+' : ''}
         {delta.toFixed(1)}kg
       </span>

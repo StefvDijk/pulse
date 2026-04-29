@@ -36,7 +36,7 @@ function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps
           {sessions}x
         </span>
       </div>
-      <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-system-gray6">
+      <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}

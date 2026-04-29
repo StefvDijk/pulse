@@ -148,7 +148,7 @@ function NutritionSkeleton() {
     <div className="flex flex-col gap-4">
       <SkeletonCard className="flex flex-col gap-3">
         <div className="flex justify-center">
-          <div className="h-28 w-28 rounded-full bg-system-gray6" />
+          <div className="h-28 w-28 rounded-full bg-white/[0.06]" />
         </div>
         <SkeletonRect height="h-4" />
       </SkeletonCard>

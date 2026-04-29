@@ -61,7 +61,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
           onChange={(e) => setDuration(e.target.value)}
           placeholder="60"
           min={1}
-          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div>
@@ -75,8 +75,8 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
               onClick={() => setIntensity(opt.value)}
               className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 intensity === opt.value
-                  ? 'bg-system-yellow/10 text-system-yellow border border-system-yellow/30'
-                  : 'bg-system-gray6 text-text-secondary border border-bg-border'
+                  ? 'bg-[var(--color-status-warn)]/10 text-[var(--color-status-warn)] border border-system-yellow/30'
+                  : 'bg-white/[0.06] text-text-secondary border border-bg-border'
               }`}
             >
               {opt.label}
@@ -87,7 +87,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
       <button
         onClick={handleSubmit}
         disabled={!duration || parseInt(duration, 10) <= 0}
-        className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -143,7 +143,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           placeholder="82.5"
-          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -157,7 +157,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={muscleMass}
             onChange={(e) => setMuscleMass(e.target.value)}
             placeholder="38.0"
-            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
@@ -170,7 +170,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatMass}
             onChange={(e) => setFatMass(e.target.value)}
             placeholder="12.5"
-            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
@@ -185,7 +185,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatPct}
             onChange={(e) => setFatPct(e.target.value)}
             placeholder="15.0"
-            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
@@ -198,14 +198,14 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={waist}
             onChange={(e) => setWaist(e.target.value)}
             placeholder="82.0"
-            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
       <button
         onClick={handleSubmit}
         disabled={!weight || parseFloat(weight) <= 0}
-        className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -241,13 +241,13 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
           onChange={(e) => setText(e.target.value)}
           placeholder="Bijv. lichte kniepijn bij squats, extra wandeling gemaakt..."
           rows={3}
-          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none resize-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none resize-none placeholder:text-text-tertiary"
         />
       </div>
       <button
         onClick={handleSubmit}
         disabled={!text.trim()}
-        className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -281,7 +281,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray6"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
           >
             <X size={16} />
           </button>
@@ -295,7 +295,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
                 <button
                   key={opt.type}
                   onClick={() => setSelectedType(opt.type)}
-                  className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-system-gray6"
+                  className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-white/[0.06]"
                 >
                   <span className="text-xl">{opt.icon}</span>
                   <span className="text-sm font-medium text-text-primary">{opt.label}</span>

@@ -23,7 +23,7 @@ export function TimePeriodSelector({ value, onChange }: TimePeriodSelectorProps)
           onClick={() => onChange(p.value)}
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
             value === p.value
-              ? 'bg-system-gray6 text-text-primary'
+              ? 'bg-white/[0.06] text-text-primary'
               : 'text-text-tertiary'
           }`}
         >

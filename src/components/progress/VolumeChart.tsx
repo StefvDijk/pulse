@@ -94,7 +94,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
           contentStyle={appleTooltipStyle}
           labelStyle={appleTooltipLabelStyle}
           itemStyle={appleTooltipItemStyle}
-          cursor={{ fill: 'var(--color-system-gray6)', opacity: 0.5 }}
+          cursor={{ fill: 'rgba(255,255,255,0.06)', opacity: 0.5 }}
           formatter={(value, name) => {
             const key = String(name)
             if (key === 'acwr') return [`${Number(value).toFixed(2)}`, 'ACWR']

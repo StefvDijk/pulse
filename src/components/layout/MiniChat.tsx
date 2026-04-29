@@ -61,7 +61,7 @@ export function MiniChat() {
       {/* FAB button */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-system-blue shadow-lg transition-transform hover:scale-105"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0A84FF] shadow-lg transition-transform hover:scale-105"
         aria-label="Open chat"
       >
         {isOpen ? <X size={20} color="white" /> : <MessageCircle size={20} color="white" />}

@@ -29,7 +29,7 @@ function ProgressMetric({ label, value, unit, delta, higherIsBetter }: ProgressM
       {hasDelta && (
         <span
           className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-            isGood ? 'text-system-green' : 'text-system-red'
+            isGood ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'
           }`}
         >
           {isPositive ? (
@@ -83,7 +83,7 @@ function CompositionBar({ fatPct, label }: CompositionBarProps) {
     <div className="flex flex-col gap-1.5">
       <div className="flex h-3 w-full overflow-hidden rounded-full">
         <div
-          className="bg-system-blue transition-all duration-500"
+          className="bg-[#0A84FF] transition-all duration-500"
           style={{ width: `${leanPct}%` }}
         />
         <div
@@ -122,7 +122,7 @@ export function BodyComposition() {
   if (error) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-system-red">Laden mislukt</p>
+        <p className="text-sm text-[var(--color-status-bad)]">Laden mislukt</p>
       </div>
     )
   }
@@ -225,7 +225,7 @@ export function BodyComposition() {
                 {ratioDelta !== null && ratioDelta !== 0 && (
                   <span
                     className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-                      ratioDelta > 0 ? 'text-system-green' : 'text-system-red'
+                      ratioDelta > 0 ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'
                     }`}
                   >
                     {ratioDelta > 0 ? (

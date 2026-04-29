@@ -21,10 +21,10 @@ export function SportInsightCard() {
   const dateLabel = formatSourceDate(sourceDate)
 
   return (
-    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm">
+    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-system-blue/10">
-          <Sparkles size={16} className="text-system-blue" aria-hidden="true" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0A84FF]/10">
+          <Sparkles size={16} className="text-[#0A84FF]" aria-hidden="true" />
         </div>
         <div className="flex-1">
           <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">

@@ -148,7 +148,7 @@ export function EditWeekModal({
           <button
             onClick={onClose}
             disabled={status === 'saving'}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray6 disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
           >
             <X size={16} />
           </button>
@@ -165,7 +165,7 @@ export function EditWeekModal({
               <div
                 key={draft.date}
                 className={`rounded-xl border p-3 transition-colors ${
-                  draft.dirty ? 'border-system-blue bg-system-blue/5' : 'border-bg-border'
+                  draft.dirty ? 'border-[#0A84FF] bg-[#0A84FF]/5' : 'border-bg-border'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -195,7 +195,7 @@ export function EditWeekModal({
                   onChange={(e) => updateDraft(draft.date, e.target.value)}
                   placeholder="Rustdag"
                   list={`suggestions-${draft.date}`}
-                  className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none focus:border-system-blue"
+                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none focus:border-[#0A84FF]"
                 />
                 <datalist id={`suggestions-${draft.date}`}>
                   {suggestions.map((s) => (
@@ -208,7 +208,7 @@ export function EditWeekModal({
         </div>
 
         {errorMsg && (
-          <div className="mx-5 mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
+          <div className="mx-5 mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
             {errorMsg}
           </div>
         )}
@@ -221,7 +221,7 @@ export function EditWeekModal({
           <button
             onClick={handleSave}
             disabled={status === 'saving' || dirtyCount === 0}
-            className="flex items-center gap-2 rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {status === 'saving' && <Loader2 size={16} className="animate-spin" />}
             Opslaan

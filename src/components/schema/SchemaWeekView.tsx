@@ -28,7 +28,7 @@ function SchemaWeekSkeleton() {
       </SkeletonCard>
       {[1, 2, 3, 4].map((i) => (
         <SkeletonCard key={i} className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-system-gray6 shrink-0" />
+          <div className="h-9 w-9 rounded-full bg-white/[0.06] shrink-0" />
           <div className="flex flex-col gap-1.5 flex-1">
             <SkeletonLine width="w-1/3" />
             <SkeletonLine width="w-1/2" height="h-3" />
@@ -90,7 +90,7 @@ export function SchemaWeekView() {
           {calendarConnected ? (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-system-blue px-3 py-1.5 text-xs font-medium text-white"
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white"
             >
               <Calendar size={13} />
               Plan in agenda

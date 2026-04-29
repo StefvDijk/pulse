@@ -17,8 +17,8 @@ export interface BaselineTagProps {
 }
 
 const SENTIMENT_CLASS = {
-  positive: 'text-system-green',
-  negative: 'text-system-red',
+  positive: 'text-[var(--color-status-good)]',
+  negative: 'text-[var(--color-status-bad)]',
   neutral: 'text-text-tertiary',
 } as const
 

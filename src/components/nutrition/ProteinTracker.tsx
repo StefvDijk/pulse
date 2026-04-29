@@ -28,7 +28,7 @@ export function ProteinTracker({ current, target }: ProteinTrackerProps) {
           </span>
         )}
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-system-gray6">
+      <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}

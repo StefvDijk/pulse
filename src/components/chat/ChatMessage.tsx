@@ -41,7 +41,7 @@ const MARKDOWN_COMPONENTS: Components = {
   li: ({ children }) => <li className="text-subhead">{children}</li>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   code: ({ children }) => (
-    <code className="rounded px-1 py-0.5 text-caption1 bg-system-gray5 text-system-blue font-mono">
+    <code className="rounded px-1 py-0.5 text-caption1 bg-white/[0.08] text-[#0A84FF] font-mono">
       {children}
     </code>
   ),
@@ -74,8 +74,8 @@ function ChatMessageImpl({ role, content, isStreaming }: ChatMessageProps) {
       <div
         className={`max-w-[85%] px-4 py-2.5 text-subhead ${
           isUser
-            ? 'bg-system-blue text-white rounded-2xl rounded-br-md'
-            : 'bg-system-gray6 text-text-primary rounded-2xl rounded-bl-md'
+            ? 'bg-[#0A84FF] text-white rounded-2xl rounded-br-md'
+            : 'bg-white/[0.06] text-text-primary rounded-2xl rounded-bl-md'
         }`}
       >
         {isUser ? (

@@ -57,7 +57,7 @@ export function ChatSuggestions({ onSelect, visible }: ChatSuggestionsProps) {
         <button
           key={s}
           onClick={() => onSelect(s)}
-          className="min-h-[44px] rounded-full bg-system-blue/10 px-4 py-1.5 text-caption1 font-semibold text-system-blue transition-all duration-150 active:scale-95 hover:bg-system-blue/15"
+          className="min-h-[44px] rounded-full bg-[#0A84FF]/10 px-4 py-1.5 text-caption1 font-semibold text-[#0A84FF] transition-all duration-150 active:scale-95 hover:bg-[#0A84FF]/15"
         >
           {s}
         </button>

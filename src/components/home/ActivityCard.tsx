@@ -51,20 +51,20 @@ function formatVolume(kg: number): string {
 const SPORT_CONFIG = {
   gym: {
     icon: Dumbbell,
-    color: 'text-system-blue',
-    bg: 'bg-system-blue/10',
-    border: 'border-system-blue/20',
+    color: 'text-[#0A84FF]',
+    bg: 'bg-[#0A84FF]/10',
+    border: 'border-[#0A84FF]/20',
   },
   run: {
     icon: Footprints,
-    color: 'text-system-orange',
-    bg: 'bg-system-orange/10',
-    border: 'border-system-orange/20',
+    color: 'text-[var(--color-status-warn)]',
+    bg: 'bg-[var(--color-status-warn)]/10',
+    border: 'border-[var(--color-status-warn)]/20',
   },
   padel: {
     icon: Gauge,
-    color: 'text-system-yellow',
-    bg: 'bg-system-yellow/10',
+    color: 'text-[var(--color-status-warn)]',
+    bg: 'bg-[var(--color-status-warn)]/10',
     border: 'border-system-yellow/20',
   },
 } as const

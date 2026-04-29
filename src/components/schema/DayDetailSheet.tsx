@@ -20,9 +20,9 @@ const DAY_LABELS: Record<string, string> = {
 
 function SportIcon({ focus }: { focus: string }) {
   const t = focus.toLowerCase()
-  if (t.includes('hardlopen') || t.includes('run')) return <Footprints size={16} className="text-system-orange" />
-  if (t.includes('padel')) return <CircleDot size={16} className="text-system-yellow" />
-  return <Dumbbell size={16} className="text-system-blue" />
+  if (t.includes('hardlopen') || t.includes('run')) return <Footprints size={16} className="text-[var(--color-status-warn)]" />
+  if (t.includes('padel')) return <CircleDot size={16} className="text-[var(--color-status-warn)]" />
+  return <Dumbbell size={16} className="text-[#0A84FF]" />
 }
 
 function ExerciseRow({ exercise }: { exercise: SchemaExercise }) {
@@ -73,7 +73,7 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
           >
             <X size={14} />
           </button>

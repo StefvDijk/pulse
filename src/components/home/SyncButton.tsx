@@ -83,14 +83,14 @@ export function SyncButton() {
       <button
         onClick={handleSync}
         disabled={status === 'syncing'}
-        className="flex items-center gap-1.5 rounded-full bg-system-blue/10 px-4 py-2 text-caption1 font-semibold text-system-blue hover:bg-system-blue/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
+        className="flex items-center gap-1.5 rounded-full bg-[#0A84FF]/10 px-4 py-2 text-caption1 font-semibold text-[#0A84FF] hover:bg-[#0A84FF]/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
       >
         {status === 'syncing' ? (
           <RefreshCw size={12} strokeWidth={2} className="animate-spin" />
         ) : status === 'success' ? (
-          <Check size={12} strokeWidth={2} className="text-system-green" />
+          <Check size={12} strokeWidth={2} className="text-[var(--color-status-good)]" />
         ) : status === 'error' ? (
-          <AlertCircle size={12} strokeWidth={2} className="text-system-red" />
+          <AlertCircle size={12} strokeWidth={2} className="text-[var(--color-status-bad)]" />
         ) : (
           <RefreshCw size={12} strokeWidth={2} />
         )}
@@ -98,7 +98,7 @@ export function SyncButton() {
       </button>
 
       {message && (
-        <span className={`text-caption1 ${status === 'error' ? 'text-system-red' : 'text-text-tertiary'}`}>
+        <span className={`text-caption1 ${status === 'error' ? 'text-[var(--color-status-bad)]' : 'text-text-tertiary'}`}>
           {message}
         </span>
       )}

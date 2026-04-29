@@ -277,7 +277,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
                 setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
                 handleSend(lastFailedMessage)
               }}
-              className="rounded-full bg-system-blue/10 px-4 py-1.5 text-caption1 font-semibold text-system-blue transition-all duration-150 active:scale-95 hover:bg-system-blue/15"
+              className="rounded-full bg-[#0A84FF]/10 px-4 py-1.5 text-caption1 font-semibold text-[#0A84FF] transition-all duration-150 active:scale-95 hover:bg-[#0A84FF]/15"
             >
               Opnieuw proberen
             </button>

@@ -37,7 +37,7 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
       {/* Trigger button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-xl border border-bg-border bg-bg-surface px-4 py-3 text-left transition-colors hover:bg-system-gray6"
+        className="flex w-full items-center justify-between rounded-xl border border-bg-border bg-bg-surface px-4 py-3 text-left transition-colors hover:bg-white/[0.06]"
       >
         <span className={`text-sm ${selected ? 'text-text-primary font-medium' : 'text-text-tertiary'}`}>
           {selected ?? 'Kies een oefening...'}
@@ -77,8 +77,8 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
                     setOpen(false)
                     setQuery('')
                   }}
-                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-system-gray6 ${
-                    exercise.name === selected ? 'bg-system-gray6' : ''
+                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/[0.06] ${
+                    exercise.name === selected ? 'bg-white/[0.06]' : ''
                   }`}
                 >
                   <span className="text-sm text-text-primary">{exercise.name}</span>

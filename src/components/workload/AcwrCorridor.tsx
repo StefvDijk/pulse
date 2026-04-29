@@ -16,7 +16,7 @@ import type { TrendPoint, WorkloadStatus } from '@/types/workload'
 // ── Theme tokens (CSS variables resolved by the browser) ─────────────────────
 
 const STATUS_FILL: Record<WorkloadStatus, string> = {
-  low: 'var(--color-system-gray3)',
+  low: 'rgba(255,255,255,0.16)',
   optimal: 'var(--color-status-good)',
   warning: 'var(--color-status-warn)',
   danger: 'var(--color-status-bad)',
@@ -72,7 +72,7 @@ function CorridorDot(props: DotPayload) {
       cy={cy}
       r={radius}
       fill={fill}
-      stroke="var(--color-surface-primary)"
+      stroke="var(--color-bg-surface)"
       strokeWidth={2}
     />
   )
@@ -94,7 +94,7 @@ function CorridorTooltip({ active, payload }: TooltipProps) {
   const point = payload[0].payload
 
   return (
-    <div className="rounded-xl border border-bg-border bg-bg-surface p-3 shadow-apple-md">
+    <div className="rounded-xl border border-bg-border bg-bg-surface p-3">
       <p className="text-caption2 uppercase tracking-wide text-text-tertiary">
         Week eindigend {formatShortNL(point.windowEnd)}
       </p>

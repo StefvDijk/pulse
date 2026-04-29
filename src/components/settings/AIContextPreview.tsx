@@ -35,7 +35,7 @@ export function AIContextPreview() {
 
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg bg-system-gray6 px-3 py-2 text-sm text-text-secondary hover:bg-system-gray6 transition-colors"
+        className="flex w-full items-center justify-between rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-text-secondary hover:bg-white/[0.06] transition-colors"
       >
         <span className="flex items-center gap-1.5">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -54,7 +54,7 @@ export function AIContextPreview() {
             <button
               onClick={() => mutate()}
               disabled={isLoading}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-system-gray6 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] disabled:opacity-50"
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
               Vernieuw
@@ -64,11 +64,11 @@ export function AIContextPreview() {
           {isLoading ? (
             <div className="flex flex-col gap-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-4 animate-pulse rounded bg-system-gray6" />
+                <div key={i} className="h-4 animate-pulse rounded bg-white/[0.06]" />
               ))}
             </div>
           ) : data ? (
-            <pre className="max-h-96 overflow-y-auto rounded-lg bg-system-gray6 p-3 text-xs text-text-secondary font-mono whitespace-pre-wrap leading-relaxed">
+            <pre className="max-h-96 overflow-y-auto rounded-lg bg-white/[0.06] p-3 text-xs text-text-secondary font-mono whitespace-pre-wrap leading-relaxed">
               {data.systemPrompt}
               {'\n\n--- DATA CONTEXT ---\n\n'}
               {data.thinContext}

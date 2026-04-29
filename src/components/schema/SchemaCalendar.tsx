@@ -43,25 +43,25 @@ function SportIcon({ sport, size = 9, className }: { sport: SportType; size?: nu
 
 function sportColorClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-system-orange'
-    case 'padel': return 'bg-system-yellow'
-    default: return 'bg-system-blue'
+    case 'run': return 'bg-[var(--color-status-warn)]'
+    case 'padel': return 'bg-[var(--color-status-warn)]'
+    default: return 'bg-[#0A84FF]'
   }
 }
 
 function sportLightClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-system-orange/10'
-    case 'padel': return 'bg-system-yellow/10'
-    default: return 'bg-system-blue/10'
+    case 'run': return 'bg-[var(--color-status-warn)]/10'
+    case 'padel': return 'bg-[var(--color-status-warn)]/10'
+    default: return 'bg-[#0A84FF]/10'
   }
 }
 
 function sportTextClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'text-system-orange'
-    case 'padel': return 'text-system-yellow'
-    default: return 'text-system-blue'
+    case 'run': return 'text-[var(--color-status-warn)]'
+    case 'padel': return 'text-[var(--color-status-warn)]'
+    default: return 'text-[#0A84FF]'
   }
 }
 
@@ -106,7 +106,7 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
             <button
               key={target.date}
               onClick={() => onMove(target.date)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-system-gray6 transition-colors"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors"
             >
               <ArrowRight size={14} className="text-text-tertiary" />
               <span className="text-sm text-text-primary">
@@ -160,7 +160,7 @@ function DayCell({ day, isCurrentWeek, onOpenMenu, onOpenDetail }: DayCellProps)
           ? 'bg-text-primary/5 ring-1 ring-text-primary'
           : day.status === 'completed'
             ? sportLightClass(sport)
-            : 'hover:bg-system-gray6'
+            : 'hover:bg-white/[0.06]'
       } ${isPast && day.status !== 'completed' && !isCurrentWeek ? 'opacity-50' : ''}`}
     >
       <span className={`text-[11px] tabular-nums ${isToday ? 'font-bold text-text-primary' : 'text-text-tertiary'}`}>
@@ -185,7 +185,7 @@ function DayCell({ day, isCurrentWeek, onOpenMenu, onOpenDetail }: DayCellProps)
       {day.status !== 'completed' && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenMenu() }}
-          className="mt-0.5 p-0.5 rounded hover:bg-system-gray6"
+          className="mt-0.5 p-0.5 rounded hover:bg-white/[0.06]"
         >
           <MoreHorizontal size={10} className="text-text-tertiary" />
         </button>
@@ -234,7 +234,7 @@ export function SchemaCalendar({
         <button
           onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
           disabled={selectedWeek <= 1}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-system-gray6 disabled:opacity-30"
+          className="p-1 rounded-lg text-text-tertiary hover:bg-white/[0.06] disabled:opacity-30"
         >
           <ChevronLeft size={18} />
         </button>
@@ -243,7 +243,7 @@ export function SchemaCalendar({
           <h3 className="text-sm font-semibold text-text-primary">
             Week {selectedWeek}
             {selectedWeek === currentWeek && (
-              <span className="ml-1.5 text-[10px] font-normal text-system-blue">(huidige)</span>
+              <span className="ml-1.5 text-[10px] font-normal text-[#0A84FF]">(huidige)</span>
             )}
           </h3>
           <p className="text-[11px] text-text-tertiary mt-0.5">
@@ -253,7 +253,7 @@ export function SchemaCalendar({
           </p>
           <button
             onClick={() => setEditingWeek(true)}
-            className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-system-gray6 px-2.5 py-0.5 text-[10px] font-medium text-text-secondary hover:bg-system-gray5"
+            className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-text-secondary hover:bg-white/[0.08]"
           >
             <Pencil size={10} />
             Aanpassen
@@ -263,7 +263,7 @@ export function SchemaCalendar({
         <button
           onClick={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
           disabled={selectedWeek >= weeks.length}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-system-gray6 disabled:opacity-30"
+          className="p-1 rounded-lg text-text-tertiary hover:bg-white/[0.06] disabled:opacity-30"
         >
           <ChevronRight size={18} />
         </button>
@@ -299,10 +299,10 @@ export function SchemaCalendar({
             onClick={() => setSelectedWeek(w.weekNumber)}
             className={`h-2 rounded-full transition-all ${
               w.weekNumber === selectedWeek
-                ? 'w-4 bg-system-blue'
+                ? 'w-4 bg-[#0A84FF]'
                 : w.isComplete
-                  ? 'w-2 bg-system-blue/40'
-                  : 'w-2 bg-system-gray6'
+                  ? 'w-2 bg-[#0A84FF]/40'
+                  : 'w-2 bg-white/[0.06]'
             }`}
           />
         ))}
@@ -313,7 +313,7 @@ export function SchemaCalendar({
         <div className="border-t border-bg-border px-4 py-3">
           <button
             onClick={onPushToCalendar}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-system-blue px-4 py-2.5 text-sm font-medium text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-4 py-2.5 text-sm font-medium text-white"
           >
             <Calendar size={14} />
             Week {selectedWeek} inplannen in agenda

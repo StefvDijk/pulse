@@ -273,12 +273,12 @@ export function SettingsPage() {
         <SectionHeader title="Google Agenda" />
 
         {calendarStatus === 'connected' && (
-          <div className="mb-3 rounded-lg bg-system-green/10 px-3 py-2 text-sm text-system-green">
+          <div className="mb-3 rounded-lg bg-[var(--color-status-good)]/10 px-3 py-2 text-sm text-[var(--color-status-good)]">
             Google Agenda gekoppeld ✓
           </div>
         )}
         {calendarStatus === 'error' && (
-          <div className="mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
+          <div className="mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
             Koppeling mislukt — probeer opnieuw.
           </div>
         )}
@@ -297,7 +297,7 @@ export function SettingsPage() {
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnecting}
-              className="rounded-lg border border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-system-gray6 disabled:opacity-50"
+              className="rounded-lg border border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-white/[0.06] disabled:opacity-50"
             >
               {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
             </button>
@@ -310,7 +310,7 @@ export function SettingsPage() {
             </div>
             <a
               href="/api/calendar/auth"
-              className="rounded-lg bg-system-blue px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
+              className="rounded-lg bg-[#0A84FF] px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
             >
               Koppel Google Agenda
             </a>
@@ -399,7 +399,7 @@ export function SettingsPage() {
             />
           </Field>
           {passwordError && (
-            <p className="text-sm text-system-red">{passwordError}</p>
+            <p className="text-sm text-[var(--color-status-bad)]">{passwordError}</p>
           )}
           <div className="flex justify-end">
             <SaveButton

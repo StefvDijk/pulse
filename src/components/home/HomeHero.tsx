@@ -93,7 +93,7 @@ export function HomeHero({ day }: HomeHeroProps) {
   return (
     <Link
       href={hero.href}
-      className="block rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm transition-opacity active:opacity-70"
+      className="block rounded-3xl border border-bg-border bg-bg-surface p-5 transition-opacity active:opacity-70"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">

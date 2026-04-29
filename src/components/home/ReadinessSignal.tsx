@@ -20,31 +20,31 @@ const LEVEL_CONFIG: Record<ReadinessLevel, LevelConfig> = {
   good: {
     label: 'Goed hersteld',
     orbState: 'ready',
-    bgClass: 'bg-system-green/10',
-    textClass: 'text-system-green',
+    bgClass: 'bg-[var(--color-status-good)]/10',
+    textClass: 'text-[var(--color-status-good)]',
     ringColor: 'var(--color-status-good)',
     trackColor: 'rgba(34, 214, 122, 0.18)',
   },
   normal: {
     label: 'Klaar om te trainen',
     orbState: 'warning',
-    bgClass: 'bg-system-orange/10',
-    textClass: 'text-system-orange',
+    bgClass: 'bg-[var(--color-status-warn)]/10',
+    textClass: 'text-[var(--color-status-warn)]',
     ringColor: 'var(--color-status-warn)',
     trackColor: 'rgba(255, 176, 32, 0.18)',
   },
   fatigued: {
     label: 'Vermoeid',
     orbState: 'alert',
-    bgClass: 'bg-system-red/10',
-    textClass: 'text-system-red',
+    bgClass: 'bg-[var(--color-status-bad)]/10',
+    textClass: 'text-[var(--color-status-bad)]',
     ringColor: 'var(--color-status-bad)',
     trackColor: 'rgba(255, 77, 109, 0.18)',
   },
   rest_day: {
     label: 'Rustdag',
     orbState: 'idle',
-    bgClass: 'bg-system-gray6',
+    bgClass: 'bg-white/[0.06]',
     textClass: 'text-text-secondary',
     ringColor: 'var(--color-brand-claude)',
     trackColor: 'rgba(217, 119, 87, 0.18)',
@@ -200,7 +200,7 @@ export function ReadinessSignal() {
         <div className="mt-3 text-caption1 text-text-tertiary">
           <Link
             href="/belasting"
-            className="text-system-blue transition-opacity active:opacity-60"
+            className="text-[#0A84FF] transition-opacity active:opacity-60"
           >
             {acwrLabel}
           </Link>

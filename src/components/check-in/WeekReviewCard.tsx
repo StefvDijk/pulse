@@ -92,8 +92,8 @@ export function WeekReviewCard({
           {/* Gym workouts */}
           {data.workouts.map((w) => (
             <div key={w.id} className="flex items-center gap-3 py-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-system-blue/10">
-                <Dumbbell size={14} className="text-system-blue" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0A84FF]/10">
+                <Dumbbell size={14} className="text-[#0A84FF]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-text-primary truncate">{w.title}</p>
@@ -108,8 +108,8 @@ export function WeekReviewCard({
           {/* Runs */}
           {data.runs.map((r) => (
             <div key={r.id} className="flex items-center gap-3 py-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-system-orange/10">
-                <Footprints size={14} className="text-system-orange" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-status-warn)]/10">
+                <Footprints size={14} className="text-[var(--color-status-warn)]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-text-primary">
@@ -126,7 +126,7 @@ export function WeekReviewCard({
           {/* Padel sessions */}
           {data.padelSessions.map((p) => (
             <div key={p.id} className="flex items-center gap-3 py-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-system-yellow/10">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-status-warn)]/10">
                 <span className="text-sm">🎾</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -211,7 +211,7 @@ export function WeekReviewCard({
       {data.highlights.personalRecords.length > 0 && (
         <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Trophy size={16} className="text-system-orange" />
+            <Trophy size={16} className="text-[var(--color-status-warn)]" />
             <h3 className="text-subhead font-semibold text-text-primary">Records</h3>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -223,7 +223,7 @@ export function WeekReviewCard({
               return (
                 <div key={pr.id} className="flex items-center justify-between py-1">
                   <span className="text-sm text-text-primary">{exerciseName}</span>
-                  <span className="text-sm font-medium text-system-orange">
+                  <span className="text-sm font-medium text-[var(--color-status-warn)]">
                     {pr.value} {pr.unit}
                   </span>
                 </div>
@@ -237,13 +237,13 @@ export function WeekReviewCard({
       {data.gaps.length > 0 && (
         <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={16} className="text-system-orange" />
+            <AlertTriangle size={16} className="text-[var(--color-status-warn)]" />
             <h3 className="text-subhead font-semibold text-text-primary">Mogelijk gemist</h3>
           </div>
           <div className="flex flex-col gap-1.5">
             {data.gaps.map((gap) => (
               <div key={`${gap.date}-${gap.type}`} className="flex items-center gap-3 py-1">
-                <span className="text-sm text-system-orange capitalize">{gap.dayName}</span>
+                <span className="text-sm text-[var(--color-status-warn)] capitalize">{gap.dayName}</span>
                 <span className="text-sm text-text-secondary">{gap.expected} niet gelogd</span>
               </div>
             ))}
@@ -261,7 +261,7 @@ export function WeekReviewCard({
                 <span className="text-sm text-text-primary">{item.label}</span>
                 <button
                   onClick={() => onRemoveManual(i)}
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray5"
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
                 >
                   <X size={12} />
                 </button>
@@ -282,7 +282,7 @@ export function WeekReviewCard({
         </button>
         <button
           onClick={onNext}
-          className="flex-1 rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white"
+          className="flex-1 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white"
         >
           Analyse genereren
         </button>

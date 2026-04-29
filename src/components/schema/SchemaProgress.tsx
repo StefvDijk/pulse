@@ -59,7 +59,7 @@ export function SchemaProgress({
           <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
           <p className="text-xs text-text-tertiary mt-0.5">{statusText}</p>
         </div>
-        <span className="shrink-0 text-xs font-medium text-system-blue tabular-nums">
+        <span className="shrink-0 text-xs font-medium text-[#0A84FF] tabular-nums">
           {totalSessionsCompleted}/{totalSessionsPlanned}
         </span>
       </div>
@@ -77,12 +77,12 @@ export function SchemaProgress({
               {/* Bar */}
               <div
                 className={`h-2 rounded-full overflow-hidden ${
-                  isCurrent ? 'bg-system-blue/20' : 'bg-system-gray6'
+                  isCurrent ? 'bg-[#0A84FF]/20' : 'bg-white/[0.06]'
                 }`}
               >
                 <div
                   className={`h-full rounded-full transition-all ${
-                    isCurrent ? 'bg-system-blue' : fillPercent === 100 ? 'bg-system-blue' : 'bg-system-blue/40'
+                    isCurrent ? 'bg-[#0A84FF]' : fillPercent === 100 ? 'bg-[#0A84FF]' : 'bg-[#0A84FF]/40'
                   }`}
                   style={{ width: `${fillPercent}%` }}
                 />
@@ -90,7 +90,7 @@ export function SchemaProgress({
               {/* Label */}
               <span
                 className={`text-[10px] text-center ${
-                  isCurrent ? 'font-semibold text-system-blue' : 'text-text-tertiary'
+                  isCurrent ? 'font-semibold text-[#0A84FF]' : 'text-text-tertiary'
                 }`}
               >
                 W{week.weekNumber}

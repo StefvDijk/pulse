@@ -39,7 +39,7 @@ interface GoalData {
   targetUnit: string
 }
 
-const INPUT_CLASSES = 'bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
 
 export function OnboardingWizard() {
   const router = useRouter()
@@ -125,10 +125,10 @@ export function OnboardingWizard() {
               <div
                 className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                   i === step
-                    ? 'bg-system-blue text-white'
+                    ? 'bg-[#0A84FF] text-white'
                     : i < step
-                      ? 'bg-system-green text-white'
-                      : 'bg-system-gray6 text-text-tertiary'
+                      ? 'bg-[var(--color-status-good)] text-white'
+                      : 'bg-white/[0.06] text-text-tertiary'
                 }`}
               >
                 {i < step ? '✓' : i + 1}
@@ -240,11 +240,11 @@ export function OnboardingWizard() {
             <>
               <p className="text-xs text-text-tertiary">Voeg maximaal 3 doelen toe (optioneel)</p>
               {goals.map((goal, i) => (
-                <div key={i} className="rounded-lg p-3 bg-system-gray6 border border-bg-border">
+                <div key={i} className="rounded-lg p-3 bg-white/[0.06] border border-bg-border">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-medium text-text-tertiary">Doel {i + 1}</span>
                     {goals.length > 1 && (
-                      <button onClick={() => removeGoal(i)} className="text-xs text-system-red">Verwijder</button>
+                      <button onClick={() => removeGoal(i)} className="text-xs text-[var(--color-status-bad)]">Verwijder</button>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
@@ -259,7 +259,7 @@ export function OnboardingWizard() {
                       <select
                         value={goal.category}
                         onChange={(e) => updateGoal(i, 'category', e.target.value)}
-                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       >
                         <option value="strength">Kracht</option>
                         <option value="running">Hardlopen</option>
@@ -274,14 +274,14 @@ export function OnboardingWizard() {
                         placeholder="100"
                         min={0}
                         step="any"
-                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                       <input
                         type="text"
                         value={goal.targetUnit}
                         onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
-                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -290,7 +290,7 @@ export function OnboardingWizard() {
               {goals.length < 3 && (
                 <button
                   onClick={addGoal}
-                  className="text-sm text-system-blue"
+                  className="text-sm text-[#0A84FF]"
                 >
                   + Nog een doel toevoegen
                 </button>
@@ -312,7 +312,7 @@ export function OnboardingWizard() {
             {!isFirst && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-system-gray6 text-text-primary"
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-white/[0.06] text-text-primary"
               >
                 Vorige
               </button>
@@ -321,14 +321,14 @@ export function OnboardingWizard() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-system-blue text-white disabled:opacity-50"
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white disabled:opacity-50"
               >
                 {saving ? 'Opslaan…' : 'Klaar'}
               </button>
             ) : (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-system-blue text-white"
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white"
               >
                 Volgende
               </button>

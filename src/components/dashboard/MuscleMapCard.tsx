@@ -186,7 +186,7 @@ export function MuscleMapCard() {
         <h2 className="text-headline font-semibold text-text-primary">Spierkaart</h2>
         <div className="flex items-center gap-2">
           {weekSteps > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-system-gray6 px-2 py-0.5 text-caption2 font-medium text-text-secondary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-caption2 font-medium text-text-secondary">
               <Footprints size={12} className="text-text-tertiary" aria-hidden />
               {formatSteps(weekSteps)}
             </span>
@@ -209,9 +209,9 @@ export function MuscleMapCard() {
               className={[
                 'flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border transition-colors',
                 isOn
-                  ? 'border-system-orange bg-system-orange/10 text-system-orange'
+                  ? 'border-[var(--color-status-warn)] bg-[var(--color-status-warn)]/10 text-[var(--color-status-warn)]'
                   : hasWorkout
-                    ? 'border-bg-border text-text-secondary hover:bg-system-gray6'
+                    ? 'border-bg-border text-text-secondary hover:bg-white/[0.06]'
                     : 'border-bg-border/60 text-text-tertiary opacity-40',
               ].join(' ')}
               aria-pressed={isOn}
@@ -223,7 +223,7 @@ export function MuscleMapCard() {
                 <span
                   className={[
                     'h-1 w-1 rounded-full',
-                    isOn ? 'bg-system-orange' : 'bg-label-tertiary',
+                    isOn ? 'bg-[var(--color-status-warn)]' : 'bg-label-tertiary',
                   ].join(' ')}
                 />
               )}
@@ -261,14 +261,14 @@ export function MuscleMapCard() {
                     key={muscle}
                     type="button"
                     onClick={() => handleMuscleClick(muscle)}
-                    className="flex items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-system-gray6"
+                    className="flex items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-white/[0.06]"
                   >
                     <span className="w-24 shrink-0 text-footnote text-text-secondary">
                       {label}
                     </span>
-                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-system-gray6">
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
                       <span
-                        className="block h-full rounded-full bg-system-orange transition-[width] duration-300"
+                        className="block h-full rounded-full bg-[var(--color-status-warn)] transition-[width] duration-300"
                         style={{ width: `${maxHits > 0 ? (hits / maxHits) * 100 : 0}%` }}
                       />
                     </span>
@@ -291,9 +291,9 @@ export function MuscleMapCard() {
               {sessionTags.map((tag) => (
                 <span
                   key={tag.key}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-system-gray6 px-2.5 py-1 text-caption1 text-text-secondary"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 text-caption1 text-text-secondary"
                 >
-                  <span className="font-semibold text-system-orange">{tag.dayLabel}</span>
+                  <span className="font-semibold text-[var(--color-status-warn)]">{tag.dayLabel}</span>
                   {tag.title}
                 </span>
               ))}
@@ -314,7 +314,7 @@ export function MuscleMapCard() {
               return (
                 <li
                   key={entry.key}
-                  className="flex items-center gap-3 rounded-xl bg-system-gray6 px-3 py-2"
+                  className="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2"
                 >
                   <Icon size={16} className="shrink-0 text-text-tertiary" aria-hidden />
                   <div className="flex min-w-0 flex-1 items-baseline gap-2">

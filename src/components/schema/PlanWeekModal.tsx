@@ -101,7 +101,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray6"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
           >
             <X size={16} />
           </button>
@@ -109,8 +109,8 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
 
         {status === 'success' ? (
           <div className="flex flex-col items-center gap-3 px-5 py-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-system-green/10">
-              <Check size={28} className="text-system-green" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-status-good)]/10">
+              <Check size={28} className="text-[var(--color-status-good)]" />
             </div>
             <p className="text-base font-semibold text-text-primary">
               {createdCount} {createdCount === 1 ? 'workout' : 'workouts'} ingepland
@@ -120,7 +120,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             </p>
             <button
               onClick={onClose}
-              className="mt-2 rounded-xl bg-system-blue px-6 py-2.5 text-sm font-medium text-white"
+              className="mt-2 rounded-xl bg-[#0A84FF] px-6 py-2.5 text-sm font-medium text-white"
             >
               Sluiten
             </button>
@@ -133,7 +133,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                 <div
                   key={entry.day.date}
                   className={`rounded-xl border p-3 transition-colors ${
-                    entry.include ? 'border-bg-border bg-bg-surface' : 'border-bg-border bg-system-gray6 opacity-60'
+                    entry.include ? 'border-bg-border bg-bg-surface' : 'border-bg-border bg-white/[0.06] opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -162,14 +162,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="time"
                         value={entry.startTime}
                         onChange={(e) => updateEntry(i, { startTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-system-gray6 px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
                       />
                       <span className="text-xs text-text-tertiary">–</span>
                       <input
                         type="time"
                         value={entry.endTime}
                         onChange={(e) => updateEntry(i, { endTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-system-gray6 px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
                       />
                     </div>
                   )}
@@ -178,7 +178,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             </div>
 
             {status === 'error' && (
-              <div className="mx-5 mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
+              <div className="mx-5 mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
                 Kon niet inplannen. Probeer opnieuw.
               </div>
             )}
@@ -191,7 +191,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
               <button
                 onClick={handleSubmit}
                 disabled={status === 'loading' || includedCount === 0}
-                className="flex items-center gap-2 rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
                 {status === 'loading' ? (
                   <Loader2 size={16} className="animate-spin" />

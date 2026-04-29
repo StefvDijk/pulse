@@ -89,7 +89,7 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-system-blue transition-opacity disabled:opacity-30"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
           aria-label="Analyseer"
         >
           {isLoading ? (
@@ -102,14 +102,14 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
 
       {/* Error */}
       {error && (
-        <p className="text-xs text-system-red">
+        <p className="text-xs text-[var(--color-status-bad)]">
           {error}
         </p>
       )}
 
       {/* Last result preview */}
       {lastResult && (
-        <div className="flex items-center justify-between rounded-lg bg-system-gray6 px-3 py-2 text-xs">
+        <div className="flex items-center justify-between rounded-lg bg-white/[0.06] px-3 py-2 text-xs">
           <span className="text-text-primary">
             {lastResult.calories} kcal · {lastResult.protein_g}g eiwit · {lastResult.carbs_g}g koolh · {lastResult.fat_g}g vet
           </span>

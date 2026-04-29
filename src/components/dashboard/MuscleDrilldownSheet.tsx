@@ -117,7 +117,7 @@ export function MuscleDrilldownSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray5"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
             aria-label="Sluiten"
           >
             <X size={16} />
@@ -148,7 +148,7 @@ export function MuscleDrilldownSheet({
                     {group.hits.map((hit, idx) => (
                       <li
                         key={`${hit.workoutId}-${hit.exerciseName}-${idx}`}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-system-gray6 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.06] px-3 py-2"
                       >
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="truncate text-footnote text-text-primary">
@@ -158,8 +158,8 @@ export function MuscleDrilldownSheet({
                             className={[
                               'shrink-0 rounded-full px-1.5 py-0.5 text-caption2 font-medium',
                               hit.role === 'primary'
-                                ? 'bg-system-orange/15 text-system-orange'
-                                : 'bg-system-gray5 text-text-secondary',
+                                ? 'bg-[var(--color-status-warn)]/15 text-[var(--color-status-warn)]'
+                                : 'bg-white/[0.08] text-text-secondary',
                             ].join(' ')}
                           >
                             {hit.role === 'primary' ? 'primair' : 'secundair'}

@@ -51,13 +51,13 @@ export function PRList({ records }: PRListProps) {
             key={pr.id}
             className={`relative rounded-2xl p-3.5 ${
               recent
-                ? 'bg-system-blue/10 border border-system-blue/20'
+                ? 'bg-[#0A84FF]/10 border border-[#0A84FF]/20'
                 : 'bg-bg-surface border border-bg-border'
             }`}
           >
             {/* NIEUW badge */}
             {recent && (
-              <span className="absolute -top-2 right-3 rounded-full bg-system-blue px-2 py-0.5 text-[10px] font-semibold text-white">
+              <span className="absolute -top-2 right-3 rounded-full bg-[#0A84FF] px-2 py-0.5 text-[10px] font-semibold text-white">
                 NIEUW
               </span>
             )}
@@ -79,7 +79,7 @@ export function PRList({ records }: PRListProps) {
             {delta !== null && (
               <span
                 className={`mt-1 inline-block text-xs font-medium ${
-                  delta >= 0 ? 'text-system-green' : 'text-system-red'
+                  delta >= 0 ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'
                 }`}
               >
                 {delta >= 0 ? '+' : ''}

@@ -55,7 +55,7 @@ export default function SignupPage() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="Stef"
             />
           </div>
@@ -70,7 +70,7 @@ export default function SignupPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="stef@example.com"
             />
           </div>
@@ -86,13 +86,13 @@ export default function SignupPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
+              className="w-full bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none"
               placeholder="Minimaal 6 tekens"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-system-red">
+            <p className="text-sm text-[var(--color-status-bad)]">
               {error}
             </p>
           )}
@@ -100,7 +100,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50 bg-system-blue text-white"
+            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity disabled:opacity-50 bg-[#0A84FF] text-white"
           >
             {loading ? 'Account aanmaken...' : 'Registreren'}
           </button>
@@ -108,7 +108,7 @@ export default function SignupPage() {
 
         <p className="text-center text-sm text-text-secondary">
           Al een account?{' '}
-          <Link href="/auth/login" className="text-system-blue hover:underline">
+          <Link href="/auth/login" className="text-[#0A84FF] hover:underline">
             Inloggen
           </Link>
         </p>

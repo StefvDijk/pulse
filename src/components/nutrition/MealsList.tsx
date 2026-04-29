@@ -36,7 +36,7 @@ export function MealsList({ meals, onDelete }: MealsListProps) {
       {meals.map((meal) => (
         <div
           key={meal.id}
-          className="flex items-start justify-between gap-3 rounded-lg bg-system-gray6 p-3"
+          className="flex items-start justify-between gap-3 rounded-lg bg-white/[0.06] p-3"
         >
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-center gap-2">
@@ -59,7 +59,7 @@ export function MealsList({ meals, onDelete }: MealsListProps) {
 
           <button
             onClick={() => onDelete(meal.id)}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-text-tertiary transition-opacity hover:text-system-red hover:opacity-70"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-text-tertiary transition-opacity hover:text-[var(--color-status-bad)] hover:opacity-70"
             aria-label="Verwijder maaltijd"
           >
             <Trash2 size={16} />
