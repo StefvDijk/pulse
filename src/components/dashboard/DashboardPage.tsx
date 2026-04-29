@@ -3,8 +3,10 @@
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import { useSchemaWeek } from '@/hooks/useSchemaWeek'
+import { TodaysMove } from '@/components/home/TodaysMove'
 import { HomeHero } from '@/components/home/HomeHero'
 import { PulseTriad } from '@/components/home/PulseTriad'
+import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { ReadinessSignal } from '@/components/home/ReadinessSignal'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { TodayWorkoutCard } from '@/components/home/TodayWorkoutCard'
@@ -109,6 +111,13 @@ export function DashboardPage() {
         <CheckInBadge />
       </motion.div>
 
+      {/* Today's Move — ritual hero card (UXR-080).
+        * Sits above HomeHero on purpose: coaching tone + action button.
+        * HomeHero stays below as the data headline. */}
+      <motion.div variants={listItem} transition={springContent}>
+        <TodaysMove />
+      </motion.div>
+
       {/* Home Hero — editorial-scale day metric (UXR-040) */}
       <motion.div variants={listItem} transition={springContent}>
         <HomeHero day={todayDay ?? undefined} />
@@ -142,6 +151,11 @@ export function DashboardPage() {
       {/* Daily health metrics (steps, HR, HRV, sleep, weight) */}
       <motion.div variants={listItem} transition={springContent}>
         <DailyHealthBar />
+      </motion.div>
+
+      {/* Body composition trend — 4 weeks (UXR-090) */}
+      <motion.div variants={listItem} transition={springContent}>
+        <BodyCompositionCard />
       </motion.div>
 
       {/* Muscle heatmap — last 7 days */}

@@ -6,12 +6,26 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 - Size: XS (<1u) / S (1–4u) / M (4u–1d) / L (1–3d) / XL (>3d → splitsen)
 - Sprint-numbering volgt `PLAN-UX-REDESIGN.md` § *Aanbevolen volgorde*
 - Acceptatiecriteria zijn observable: getest in browser, of via een test-script. Geen "code is geschreven" criteria.
+- Status: ⬜ open · 🟡 in progress · ✅ done (gemerged + getest)
+
+## Status overview
+
+| Sprint | Stories | Status |
+|---|---|---|
+| Sprint 0 — Bugfixes | UXR-001, UXR-002 | ✅ done (commit 6982f69) |
+| Sprint 1 — Coaching tone & corridor | UXR-010, UXR-011, UXR-020, UXR-030 | ✅ done (commit 661d149) |
+| Sprint 2 — Homescreen identity | UXR-040, UXR-050, UXR-060 | ✅ done (commit 5b7297c) |
+| Sprint 3 — Foundation: baseline-engine | UXR-100, UXR-101, UXR-102 | ✅ done (commit a3cc046) — **vereist migration + types regen** |
+| Sprint 4 — Visuele rijkheid | UXR-070, UXR-080, UXR-090 | ✅ done — pending preview test |
+| Sprint 5 — Differentiator features | UXR-110, UXR-120, UXR-121, UXR-122 | UXR-120 ✅ done · rest ⬜ open |
+| Sprint 6 — Polishing | UXR-130, UXR-140, UXR-150, UXR-160 | ⬜ open |
+| Later | UXR-200, UXR-210, UXR-220 | ⬜ open |
 
 ---
 
 # Sprint 0 — Bugfixes (vandaag)
 
-## UXR-001 — Login redirect met full page reload
+## UXR-001 — Login redirect met full page reload  ✅
 
 **Tier:** 0.1 · **Size:** XS · **Depends on:** —
 
@@ -27,7 +41,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-002 — Chat scroll niet meer schokkerig
+## UXR-002 — Chat scroll niet meer schokkerig  ✅
 
 **Tier:** 0.2 · **Size:** S · **Depends on:** —
 
@@ -50,7 +64,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 # Sprint 1 — Coaching tone & corridor (deze week)
 
-## UXR-010 — One-sentence readiness summary endpoint
+## UXR-010 — One-sentence readiness summary endpoint  ✅
 
 **Tier:** 1.1 (deel 1) · **Size:** S · **Depends on:** —
 
@@ -67,7 +81,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-011 — ReadinessSignal redesign
+## UXR-011 — ReadinessSignal redesign  ✅
 
 **Tier:** 1.1 (deel 2) · **Size:** S · **Depends on:** UXR-010
 
@@ -82,7 +96,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-020 — ACWR corridor chart op /belasting
+## UXR-020 — ACWR corridor chart op /belasting  ✅
 
 **Tier:** 1.2 · **Size:** S · **Depends on:** —
 
@@ -99,7 +113,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-030 — CoachOrb component
+## UXR-030 — CoachOrb component  ✅
 
 **Tier:** 1.3 · **Size:** S · **Depends on:** —
 
@@ -119,7 +133,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 # Sprint 2 — Homescreen identiteit
 
-## UXR-040 — Home hero metric
+## UXR-040 — Home hero metric  ✅
 
 **Tier:** 1.4 · **Size:** S · **Depends on:** UXR-030
 
@@ -136,7 +150,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-050 — Time-of-day theming
+## UXR-050 — Time-of-day theming  ✅
 
 **Tier:** 1.5 · **Size:** S · **Depends on:** —
 
@@ -151,7 +165,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-060 — Pulse Triad (Train · Recover · Fuel)
+## UXR-060 — Pulse Triad (Train · Recover · Fuel)  ✅
 
 **Tier:** 2.1 · **Size:** M · **Depends on:** UXR-040 (om dezelfde plek te delen)
 
@@ -173,7 +187,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 # Sprint 3 — Foundation: baseline-engine
 
-## UXR-100 — Schema voor `metric_baselines`
+## UXR-100 — Schema voor `metric_baselines`  ✅
 
 **Tier:** 3.1 (deel 1) · **Size:** S · **Depends on:** —
 
@@ -189,7 +203,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-101 — Baseline-aggregator service
+## UXR-101 — Baseline-aggregator service  ✅
 
 **Tier:** 3.1 (deel 2) · **Size:** M · **Depends on:** UXR-100
 
@@ -205,7 +219,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-102 — Baseline-tag UI helper
+## UXR-102 — Baseline-tag UI helper  ✅
 
 **Tier:** 3.1 (deel 3) · **Size:** S · **Depends on:** UXR-101
 
@@ -222,7 +236,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 # Sprint 4 — Visuele rijkheid
 
-## UXR-070 — Workout heatmap-card hero
+## UXR-070 — Workout heatmap-card hero  ✅
 
 **Tier:** 2.2 · **Size:** M · **Depends on:** —
 
@@ -237,7 +251,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-080 — Today's Move card
+## UXR-080 — Today's Move card  ✅
 
 **Tier:** 2.4 · **Size:** M · **Depends on:** UXR-040
 
@@ -253,7 +267,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-090 — Tonnage trend + body comp sparkline
+## UXR-090 — Tonnage trend + body comp sparkline  ✅
 
 **Tier:** 2.5 · **Size:** M · **Depends on:** UXR-100, UXR-101 (voor de "vs baseline" tags)
 
@@ -288,7 +302,7 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ---
 
-## UXR-120 — Schema voor coaching memory feed
+## UXR-120 — Schema voor coaching memory feed  ✅
 
 **Tier:** 3.3 (deel 1) · **Size:** S · **Depends on:** —
 
