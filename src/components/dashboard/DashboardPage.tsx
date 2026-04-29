@@ -1,169 +1,331 @@
 'use client'
 
-import { useMemo } from 'react'
 import { motion } from 'motion/react'
-import { useSchemaWeek } from '@/hooks/useSchemaWeek'
-import { TodaysMove } from '@/components/home/TodaysMove'
-import { HomeHero } from '@/components/home/HomeHero'
-import { PulseTriad } from '@/components/home/PulseTriad'
-import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
-import { ReadinessSignal } from '@/components/home/ReadinessSignal'
+import { CoachOrb } from '@/components/shared/CoachOrb'
+import { useSchemaWeek, type SchemaWeekDay } from '@/hooks/useSchemaWeek'
+import { useReadiness } from '@/hooks/useReadiness'
+import { useWorkload } from '@/hooks/useWorkload'
+import { Card, ReadinessOrb, MicroStat, ZoneBar, SportDot, SPORT_BASE, type Sport } from '@/components/ui/v2'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
-import { TodayWorkoutCard } from '@/components/home/TodayWorkoutCard'
-import { WeekAtAGlance } from '@/components/home/WeekAtAGlance'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
+import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { SyncButton } from '@/components/home/SyncButton'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
+import Link from 'next/link'
 
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 6) return 'Goedenacht'
-  if (hour < 12) return 'Goedemorgen'
-  if (hour < 18) return 'Goedemiddag'
-  return 'Goedenavond'
+const DATE_FMT = new Intl.DateTimeFormat('nl-NL', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'Europe/Amsterdam',
+})
+
+function formatDate(d = new Date()): string {
+  return DATE_FMT.format(d).replace(/^\w/, (c) => c.toUpperCase())
+}
+
+function weekNumber(d = new Date()): number {
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const dayNum = (target.getUTCDay() + 6) % 7
+  target.setUTCDate(target.getUTCDate() - dayNum + 3)
+  const firstThursday = target.valueOf()
+  target.setUTCMonth(0, 1)
+  if (target.getUTCDay() !== 4) {
+    target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7)
+  }
+  return 1 + Math.ceil((firstThursday - target.valueOf()) / (7 * 24 * 3600 * 1000))
+}
+
+function sportFor(type: string | null | undefined): Sport {
+  const t = (type ?? '').toLowerCase()
+  if (t.includes('run') || t.includes('hardlop')) return 'run'
+  if (t.includes('padel')) return 'padel'
+  if (t.includes('cycle') || t.includes('fiets')) return 'cycle'
+  return 'gym'
+}
+
+function readinessScore(level: string | undefined): number {
+  if (level === 'good') return 86
+  if (level === 'normal') return 68
+  if (level === 'fatigued') return 48
+  return 38
+}
+
+function readinessLabel(level: string | undefined): { label: string; tone: 'good' | 'warn' | 'bad' } {
+  if (level === 'good') return { label: 'Goed hersteld', tone: 'good' }
+  if (level === 'normal') return { label: 'Op koers', tone: 'good' }
+  if (level === 'fatigued') return { label: 'Vermoeid', tone: 'warn' }
+  return { label: 'Rustdag aanbevolen', tone: 'bad' }
 }
 
 function HomeSkeleton() {
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <SkeletonCard className="flex flex-col gap-3">
-        <SkeletonLine width="w-2/5" />
-        <SkeletonLine width="w-1/4" height="h-3" />
-        <SkeletonRect height="h-32" />
-      </SkeletonCard>
-      <SkeletonCard className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="h-8 flex-1 rounded-full bg-system-gray6" />
-          ))}
-        </div>
-      </SkeletonCard>
-      <div className="grid grid-cols-3 gap-3">
-        <SkeletonCard className="flex flex-col items-center gap-2">
-          <SkeletonLine width="w-1/2" />
-          <SkeletonLine width="w-2/3" height="h-3" />
-        </SkeletonCard>
-        <SkeletonCard className="flex flex-col items-center gap-2">
-          <SkeletonLine width="w-1/2" />
-          <SkeletonLine width="w-2/3" height="h-3" />
-        </SkeletonCard>
-        <SkeletonCard className="flex flex-col items-center gap-2">
-          <SkeletonLine width="w-1/2" />
-          <SkeletonLine width="w-2/3" height="h-3" />
-        </SkeletonCard>
+    <div className="flex flex-col gap-3 p-4 pt-16">
+      <SkeletonCard className="flex flex-col gap-3"><SkeletonLine width="w-2/5" /><SkeletonRect height="h-24" /></SkeletonCard>
+      <SkeletonCard className="flex flex-col gap-3"><SkeletonRect height="h-32" /></SkeletonCard>
+      <div className="grid grid-cols-2 gap-2">
+        <SkeletonCard><SkeletonLine width="w-2/3" /></SkeletonCard>
+        <SkeletonCard><SkeletonLine width="w-2/3" /></SkeletonCard>
       </div>
     </div>
   )
 }
 
-export function DashboardPage() {
-  const { data: schemaWeek, error: schemaError, isLoading: schemaLoading, today, refresh: refreshSchema } = useSchemaWeek()
+interface TodayWorkoutHeroProps {
+  day: SchemaWeekDay | null | undefined
+}
 
-  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-  const todayDay = today ?? schemaWeek?.days?.find((d) => d.date === todayStr) ?? null
-
-  const tomorrowWorkout = useMemo(() => {
-    if (!schemaWeek || !todayDay) return null
-    const todayIndex = schemaWeek.days.findIndex((d) => d.date === todayDay.date)
-    if (todayIndex === -1 || todayIndex >= schemaWeek.days.length - 1) return null
-    return schemaWeek.days[todayIndex + 1]?.workout?.title ?? null
-  }, [schemaWeek, todayDay])
-
-  if (schemaLoading) {
-    return <HomeSkeleton />
+function TodayWorkoutHero({ day }: TodayWorkoutHeroProps) {
+  if (!day || !day.workout) {
+    return (
+      <Card radius="xl" className="p-[18px]">
+        <div className="text-[11px] font-semibold uppercase tracking-[1.2px] text-text-tertiary">Vandaag</div>
+        <div className="mt-2 text-[20px] font-bold tracking-[-0.4px] text-text-primary">Rustdag</div>
+        <div className="mt-1 text-[13px] text-text-secondary">Geen workout gepland — wandelen mag wél.</div>
+      </Card>
+    )
   }
+  const sport = sportFor(day.workout.type)
+  const accent = SPORT_BASE[sport]
+  return (
+    <div
+      className="relative overflow-hidden rounded-[28px] border-[0.5px] border-bg-border-strong bg-bg-surface"
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(80% 100% at 100% 0%, rgba(0,229,199,0.32), transparent 60%), radial-gradient(60% 80% at 0% 100%, rgba(124,58,237,0.25), transparent 60%)',
+        }}
+      />
+      <div className="relative p-[18px]">
+        <div className="flex items-center gap-2">
+          <SportDot sport={sport} size={8} glow />
+          <span
+            className="text-[11px] font-semibold uppercase tracking-[1.2px]"
+            style={{ color: accent }}
+          >
+            Vandaag · {day.workout.type ?? 'Training'}
+          </span>
+        </div>
+        <div className="mt-2 text-[24px] font-bold tracking-[-0.6px] text-text-primary">{day.workout.title}</div>
+        <div className="mt-1 text-[13px] text-text-secondary">
+          {day.workout.subtitle || `≈ ${day.workout.duration_min} min`}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Link
+            href="/schema"
+            className="flex h-12 flex-1 items-center justify-center rounded-[14px] bg-white text-[15px] font-semibold text-black active:opacity-80"
+          >
+            Start workout
+          </Link>
+          <Link
+            href="/schema"
+            aria-label="Detail"
+            className="flex h-12 w-12 items-center justify-center rounded-[14px] border-[0.5px] border-white/[0.14] bg-white/[0.06] text-[18px] text-white active:opacity-60"
+          >
+            ›
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
 
+interface WeekStripProps {
+  days: SchemaWeekDay[]
+}
+
+function WeekStrip({ days }: WeekStripProps) {
+  const completed = days.filter((d) => d.status === 'completed').length
+  const planned = days.filter((d) => d.workout).length
+  return (
+    <Card className="p-[14px]">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.6px] text-text-tertiary">Deze week</div>
+        <div className="text-[11px] text-text-secondary">{completed} / {planned} voltooid</div>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1.5">
+        {days.map((d) => {
+          const sport = d.workout ? sportFor(d.workout.type) : null
+          const color = sport ? SPORT_BASE[sport] : 'rgba(255,255,255,0.10)'
+          const isToday = d.status === 'today'
+          const done = d.status === 'completed'
+          return (
+            <div key={d.date} className="flex flex-col items-center gap-1.5">
+              <div
+                className="relative flex h-9 w-9 items-center justify-center rounded-full"
+                style={{
+                  background: done ? color : 'transparent',
+                  border: done ? 'none' : `1.5px ${sport ? 'solid' : 'dashed'} ${sport ? color : 'rgba(255,255,255,0.16)'}`,
+                  boxShadow: isToday ? `0 0 0 2px var(--color-bg-page), 0 0 0 3px ${sport ? color : '#fff'}` : undefined,
+                }}
+              >
+                {done && (
+                  <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 7l3 3 5-6" stroke="#000" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                )}
+              </div>
+              <div className={`text-[11px] ${isToday ? 'font-semibold text-text-primary' : 'font-medium text-text-tertiary'}`}>
+                {d.dayLabel.charAt(0).toUpperCase()}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
+export function DashboardPage() {
+  const {
+    data: schemaWeek,
+    today,
+    error: schemaError,
+    isLoading: schemaLoading,
+    refresh: refreshSchema,
+  } = useSchemaWeek()
+  const { data: readiness } = useReadiness()
+  const { data: workload } = useWorkload()
+
+  if (schemaLoading) return <HomeSkeleton />
   if (schemaError) {
     return (
       <div className="p-4">
-        <ErrorAlert
-          message="Kan homepage niet laden."
-          onRetry={refreshSchema}
-        />
+        <ErrorAlert message="Kan homepage niet laden." onRetry={refreshSchema} />
       </div>
     )
   }
 
-  const greeting = getGreeting()
-  const firstName = schemaWeek?.displayName?.split(' ')[0] ?? ''
+  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+  const todayDay = today ?? schemaWeek?.days?.find((d) => d.date === todayStr) ?? null
+
+  const score = readinessScore(readiness?.level)
+  const { label: readinessLbl, tone } = readinessLabel(readiness?.level)
+  const ratio = workload?.ratio ?? readiness?.acwr ?? null
+  const ratioPct = ratio !== null ? Math.max(0, Math.min(1, ratio / 2.0)) : 0.5
+
+  const sleepHours = readiness?.sleepMinutes ? Math.floor(readiness.sleepMinutes / 60) : null
+  const sleepMins = readiness?.sleepMinutes ? readiness.sleepMinutes % 60 : null
 
   return (
     <motion.div
-      className="flex flex-col gap-4 p-4"
+      className="flex flex-col gap-3 px-4 pt-16 pb-4"
       variants={listContainer}
       initial="initial"
       animate="animate"
     >
-      {/* Greeting */}
-      <motion.h1
-        variants={listItem}
-        transition={springContent}
-        className="text-title1 font-bold tracking-tight text-label-primary"
-      >
-        {greeting}{firstName ? `, ${firstName}` : ''}
-      </motion.h1>
+      {/* Header */}
+      <motion.div variants={listItem} transition={springContent} className="flex items-end justify-between pb-1">
+        <div>
+          <div className="text-[28px] font-bold tracking-[-0.6px] text-text-primary">Vandaag</div>
+          <div className="mt-0.5 text-[13px] text-text-secondary">
+            {formatDate()} · Week {weekNumber()}
+          </div>
+        </div>
+        <Link href="/chat" aria-label="Coach">
+          <CoachOrb size={32} />
+        </Link>
+      </motion.div>
 
-      {/* Check-in nudge (Sa/Su/Mo only, hides after review) */}
+      {/* Check-in nudge */}
       <motion.div variants={listItem} transition={springContent}>
         <CheckInBadge />
       </motion.div>
 
-      {/* Today's Move — ritual hero card (UXR-080).
-        * Sits above HomeHero on purpose: coaching tone + action button.
-        * HomeHero stays below as the data headline. */}
+      {/* Big Readiness card */}
       <motion.div variants={listItem} transition={springContent}>
-        <TodaysMove />
+        <Card
+          className="p-[18px]"
+          style={{ background: 'linear-gradient(135deg, #1E2230 0%, #2A3340 100%)' }}
+        >
+          <div className="flex items-center gap-[18px]">
+            <ReadinessOrb value={score / 100} size={108} />
+            <div className="flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px] text-text-tertiary">Readiness</div>
+              <div className="text-[44px] font-bold leading-none tracking-[-1.2px] text-text-primary tabular-nums">{score}</div>
+              <div
+                className={`mt-0.5 text-[12px] font-medium ${
+                  tone === 'good' ? 'text-[var(--color-status-good)]' : tone === 'warn' ? 'text-[var(--color-status-warn)]' : 'text-[var(--color-status-bad)]'
+                }`}
+              >
+                {readinessLbl}
+              </div>
+            </div>
+          </div>
+          <div className="mt-[18px] grid grid-cols-4 gap-2.5 border-t-[0.5px] border-bg-border pt-3.5">
+            <MicroStat label="HRV" value={readiness?.hrv ?? '—'} delta={readiness?.hrv ? 'ms' : undefined} good />
+            <MicroStat label="RHR" value={readiness?.restingHR ?? '—'} delta={readiness?.restingHR ? 'bpm' : undefined} good />
+            <MicroStat
+              label="Slaap"
+              value={sleepHours !== null ? `${sleepHours}u ${sleepMins}m` : '—'}
+            />
+            <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="7d" />
+          </div>
+        </Card>
       </motion.div>
 
-      {/* Home Hero — editorial-scale day metric (UXR-040) */}
-      <motion.div variants={listItem} transition={springContent}>
-        <HomeHero day={todayDay ?? undefined} />
-      </motion.div>
-
-      {/* Pulse Triad — Train · Recover · Fuel rings (UXR-060) */}
-      <motion.div variants={listItem} transition={springContent}>
-        <PulseTriad />
-      </motion.div>
-
-      {/* Readiness Signal — the "how does today feel" card */}
-      <motion.div variants={listItem} transition={springContent}>
-        <ReadinessSignal />
-      </motion.div>
-
-      {/* Today's workout */}
-      <motion.div variants={listItem} transition={springContent}>
-        <TodayWorkoutCard
-          day={todayDay ?? undefined}
-          tomorrowWorkout={tomorrowWorkout}
-        />
-      </motion.div>
-
-      {/* Week at a glance */}
-      {schemaWeek && (
+      {/* Strain bar */}
+      {ratio !== null && (
         <motion.div variants={listItem} transition={springContent}>
-          <WeekAtAGlance days={schemaWeek.days} />
+          <Card className="p-[14px]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.6px] text-text-tertiary">
+                  Belasting (acute:chronic)
+                </div>
+                <div className="mt-1 text-[28px] font-bold tracking-[-0.6px] text-text-primary tabular-nums">
+                  {ratio.toFixed(2)}{' '}
+                  <span
+                    className={`text-[13px] font-medium ${
+                      ratio >= 0.8 && ratio <= 1.3
+                        ? 'text-[var(--color-status-good)]'
+                        : 'text-[var(--color-status-warn)]'
+                    }`}
+                  >
+                    {ratio >= 0.8 && ratio <= 1.3 ? 'optimaal' : ratio < 0.8 ? 'licht' : 'opbouw'}
+                  </span>
+                </div>
+              </div>
+              <div className="text-[12px] text-text-tertiary">doel 0.8–1.3</div>
+            </div>
+            <div className="mt-3.5">
+              <ZoneBar value={ratioPct} />
+            </div>
+          </Card>
         </motion.div>
       )}
 
-      {/* Daily health metrics (steps, HR, HRV, sleep, weight) */}
+      {/* Today workout hero */}
+      <motion.div variants={listItem} transition={springContent}>
+        <TodayWorkoutHero day={todayDay} />
+      </motion.div>
+
+      {/* Week strip */}
+      {schemaWeek && (
+        <motion.div variants={listItem} transition={springContent}>
+          <WeekStrip days={schemaWeek.days} />
+        </motion.div>
+      )}
+
+      {/* Daily health bar (steps etc.) */}
       <motion.div variants={listItem} transition={springContent}>
         <DailyHealthBar />
       </motion.div>
 
-      {/* Body composition trend — 4 weeks (UXR-090) */}
+      {/* Body composition */}
       <motion.div variants={listItem} transition={springContent}>
         <BodyCompositionCard />
       </motion.div>
 
-      {/* Muscle heatmap — last 7 days */}
+      {/* Muscle heatmap */}
       <motion.div variants={listItem} transition={springContent}>
         <MuscleMapCard />
       </motion.div>
 
-      {/* Sync button */}
+      {/* Sync */}
       <motion.div variants={listItem} transition={springContent}>
         <SyncButton />
       </motion.div>
