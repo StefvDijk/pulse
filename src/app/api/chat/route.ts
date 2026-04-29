@@ -11,10 +11,55 @@ import { selectSkills } from '@/lib/ai/skills/router'
 import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 
+// Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
+// can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
+export const maxDuration = 60
+
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
 })
+
+// ── Error classification ──────────────────────────────────────────────────────
+
+interface StreamErrorEvent {
+  __error: true
+  code: 'AI_AUTH_ERROR' | 'AI_RATE_LIMIT' | 'AI_TIMEOUT' | 'AI_GENERIC_ERROR'
+  message: string
+}
+
+function classifyStreamError(err: unknown): StreamErrorEvent {
+  const e = err as { name?: string; statusCode?: number; message?: string }
+  if (e?.name === 'AI_APICallError') {
+    if (e.statusCode === 401 || e.statusCode === 403) {
+      return {
+        __error: true,
+        code: 'AI_AUTH_ERROR',
+        message:
+          'AI is tijdelijk niet bereikbaar (auth-fout). Beheerder is gewaarschuwd — probeer het later opnieuw.',
+      }
+    }
+    if (e.statusCode === 429) {
+      return {
+        __error: true,
+        code: 'AI_RATE_LIMIT',
+        message: 'Te veel verzoeken naar de AI. Probeer het over 30 seconden opnieuw.',
+      }
+    }
+  }
+  if (e?.name === 'AbortError' || /timeout/i.test(e?.message ?? '')) {
+    return {
+      __error: true,
+      code: 'AI_TIMEOUT',
+      message: 'AI-antwoord duurde te lang. Probeer een kortere vraag.',
+    }
+  }
+  return {
+    __error: true,
+    code: 'AI_GENERIC_ERROR',
+    message: 'Er ging iets mis bij het genereren van het antwoord. Probeer het opnieuw.',
+  }
+}
 
 // ── Write-back types ──────────────────────────────────────────────────────────
 
@@ -376,9 +421,17 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (err) {
-          console.error('Streaming error:', err)
+          // Structured server log so the actual cause is visible in Vercel logs
+          // — not behind a generic Dutch error string the user only sees in UI.
+          const errorEvent = classifyStreamError(err)
+          console.error('[chat] Streaming error:', {
+            code: errorEvent.code,
+            name: (err as { name?: string })?.name,
+            statusCode: (err as { statusCode?: number })?.statusCode,
+            message: (err as { message?: string })?.message,
+          })
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify('[ERROR] Fout bij genereren van antwoord.')}\n\n`),
+            encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`),
           )
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
