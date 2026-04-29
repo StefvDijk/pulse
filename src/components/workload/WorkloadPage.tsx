@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { ZoneBar } from './ZoneBar'
 import { AcwrCorridor } from './AcwrCorridor'
+import { SportCorrelations } from '@/components/belasting/SportCorrelations'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { WorkloadData, WorkloadStatus } from '@/types/workload'
@@ -218,6 +219,9 @@ export function WorkloadPage() {
               </div>
             </section>
           )}
+
+          {/* Per-sport fatigue + 7-day contribution split */}
+          <SportCorrelations />
 
           {/* Explanation */}
           <section className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm">
