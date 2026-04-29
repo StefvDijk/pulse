@@ -158,11 +158,30 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-      <h1 className="text-xl font-bold text-label-primary">Instellingen</h1>
+    <div className="flex flex-col gap-4 px-4 pb-24 pt-[60px]">
+      <h1 className="text-[34px] font-bold tracking-[-0.8px] text-text-primary">Instellingen</h1>
+
+      {/* Profile header */}
+      <div
+        className="flex items-center gap-3.5 rounded-[18px] border-[0.5px] border-bg-border-strong p-[18px]"
+        style={{ background: 'linear-gradient(135deg, rgba(0,229,199,0.10), rgba(124,58,237,0.10))' }}
+      >
+        <div
+          className="flex h-[60px] w-[60px] items-center justify-center rounded-full text-[24px] font-bold text-white"
+          style={{ background: 'linear-gradient(135deg, #00E5C7, #7C3AED)' }}
+        >
+          {(displayName || 'S').charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[17px] font-semibold text-text-primary">{displayName || 'Pulse user'}</div>
+          <div className="text-[12px] text-text-tertiary">
+            {[heightCm && `${heightCm} cm`, weightKg && `${weightKg} kg`].filter(Boolean).join(' · ') || 'Bewerk profiel hieronder'}
+          </div>
+        </div>
+      </div>
 
       {/* Profile section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Profiel" />
         <div className="flex flex-col gap-4">
           <Field label="Naam">
@@ -216,7 +235,7 @@ export function SettingsPage() {
       </div>
 
       {/* Connections section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Koppelingen" />
         <div className="flex flex-col gap-4">
           <Field label="Hevy API key">
@@ -250,7 +269,7 @@ export function SettingsPage() {
       </div>
 
       {/* Google Calendar section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Google Agenda" />
 
         {calendarStatus === 'connected' && (
@@ -300,7 +319,7 @@ export function SettingsPage() {
       </div>
 
       {/* Training goals section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Trainingsdoelen" />
         <div className="flex flex-col gap-4">
           <Field label="Proteïne doel (g/kg lichaamsgewicht)">
@@ -357,7 +376,7 @@ export function SettingsPage() {
       </div>
 
       {/* Account section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Wachtwoord wijzigen" />
         <div className="flex flex-col gap-4">
           <Field label="Nieuw wachtwoord">
