@@ -6,6 +6,7 @@ import { useWorkload } from '@/hooks/useWorkload'
 import { ZoneBar } from './ZoneBar'
 import { AcwrCorridor } from './AcwrCorridor'
 import { SportCorrelations } from '@/components/belasting/SportCorrelations'
+import { SportInsightCard } from '@/components/belasting/SportInsightCard'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { WorkloadData, WorkloadStatus } from '@/types/workload'
@@ -222,6 +223,9 @@ export function WorkloadPage() {
 
           {/* Per-sport fatigue + 7-day contribution split */}
           <SportCorrelations />
+
+          {/* AI-generated weekly pattern insight */}
+          <SportInsightCard />
 
           {/* Explanation */}
           <section className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm">
