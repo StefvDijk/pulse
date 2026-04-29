@@ -1,6 +1,9 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import type { Database } from '@/types/database'
+import { Confetti } from './Confetti'
+import { GoalSparkline } from './GoalSparkline'
 
 type GoalRow = Database['public']['Tables']['goals']['Row']
 
@@ -45,11 +48,25 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
   const categoryColor = CATEGORY_COLORS[goal.category] ?? '#A8A29E'
   const isCompleted = goal.status === 'completed'
 
+  // Confetti: trigger once when this card transitions from active → completed.
+  const wasCompletedRef = useRef(isCompleted)
+  const [showConfetti, setShowConfetti] = useState(false)
+
+  useEffect(() => {
+    if (isCompleted && !wasCompletedRef.current) {
+      setShowConfetti(true)
+      const timer = setTimeout(() => setShowConfetti(false), 2000)
+      return () => clearTimeout(timer)
+    }
+    wasCompletedRef.current = isCompleted
+  }, [isCompleted])
+
   return (
     <div
-      className="bg-surface-primary border border-separator rounded-[14px] p-4"
+      className="relative bg-surface-primary border border-separator rounded-[14px] p-4 overflow-hidden"
       style={{ opacity: isCompleted ? 0.7 : 1 }}
     >
+      {showConfetti && <Confetti />}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
@@ -119,6 +136,10 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
             </div>
           </div>
         </>
+      )}
+
+      {goal.category === 'strength' && (
+        <GoalSparkline goalId={goal.id} color={categoryColor} enabled={!isCompleted} />
       )}
     </div>
   )
