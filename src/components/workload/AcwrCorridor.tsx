@@ -94,11 +94,11 @@ function CorridorTooltip({ active, payload }: TooltipProps) {
   const point = payload[0].payload
 
   return (
-    <div className="rounded-xl border border-separator bg-surface-primary p-3 shadow-apple-md">
-      <p className="text-caption2 uppercase tracking-wide text-label-tertiary">
+    <div className="rounded-xl border border-bg-border bg-bg-surface p-3 shadow-apple-md">
+      <p className="text-caption2 uppercase tracking-wide text-text-tertiary">
         Week eindigend {formatShortNL(point.windowEnd)}
       </p>
-      <p className="mt-1 text-title3 font-bold tabular-nums text-label-primary">
+      <p className="mt-1 text-title3 font-bold tabular-nums text-text-primary">
         {point.ratio.toFixed(2)}
       </p>
       <p

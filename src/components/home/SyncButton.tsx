@@ -98,7 +98,7 @@ export function SyncButton() {
       </button>
 
       {message && (
-        <span className={`text-caption1 ${status === 'error' ? 'text-system-red' : 'text-label-tertiary'}`}>
+        <span className={`text-caption1 ${status === 'error' ? 'text-system-red' : 'text-text-tertiary'}`}>
           {message}
         </span>
       )}

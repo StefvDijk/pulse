@@ -148,7 +148,7 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
               type === t
                 ? `${SPORT_BG[t]} border ${SPORT_BORDER[t]}`
-                : 'bg-surface-primary border border-separator text-label-tertiary'
+                : 'bg-bg-surface border border-bg-border text-text-tertiary'
             }`}
           >
             {SPORT_ICONS[t]}
@@ -161,14 +161,14 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="rounded-lg border border-separator bg-surface-primary px-2.5 py-1.5 text-sm text-label-primary"
+          className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary"
         />
         <input
           type="text"
           value={workout}
           onChange={(e) => setWorkout(e.target.value)}
           placeholder={SPORT_LABELS[type]}
-          className="flex-1 rounded-lg border border-separator bg-surface-primary px-2.5 py-1.5 text-sm text-label-primary placeholder:text-label-tertiary"
+          className="flex-1 rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
         </button>
         <button
           onClick={onCancel}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-label-tertiary"
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
         >
           Annuleren
         </button>
@@ -213,12 +213,12 @@ function EditSessionForm({ session, onSave, onCancel }: EditFormProps) {
 
   return (
     <div className="mt-2 rounded-xl bg-system-gray6 p-3 flex items-center gap-2">
-      <label className="text-xs text-label-secondary">Starttijd:</label>
+      <label className="text-xs text-text-secondary">Starttijd:</label>
       <input
         type="time"
         value={time}
         onChange={(e) => setTime(e.target.value)}
-        className="rounded-lg border border-separator bg-surface-primary px-2.5 py-1.5 text-sm text-label-primary"
+        className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary"
       />
       <button
         onClick={handleSave}
@@ -228,7 +228,7 @@ function EditSessionForm({ session, onSave, onCancel }: EditFormProps) {
       </button>
       <button
         onClick={onCancel}
-        className="rounded-lg px-3 py-1.5 text-xs font-medium text-label-tertiary"
+        className="rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
       >
         Annuleren
       </button>
@@ -281,12 +281,12 @@ function DayRow({
       {/* Day header */}
       <div className="flex items-center gap-2 mb-1">
         <div className={`h-2 w-2 shrink-0 rounded-full ${availabilityDot(availability)}`} />
-        <span className="text-sm font-medium text-label-primary">
+        <span className="text-sm font-medium text-text-primary">
           {DAY_ABBREVS[dayIndex]}
         </span>
-        <span className="text-xs text-label-tertiary">{formatShortDate(date)}</span>
+        <span className="text-xs text-text-tertiary">{formatShortDate(date)}</span>
         {label && (
-          <span className="text-xs text-label-tertiary">· {label}</span>
+          <span className="text-xs text-text-tertiary">· {label}</span>
         )}
       </div>
 
@@ -294,27 +294,27 @@ function DayRow({
       {session ? (
         <div className={`ml-4 rounded-xl border ${SPORT_BORDER[session.type]} ${SPORT_BG[session.type]} p-3`}>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-primary/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60">
               {SPORT_ICONS[session.type]}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-label-primary truncate">
+              <p className="text-sm font-medium text-text-primary truncate">
                 {session.workout}
               </p>
-              <p className="text-xs text-label-tertiary">
+              <p className="text-xs text-text-tertiary">
                 {session.time} – {session.endTime}
               </p>
             </div>
             <button
               onClick={() => onStartEdit(date)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-primary/60 text-label-tertiary"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
               title="Aanpassen"
             >
               <Pencil size={12} />
             </button>
             <button
               onClick={() => onRemove(date)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-primary/60 text-label-tertiary"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
               title="Verwijderen"
             >
               <X size={12} />
@@ -330,10 +330,10 @@ function DayRow({
         </div>
       ) : (
         <div className="ml-4 flex items-center gap-2 py-1">
-          <span className="text-xs text-label-tertiary">Geen training</span>
+          <span className="text-xs text-text-tertiary">Geen training</span>
           <button
             onClick={() => onStartAdd(date)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary"
             title="Sessie toevoegen"
           >
             <Plus size={12} />
@@ -465,13 +465,13 @@ export function WeekPlanCard({
   // Loading state
   if (isLoading) {
     return (
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex flex-col items-center gap-3 py-8">
           <Loader2 size={28} className="animate-spin text-system-blue" />
-          <p className="text-sm font-medium text-label-secondary">
+          <p className="text-sm font-medium text-text-secondary">
             Plan wordt gemaakt...
           </p>
-          <p className="text-xs text-label-tertiary">Dit duurt meestal 5-10 seconden</p>
+          <p className="text-xs text-text-tertiary">Dit duurt meestal 5-10 seconden</p>
         </div>
       </div>
     )
@@ -492,8 +492,8 @@ export function WeekPlanCard({
   return (
     <div className="flex flex-col gap-3">
       {/* Week plan card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
-        <h3 className="text-subhead font-semibold text-label-primary mb-3">Weekplan</h3>
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
+        <h3 className="text-subhead font-semibold text-text-primary mb-3">Weekplan</h3>
 
         {/* Day grid */}
         <div className="divide-y divide-separator">
@@ -523,20 +523,20 @@ export function WeekPlanCard({
 
       {/* AI reasoning (collapsible) */}
       {plan.reasoning && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <button
             onClick={() => setShowReasoning((prev) => !prev)}
             className="flex w-full items-center justify-between"
           >
-            <span className="text-xs font-medium text-label-tertiary">AI redenering</span>
+            <span className="text-xs font-medium text-text-tertiary">AI redenering</span>
             {showReasoning ? (
-              <ChevronUp size={14} className="text-label-tertiary" />
+              <ChevronUp size={14} className="text-text-tertiary" />
             ) : (
-              <ChevronDown size={14} className="text-label-tertiary" />
+              <ChevronDown size={14} className="text-text-tertiary" />
             )}
           </button>
           {showReasoning && (
-            <p className="mt-2 text-sm text-label-secondary leading-relaxed">
+            <p className="mt-2 text-sm text-text-secondary leading-relaxed">
               {plan.reasoning}
             </p>
           )}
@@ -544,17 +544,17 @@ export function WeekPlanCard({
       )}
 
       {/* Calendar sync toggle */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-4">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-4">
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={syncToCalendar}
             onChange={(e) => setSyncToCalendar(e.target.checked)}
-            className="h-4 w-4 rounded border-separator system-blue-system-blue"
+            className="h-4 w-4 rounded border-bg-border system-blue-system-blue"
           />
           <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-label-tertiary" />
-            <span className="text-sm text-label-primary">Sync naar Google Agenda</span>
+            <Calendar size={14} className="text-text-tertiary" />
+            <span className="text-sm text-text-primary">Sync naar Google Agenda</span>
           </div>
         </label>
       </div>

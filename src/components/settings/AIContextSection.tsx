@@ -30,9 +30,9 @@ export function AIContextSection({ currentValue, onSaved }: AIContextSectionProp
   }
 
   return (
-    <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+    <div className="bg-bg-surface border border-bg-border rounded-[14px] p-[14px_16px]">
       <SectionHeader title="Coach Instructies" />
-      <p className="mb-3 text-xs text-label-tertiary">
+      <p className="mb-3 text-xs text-text-tertiary">
         Persoonlijke instructies voor je AI coach. Deze worden bij elk gesprek meegestuurd.
       </p>
       <textarea
@@ -43,7 +43,7 @@ export function AIContextSection({ currentValue, onSaved }: AIContextSectionProp
         className={`${INPUT_CLASSES} w-full resize-none`}
       />
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs text-label-tertiary">
+        <span className="text-xs text-text-tertiary">
           {value.length}/{MAX_CHARS}
         </span>
         <SaveButton status={status} onClick={() => save(handleSave)} />

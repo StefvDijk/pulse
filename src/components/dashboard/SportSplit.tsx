@@ -29,10 +29,10 @@ function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps
   return (
     <div className="flex items-center gap-3">
       <div className="w-20 shrink-0">
-        <span className="text-sm font-medium text-label-primary">
+        <span className="text-sm font-medium text-text-primary">
           {label}
         </span>
-        <span className="ml-1 text-xs text-label-tertiary">
+        <span className="ml-1 text-xs text-text-tertiary">
           {sessions}x
         </span>
       </div>
@@ -42,7 +42,7 @@ function SportBar({ label, minutes, maxMinutes, color, sessions }: SportBarProps
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-16 shrink-0 text-right text-sm text-label-tertiary">
+      <span className="w-16 shrink-0 text-right text-sm text-text-tertiary">
         {formatDuration(minutes)}
       </span>
     </div>

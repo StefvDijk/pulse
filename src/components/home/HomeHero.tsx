@@ -93,15 +93,15 @@ export function HomeHero({ day }: HomeHeroProps) {
   return (
     <Link
       href={hero.href}
-      className="block rounded-3xl border border-separator bg-surface-primary p-5 shadow-apple-sm transition-opacity active:opacity-70"
+      className="block rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm transition-opacity active:opacity-70"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+          <p className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
             {hero.eyebrow}
           </p>
           <p
-            className="mt-1 font-bold tracking-tight text-label-primary tabular-nums"
+            className="mt-1 font-bold tracking-tight text-text-primary tabular-nums"
             style={{
               fontSize: 'clamp(44px, 12vw, 72px)',
               lineHeight: 1.02,
@@ -109,7 +109,7 @@ export function HomeHero({ day }: HomeHeroProps) {
           >
             {hero.big}
           </p>
-          <p className="mt-2 text-subhead leading-snug text-label-secondary">
+          <p className="mt-2 text-subhead leading-snug text-text-secondary">
             {hero.subtitle}
           </p>
         </div>

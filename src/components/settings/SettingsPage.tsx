@@ -288,16 +288,16 @@ export function SettingsPage() {
             <div className="flex items-center gap-2">
               <StatusDot active />
               <div>
-                <p className="text-sm font-medium text-label-primary">Verbonden</p>
+                <p className="text-sm font-medium text-text-primary">Verbonden</p>
                 {data.settings.google_calendar_email && (
-                  <p className="text-xs text-label-tertiary">{data.settings.google_calendar_email}</p>
+                  <p className="text-xs text-text-tertiary">{data.settings.google_calendar_email}</p>
                 )}
               </div>
             </div>
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnecting}
-              className="rounded-lg border border-separator px-3 py-1.5 text-sm text-label-secondary transition-colors hover:bg-system-gray6 disabled:opacity-50"
+              className="rounded-lg border border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-system-gray6 disabled:opacity-50"
             >
               {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
             </button>
@@ -306,7 +306,7 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <StatusDot active={false} />
-              <p className="text-sm text-label-secondary">Niet gekoppeld</p>
+              <p className="text-sm text-text-secondary">Niet gekoppeld</p>
             </div>
             <a
               href="/api/calendar/auth"
@@ -335,7 +335,7 @@ export function SettingsPage() {
             />
           </Field>
           <div>
-            <p className="mb-2 text-xs font-medium text-label-tertiary">Wekelijkse sessies</p>
+            <p className="mb-2 text-xs font-medium text-text-tertiary">Wekelijkse sessies</p>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Gym">
                 <input
@@ -411,7 +411,7 @@ export function SettingsPage() {
       </div>
 
       {/* AI Coach section */}
-      <h2 className="mt-4 text-lg font-semibold text-label-primary">AI Coach</h2>
+      <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
 
       <AIContextSection
         currentValue={data?.settings.ai_custom_instructions ?? null}

@@ -97,8 +97,8 @@ function MetricRow({ label, series, unit, color, higherIsBetter }: MetricRowProp
   if (!series) {
     return (
       <div className="flex items-center justify-between gap-3">
-        <span className="text-caption1 text-label-tertiary">{label}</span>
-        <span className="text-caption1 text-label-tertiary">—</span>
+        <span className="text-caption1 text-text-tertiary">{label}</span>
+        <span className="text-caption1 text-text-tertiary">—</span>
       </div>
     )
   }
@@ -108,7 +108,7 @@ function MetricRow({ label, series, unit, color, higherIsBetter }: MetricRowProp
   const isPositive = delta > 0
   const isGood = hasDelta && (higherIsBetter ? isPositive : !isPositive)
   const sentimentClass = !hasDelta
-    ? 'text-label-tertiary'
+    ? 'text-text-tertiary'
     : isGood
       ? 'text-system-green'
       : 'text-system-red'
@@ -116,10 +116,10 @@ function MetricRow({ label, series, unit, color, higherIsBetter }: MetricRowProp
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className="text-caption1 text-label-tertiary">{label}</p>
-        <p className="text-headline font-semibold tabular-nums text-label-primary">
+        <p className="text-caption1 text-text-tertiary">{label}</p>
+        <p className="text-headline font-semibold tabular-nums text-text-primary">
           {current.toFixed(1)}
-          <span className="ml-0.5 text-caption1 font-normal text-label-tertiary">{unit}</span>
+          <span className="ml-0.5 text-caption1 font-normal text-text-tertiary">{unit}</span>
         </p>
       </div>
       <Sparkline values={series.values} color={color} />
@@ -146,7 +146,7 @@ function CompositionBar({ fatPct }: CompositionBarProps) {
         <div className="bg-system-blue" style={{ width: `${leanPct}%` }} />
         <div className="bg-orange-400/80" style={{ width: `${fatPct}%` }} />
       </div>
-      <div className="flex justify-between text-caption2 text-label-tertiary">
+      <div className="flex justify-between text-caption2 text-text-tertiary">
         <span>Lean {leanPct.toFixed(1)}%</span>
         <span>Vet {fatPct.toFixed(1)}%</span>
       </div>
@@ -185,7 +185,7 @@ export function BodyCompositionCard() {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-separator bg-surface-primary p-4">
+      <div className="rounded-2xl border border-bg-border bg-bg-surface p-4">
         <div className="h-3 w-24 rounded-full bg-system-gray6" />
         <div className="mt-3 h-16 rounded-2xl bg-system-gray6" />
       </div>
@@ -198,13 +198,13 @@ export function BodyCompositionCard() {
   return (
     <Link
       href="/progress"
-      className="block rounded-2xl border border-separator bg-surface-primary p-4 shadow-apple-sm transition-opacity active:opacity-80"
+      className="block rounded-2xl border border-bg-border bg-bg-surface p-4 shadow-apple-sm transition-opacity active:opacity-80"
     >
       <div className="flex items-baseline justify-between">
-        <h3 className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+        <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
           Lichaamscompositie · 4 weken
         </h3>
-        <ChevronRight size={14} className="text-label-tertiary" />
+        <ChevronRight size={14} className="text-text-tertiary" />
       </div>
 
       <div className="mt-3 space-y-3">
@@ -232,7 +232,7 @@ export function BodyCompositionCard() {
       </div>
 
       {fatPct !== null && (
-        <div className="mt-4 border-t border-separator pt-3">
+        <div className="mt-4 border-t border-bg-border pt-3">
           <CompositionBar fatPct={fatPct} />
         </div>
       )}

@@ -45,7 +45,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
           className="absolute top-0 flex flex-col items-center -translate-x-1/2"
           style={{ left: `${pointerPct}%` }}
         >
-          <span className="text-caption1 font-semibold tabular-nums text-label-primary">
+          <span className="text-caption1 font-semibold tabular-nums text-text-primary">
             {ratio.toFixed(2)}
           </span>
           <svg
@@ -77,7 +77,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
           {TICKS.map((tick) => (
             <span
               key={tick}
-              className="absolute -translate-x-1/2 text-[10px] tabular-nums text-label-tertiary"
+              className="absolute -translate-x-1/2 text-[10px] tabular-nums text-text-tertiary"
               style={{ left: `${(tick / MAX_RATIO) * 100}%` }}
             >
               {tick.toFixed(1)}
@@ -95,7 +95,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
               style={{ backgroundColor: zone.fill }}
               aria-hidden="true"
             />
-            <span className="text-caption1 text-label-secondary">{zone.label}</span>
+            <span className="text-caption1 text-text-secondary">{zone.label}</span>
           </div>
         ))}
       </div>

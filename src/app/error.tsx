@@ -9,11 +9,11 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md bg-surface-primary border border-separator rounded-[14px] p-6 text-center">
+      <div className="w-full max-w-md bg-bg-surface border border-bg-border rounded-[14px] p-6 text-center">
         <p className="mb-2 text-base font-semibold text-system-red">
           Er is iets misgegaan
         </p>
-        <p className="mb-5 text-sm text-label-secondary">
+        <p className="mb-5 text-sm text-text-secondary">
           {error.message || 'Een onverwachte fout is opgetreden.'}
         </p>
         <button

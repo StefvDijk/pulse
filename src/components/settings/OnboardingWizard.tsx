@@ -39,7 +39,7 @@ interface GoalData {
   targetUnit: string
 }
 
-const INPUT_CLASSES = 'bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+const INPUT_CLASSES = 'bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
 
 export function OnboardingWizard() {
   const router = useRouter()
@@ -116,7 +116,7 @@ export function OnboardingWizard() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="w-full max-w-md rounded-2xl p-6 bg-surface-primary border border-separator">
+      <div className="w-full max-w-md rounded-2xl p-6 bg-bg-surface border border-bg-border">
 
         {/* Step indicator */}
         <div className="mb-6 flex items-center gap-2">
@@ -128,12 +128,12 @@ export function OnboardingWizard() {
                     ? 'bg-system-blue text-white'
                     : i < step
                       ? 'bg-system-green text-white'
-                      : 'bg-system-gray6 text-label-tertiary'
+                      : 'bg-system-gray6 text-text-tertiary'
                 }`}
               >
                 {i < step ? '✓' : i + 1}
               </div>
-              <span className={`hidden text-[10px] sm:block ${i === step ? 'text-label-primary' : 'text-label-tertiary'}`}>
+              <span className={`hidden text-[10px] sm:block ${i === step ? 'text-text-primary' : 'text-text-tertiary'}`}>
                 {s.title}
               </span>
             </div>
@@ -142,8 +142,8 @@ export function OnboardingWizard() {
 
         {/* Header */}
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-label-primary">{STEPS[step].title}</h2>
-          <p className="text-sm text-label-tertiary">{STEPS[step].description}</p>
+          <h2 className="text-lg font-bold text-text-primary">{STEPS[step].title}</h2>
+          <p className="text-sm text-text-tertiary">{STEPS[step].description}</p>
         </div>
 
         {/* Step content */}
@@ -152,7 +152,7 @@ export function OnboardingWizard() {
           {step === 0 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-label-tertiary">Naam</label>
+                <label className="text-xs font-medium text-text-tertiary">Naam</label>
                 <input
                   type="text"
                   value={profile.displayName}
@@ -163,7 +163,7 @@ export function OnboardingWizard() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-label-tertiary">Gewicht (kg)</label>
+                  <label className="text-xs font-medium text-text-tertiary">Gewicht (kg)</label>
                   <input
                     type="number"
                     value={profile.weightKg}
@@ -175,7 +175,7 @@ export function OnboardingWizard() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-label-tertiary">Lengte (cm)</label>
+                  <label className="text-xs font-medium text-text-tertiary">Lengte (cm)</label>
                   <input
                     type="number"
                     value={profile.heightCm}
@@ -192,10 +192,10 @@ export function OnboardingWizard() {
 
           {step === 1 && (
             <>
-              <p className="text-xs text-label-tertiary">Doel aantal sessies per week</p>
+              <p className="text-xs text-text-tertiary">Doel aantal sessies per week</p>
               {([['gym', 'Gym', sports.gym], ['running', 'Hardlopen', sports.running], ['padel', 'Padel', sports.padel]] as const).map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm text-label-primary">{label}</span>
+                  <span className="text-sm text-text-primary">{label}</span>
                   <input
                     type="number"
                     value={sports[key]}
@@ -212,7 +212,7 @@ export function OnboardingWizard() {
           {step === 2 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-label-tertiary">Hevy API key</label>
+                <label className="text-xs font-medium text-text-tertiary">Hevy API key</label>
                 <input
                   type="password"
                   value={connections.hevyKey}
@@ -220,10 +220,10 @@ export function OnboardingWizard() {
                   placeholder="Optioneel — voor workout sync"
                   className={INPUT_CLASSES}
                 />
-                <p className="text-xs text-label-tertiary">Vind je API key in Hevy → Instellingen → API</p>
+                <p className="text-xs text-text-tertiary">Vind je API key in Hevy → Instellingen → API</p>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-label-tertiary">Health Auto Export token</label>
+                <label className="text-xs font-medium text-text-tertiary">Health Auto Export token</label>
                 <input
                   type="password"
                   value={connections.healthToken}
@@ -232,17 +232,17 @@ export function OnboardingWizard() {
                   className={INPUT_CLASSES}
                 />
               </div>
-              <p className="text-xs text-label-tertiary">Je kunt deze later toevoegen via Instellingen.</p>
+              <p className="text-xs text-text-tertiary">Je kunt deze later toevoegen via Instellingen.</p>
             </>
           )}
 
           {step === 3 && (
             <>
-              <p className="text-xs text-label-tertiary">Voeg maximaal 3 doelen toe (optioneel)</p>
+              <p className="text-xs text-text-tertiary">Voeg maximaal 3 doelen toe (optioneel)</p>
               {goals.map((goal, i) => (
-                <div key={i} className="rounded-lg p-3 bg-system-gray6 border border-separator">
+                <div key={i} className="rounded-lg p-3 bg-system-gray6 border border-bg-border">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium text-label-tertiary">Doel {i + 1}</span>
+                    <span className="text-xs font-medium text-text-tertiary">Doel {i + 1}</span>
                     {goals.length > 1 && (
                       <button onClick={() => removeGoal(i)} className="text-xs text-system-red">Verwijder</button>
                     )}
@@ -259,7 +259,7 @@ export function OnboardingWizard() {
                       <select
                         value={goal.category}
                         onChange={(e) => updateGoal(i, 'category', e.target.value)}
-                        className="bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       >
                         <option value="strength">Kracht</option>
                         <option value="running">Hardlopen</option>
@@ -274,14 +274,14 @@ export function OnboardingWizard() {
                         placeholder="100"
                         min={0}
                         step="any"
-                        className="bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                       <input
                         type="text"
                         value={goal.targetUnit}
                         onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
-                        className="bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-system-gray6 border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -303,7 +303,7 @@ export function OnboardingWizard() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push('/')}
-            className="text-sm text-label-tertiary"
+            className="text-sm text-text-tertiary"
           >
             Overslaan
           </button>
@@ -312,7 +312,7 @@ export function OnboardingWizard() {
             {!isFirst && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-system-gray6 text-label-primary"
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-system-gray6 text-text-primary"
               >
                 Vorige
               </button>

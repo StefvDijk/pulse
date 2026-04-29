@@ -103,13 +103,13 @@ export function ProgressPage() {
               />
               {chartLoading ? (
                 <div className="flex h-40 items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-separator border-t-text-primary" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-border border-t-text-primary" />
                 </div>
               ) : exerciseProgress ? (
                 <ProgressionChart data={exerciseProgress} />
               ) : (
                 <div className="flex h-40 items-center justify-center">
-                  <p className="text-sm text-label-tertiary">
+                  <p className="text-sm text-text-tertiary">
                     Selecteer een oefening om je progressie te zien
                   </p>
                 </div>

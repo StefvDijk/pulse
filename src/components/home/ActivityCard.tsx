@@ -77,7 +77,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
   const hasPRs = activity.type === 'gym' && (activity.pr_count ?? 0) > 0
 
   const card = (
-    <div className={`rounded-2xl bg-surface-primary border ${config.border} border-separator p-4 transition-colors hover:border-separator`}>
+    <div className={`rounded-2xl bg-bg-surface border ${config.border} border-bg-border p-4 transition-colors hover:border-bg-border`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -86,7 +86,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-label-primary truncate">
+              <h3 className="text-base font-semibold text-text-primary truncate">
                 {activity.title}
               </h3>
               {hasPRs && (
@@ -96,7 +96,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-label-tertiary">
+            <p className="text-xs text-text-tertiary">
               {formatDate(activity.started_at)} · {formatTime(activity.started_at)}
             </p>
           </div>
@@ -106,8 +106,8 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
       {/* Stats row */}
       <div className="flex items-center gap-3 flex-wrap">
         {activity.duration_seconds != null && (
-          <span className="flex items-center gap-1 text-xs text-label-secondary">
-            <Clock size={11} className="text-label-tertiary" />
+          <span className="flex items-center gap-1 text-xs text-text-secondary">
+            <Clock size={11} className="text-text-tertiary" />
             {formatDuration(activity.duration_seconds)}
           </span>
         )}
@@ -120,27 +120,27 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
           </span>
         )}
         {activity.type === 'run' && activity.avg_pace_seconds_per_km != null && (
-          <span className="text-xs tabular-nums text-label-secondary">
+          <span className="text-xs tabular-nums text-text-secondary">
             {formatPace(activity.avg_pace_seconds_per_km)}
           </span>
         )}
 
         {/* Gym-specific stats */}
         {activity.type === 'gym' && activity.total_volume_kg != null && activity.total_volume_kg > 0 && (
-          <span className="text-xs text-label-secondary font-medium tabular-nums">
+          <span className="text-xs text-text-secondary font-medium tabular-nums">
             {formatVolume(activity.total_volume_kg)}
           </span>
         )}
 
         {/* Shared stats */}
         {activity.calories_burned != null && activity.calories_burned > 0 && (
-          <span className="flex items-center gap-1 text-xs text-label-secondary">
+          <span className="flex items-center gap-1 text-xs text-text-secondary">
             <Flame size={11} className="text-orange-400" />
             {Math.round(activity.calories_burned)} kcal
           </span>
         )}
         {activity.avg_heart_rate != null && (
-          <span className="flex items-center gap-1 text-xs text-label-secondary">
+          <span className="flex items-center gap-1 text-xs text-text-secondary">
             <Heart size={11} className="text-red-400" />
             {activity.avg_heart_rate} bpm
           </span>
@@ -154,9 +154,9 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
             <div key={i} className="flex items-center gap-3 py-2">
               <MuscleGroupDot muscleGroup={exercise.primary_muscle_group} size="sm" />
               <div className="flex flex-1 items-center justify-between min-w-0 gap-2">
-                <span className="text-sm text-label-primary truncate">{exercise.name}</span>
+                <span className="text-sm text-text-primary truncate">{exercise.name}</span>
                 {exercise.set_summary && (
-                  <span className="text-xs tabular-nums text-label-tertiary shrink-0">
+                  <span className="text-xs tabular-nums text-text-tertiary shrink-0">
                     {exercise.set_summary}
                   </span>
                 )}
@@ -164,7 +164,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
             </div>
           ))}
           {activity.exercises.length > 4 && (
-            <p className="pt-2 text-xs text-label-tertiary">
+            <p className="pt-2 text-xs text-text-tertiary">
               +{activity.exercises.length - 4} oefeningen meer
             </p>
           )}

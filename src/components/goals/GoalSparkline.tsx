@@ -38,8 +38,8 @@ export function GoalSparkline({ goalId, color, enabled = true }: Props) {
   const delta = last.weight - first.weight
 
   return (
-    <div className="mt-3 flex items-center gap-2 border-t border-separator pt-2.5">
-      <span className="text-caption2 text-label-tertiary truncate">{exerciseName}</span>
+    <div className="mt-3 flex items-center gap-2 border-t border-bg-border pt-2.5">
+      <span className="text-caption2 text-text-tertiary truncate">{exerciseName}</span>
       <svg
         width={WIDTH}
         height={HEIGHT}

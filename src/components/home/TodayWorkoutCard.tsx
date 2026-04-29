@@ -74,8 +74,8 @@ function SetSummary({ exercise }: { exercise: ExerciseData }) {
 
   return (
     <div className="flex items-center justify-between py-2.5">
-      <span className="text-subhead text-label-primary">{exercise.name}</span>
-      <span className="text-subhead tabular-nums text-label-secondary">
+      <span className="text-subhead text-text-primary">{exercise.name}</span>
+      <span className="text-subhead tabular-nums text-text-secondary">
         {workingSets.length}×{reps ?? '?'}
         {weight ? ` · ${weight}kg` : ''}
       </span>
@@ -92,11 +92,11 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
       <Card padding="lg">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-system-gray6">
-            <Moon size={20} strokeWidth={1.5} className="text-label-tertiary" />
+            <Moon size={20} strokeWidth={1.5} className="text-text-tertiary" />
           </div>
           <div>
-            <p className="text-headline text-label-primary">Rustdag</p>
-            <p className="text-subhead text-label-secondary">
+            <p className="text-headline text-text-primary">Rustdag</p>
+            <p className="text-subhead text-text-secondary">
               {tomorrowWorkout
                 ? `Morgen: ${tomorrowWorkout}`
                 : 'Geniet van je herstel'}
@@ -129,10 +129,10 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
             )}
           </div>
           <div>
-            <p className="text-headline text-label-primary">
+            <p className="text-headline text-text-primary">
               {day.workout.title}
             </p>
-            <p className="text-subhead text-label-secondary">
+            <p className="text-subhead text-text-secondary">
               {day.workout.subtitle}
               {day.workout.duration_min ? ` · ~${day.workout.duration_min} min` : ''}
             </p>
@@ -160,7 +160,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Compact summary for completed workouts */}
       {isCompleted && (
-        <p className="mt-1.5 text-caption1 text-label-tertiary">
+        <p className="mt-1.5 text-caption1 text-text-tertiary">
           {day.completedWorkout?.duration_seconds != null
             ? `${formatDuration(day.completedWorkout.duration_seconds)} · `
             : ''}
@@ -179,7 +179,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Reference note for planned workouts */}
       {!isCompleted && day.lastPerformance && (
-        <p className="mt-3 text-caption1 text-label-tertiary">
+        <p className="mt-3 text-caption1 text-text-tertiary">
           Op basis van je sessie van {day.lastPerformance.date}
         </p>
       )}

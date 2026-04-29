@@ -53,11 +53,11 @@ export function SchemaProgress({
     : `Week ${currentWeek} van ${totalWeeks} · ${currentWeekSessions}/${currentWeekPlanned} sessies`
 
   return (
-    <div className="rounded-2xl border border-separator bg-surface-primary p-4">
+    <div className="rounded-2xl border border-bg-border bg-bg-surface p-4">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-sm font-semibold text-label-primary">{title}</h2>
-          <p className="text-xs text-label-tertiary mt-0.5">{statusText}</p>
+          <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+          <p className="text-xs text-text-tertiary mt-0.5">{statusText}</p>
         </div>
         <span className="shrink-0 text-xs font-medium text-system-blue tabular-nums">
           {totalSessionsCompleted}/{totalSessionsPlanned}
@@ -90,7 +90,7 @@ export function SchemaProgress({
               {/* Label */}
               <span
                 className={`text-[10px] text-center ${
-                  isCurrent ? 'font-semibold text-system-blue' : 'text-label-tertiary'
+                  isCurrent ? 'font-semibold text-system-blue' : 'text-text-tertiary'
                 }`}
               >
                 W{week.weekNumber}

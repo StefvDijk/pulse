@@ -35,11 +35,11 @@ function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
   const showTag = current != null && baseline != null && metric != null
   return (
     <div className="flex flex-col items-center gap-1 py-2">
-      <div className="text-label-tertiary">{icon}</div>
-      <p className="text-subhead font-semibold tabular-nums text-label-primary">
+      <div className="text-text-tertiary">{icon}</div>
+      <p className="text-subhead font-semibold tabular-nums text-text-primary">
         {value ?? '—'}
       </p>
-      <p className="text-caption2 text-label-tertiary">{label}</p>
+      <p className="text-caption2 text-text-tertiary">{label}</p>
       {showTag && (
         <BaselineTag current={current} baseline={baseline} metric={metric} compact />
       )}
@@ -86,7 +86,7 @@ export function DailyHealthBar() {
   return (
     <div className="flex flex-col gap-2">
       {!isToday && dateLabel && (
-        <p className="text-caption2 text-label-tertiary uppercase tracking-wider px-1">
+        <p className="text-caption2 text-text-tertiary uppercase tracking-wider px-1">
           {dateLabel}
         </p>
       )}
@@ -126,11 +126,11 @@ export function DailyHealthBar() {
 
       {/* Weight — separate compact line */}
       {health?.weight_kg != null && (
-        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-label-tertiary">
+        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-text-tertiary">
           <Scale size={12} strokeWidth={1.5} />
           <span>{formatWeight(health.weight_kg)}</span>
           {health.weight_date && health.weight_date !== health.date && (
-            <span className="text-label-tertiary opacity-60">
+            <span className="text-text-tertiary opacity-60">
               ({new Date(health.weight_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })})
             </span>
           )}

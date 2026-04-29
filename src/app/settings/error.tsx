@@ -9,11 +9,11 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md bg-surface-primary border border-separator rounded-[14px] p-6 text-center">
+      <div className="w-full max-w-md bg-bg-surface border border-bg-border rounded-[14px] p-6 text-center">
         <p className="mb-2 text-base font-semibold text-system-red">
           Kan pagina niet laden
         </p>
-        <p className="mb-5 text-sm text-label-secondary">
+        <p className="mb-5 text-sm text-text-secondary">
           {error.message || 'Er is een fout opgetreden bij het laden van deze pagina.'}
         </p>
         <button

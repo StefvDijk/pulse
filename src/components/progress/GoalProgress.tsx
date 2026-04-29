@@ -32,7 +32,7 @@ export function GoalProgress({ goals }: GoalProgressProps) {
   if (goals.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-label-tertiary">Geen actieve doelen</p>
+        <p className="text-sm text-text-tertiary">Geen actieve doelen</p>
       </div>
     )
   }
@@ -48,7 +48,7 @@ export function GoalProgress({ goals }: GoalProgressProps) {
         return (
           <div
             key={goal.id}
-            className="rounded-lg p-3 bg-system-gray6 border border-separator"
+            className="rounded-lg p-3 bg-system-gray6 border border-bg-border"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -58,17 +58,17 @@ export function GoalProgress({ goals }: GoalProgressProps) {
                 >
                   {goal.category}
                 </span>
-                <span className="truncate text-sm font-medium text-label-primary">
+                <span className="truncate text-sm font-medium text-text-primary">
                   {goal.title}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {goal.deadline && (
-                  <span className="text-xs text-label-tertiary">
+                  <span className="text-xs text-text-tertiary">
                     {formatDeadline(goal.deadline)}
                   </span>
                 )}
-                <span className="text-xs font-medium text-label-primary">
+                <span className="text-xs font-medium text-text-primary">
                   {pct}%
                 </span>
               </div>
@@ -83,10 +83,10 @@ export function GoalProgress({ goals }: GoalProgressProps) {
 
             {goal.target_value !== null && (
               <div className="flex justify-between">
-                <span className="text-xs text-label-tertiary">
+                <span className="text-xs text-text-tertiary">
                   {current} {goal.target_unit ?? ''}
                 </span>
-                <span className="text-xs text-label-tertiary">
+                <span className="text-xs text-text-tertiary">
                   {target} {goal.target_unit ?? ''}
                 </span>
               </div>

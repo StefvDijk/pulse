@@ -63,10 +63,10 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
         )}
         {/* Calories in center */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-title3 font-bold leading-none text-label-primary tabular-nums">
+          <span className="text-title3 font-bold leading-none text-text-primary tabular-nums">
             {calories}
           </span>
-          <span className="text-caption1 text-label-tertiary">
+          <span className="text-caption1 text-text-tertiary">
             kcal
           </span>
         </div>
@@ -79,10 +79,10 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
           return (
             <div key={key} className="flex items-center gap-2">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-caption1 text-label-tertiary">
+              <span className="text-caption1 text-text-tertiary">
                 {label}
               </span>
-              <span className="text-caption1 font-semibold text-label-primary tabular-nums">
+              <span className="text-caption1 font-semibold text-text-primary tabular-nums">
                 {Math.round(val)}g
               </span>
             </div>
@@ -91,10 +91,10 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
         {fiber_g > 0 && (
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: macroColors.fiber }} />
-            <span className="text-caption1 text-label-tertiary">
+            <span className="text-caption1 text-text-tertiary">
               Vezels
             </span>
-            <span className="text-caption1 font-semibold text-label-primary tabular-nums">
+            <span className="text-caption1 font-semibold text-text-primary tabular-nums">
               {Math.round(fiber_g)}g
             </span>
           </div>

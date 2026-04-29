@@ -19,7 +19,7 @@ export interface BaselineTagProps {
 const SENTIMENT_CLASS = {
   positive: 'text-system-green',
   negative: 'text-system-red',
-  neutral: 'text-label-tertiary',
+  neutral: 'text-text-tertiary',
 } as const
 
 const WINDOW_LABEL: Record<BaselineWindow, string> = {
@@ -58,7 +58,7 @@ function BaselineTagImpl({
       aria-label={`${text} vs ${window} gemiddelde`}
     >
       <span>{text}</span>
-      {!compact && <span className="text-label-tertiary">vs {WINDOW_LABEL[window]}</span>}
+      {!compact && <span className="text-text-tertiary">vs {WINDOW_LABEL[window]}</span>}
     </span>
   )
 }

@@ -38,8 +38,8 @@ export function CheckInBadge() {
           <ClipboardCheck size={20} strokeWidth={1.5} className="text-system-blue" />
         </div>
         <div>
-          <p className="text-headline text-label-primary">Week {data.weekNumber} afsluiten</p>
-          <p className="text-caption1 text-label-secondary">
+          <p className="text-headline text-text-primary">Week {data.weekNumber} afsluiten</p>
+          <p className="text-caption1 text-text-secondary">
             Bekijk je voortgang en sluit af met de coach
           </p>
         </div>

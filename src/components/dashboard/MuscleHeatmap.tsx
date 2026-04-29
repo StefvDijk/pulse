@@ -143,7 +143,7 @@ export function MuscleHeatmap({ volume, onMuscleClick }: MuscleHeatmapProps) {
       {/* Tooltip bar — fixed-height so the body doesn't jump when hovering */}
       <div className="mb-1 flex h-7 items-center justify-center">
         {hoveredMuscle && hoveredHits > 0 ? (
-          <div className="text-label-primary rounded-full bg-system-gray6 px-3 py-1 text-caption1 font-medium">
+          <div className="text-text-primary rounded-full bg-system-gray6 px-3 py-1 text-caption1 font-medium">
             {getMuscleLabel(hoveredMuscle)} · {Math.round(hoveredHits)} hits
           </div>
         ) : null}
@@ -167,7 +167,7 @@ export function MuscleHeatmap({ volume, onMuscleClick }: MuscleHeatmapProps) {
             onHover={setHoveredMuscle}
             onClick={handleClick}
           />
-          <span className="text-label-tertiary mt-1 text-caption2 uppercase tracking-[0.2em]">
+          <span className="text-text-tertiary mt-1 text-caption2 uppercase tracking-[0.2em]">
             Voor
           </span>
         </div>
@@ -181,7 +181,7 @@ export function MuscleHeatmap({ volume, onMuscleClick }: MuscleHeatmapProps) {
             onHover={setHoveredMuscle}
             onClick={handleClick}
           />
-          <span className="text-label-tertiary mt-1 text-caption2 uppercase tracking-[0.2em]">
+          <span className="text-text-tertiary mt-1 text-caption2 uppercase tracking-[0.2em]">
             Achter
           </span>
         </div>

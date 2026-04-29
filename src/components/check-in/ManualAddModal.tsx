@@ -52,7 +52,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="text-xs font-medium text-label-tertiary mb-1 block">
+        <label className="text-xs font-medium text-text-tertiary mb-1 block">
           Duur (minuten)
         </label>
         <input
@@ -61,11 +61,11 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
           onChange={(e) => setDuration(e.target.value)}
           placeholder="60"
           min={1}
-          className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div>
-        <label className="text-xs font-medium text-label-tertiary mb-2 block">
+        <label className="text-xs font-medium text-text-tertiary mb-2 block">
           Intensiteit
         </label>
         <div className="flex gap-2">
@@ -76,7 +76,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
               className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 intensity === opt.value
                   ? 'bg-system-yellow/10 text-system-yellow border border-system-yellow/30'
-                  : 'bg-system-gray6 text-label-secondary border border-separator'
+                  : 'bg-system-gray6 text-text-secondary border border-bg-border'
               }`}
             >
               {opt.label}
@@ -134,7 +134,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="text-xs font-medium text-label-tertiary mb-1 block">
+        <label className="text-xs font-medium text-text-tertiary mb-1 block">
           Gewicht (kg) *
         </label>
         <input
@@ -143,12 +143,12 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           placeholder="82.5"
-          className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium text-label-tertiary mb-1 block">
+          <label className="text-xs font-medium text-text-tertiary mb-1 block">
             Spiermassa (kg)
           </label>
           <input
@@ -157,11 +157,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={muscleMass}
             onChange={(e) => setMuscleMass(e.target.value)}
             placeholder="38.0"
-            className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-label-tertiary mb-1 block">
+          <label className="text-xs font-medium text-text-tertiary mb-1 block">
             Vetmassa (kg)
           </label>
           <input
@@ -170,13 +170,13 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatMass}
             onChange={(e) => setFatMass(e.target.value)}
             placeholder="12.5"
-            className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium text-label-tertiary mb-1 block">
+          <label className="text-xs font-medium text-text-tertiary mb-1 block">
             Vetpercentage (%)
           </label>
           <input
@@ -185,11 +185,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatPct}
             onChange={(e) => setFatPct(e.target.value)}
             placeholder="15.0"
-            className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-label-tertiary mb-1 block">
+          <label className="text-xs font-medium text-text-tertiary mb-1 block">
             Tailleomtrek (cm)
           </label>
           <input
@@ -198,7 +198,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={waist}
             onChange={(e) => setWaist(e.target.value)}
             placeholder="82.0"
-            className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none placeholder:text-label-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
@@ -233,7 +233,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="text-xs font-medium text-label-tertiary mb-1 block">
+        <label className="text-xs font-medium text-text-tertiary mb-1 block">
           Notitie
         </label>
         <textarea
@@ -241,7 +241,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
           onChange={(e) => setText(e.target.value)}
           placeholder="Bijv. lichte kniepijn bij squats, extra wandeling gemaakt..."
           rows={3}
-          className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none resize-none placeholder:text-label-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-system-gray6 px-3 py-2 text-sm text-text-primary outline-none resize-none placeholder:text-text-tertiary"
         />
       </div>
       <button
@@ -271,17 +271,17 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-surface-primary shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-label-primary">
+            <h2 className="text-base font-semibold text-text-primary">
               {selectedType ? 'Toevoegen' : 'Wat wil je toevoegen?'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray6"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray6"
           >
             <X size={16} />
           </button>
@@ -295,10 +295,10 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
                 <button
                   key={opt.type}
                   onClick={() => setSelectedType(opt.type)}
-                  className="flex items-center gap-3 rounded-xl border border-separator bg-surface-primary p-4 text-left transition-colors hover:bg-system-gray6"
+                  className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-system-gray6"
                 >
                   <span className="text-xl">{opt.icon}</span>
-                  <span className="text-sm font-medium text-label-primary">{opt.label}</span>
+                  <span className="text-sm font-medium text-text-primary">{opt.label}</span>
                 </button>
               ))}
             </div>

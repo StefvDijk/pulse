@@ -18,7 +18,7 @@ export function SkeletonCard({
   className?: string
 }) {
   return (
-    <div className={`animate-pulse rounded-xl border border-separator bg-surface-primary p-5 ${className ?? ''}`}>
+    <div className={`animate-pulse rounded-xl border border-bg-border bg-bg-surface p-5 ${className ?? ''}`}>
       {children}
     </div>
   )

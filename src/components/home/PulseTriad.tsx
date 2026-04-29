@@ -58,7 +58,7 @@ function PillarRing({ title, value, label, sub, href, ringColor, trackColor }: P
       href={href}
       className="flex flex-1 flex-col items-center gap-2 active:opacity-70 transition-opacity"
     >
-      <p className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+      <p className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
         {title}
       </p>
 
@@ -86,13 +86,13 @@ function PillarRing({ title, value, label, sub, href, ringColor, trackColor }: P
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-title3 font-semibold tabular-nums text-label-primary">
+          <span className="text-title3 font-semibold tabular-nums text-text-primary">
             {label}
           </span>
         </div>
       </div>
 
-      <p className="text-caption1 leading-tight text-label-secondary text-center">
+      <p className="text-caption1 leading-tight text-text-secondary text-center">
         {sub}
       </p>
     </Link>
@@ -107,7 +107,7 @@ export function PulseTriad() {
   if (isLoading || !data) {
     return (
       <div
-        className="rounded-3xl border border-separator bg-surface-primary p-5 shadow-apple-sm"
+        className="rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm"
         aria-hidden="true"
       >
         <div className="flex items-start justify-around gap-3">
@@ -124,7 +124,7 @@ export function PulseTriad() {
   }
 
   return (
-    <div className="rounded-3xl border border-separator bg-surface-primary p-5 shadow-apple-sm">
+    <div className="rounded-3xl border border-bg-border bg-bg-surface p-5 shadow-apple-sm">
       <div className="flex items-start justify-around gap-3">
         <PillarRing
           title={PILLARS.train.title}

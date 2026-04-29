@@ -62,13 +62,13 @@ export function ActivityFeed() {
     <div className="flex flex-col gap-3">
       {/* Section header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-label-secondary uppercase tracking-wide">
-          Recente activiteiten {total > 0 && <span className="text-label-tertiary font-normal">({total})</span>}
+        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+          Recente activiteiten {total > 0 && <span className="text-text-tertiary font-normal">({total})</span>}
         </h2>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-1.5 rounded-xl bg-surface-primary border border-separator px-3 py-1.5 text-xs font-medium text-label-secondary hover:border-separator disabled:opacity-60 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl bg-bg-surface border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-bg-border disabled:opacity-60 transition-colors"
         >
           <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
           {syncing ? 'Syncing...' : 'Sync Hevy'}
@@ -76,13 +76,13 @@ export function ActivityFeed() {
       </div>
 
       {syncMessage && (
-        <p className="text-xs text-label-tertiary px-1">{syncMessage}</p>
+        <p className="text-xs text-text-tertiary px-1">{syncMessage}</p>
       )}
 
       {isLoading && <FeedSkeleton />}
 
       {error && !isLoading && (
-        <p className="text-sm text-label-tertiary px-1">Kan activiteiten niet laden.</p>
+        <p className="text-sm text-text-tertiary px-1">Kan activiteiten niet laden.</p>
       )}
 
       {!isLoading && !error && activities.length === 0 && (

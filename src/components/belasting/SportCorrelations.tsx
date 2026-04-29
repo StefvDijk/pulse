@@ -55,10 +55,10 @@ function FatigueRow({
         style={{ backgroundColor: SPORT_COLOR_VAR[sport] }}
         aria-hidden="true"
       />
-      <span className="flex-1 text-subhead font-medium text-label-primary">
+      <span className="flex-1 text-subhead font-medium text-text-primary">
         {SPORT_LABELS[sport]}
       </span>
-      <span className="text-caption1 tabular-nums text-label-tertiary">
+      <span className="text-caption1 tabular-nums text-text-tertiary">
         {Math.round(share * 100)}%
       </span>
       <div className="relative h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-system-gray6">
@@ -67,7 +67,7 @@ function FatigueRow({
           style={{ width: `${score}%`, backgroundColor: SPORT_COLOR_VAR[sport] }}
         />
       </div>
-      <span className="w-8 text-right text-footnote font-semibold tabular-nums text-label-primary">
+      <span className="w-8 text-right text-footnote font-semibold tabular-nums text-text-primary">
         {score}
       </span>
     </div>
@@ -96,12 +96,12 @@ export function SportCorrelations() {
   const allZero = data.fatigue.every((f) => f.score === 0)
 
   return (
-    <section className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm">
+    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+        <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
           Per sport · laatste 72u
         </h3>
-        <span className="text-caption1 text-label-tertiary">7-daags aandeel</span>
+        <span className="text-caption1 text-text-tertiary">7-daags aandeel</span>
       </div>
 
       <div className="mt-3 flex flex-col gap-2.5">
@@ -119,14 +119,14 @@ export function SportCorrelations() {
       </div>
 
       <div className="mt-5">
-        <p className="mb-2 text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+        <p className="mb-2 text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
           Verdeling 7 dagen
         </p>
         <ContributionBar data={data} />
       </div>
 
       {allZero && (
-        <p className="mt-4 text-caption1 text-label-tertiary">
+        <p className="mt-4 text-caption1 text-text-tertiary">
           Nog geen sport-belasting in de laatste 72u — train op gevoel.
         </p>
       )}

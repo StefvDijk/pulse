@@ -54,7 +54,7 @@ function sportTextClass(sport: SportType): string {
     case 'padel':
       return 'text-system-yellow'
     default:
-      return 'text-label-tertiary'
+      return 'text-text-tertiary'
   }
 }
 
@@ -69,7 +69,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
       {/* Day label */}
       <span
         className={`text-caption2 font-medium uppercase tracking-wider ${
-          isToday ? 'text-system-blue' : 'text-label-tertiary'
+          isToday ? 'text-system-blue' : 'text-text-tertiary'
         }`}
       >
         {day.dayLabel}
@@ -84,7 +84,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
               ? 'bg-system-blue text-white ring-2 ring-system-blue/30 ring-offset-2 ring-offset-surface-primary'
               : isRest
                 ? 'bg-system-gray6'
-                : `border-2 border-separator bg-transparent ${sportTextClass(sport)}`
+                : `border-2 border-bg-border bg-transparent ${sportTextClass(sport)}`
         }`}
       >
         {!isRest && <SportIcon sport={sport} />}
@@ -93,7 +93,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
       {/* Workout name (abbreviated) */}
       <span
         className={`text-caption2 leading-tight text-center truncate w-full ${
-          isToday ? 'font-medium text-label-secondary' : 'text-label-tertiary'
+          isToday ? 'font-medium text-text-secondary' : 'text-text-tertiary'
         }`}
       >
         {isRest ? '' : day.workout?.title ?? ''}
@@ -154,7 +154,7 @@ export function WeekAtAGlance({ days }: WeekAtAGlanceProps) {
       </div>
 
       {summary && (
-        <p className="mt-3 text-caption1 text-label-tertiary text-center">
+        <p className="mt-3 text-caption1 text-text-tertiary text-center">
           {summary}
         </p>
       )}

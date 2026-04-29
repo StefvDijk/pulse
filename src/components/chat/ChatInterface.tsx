@@ -249,7 +249,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       >
         {messages.length === 0 && !isLoading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <p className="text-subhead text-label-tertiary">
+            <p className="text-subhead text-text-tertiary">
               Stel een vraag of log een maaltijd
             </p>
           </div>

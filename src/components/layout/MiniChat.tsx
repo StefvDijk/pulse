@@ -25,17 +25,17 @@ export function MiniChat() {
       {/* Popup */}
       {isOpen && (
         <div
-          className="absolute bottom-14 right-0 flex h-[420px] w-[320px] flex-col overflow-hidden rounded-2xl border border-separator bg-surface-primary shadow-2xl"
+          className="absolute bottom-14 right-0 flex h-[420px] w-[320px] flex-col overflow-hidden rounded-2xl border border-bg-border bg-bg-surface shadow-2xl"
         >
           {/* Popup header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-separator px-3 py-2">
-            <span className="text-sm font-medium text-label-primary">
+          <div className="flex shrink-0 items-center justify-between border-b border-bg-border px-3 py-2">
+            <span className="text-sm font-medium text-text-primary">
               Chat
             </span>
             <div className="flex items-center gap-2">
               <Link
                 href="/chat"
-                className="flex items-center gap-1 text-xs text-label-tertiary hover:opacity-80"
+                className="flex items-center gap-1 text-xs text-text-tertiary hover:opacity-80"
                 onClick={() => setIsOpen(false)}
               >
                 Open volledig
@@ -43,7 +43,7 @@ export function MiniChat() {
               </Link>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded p-0.5 text-label-tertiary hover:opacity-70"
+                className="rounded p-0.5 text-text-tertiary hover:opacity-70"
                 aria-label="Sluit chat"
               >
                 <X size={14} />

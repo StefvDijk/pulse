@@ -36,7 +36,7 @@ export function TodaysMove() {
   if (isLoading || !data) {
     return (
       <div
-        className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm"
+        className="rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm"
         aria-hidden="true"
       >
         <div className="flex flex-col gap-3">
@@ -54,18 +54,18 @@ export function TodaysMove() {
   return (
     <Link
       href={data.actionHref}
-      className="block rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm transition-opacity active:opacity-80"
+      className="block rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm transition-opacity active:opacity-80"
       style={{ background: style.bgGradient }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+          <p className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
             {style.eyebrow}
           </p>
-          <h2 className="mt-1.5 text-title1 font-bold leading-tight tracking-tight text-label-primary">
+          <h2 className="mt-1.5 text-title1 font-bold leading-tight tracking-tight text-text-primary">
             {data.title}
           </h2>
-          <p className="mt-2 text-subhead leading-snug text-label-secondary">
+          <p className="mt-2 text-subhead leading-snug text-text-secondary">
             {data.subtitle}
           </p>
         </div>

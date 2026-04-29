@@ -113,13 +113,13 @@ export function CoachAnalysisCard({
   // Loading state
   if (loading) {
     return (
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex flex-col items-center gap-3 py-8">
           <CoachOrb size={32} state="streaming" />
-          <p className="text-sm font-medium text-label-secondary">
+          <p className="text-sm font-medium text-text-secondary">
             Coach analyseert je week...
           </p>
-          <p className="text-xs text-label-tertiary">Dit duurt meestal 5-10 seconden</p>
+          <p className="text-xs text-text-tertiary">Dit duurt meestal 5-10 seconden</p>
         </div>
       </div>
     )
@@ -141,14 +141,14 @@ export function CoachAnalysisCard({
   return (
     <div className="flex flex-col gap-3">
       {/* Analysis card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex items-center gap-2 mb-3">
           <CoachOrb size={16} />
-          <h3 className="text-subhead font-semibold text-label-primary">Coach analyse</h3>
+          <h3 className="text-subhead font-semibold text-text-primary">Coach analyse</h3>
         </div>
 
         {/* Summary */}
-        <p className="text-sm text-label-secondary leading-relaxed mb-4">
+        <p className="text-sm text-text-secondary leading-relaxed mb-4">
           {analysis.summary}
         </p>
 
@@ -157,7 +157,7 @@ export function CoachAnalysisCard({
           {analysis.keyInsights.map((insight, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-system-blue" />
-              <p className="text-sm text-label-primary">{insight}</p>
+              <p className="text-sm text-text-primary">{insight}</p>
             </div>
           ))}
         </div>

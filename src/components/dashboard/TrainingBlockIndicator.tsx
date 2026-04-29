@@ -25,9 +25,9 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
   if (!schema) {
     return (
       <div
-        className="flex items-center justify-center rounded-lg border border-separator bg-system-gray6 p-4"
+        className="flex items-center justify-center rounded-lg border border-bg-border bg-system-gray6 p-4"
       >
-        <p className="text-sm text-label-tertiary">
+        <p className="text-sm text-text-tertiary">
           Geen actief trainingsschema
         </p>
       </div>
@@ -50,7 +50,7 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-label-primary">
+        <span className="text-sm font-medium text-text-primary">
           {schema.title}
         </span>
         <span
@@ -68,7 +68,7 @@ export function TrainingBlockIndicator({ schema }: TrainingBlockIndicatorProps) 
         />
       </div>
 
-      <p className="text-xs text-label-tertiary">
+      <p className="text-xs text-text-tertiary">
         Week {currentWeek} van {totalWeeks}
       </p>
     </div>

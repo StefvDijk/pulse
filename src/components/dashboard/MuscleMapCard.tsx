@@ -183,15 +183,15 @@ export function MuscleMapCard() {
     <Card padding="md" className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-headline font-semibold text-label-primary">Spierkaart</h2>
+        <h2 className="text-headline font-semibold text-text-primary">Spierkaart</h2>
         <div className="flex items-center gap-2">
           {weekSteps > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-system-gray6 px-2 py-0.5 text-caption2 font-medium text-label-secondary">
-              <Footprints size={12} className="text-label-tertiary" aria-hidden />
+            <span className="inline-flex items-center gap-1 rounded-full bg-system-gray6 px-2 py-0.5 text-caption2 font-medium text-text-secondary">
+              <Footprints size={12} className="text-text-tertiary" aria-hidden />
               {formatSteps(weekSteps)}
             </span>
           )}
-          <span className="text-caption1 text-label-tertiary">Deze week</span>
+          <span className="text-caption1 text-text-tertiary">Deze week</span>
         </div>
       </div>
 
@@ -211,8 +211,8 @@ export function MuscleMapCard() {
                 isOn
                   ? 'border-system-orange bg-system-orange/10 text-system-orange'
                   : hasWorkout
-                    ? 'border-separator text-label-secondary hover:bg-system-gray6'
-                    : 'border-separator/60 text-label-tertiary opacity-40',
+                    ? 'border-bg-border text-text-secondary hover:bg-system-gray6'
+                    : 'border-bg-border/60 text-text-tertiary opacity-40',
               ].join(' ')}
               aria-pressed={isOn}
               aria-label={`${day.dayLabelShort} ${day.dayNumber}${hasWorkout ? '' : ' (geen training)'}`}
@@ -235,10 +235,10 @@ export function MuscleMapCard() {
       {/* Empty state ─ no lifting AND no other activity */}
       {!hasAnyActivity && (
         <div className="py-6 text-center">
-          <p className="text-subhead text-label-secondary">
+          <p className="text-subhead text-text-secondary">
             Geen activiteit deze week.
           </p>
-          <p className="mt-1 text-caption1 text-label-tertiary">
+          <p className="mt-1 text-caption1 text-text-tertiary">
             Sync je Hevy of Apple Health data.
           </p>
         </div>
@@ -252,7 +252,7 @@ export function MuscleMapCard() {
           {/* Volume bar chart */}
           {sortedMuscles.length > 0 ? (
             <div className="flex flex-col gap-2">
-              <h3 className="text-caption1 font-semibold uppercase tracking-[0.1em] text-label-tertiary">
+              <h3 className="text-caption1 font-semibold uppercase tracking-[0.1em] text-text-tertiary">
                 Volume per spiergroep
               </h3>
               <div className="flex flex-col gap-1.5">
@@ -263,7 +263,7 @@ export function MuscleMapCard() {
                     onClick={() => handleMuscleClick(muscle)}
                     className="flex items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-system-gray6"
                   >
-                    <span className="w-24 shrink-0 text-footnote text-label-secondary">
+                    <span className="w-24 shrink-0 text-footnote text-text-secondary">
                       {label}
                     </span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-system-gray6">
@@ -272,7 +272,7 @@ export function MuscleMapCard() {
                         style={{ width: `${maxHits > 0 ? (hits / maxHits) * 100 : 0}%` }}
                       />
                     </span>
-                    <span className="w-6 shrink-0 text-right text-footnote font-semibold tabular-nums text-label-primary">
+                    <span className="w-6 shrink-0 text-right text-footnote font-semibold tabular-nums text-text-primary">
                       {Math.round(hits)}
                     </span>
                   </button>
@@ -280,7 +280,7 @@ export function MuscleMapCard() {
               </div>
             </div>
           ) : (
-            <p className="text-center text-caption1 text-label-tertiary">
+            <p className="text-center text-caption1 text-text-tertiary">
               Selecteer een dag om spieractiviteit te zien.
             </p>
           )}
@@ -291,7 +291,7 @@ export function MuscleMapCard() {
               {sessionTags.map((tag) => (
                 <span
                   key={tag.key}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-system-gray6 px-2.5 py-1 text-caption1 text-label-secondary"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-system-gray6 px-2.5 py-1 text-caption1 text-text-secondary"
                 >
                   <span className="font-semibold text-system-orange">{tag.dayLabel}</span>
                   {tag.title}
@@ -305,7 +305,7 @@ export function MuscleMapCard() {
       {/* Activities — runs and padel from Apple Health (independent of day toggle) */}
       {activityEntries.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-caption1 font-semibold uppercase tracking-[0.1em] text-label-tertiary">
+          <h3 className="text-caption1 font-semibold uppercase tracking-[0.1em] text-text-tertiary">
             Overige activiteit
           </h3>
           <ul className="flex flex-col gap-1.5">
@@ -316,14 +316,14 @@ export function MuscleMapCard() {
                   key={entry.key}
                   className="flex items-center gap-3 rounded-xl bg-system-gray6 px-3 py-2"
                 >
-                  <Icon size={16} className="shrink-0 text-label-tertiary" aria-hidden />
+                  <Icon size={16} className="shrink-0 text-text-tertiary" aria-hidden />
                   <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                    <span className="text-footnote font-medium text-label-primary">
+                    <span className="text-footnote font-medium text-text-primary">
                       {entry.title}
                     </span>
-                    <span className="text-caption2 text-label-tertiary">{entry.dayLabel}</span>
+                    <span className="text-caption2 text-text-tertiary">{entry.dayLabel}</span>
                   </div>
-                  <span className="shrink-0 text-caption1 tabular-nums text-label-secondary">
+                  <span className="shrink-0 text-caption1 tabular-nums text-text-secondary">
                     {entry.details}
                   </span>
                 </li>

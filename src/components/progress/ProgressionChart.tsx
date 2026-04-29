@@ -17,7 +17,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
   if (points.length < 2) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <p className="text-subhead text-label-tertiary">
+        <p className="text-subhead text-text-tertiary">
           {points.length === 0
             ? 'Nog geen data voor deze oefening'
             : 'Minimaal 2 sessies nodig voor een chart'}
@@ -86,7 +86,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
     <div className="flex flex-col gap-3">
       {/* Delta badge */}
       <div className="flex items-center gap-2">
-        <span className="text-title2 font-bold tabular-nums text-label-primary">
+        <span className="text-title2 font-bold tabular-nums text-text-primary">
           {lastWeight}kg
         </span>
         {deltaKg !== 0 && (
@@ -103,7 +103,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
       </div>
 
       {/* Best set summary */}
-      <p className="text-caption1 text-label-tertiary">
+      <p className="text-caption1 text-text-tertiary">
         Beste set: {points[prIndex].maxWeight}kg × {points[prIndex].repsAtMax} reps
         {' · '}
         {formatDate(points[prIndex].date)}

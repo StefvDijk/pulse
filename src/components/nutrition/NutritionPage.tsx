@@ -132,7 +132,7 @@ export function NutritionPage() {
 
           {/* Meals list */}
           <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[18px]">
-            <h2 className="mb-3 text-[17px] font-semibold text-label-primary">
+            <h2 className="mb-3 text-[17px] font-semibold text-text-primary">
               Maaltijden
             </h2>
             <MealsList meals={meals} onDelete={handleDelete} />

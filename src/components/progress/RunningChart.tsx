@@ -47,7 +47,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
   if (!hasData) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-subhead text-label-tertiary">Geen hardloopdata voor deze periode</p>
+        <p className="text-subhead text-text-tertiary">Geen hardloopdata voor deze periode</p>
       </div>
     )
   }

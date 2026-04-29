@@ -32,15 +32,15 @@ function ExerciseRow({ exercise }: { exercise: SchemaExercise }) {
   ].filter(Boolean).join('')
 
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-separator last:border-0">
+    <div className="flex items-center justify-between py-2.5 border-b border-bg-border last:border-0">
       <div className="flex-1 min-w-0">
-        <span className="text-sm text-label-primary">{exercise.name}</span>
+        <span className="text-sm text-text-primary">{exercise.name}</span>
         {exercise.notes && (
-          <p className="text-xs text-label-tertiary mt-0.5">{exercise.notes}</p>
+          <p className="text-xs text-text-tertiary mt-0.5">{exercise.notes}</p>
         )}
       </div>
       {detail && (
-        <span className="ml-3 text-sm text-label-secondary tabular-nums whitespace-nowrap">
+        <span className="ml-3 text-sm text-text-secondary tabular-nums whitespace-nowrap">
           {detail}
         </span>
       )}
@@ -58,22 +58,22 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-surface-primary shadow-2xl max-h-[80vh] overflow-y-auto">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl max-h-[80vh] overflow-y-auto">
         <div className="px-5 pt-5 pb-3 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <SportIcon focus={day.workoutFocus} />
             <div>
-              <h3 className="text-base font-semibold text-label-primary">
+              <h3 className="text-base font-semibold text-text-primary">
                 {day.workoutFocus}
               </h3>
-              <p className="text-xs text-label-tertiary mt-0.5">
+              <p className="text-xs text-text-tertiary mt-0.5">
                 {DAY_LABELS[day.dayName] ?? day.dayName} {dateNum} {month}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary"
           >
             <X size={14} />
           </button>
@@ -86,7 +86,7 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
             ))}
           </div>
         ) : (
-          <div className="px-5 pb-5 text-sm text-label-tertiary">
+          <div className="px-5 pb-5 text-sm text-text-tertiary">
             Geen oefeningen gedefinieerd.
           </div>
         )}

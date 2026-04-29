@@ -57,10 +57,10 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-system-gray6">
-        <ClipboardCheck size={24} className="text-label-tertiary" />
+        <ClipboardCheck size={24} className="text-text-tertiary" />
       </div>
-      <p className="text-headline text-label-primary">Nog geen check-ins</p>
-      <p className="text-sm text-label-secondary">
+      <p className="text-headline text-text-primary">Nog geen check-ins</p>
+      <p className="text-sm text-text-secondary">
         Na je eerste wekelijkse check-in verschijnt je historie hier.
       </p>
       <Link
@@ -99,18 +99,18 @@ function HistoryCard({
   completedAt,
 }: HistoryCardProps) {
   return (
-    <div className="rounded-2xl border border-separator bg-surface-primary p-5 transition-colors hover:bg-system-gray6">
+    <div className="rounded-2xl border border-bg-border bg-bg-surface p-5 transition-colors hover:bg-system-gray6">
       {/* Week header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-subhead font-semibold text-label-primary">Week {weekNumber}</p>
-          <p className="mt-0.5 text-xs text-label-tertiary">
+          <p className="text-subhead font-semibold text-text-primary">Week {weekNumber}</p>
+          <p className="mt-0.5 text-xs text-text-tertiary">
             {formatDateRange(weekStart, weekEnd)}
           </p>
         </div>
         {sessionsCompleted !== null && (
           <div className="flex items-center gap-1.5 rounded-full bg-system-gray6 px-2.5 py-1">
-            <span className="text-xs font-medium text-label-secondary">
+            <span className="text-xs font-medium text-text-secondary">
               {sessionsCompleted}/{sessionsPlanned ?? '?'} sessies
             </span>
           </div>
@@ -119,13 +119,13 @@ function HistoryCard({
 
       {/* Summary */}
       {summaryText && (
-        <p className="mt-3 line-clamp-2 text-sm text-label-secondary">
+        <p className="mt-3 line-clamp-2 text-sm text-text-secondary">
           {summaryText}
         </p>
       )}
 
       {/* Footer */}
-      <div className="mt-3 flex items-center gap-4 text-xs text-label-tertiary">
+      <div className="mt-3 flex items-center gap-4 text-xs text-text-tertiary">
         {completedAt && (
           <span className="flex items-center gap-1">
             <Calendar size={12} />
@@ -155,11 +155,11 @@ export function CheckInHistoryPage() {
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
         <Link
           href="/"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary"
         >
           <ChevronLeft size={18} />
         </Link>
-        <h1 className="text-headline text-label-primary">Check-in historie</h1>
+        <h1 className="text-headline text-text-primary">Check-in historie</h1>
       </div>
 
       {/* Content */}

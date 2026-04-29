@@ -46,12 +46,12 @@ function ChartTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
   return (
-    <div className="rounded-xl border border-separator bg-surface-primary p-3 shadow-apple-md">
-      <p className="text-caption2 uppercase tracking-wide text-label-tertiary">
+    <div className="rounded-xl border border-bg-border bg-bg-surface p-3 shadow-apple-md">
+      <p className="text-caption2 uppercase tracking-wide text-text-tertiary">
         Week {point.dateLabel}
       </p>
-      <p className="mt-1 text-title3 font-bold tabular-nums text-label-primary">
-        {point.tonnage.toLocaleString('nl-NL')} <span className="text-caption1 font-normal text-label-tertiary">kg</span>
+      <p className="mt-1 text-title3 font-bold tabular-nums text-text-primary">
+        {point.tonnage.toLocaleString('nl-NL')} <span className="text-caption1 font-normal text-text-tertiary">kg</span>
       </p>
     </div>
   )
@@ -71,7 +71,7 @@ export function TonnageTrend({ weeks = 8 }: TonnageTrendProps) {
   if (isLoading || !data) {
     return (
       <div className="flex h-[220px] items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-separator border-t-text-primary" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-border border-t-text-primary" />
       </div>
     )
   }
@@ -79,7 +79,7 @@ export function TonnageTrend({ weeks = 8 }: TonnageTrendProps) {
   if (data.weeks.length === 0) {
     return (
       <div className="flex h-[220px] items-center justify-center">
-        <p className="text-subhead text-label-tertiary">Nog geen tonnage-data</p>
+        <p className="text-subhead text-text-tertiary">Nog geen tonnage-data</p>
       </div>
     )
   }

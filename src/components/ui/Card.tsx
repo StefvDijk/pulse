@@ -15,7 +15,7 @@ const paddingClasses: Record<CardPadding, string> = {
 
 const baseClasses = [
   'rounded-2xl',
-  'bg-surface-primary',
+  'bg-bg-surface',
   'shadow-apple',
   // Dark mode: vervang shadow door subtiele border
   'dark:shadow-none',

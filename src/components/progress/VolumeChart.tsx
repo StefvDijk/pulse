@@ -42,7 +42,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   if (weeks.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-subhead text-label-tertiary">Geen trainingsdata beschikbaar</p>
+        <p className="text-subhead text-text-tertiary">Geen trainingsdata beschikbaar</p>
       </div>
     )
   }

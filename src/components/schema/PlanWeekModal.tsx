@@ -92,16 +92,16 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-surface-primary shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-label-primary">Plan je week</h2>
-            <p className="text-xs text-label-tertiary mt-0.5">Workouts toevoegen aan Google Agenda</p>
+            <h2 className="text-base font-semibold text-text-primary">Plan je week</h2>
+            <p className="text-xs text-text-tertiary mt-0.5">Workouts toevoegen aan Google Agenda</p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray6"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray6"
           >
             <X size={16} />
           </button>
@@ -112,10 +112,10 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-system-green/10">
               <Check size={28} className="text-system-green" />
             </div>
-            <p className="text-base font-semibold text-label-primary">
+            <p className="text-base font-semibold text-text-primary">
               {createdCount} {createdCount === 1 ? 'workout' : 'workouts'} ingepland
             </p>
-            <p className="text-sm text-label-tertiary text-center">
+            <p className="text-sm text-text-tertiary text-center">
               Check je Google Agenda voor de details.
             </p>
             <button
@@ -133,7 +133,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                 <div
                   key={entry.day.date}
                   className={`rounded-xl border p-3 transition-colors ${
-                    entry.include ? 'border-separator bg-surface-primary' : 'border-separator bg-system-gray6 opacity-60'
+                    entry.include ? 'border-bg-border bg-bg-surface' : 'border-bg-border bg-system-gray6 opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -146,10 +146,10 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         id={`entry-${i}`}
                       />
                       <label htmlFor={`entry-${i}`} className="cursor-pointer">
-                        <span className="text-sm font-medium text-label-primary">
+                        <span className="text-sm font-medium text-text-primary">
                           {entry.day.workout!.title}
                         </span>
-                        <span className="ml-1.5 text-xs text-label-tertiary capitalize">
+                        <span className="ml-1.5 text-xs text-text-tertiary capitalize">
                           {entry.day.dayLabel} {entry.day.date.slice(5)}
                         </span>
                       </label>
@@ -162,14 +162,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="time"
                         value={entry.startTime}
                         onChange={(e) => updateEntry(i, { startTime: e.target.value })}
-                        className="rounded-lg border border-separator bg-system-gray6 px-2 py-1 text-xs text-label-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-system-gray6 px-2 py-1 text-xs text-text-primary outline-none"
                       />
-                      <span className="text-xs text-label-tertiary">–</span>
+                      <span className="text-xs text-text-tertiary">–</span>
                       <input
                         type="time"
                         value={entry.endTime}
                         onChange={(e) => updateEntry(i, { endTime: e.target.value })}
-                        className="rounded-lg border border-separator bg-system-gray6 px-2 py-1 text-xs text-label-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-system-gray6 px-2 py-1 text-xs text-text-primary outline-none"
                       />
                     </div>
                   )}
@@ -184,8 +184,8 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             )}
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-separator bg-surface-primary px-5 py-4">
-              <span className="text-sm text-label-tertiary">
+            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+              <span className="text-sm text-text-tertiary">
                 {includedCount} van {entries.length} workout{entries.length !== 1 ? 's' : ''}
               </span>
               <button

@@ -51,7 +51,7 @@ function contributorBadge(contributor: BurnTierContributor): {
 } | null {
   if (contributor.ratio == null) return null
   const pct = Math.round((contributor.ratio - 1) * 100)
-  if (Math.abs(pct) < 5) return { label: '~gemiddeld', className: 'text-label-tertiary' }
+  if (Math.abs(pct) < 5) return { label: '~gemiddeld', className: 'text-text-tertiary' }
   return {
     label: pct > 0 ? `+${pct}%` : `${pct}%`,
     className: pct > 0 ? 'text-system-green' : 'text-system-red',
@@ -70,25 +70,25 @@ export function WeekTier({ weekStart }: Props) {
   const tierIndex = BURN_TIER_LABELS.findIndex((l) => l === data.tier)
 
   return (
-    <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+    <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center gap-2 text-left"
         aria-expanded={expanded}
       >
         <Flame size={16} className="text-system-orange" aria-hidden="true" />
-        <h3 className="flex-1 text-subhead font-semibold text-label-primary">
+        <h3 className="flex-1 text-subhead font-semibold text-text-primary">
           Burn Bar
         </h3>
-        <span className="text-xs text-label-tertiary">vs jouw 4-weken gemiddelde</span>
+        <span className="text-xs text-text-tertiary">vs jouw 4-weken gemiddelde</span>
         {expanded ? (
-          <ChevronUp size={14} className="text-label-tertiary" />
+          <ChevronUp size={14} className="text-text-tertiary" />
         ) : (
-          <ChevronDown size={14} className="text-label-tertiary" />
+          <ChevronDown size={14} className="text-text-tertiary" />
         )}
       </button>
 
-      <p className="mt-3 text-title3 font-bold text-label-primary">{data.tier}</p>
+      <p className="mt-3 text-title3 font-bold text-text-primary">{data.tier}</p>
 
       {/* Tier bar */}
       <div className="relative mt-3">
@@ -108,12 +108,12 @@ export function WeekTier({ weekStart }: Props) {
       </div>
 
       {/* Tier labels */}
-      <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wide text-label-tertiary">
+      <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wide text-text-tertiary">
         {BURN_TIER_LABELS.map((label, i) => (
           <span
             key={label}
             className={`max-w-[18%] text-center leading-tight ${
-              i === tierIndex ? 'font-semibold text-label-primary' : ''
+              i === tierIndex ? 'font-semibold text-text-primary' : ''
             }`}
           >
             {label}
@@ -122,17 +122,17 @@ export function WeekTier({ weekStart }: Props) {
       </div>
 
       {expanded && data.contributors && (
-        <div className="mt-4 flex flex-col gap-2 border-t border-separator pt-3">
-          <p className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+        <div className="mt-4 flex flex-col gap-2 border-t border-bg-border pt-3">
+          <p className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
             Wat woog mee
           </p>
           {data.contributors.map((c) => {
             const badge = contributorBadge(c)
             return (
               <div key={c.metric} className="flex items-center justify-between text-sm">
-                <span className="text-label-primary">{c.metric}</span>
+                <span className="text-text-primary">{c.metric}</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-label-secondary tabular-nums">
+                  <span className="text-text-secondary tabular-nums">
                     {formatContributor(c)}
                   </span>
                   {badge && (
@@ -145,7 +145,7 @@ export function WeekTier({ weekStart }: Props) {
             )
           })}
           {data.weeksInBaseline != null && (
-            <p className="mt-1 text-caption1 text-label-tertiary">
+            <p className="mt-1 text-caption1 text-text-tertiary">
               Vergeleken met {data.weeksInBaseline} eerdere weken.
             </p>
           )}

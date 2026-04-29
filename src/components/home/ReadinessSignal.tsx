@@ -45,7 +45,7 @@ const LEVEL_CONFIG: Record<ReadinessLevel, LevelConfig> = {
     label: 'Rustdag',
     orbState: 'idle',
     bgClass: 'bg-system-gray6',
-    textClass: 'text-label-secondary',
+    textClass: 'text-text-secondary',
     ringColor: 'var(--color-brand-claude)',
     trackColor: 'rgba(217, 119, 87, 0.18)',
   },
@@ -92,10 +92,10 @@ function ScoreRing({ score, ringColor, trackColor, size = 132 }: ScoreRingProps)
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-large-title font-semibold tabular-nums text-label-primary">
+        <span className="text-large-title font-semibold tabular-nums text-text-primary">
           {score}
         </span>
-        <span className="text-caption2 uppercase tracking-wide text-label-tertiary">
+        <span className="text-caption2 uppercase tracking-wide text-text-tertiary">
           readiness
         </span>
       </div>
@@ -116,7 +116,7 @@ function BreakdownBar({ label, value, color, trackColor }: BreakdownBarProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-12 shrink-0 text-caption1 text-label-secondary">{label}</span>
+      <span className="w-12 shrink-0 text-caption1 text-text-secondary">{label}</span>
       <div
         className="relative h-1.5 flex-1 overflow-hidden rounded-full"
         style={{ background: trackColor }}
@@ -132,7 +132,7 @@ function BreakdownBar({ label, value, color, trackColor }: BreakdownBarProps) {
           />
         )}
       </div>
-      <span className="w-10 shrink-0 text-right text-caption1 tabular-nums text-label-tertiary">
+      <span className="w-10 shrink-0 text-right text-caption1 tabular-nums text-text-tertiary">
         {hasValue ? `${pct}%` : '—'}
       </span>
     </div>
@@ -150,7 +150,7 @@ export function ReadinessSignal() {
   const acwrLabel = data.acwr !== null ? `ACWR ${data.acwr.toFixed(2)}` : null
 
   return (
-    <div className={`rounded-2xl border border-separator ${config.bgClass} p-4`}>
+    <div className={`rounded-2xl border border-bg-border ${config.bgClass} p-4`}>
       {/* Header: orb + label */}
       <div className="flex items-center gap-2.5">
         <CoachOrb size={16} state={config.orbState} />
@@ -160,7 +160,7 @@ export function ReadinessSignal() {
       </div>
 
       {/* Coach sentence */}
-      <p className="mt-3 text-subhead leading-snug text-label-primary">
+      <p className="mt-3 text-subhead leading-snug text-text-primary">
         {data.sentence}
       </p>
 
@@ -197,7 +197,7 @@ export function ReadinessSignal() {
 
       {/* ACWR drilldown link */}
       {acwrLabel && (
-        <div className="mt-3 text-caption1 text-label-tertiary">
+        <div className="mt-3 text-caption1 text-text-tertiary">
           <Link
             href="/belasting"
             className="text-system-blue transition-opacity active:opacity-60"

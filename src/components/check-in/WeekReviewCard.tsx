@@ -77,13 +77,13 @@ export function WeekReviewCard({
       <WeekTier weekStart={data.week.weekStart} />
 
       {/* Sessions card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-subhead font-semibold text-label-primary">Sessies</h3>
-          <span className="text-sm text-label-secondary">
-            <span className="text-title2 font-bold tabular-nums text-label-primary text-label-primary">{totalSessions}</span>
+          <h3 className="text-subhead font-semibold text-text-primary">Sessies</h3>
+          <span className="text-sm text-text-secondary">
+            <span className="text-title2 font-bold tabular-nums text-text-primary text-text-primary">{totalSessions}</span>
             {data.sessions.planned != null && (
-              <span className="text-label-tertiary"> / {data.sessions.planned} gepland</span>
+              <span className="text-text-tertiary"> / {data.sessions.planned} gepland</span>
             )}
           </span>
         </div>
@@ -96,8 +96,8 @@ export function WeekReviewCard({
                 <Dumbbell size={14} className="text-system-blue" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-label-primary truncate">{w.title}</p>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-sm font-medium text-text-primary truncate">{w.title}</p>
+                <p className="text-xs text-text-tertiary">
                   {formatDate(w.started_at)}
                   {w.duration_seconds != null && ` · ${formatDuration(w.duration_seconds)}`}
                 </p>
@@ -112,10 +112,10 @@ export function WeekReviewCard({
                 <Footprints size={14} className="text-system-orange" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-label-primary">
+                <p className="text-sm font-medium text-text-primary">
                   {formatDistance(r.distance_meters)}
                 </p>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-xs text-text-tertiary">
                   {formatDate(r.started_at)}
                   {` · ${formatDuration(r.duration_seconds)}`}
                 </p>
@@ -130,8 +130,8 @@ export function WeekReviewCard({
                 <span className="text-sm">🎾</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-label-primary">Padel</p>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-sm font-medium text-text-primary">Padel</p>
+                <p className="text-xs text-text-tertiary">
                   {formatDate(p.started_at)}
                   {` · ${formatDuration(p.duration_seconds)}`}
                   {p.intensity && ` · ${p.intensity}`}
@@ -141,29 +141,29 @@ export function WeekReviewCard({
           ))}
 
           {totalSessions === 0 && (
-            <p className="text-sm text-label-tertiary py-2">Geen sessies deze week</p>
+            <p className="text-sm text-text-tertiary py-2">Geen sessies deze week</p>
           )}
         </div>
       </div>
 
       {/* Nutrition card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Utensils size={16} className="text-label-tertiary" />
-          <h3 className="text-subhead font-semibold text-label-primary">Voeding</h3>
+          <Utensils size={16} className="text-text-tertiary" />
+          <h3 className="text-subhead font-semibold text-text-primary">Voeding</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-label-tertiary mb-0.5">Gem. calorieen</p>
-            <p className="text-title2 font-bold tabular-nums text-label-primary">
+            <p className="text-xs text-text-tertiary mb-0.5">Gem. calorieen</p>
+            <p className="text-title2 font-bold tabular-nums text-text-primary">
               {data.nutrition.avgCalories != null
                 ? Math.round(data.nutrition.avgCalories)
                 : '–'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-label-tertiary mb-0.5">Gem. eiwit</p>
-            <p className="text-title2 font-bold tabular-nums text-label-primary">
+            <p className="text-xs text-text-tertiary mb-0.5">Gem. eiwit</p>
+            <p className="text-title2 font-bold tabular-nums text-text-primary">
               {data.nutrition.avgProteinG != null
                 ? `${Math.round(data.nutrition.avgProteinG)}g`
                 : '–'}
@@ -171,28 +171,28 @@ export function WeekReviewCard({
           </div>
         </div>
         {data.nutrition.days.length === 0 && (
-          <p className="mt-2 text-xs text-label-tertiary">Geen voedingsdata beschikbaar</p>
+          <p className="mt-2 text-xs text-text-tertiary">Geen voedingsdata beschikbaar</p>
         )}
       </div>
 
       {/* Sleep card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Moon size={16} className="text-label-tertiary" />
-          <h3 className="text-subhead font-semibold text-label-primary">Slaap</h3>
+          <Moon size={16} className="text-text-tertiary" />
+          <h3 className="text-subhead font-semibold text-text-primary">Slaap</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-label-tertiary mb-0.5">Gem. slaap</p>
-            <p className="text-title2 font-bold tabular-nums text-label-primary">
+            <p className="text-xs text-text-tertiary mb-0.5">Gem. slaap</p>
+            <p className="text-title2 font-bold tabular-nums text-text-primary">
               {data.sleep.avgTotalMinutes != null
                 ? formatSleepHours(Math.round(data.sleep.avgTotalMinutes))
                 : '–'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-label-tertiary mb-0.5">Slechtste nacht</p>
-            <p className="text-title2 font-bold tabular-nums text-label-primary">
+            <p className="text-xs text-text-tertiary mb-0.5">Slechtste nacht</p>
+            <p className="text-title2 font-bold tabular-nums text-text-primary">
               {data.sleep.days.length > 0
                 ? formatSleepHours(
                     Math.min(
@@ -209,10 +209,10 @@ export function WeekReviewCard({
 
       {/* Highlights / PRs */}
       {data.highlights.personalRecords.length > 0 && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <div className="flex items-center gap-2 mb-3">
             <Trophy size={16} className="text-system-orange" />
-            <h3 className="text-subhead font-semibold text-label-primary">Records</h3>
+            <h3 className="text-subhead font-semibold text-text-primary">Records</h3>
           </div>
           <div className="flex flex-col gap-1.5">
             {data.highlights.personalRecords.map((pr) => {
@@ -222,7 +222,7 @@ export function WeekReviewCard({
                   : pr.record_type
               return (
                 <div key={pr.id} className="flex items-center justify-between py-1">
-                  <span className="text-sm text-label-primary">{exerciseName}</span>
+                  <span className="text-sm text-text-primary">{exerciseName}</span>
                   <span className="text-sm font-medium text-system-orange">
                     {pr.value} {pr.unit}
                   </span>
@@ -235,16 +235,16 @@ export function WeekReviewCard({
 
       {/* Detected gaps */}
       {data.gaps.length > 0 && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={16} className="text-system-orange" />
-            <h3 className="text-subhead font-semibold text-label-primary">Mogelijk gemist</h3>
+            <h3 className="text-subhead font-semibold text-text-primary">Mogelijk gemist</h3>
           </div>
           <div className="flex flex-col gap-1.5">
             {data.gaps.map((gap) => (
               <div key={`${gap.date}-${gap.type}`} className="flex items-center gap-3 py-1">
                 <span className="text-sm text-system-orange capitalize">{gap.dayName}</span>
-                <span className="text-sm text-label-secondary">{gap.expected} niet gelogd</span>
+                <span className="text-sm text-text-secondary">{gap.expected} niet gelogd</span>
               </div>
             ))}
           </div>
@@ -253,15 +253,15 @@ export function WeekReviewCard({
 
       {/* Manual additions */}
       {manualAdditions.length > 0 && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-5">
-          <h3 className="text-subhead font-semibold text-label-primary mb-3">Handmatig toegevoegd</h3>
+        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
+          <h3 className="text-subhead font-semibold text-text-primary mb-3">Handmatig toegevoegd</h3>
           <div className="flex flex-col gap-2">
             {manualAdditions.map((item, i) => (
               <div key={i} className="flex items-center justify-between py-1">
-                <span className="text-sm text-label-primary">{item.label}</span>
+                <span className="text-sm text-text-primary">{item.label}</span>
                 <button
                   onClick={() => onRemoveManual(i)}
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray5"
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-text-tertiary hover:bg-system-gray5"
                 >
                   <X size={12} />
                 </button>
@@ -275,7 +275,7 @@ export function WeekReviewCard({
       <div className="flex items-center gap-3 pt-2">
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 rounded-xl border border-separator bg-surface-primary px-4 py-2.5 text-sm font-medium text-label-primary"
+          className="flex items-center gap-1.5 rounded-xl border border-bg-border bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary"
         >
           <Plus size={16} />
           Toevoegen

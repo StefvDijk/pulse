@@ -77,10 +77,10 @@ export function SchemaWeekView() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-label-primary">
+            <h2 className="text-base font-semibold text-text-primary">
               Week {weekNumber} · {data.schemaTitle}
             </h2>
-            <p className="text-sm text-label-tertiary mt-0.5">
+            <p className="text-sm text-text-tertiary mt-0.5">
               {data.days[0].date.slice(5)} – {data.days[6].date.slice(5)}
               {' · '}
               {completedCount}/{plannedCount} sessies
@@ -98,7 +98,7 @@ export function SchemaWeekView() {
           ) : (
             <a
               href="/settings"
-              className="shrink-0 text-xs text-label-tertiary underline-offset-2 hover:underline"
+              className="shrink-0 text-xs text-text-tertiary underline-offset-2 hover:underline"
             >
               Koppel agenda
             </a>
@@ -110,8 +110,8 @@ export function SchemaWeekView() {
           {data.days.map((day) => (
             day.status === 'rest' ? (
               <div key={day.date} className="flex items-center gap-3 px-4 py-2 opacity-40">
-                <span className="text-xs font-medium text-label-tertiary w-6 text-center">{day.dayLabel}</span>
-                <span className="text-xs text-label-tertiary">Rustdag</span>
+                <span className="text-xs font-medium text-text-tertiary w-6 text-center">{day.dayLabel}</span>
+                <span className="text-xs text-text-tertiary">Rustdag</span>
               </div>
             ) : (
               <WorkoutCard key={day.date} day={day} />

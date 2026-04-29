@@ -31,14 +31,14 @@ function LessonItem({ lesson }: { lesson: WeeklyLessonEntry }) {
         aria-hidden="true"
       />
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        <span className="text-xs font-medium text-label-tertiary">
+        <span className="text-xs font-medium text-text-tertiary">
           Week van {formatWeekLabel(lesson.week_start)}
         </span>
-        <span className="rounded-full bg-system-gray6 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-label-secondary">
+        <span className="rounded-full bg-system-gray6 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-secondary">
           {label}
         </span>
       </div>
-      <p className="mt-1 text-sm text-label-primary">{lesson.lesson_text}</p>
+      <p className="mt-1 text-sm text-text-primary">{lesson.lesson_text}</p>
     </li>
   )
 }
@@ -47,9 +47,9 @@ export function WeeklyLessonsTimeline() {
   const { lessons, isLoading } = useWeeklyLessons()
 
   return (
-    <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+    <div className="bg-bg-surface border border-bg-border rounded-[14px] p-[14px_16px]">
       <SectionHeader title="Wekelijkse lessen" />
-      <p className="mb-3 text-xs text-label-tertiary">
+      <p className="mb-3 text-xs text-text-tertiary">
         Inzichten die de coach elke week uit jouw data destilleert.
       </p>
 
@@ -60,11 +60,11 @@ export function WeeklyLessonsTimeline() {
           ))}
         </div>
       ) : lessons.length === 0 ? (
-        <p className="py-4 text-center text-sm text-label-tertiary">
+        <p className="py-4 text-center text-sm text-text-tertiary">
           Nog geen wekelijkse lessen. De coach genereert deze elke zondag.
         </p>
       ) : (
-        <ol className="relative flex flex-col gap-4 border-l border-separator pl-2">
+        <ol className="relative flex flex-col gap-4 border-l border-bg-border pl-2">
           {lessons.map((lesson) => (
             <LessonItem key={lesson.id} lesson={lesson} />
           ))}

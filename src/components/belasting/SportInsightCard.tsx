@@ -21,18 +21,18 @@ export function SportInsightCard() {
   const dateLabel = formatSourceDate(sourceDate)
 
   return (
-    <section className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm">
+    <section className="rounded-3xl border border-bg-border bg-bg-surface p-6 shadow-apple-sm">
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-system-blue/10">
           <Sparkles size={16} className="text-system-blue" aria-hidden="true" />
         </div>
         <div className="flex-1">
-          <h3 className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+          <h3 className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
             Coach-observatie
           </h3>
-          <p className="mt-1 text-subhead leading-snug text-label-primary">{insight}</p>
+          <p className="mt-1 text-subhead leading-snug text-text-primary">{insight}</p>
           {dateLabel && (
-            <p className="mt-2 text-caption1 text-label-tertiary">Laatst bijgewerkt {dateLabel}</p>
+            <p className="mt-2 text-caption1 text-text-tertiary">Laatst bijgewerkt {dateLabel}</p>
           )}
         </div>
       </div>

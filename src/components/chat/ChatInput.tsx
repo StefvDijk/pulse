@@ -49,7 +49,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         placeholder="Stel een vraag of log een maaltijd..."
         rows={1}
         disabled={isLoading}
-        className="flex-1 resize-none bg-transparent text-body text-label-primary outline-none placeholder:text-label-tertiary py-1.5"
+        className="flex-1 resize-none bg-transparent text-body text-text-primary outline-none placeholder:text-text-tertiary py-1.5"
         style={{ maxHeight: '160px' }}
         autoFocus
       />
