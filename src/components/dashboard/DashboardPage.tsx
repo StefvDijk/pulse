@@ -59,7 +59,7 @@ export function DashboardPage() {
   const { data: schemaWeek, error: schemaError, isLoading: schemaLoading, today, refresh: refreshSchema } = useSchemaWeek()
 
   const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-  const todayDay = today ?? schemaWeek?.days.find((d) => d.date === todayStr) ?? null
+  const todayDay = today ?? schemaWeek?.days?.find((d) => d.date === todayStr) ?? null
 
   const tomorrowWorkout = useMemo(() => {
     if (!schemaWeek || !todayDay) return null
