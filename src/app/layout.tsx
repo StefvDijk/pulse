@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#F2F2F7',
+  themeColor: '#15171F',
 }
 
 export default function RootLayout({
@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="nl" className="h-full">
+    <html lang="nl" className="h-full dark">
       <body className="min-h-full bg-bg-grouped">
         <TimeOfDayTheme />
         <Navigation />
