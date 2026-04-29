@@ -8,6 +8,7 @@ import { ExercisePicker } from './ExercisePicker'
 import { ProgressionChart } from './ProgressionChart'
 import { PRList } from './PRList'
 import { BodyComposition } from './BodyComposition'
+import { TonnageTrend } from './TonnageTrend'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -107,6 +108,11 @@ export function ProgressPage() {
                 </div>
               )}
             </div>
+          </Card>
+
+          {/* Tonnage trend (UXR-090) — 8-week weekly tonnage with block markers */}
+          <Card title="Tonnage · 8 weken">
+            <TonnageTrend weeks={8} />
           </Card>
 
           {/* Personal Records */}

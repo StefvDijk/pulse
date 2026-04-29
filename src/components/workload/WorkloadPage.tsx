@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { ZoneBar } from './ZoneBar'
-import { TrendSparkline } from './TrendSparkline'
+import { AcwrCorridor } from './AcwrCorridor'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { WorkloadData, WorkloadStatus } from '@/types/workload'
@@ -202,19 +202,19 @@ export function WorkloadPage() {
             </div>
           </section>
 
-          {/* 6-week trend */}
+          {/* 8-week corridor — stay-in-the-band visualization */}
           {data.trend.length > 0 && (
             <section className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm">
               <div className="flex items-baseline justify-between">
                 <h3 className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
-                  Trend · 6 weken
+                  Corridor · {data.trend.length} weken
                 </h3>
                 <span className="text-caption1 text-label-tertiary">
-                  wekelijks
+                  blijf in de groene band
                 </span>
               </div>
               <div className="mt-3">
-                <TrendSparkline points={data.trend} />
+                <AcwrCorridor points={data.trend} />
               </div>
             </section>
           )}

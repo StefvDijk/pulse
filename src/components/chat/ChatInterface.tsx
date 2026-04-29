@@ -28,6 +28,8 @@ export interface ChatInterfaceProps {
   initialMessage?: string
 }
 
+const NEAR_BOTTOM_PX = 120
+
 export function ChatInterface({ sessionId: initialSessionId, compact = false, initialMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
@@ -38,6 +40,8 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
   const initialMessageSentRef = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
 
   // Load history on mount
   useEffect(() => {
@@ -66,10 +70,36 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       .finally(() => setIsInitializing(false))
   }, [sessionId])
 
-  // Auto-scroll
+  // Smooth scroll only when a new message arrives — not on every streamed token.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages.length])
+
+  // Follow the stream while a message is being typed, but only if the user is
+  // already near the bottom — never yank them away from content they're reading.
+  // rAF-throttled so we render at most once per frame instead of once per token.
+  useEffect(() => {
+    if (!streamingContent) return
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight
+    if (distanceFromBottom > NEAR_BOTTOM_PX) return
+
+    if (rafRef.current !== null) return // already scheduled this frame
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      bottomRef.current?.scrollIntoView({ block: 'end' })
+    })
+  }, [streamingContent])
+
+  // Cancel any pending rAF on unmount.
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   const handleSend = useCallback(
     async (message: string) => {
@@ -108,6 +138,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''
+        let errorEvent: { code: string; message: string } | null = null
 
         while (true) {
           const { done, value } = await reader.read()
@@ -121,15 +152,29 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
             const payload = line.slice(6)
             if (payload === '[DONE]') break
             try {
-              const text = JSON.parse(payload) as string
-              accumulated += text
-              setStreamingContent(accumulated)
+              const parsed: unknown = JSON.parse(payload)
+              if (typeof parsed === 'string') {
+                accumulated += parsed
+                setStreamingContent(accumulated)
+              } else if (
+                parsed &&
+                typeof parsed === 'object' &&
+                '__error' in parsed &&
+                (parsed as { __error: unknown }).__error === true
+              ) {
+                const e = parsed as { code?: string; message?: string }
+                errorEvent = {
+                  code: e.code ?? 'AI_GENERIC_ERROR',
+                  message: e.message ?? 'Er ging iets mis bij het genereren van het antwoord.',
+                }
+              }
             } catch {
               // skip malformed
             }
           }
         }
 
+        // Persist any partial response we did get before the error.
         if (accumulated) {
           const assistantMsg: Message = {
             id: `assistant-${Date.now()}`,
@@ -137,6 +182,20 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
             content: accumulated,
           }
           setMessages((prev) => [...prev, assistantMsg])
+        }
+
+        // Surface a structured error as a separate message — never mix it
+        // into the assistant's content bubble.
+        if (errorEvent) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `error-${Date.now()}`,
+              role: 'assistant',
+              content: errorEvent.message,
+            },
+          ])
+          setLastFailedMessage(message)
         }
       } catch (err) {
         console.error('Chat send error:', err)
@@ -184,7 +243,10 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
   return (
     <div className="flex h-full flex-col">
       {/* Message list */}
-      <div className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}>
+      <div
+        ref={scrollContainerRef}
+        className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}
+      >
         {messages.length === 0 && !isLoading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <p className="text-subhead text-label-tertiary">

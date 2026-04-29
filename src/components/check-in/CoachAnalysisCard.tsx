@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Loader2 } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
+import { CoachOrb } from '@/components/shared/CoachOrb'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
@@ -115,7 +115,7 @@ export function CoachAnalysisCard({
     return (
       <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 size={28} className="animate-spin text-system-blue" />
+          <CoachOrb size={32} state="streaming" />
           <p className="text-sm font-medium text-label-secondary">
             Coach analyseert je week...
           </p>
@@ -143,7 +143,7 @@ export function CoachAnalysisCard({
       {/* Analysis card */}
       <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={16} className="text-system-blue" />
+          <CoachOrb size={16} />
           <h3 className="text-subhead font-semibold text-label-primary">Coach analyse</h3>
         </div>
 

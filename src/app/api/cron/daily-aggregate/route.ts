@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
+import { computeBaselinesForUser } from '@/lib/baselines/aggregate'
 
 /**
  * GET /api/cron/daily-aggregate
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     daily: 'ok' | 'error'
     weekly?: 'ok' | 'error' | 'skipped'
     monthly?: 'ok' | 'error' | 'skipped'
+    baselines?: 'ok' | 'error'
     errors: string[]
   }> = []
 
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let dailyStatus: 'ok' | 'error' = 'ok'
     let weeklyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
     let monthlyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
+    let baselinesStatus: 'ok' | 'error' = 'ok'
 
     // Daily — aggregate both yesterday (final) and today (partial, will be overwritten later)
     try {
@@ -134,11 +137,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    // Baselines — depend on the just-computed daily/weekly aggregations,
+    // so run last. Failure here doesn't break the rest of the cron.
+    try {
+      await computeBaselinesForUser(userId, todayStr)
+    } catch (error) {
+      baselinesStatus = 'error'
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[GET /api/cron/daily-aggregate] Baselines failed for ${userId}:`, error)
+      userErrors.push(`baselines: ${message}`)
+    }
+
     results.push({
       userId,
       daily: dailyStatus,
       weekly: weeklyStatus,
       monthly: monthlyStatus,
+      baselines: baselinesStatus,
       errors: userErrors,
     })
   }

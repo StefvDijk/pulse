@@ -11,6 +11,7 @@
     "seed:testdata": "tsx scripts/seed-test-data.ts",
     "seed:stef": "tsx scripts/seed-stef-data.ts",
     "seed:history": "tsx scripts/seed-historical-data.ts",
+    "backfill:baselines": "tsx scripts/backfill-baselines.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Navigation } from '@/components/layout/Navigation'
 import { MiniChat } from '@/components/layout/MiniChat'
 import { OnboardingCheck } from '@/components/settings/OnboardingCheck'
+import { TimeOfDayTheme } from '@/components/shared/TimeOfDayTheme'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="nl" className="h-full">
       <body className="min-h-full bg-bg-grouped">
+        <TimeOfDayTheme />
         <Navigation />
         {/* Desktop: offset voor sidebar. Mobile: ruimte voor 83px tab bar */}
         <main className="lg:pl-56 pb-[83px] lg:pb-0 min-h-screen">

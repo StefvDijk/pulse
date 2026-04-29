@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChatInterface } from './ChatInterface'
+import { CoachOrb } from '@/components/shared/CoachOrb'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -18,9 +19,10 @@ export function ChatPage({ initialMessage }: ChatPageProps) {
     <div className="flex h-[calc(100dvh-4rem)] flex-col lg:h-screen">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-separator px-4 py-3">
-        <h1 className="text-lg font-semibold text-label-primary">
-          Coach
-        </h1>
+        <div className="flex items-center gap-2.5">
+          <CoachOrb size={20} />
+          <h1 className="text-lg font-semibold text-label-primary">Coach</h1>
+        </div>
         <button
           onClick={handleNewSession}
           className="rounded-lg border border-separator bg-system-gray6 px-3 py-1.5 text-xs text-label-secondary transition-colors hover:bg-system-gray5"

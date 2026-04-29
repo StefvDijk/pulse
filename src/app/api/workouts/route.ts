@@ -22,6 +22,10 @@ export interface WorkoutSummary {
     image_url: string | null
     set_summary: string   // e.g. "4×8 · 80kg"
   }>
+  /** Per-muscle-group set hits for this single session — drives the
+   * MiniMuscleHeatmap on each feed card (UXR-070). Primary = 1 hit/set,
+   * secondary = 0.5 hit/set. */
+  muscle_volume: Record<string, number>
 }
 
 export interface WorkoutsFeedResponse {
@@ -58,7 +62,7 @@ export async function GET(req: NextRequest) {
          avg_heart_rate, max_heart_rate, calories_burned,
          workout_exercises(
            exercise_order,
-           exercise_definitions(name, primary_muscle_group, image_url),
+           exercise_definitions(name, primary_muscle_group, secondary_muscle_groups, image_url),
            workout_sets(set_order, weight_kg, reps, set_type)
          )`,
         { count: 'exact' },
@@ -72,7 +76,7 @@ export async function GET(req: NextRequest) {
     const workouts: WorkoutSummary[] = (rawWorkouts ?? []).map((w) => {
       // Deduplicate by exercise_order (Hevy sync can insert duplicates), then filter warmups
       const seenOrders = new Set<number>()
-      const exercises = [...(w.workout_exercises ?? [])]
+      const dedupedExercises = [...(w.workout_exercises ?? [])]
         .sort((a, b) => a.exercise_order - b.exercise_order)
         .filter((we) => {
           if (seenOrders.has(we.exercise_order)) return false
@@ -80,7 +84,25 @@ export async function GET(req: NextRequest) {
           const name = we.exercise_definitions?.name?.toLowerCase() ?? ''
           return !name.includes('warm up') && !name.includes('warmup')
         })
-        .map((we) => {
+
+      // Per-muscle-group hits for this session: primary = 1 hit/set,
+      // secondary = 0.5 hit/set. Mirrors `computeVolume` in lib/muscle-map.
+      const muscleVolume: Record<string, number> = {}
+      for (const we of dedupedExercises) {
+        const normalSets = (we.workout_sets ?? []).filter((s) => s.set_type !== 'warmup').length
+        if (normalSets === 0) continue
+        const primary = we.exercise_definitions?.primary_muscle_group
+        if (primary) {
+          muscleVolume[primary] = (muscleVolume[primary] ?? 0) + normalSets
+        }
+        const secondaries = we.exercise_definitions?.secondary_muscle_groups ?? []
+        for (const sec of secondaries) {
+          if (!sec) continue
+          muscleVolume[sec] = (muscleVolume[sec] ?? 0) + normalSets * 0.5
+        }
+      }
+
+      const exercises = dedupedExercises.map((we) => {
           const workingSets = (we.workout_sets ?? [])
             .filter((s) => s.set_type !== 'warmup')
             .sort((a, b) => a.set_order - b.set_order)
@@ -117,6 +139,7 @@ export async function GET(req: NextRequest) {
         max_heart_rate: w.max_heart_rate ?? null,
         calories_burned: w.calories_burned ?? null,
         exercises,
+        muscle_volume: muscleVolume,
       }
     })
 

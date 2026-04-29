@@ -6,7 +6,7 @@ import type { TrendPoint, WorkloadData, WorkloadStatus } from '@/types/workload'
 
 const ACUTE_DAYS = 7
 const CHRONIC_DAYS = 28
-const TREND_POINTS = 6
+const TREND_POINTS = 8
 const TREND_INTERVAL_DAYS = 7
 
 /** Format a date as YYYY-MM-DD in Amsterdam timezone. */
