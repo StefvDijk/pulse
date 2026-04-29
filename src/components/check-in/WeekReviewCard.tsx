@@ -14,6 +14,7 @@ import {
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
+import { WeekTier } from '@/components/check-in/WeekTier'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -72,6 +73,9 @@ export function WeekReviewCard({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Burn Bar tier — your week vs your 4-week average */}
+      <WeekTier weekStart={data.week.weekStart} />
+
       {/* Sessions card */}
       <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex items-center justify-between mb-3">
