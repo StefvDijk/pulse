@@ -101,7 +101,14 @@ export function SchemaPageContent() {
   const modalDays: SchemaWeekDay[] = weekData?.days ?? []
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 px-4 pb-24 pt-[60px]">
+      <div className="pt-1">
+        <div className="text-[13px] font-medium text-text-tertiary">Schema</div>
+        <h1 className="text-[28px] font-bold leading-[1.1] tracking-[-0.6px] text-text-primary">
+          {data.title}
+        </h1>
+      </div>
+
       {/* Progress indicator */}
       <SchemaProgress
         title={data.title}
