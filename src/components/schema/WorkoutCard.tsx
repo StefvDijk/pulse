@@ -1,12 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronDown, Dumbbell, MessageCircle } from 'lucide-react'
+import {
+  Check,
+  ChevronDown,
+  CircleDot,
+  Dumbbell,
+  Footprints,
+  MessageCircle,
+  Plus,
+} from 'lucide-react'
 import Link from 'next/link'
-import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
+import type {
+  ActivityToken,
+  ActivityType,
+  ExerciseData,
+  SchemaWeekDay,
+} from '@/hooks/useSchemaWeek'
 
 interface WorkoutCardProps {
   day: SchemaWeekDay
+  token: ActivityToken
 }
 
 function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; workoutTitle: string }) {
@@ -38,21 +52,74 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
   )
 }
 
-export function WorkoutCard({ day }: WorkoutCardProps) {
+function SportIcon({ type, size = 14 }: { type: ActivityType; size?: number }) {
+  switch (type) {
+    case 'gym':
+      return <Dumbbell size={size} strokeWidth={2.5} />
+    case 'run':
+      return <Footprints size={size} strokeWidth={2.5} />
+    case 'padel':
+      return <CircleDot size={size} strokeWidth={2.5} />
+  }
+}
+
+function sportBgClass(type: ActivityType): string {
+  switch (type) {
+    case 'gym':
+      return 'bg-[#0A84FF] text-white'
+    case 'run':
+      return 'bg-[var(--color-status-warn)] text-white'
+    case 'padel':
+      return 'bg-[var(--color-status-warn)] text-white'
+  }
+}
+
+function sportTextClass(type: ActivityType): string {
+  switch (type) {
+    case 'gym':
+      return 'text-[#0A84FF]'
+    case 'run':
+      return 'text-[var(--color-status-warn)]'
+    case 'padel':
+      return 'text-[var(--color-status-warn)]'
+  }
+}
+
+function tokenSubtitle(token: ActivityToken): string {
+  if (token.state === 'done-swap' && token.swappedFrom) {
+    return `was ${token.swappedFrom}`
+  }
+  if (token.subtitle) return token.subtitle
+  if (token.type === 'run' && token.distanceMeters != null) {
+    return `${(token.distanceMeters / 1000).toFixed(1)} km`
+  }
+  return ''
+}
+
+function durationLabel(token: ActivityToken): string {
+  if (token.actualDurationSeconds != null) {
+    return `${Math.round(token.actualDurationSeconds / 60)} min`
+  }
+  if (token.durationMin != null) {
+    return `~${token.durationMin} min`
+  }
+  return ''
+}
+
+export function WorkoutCard({ day, token }: WorkoutCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const isDone = token.state.startsWith('done-')
+  const isToday = token.state === 'planned-today'
+  const isExtra = token.state === 'done-extra'
 
-  if (!day.workout) return null
+  // Gym-tokens hebben oefeningen (uitklapbaar); padel/run niet.
+  const exercises = (token.exercises ?? []).filter(
+    (e) => !e.name.toLowerCase().includes('warm up'),
+  )
+  const hasExpandableContent = token.type === 'gym' && (exercises.length > 0 || (!isDone && day.lastPerformance))
 
-  const isCompleted = day.status === 'completed'
-  const isToday = day.status === 'today'
-
-  const exercises = isCompleted
-    ? (day.completedWorkout?.exercises ?? []).filter(
-        (e) => !e.name.toLowerCase().includes('warm up'),
-      )
-    : (day.lastPerformance?.exercises ?? []).filter(
-        (e) => !e.name.toLowerCase().includes('warm up'),
-      )
+  const subtitle = tokenSubtitle(token)
+  const duration = durationLabel(token)
 
   return (
     <div
@@ -60,66 +127,74 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
         isToday ? 'border-text-primary' : 'border-bg-border'
       }`}
     >
-      {/* Header — clickable to expand */}
       <button
         onClick={() => setExpanded((prev) => !prev)}
         className="flex w-full items-center gap-3 p-4 text-left"
+        disabled={!hasExpandableContent}
+        aria-expanded={hasExpandableContent ? expanded : undefined}
       >
-        {/* Status indicator */}
+        {/* Status-indicator */}
         <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-            isCompleted
-              ? 'bg-[#0A84FF] text-white'
+          className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+            isDone
+              ? sportBgClass(token.type)
               : isToday
                 ? 'bg-text-primary text-white'
-                : 'border-2 border-bg-border bg-transparent'
+                : `border-2 border-bg-border bg-transparent ${sportTextClass(token.type)}`
           }`}
         >
-          {isCompleted ? (
-            <Check size={16} strokeWidth={3} />
-          ) : (
-            <Dumbbell size={14} className={isToday ? 'text-white' : 'text-text-tertiary'} />
+          {isDone ? <Check size={16} strokeWidth={3} /> : <SportIcon type={token.type} />}
+          {/* "+"-badge voor ongeplande extra activiteiten. */}
+          {isExtra && (
+            <span
+              aria-label="Ongepland toegevoegd"
+              className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-status-good)] text-white border-2 border-bg-surface"
+            >
+              <Plus size={10} strokeWidth={3} />
+            </span>
           )}
         </div>
 
-        {/* Content */}
+        {/* Inhoud */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-text-primary truncate">
-              {day.workout.title}
+              {token.title}
             </span>
-            <span className="text-xs text-text-tertiary shrink-0">
-              {day.dayLabel}
-            </span>
+            <span className="text-xs text-text-tertiary shrink-0">{day.dayLabel}</span>
           </div>
-          <p className="text-xs text-text-tertiary mt-0.5">
-            {day.workout.subtitle}
-            {day.workout.duration_min ? ` · ~${day.workout.duration_min} min` : ''}
-          </p>
+          {(subtitle || duration) && (
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {subtitle}
+              {subtitle && duration ? ' · ' : ''}
+              {duration}
+            </p>
+          )}
         </div>
 
-        {/* Expand chevron */}
-        <ChevronDown
-          size={16}
-          className={`text-text-tertiary transition-transform shrink-0 ${
-            expanded ? 'rotate-180' : ''
-          }`}
-        />
+        {hasExpandableContent && (
+          <ChevronDown
+            size={16}
+            className={`text-text-tertiary transition-transform shrink-0 ${
+              expanded ? 'rotate-180' : ''
+            }`}
+          />
+        )}
       </button>
 
-      {/* Expanded exercise list */}
-      {expanded && exercises.length > 0 && (
+      {/* Uitklap (alleen gym met content). */}
+      {hasExpandableContent && expanded && exercises.length > 0 && (
         <div className="border-t border-bg-border px-4 pb-3">
-          <div className="divide-y divide-separator">
+          <div className="divide-y divide-bg-border">
             {exercises.map((exercise) => (
               <ExerciseRow
                 key={exercise.exercise_order}
                 exercise={exercise}
-                workoutTitle={day.workout!.title}
+                workoutTitle={token.title}
               />
             ))}
           </div>
-          {!isCompleted && day.lastPerformance && (
+          {!isDone && day.lastPerformance && (
             <p className="mt-2 text-xs text-text-tertiary">
               Gebaseerd op sessie van {day.lastPerformance.date}
             </p>
@@ -127,9 +202,11 @@ export function WorkoutCard({ day }: WorkoutCardProps) {
         </div>
       )}
 
-      {expanded && exercises.length === 0 && (
+      {hasExpandableContent && expanded && exercises.length === 0 && day.lastPerformance && (
         <div className="border-t border-bg-border px-4 py-3">
-          <p className="text-xs text-text-tertiary">Geen oefeningen beschikbaar</p>
+          <p className="text-xs text-text-tertiary">
+            Vorige sessie: {day.lastPerformance.date}
+          </p>
         </div>
       )}
     </div>

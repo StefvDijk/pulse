@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 
 /* ── Response shape ────────────────────────────────────────── */
 
@@ -79,9 +80,9 @@ export async function GET() {
     const until = new Date()
     const since = new Date(until.getTime() - WINDOW_MS)
 
-    // `date` column on daily_activity is a DATE, so we compare against YYYY-MM-DD.
-    const sinceDate = since.toISOString().slice(0, 10)
-    const untilDate = until.toISOString().slice(0, 10)
+    // `date` column on daily_activity is een DATE in Amsterdam-kalender.
+    const sinceDate = dayKeyAmsterdam(since)
+    const untilDate = dayKeyAmsterdam(until)
 
     const admin = createAdminClient()
 

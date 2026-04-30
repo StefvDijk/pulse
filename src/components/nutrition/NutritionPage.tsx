@@ -11,6 +11,7 @@ import { MealsList } from './MealsList'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { NutritionSummaryData } from '@/app/api/nutrition/summary/route'
+import { addDaysToKey, daysAgoAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 
 async function fetcher(url: string): Promise<NutritionSummaryData> {
   const res = await fetch(url)
@@ -19,24 +20,21 @@ async function fetcher(url: string): Promise<NutritionSummaryData> {
 }
 
 function formatDateLabel(dateStr: string): string {
-  const date = new Date(dateStr)
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const today = todayAmsterdam()
+  const yesterday = daysAgoAmsterdam(1)
 
   if (dateStr === today) return 'Vandaag'
   if (dateStr === yesterday) return 'Gisteren'
-  return date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
+  return new Date(dateStr).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
 }
 
 function offsetDate(dateStr: string, days: number): string {
-  const d = new Date(dateStr)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
+  return addDaysToKey(dateStr, days)
 }
 
 export function NutritionPage() {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const today = new Date().toISOString().slice(0, 10)
+  const [selectedDate, setSelectedDate] = useState(() => todayAmsterdam())
+  const today = todayAmsterdam()
 
   const { data, error, isLoading, mutate } = useSWR<NutritionSummaryData>(
     `/api/nutrition/summary?date=${selectedDate}`,

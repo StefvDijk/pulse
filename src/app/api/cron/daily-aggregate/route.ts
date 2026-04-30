@@ -4,14 +4,19 @@ import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
 import { computeBaselinesForUser } from '@/lib/baselines/aggregate'
+import {
+  addDaysToKey,
+  dayIndexAmsterdam,
+  todayAmsterdam,
+  weekStartAmsterdam,
+} from '@/lib/time/amsterdam'
 
 /**
  * GET /api/cron/daily-aggregate
- * Schedule: 0 2 * * * (nightly at 02:00 UTC)
+ * Schedule: 0 2 * * * (nightly at 02:00 UTC = 03:00/04:00 Amsterdam)
  *
- * Computes daily aggregation for yesterday for all users.
- * Also triggers weekly aggregation if today is Monday,
- * and monthly aggregation if today is the 1st of the month.
+ * Aggregeert "gisteren" en "vandaag" in Europe/Amsterdam-kalender (niet UTC),
+ * zodat een workout van 23:30 NL niet in de UTC-vorige-dag valt.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET
@@ -23,31 +28,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const admin = createAdminClient()
 
-  // Determine yesterday and today in UTC
-  const now = new Date()
-  const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
-  const yesterdayStr = yesterday.toISOString().slice(0, 10)
-  const todayUTCDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  const todayStr = todayUTCDate.toISOString().slice(0, 10)
+  const todayStr = todayAmsterdam()
+  const yesterdayStr = addDaysToKey(todayStr, -1)
 
-  // Determine if we should also run weekly/monthly
-  const todayUTC = todayUTCDate
-  const isMonday = todayUTC.getUTCDay() === 1
-  const isFirstOfMonth = todayUTC.getUTCDate() === 1
+  const dayIdx = dayIndexAmsterdam()
+  const isMonday = dayIdx === 1
+  const [, monthStr, dayStr] = todayStr.split('-')
+  const isFirstOfMonth = dayStr === '01'
 
-  // Get the previous week's Monday if today is Monday
-  const prevWeekMonday = isMonday
-    ? new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - 7))
-        .toISOString()
-        .slice(0, 10)
-    : null
+  const prevWeekMonday = isMonday ? addDaysToKey(weekStartAmsterdam(), -7) : null
 
-  // Previous month details if today is 1st
+  // Vorige maand: als vandaag de 1e is, hebben we de afgelopen kalendermaand nodig.
   const prevMonth = isFirstOfMonth
-    ? {
-        month: now.getUTCMonth() === 0 ? 12 : now.getUTCMonth(),
-        year: now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear(),
-      }
+    ? (() => {
+        const [yearStr] = todayStr.split('-')
+        const month = Number(monthStr)
+        return month === 1
+          ? { month: 12, year: Number(yearStr) - 1 }
+          : { month: month - 1, year: Number(yearStr) }
+      })()
     : null
 
   // Fetch all user IDs
@@ -98,10 +97,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Always recompute current week so dashboard stays fresh
-    const currentWeekDay = todayUTC.getUTCDay()
-    const currentWeekOffset = currentWeekDay === 0 ? -6 : 1 - currentWeekDay
-    const currentWeekMonday = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() + currentWeekOffset))
-    const currentWeekMondayStr = currentWeekMonday.toISOString().slice(0, 10)
+    const currentWeekMondayStr = weekStartAmsterdam()
 
     try {
       await computeWeeklyAggregation(userId, currentWeekMondayStr)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -180,7 +181,7 @@ export async function GET() {
     // Group workouts by date so multiple workouts on the same day all count.
     const workoutsByDate = new Map<string, Set<string>>()
     for (const w of (workoutsResult.data ?? []) as CompletedWorkoutRow[]) {
-      const date = w.started_at.slice(0, 10)
+      const date = dayKeyAmsterdam(w.started_at)
       const titles = workoutsByDate.get(date) ?? new Set<string>()
       titles.add(w.title.toLowerCase().trim())
       workoutsByDate.set(date, titles)
@@ -188,12 +189,12 @@ export async function GET() {
 
     const runDates = new Set<string>()
     for (const r of (runsResult.data ?? []) as DatedActivityRow[]) {
-      runDates.add(r.started_at.slice(0, 10))
+      runDates.add(dayKeyAmsterdam(r.started_at))
     }
 
     const padelDates = new Set<string>()
     for (const p of (padelResult.data ?? []) as DatedActivityRow[]) {
-      padelDates.add(p.started_at.slice(0, 10))
+      padelDates.add(dayKeyAmsterdam(p.started_at))
     }
 
     function isFocusCompleted(date: string, focus: string): boolean {
@@ -364,7 +365,7 @@ async function notifySchemaEdit(
   await admin.from('coaching_memory').upsert(
     {
       user_id: userId,
-      key: `manual_schema_edit_${new Date().toISOString().slice(0, 10)}`,
+      key: `manual_schema_edit_${todayAmsterdam()}`,
       category: 'program',
       value: `Stef heeft het trainingsschema handmatig aangepast:\n${summary}`,
     },

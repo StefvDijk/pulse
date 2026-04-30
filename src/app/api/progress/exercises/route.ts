@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 
 export interface ExerciseListItem {
   name: string
@@ -44,7 +45,7 @@ export async function GET() {
       if (def.name.toLowerCase().includes('warm up')) continue
 
       const workout = row.workouts as unknown as { started_at: string }
-      const date = workout.started_at.slice(0, 10)
+      const date = dayKeyAmsterdam(workout.started_at)
 
       const existing = exerciseMap.get(def.name)
       if (!existing || date > existing.lastUsed) {

@@ -8,6 +8,7 @@ import { analyzeConflicts } from '@/lib/google/conflicts'
 import type { WeekConflicts } from '@/lib/google/conflicts'
 import { createJsonCompletion } from '@/lib/ai/client'
 import { buildCheckInPlanPrompt } from '@/lib/ai/prompts/checkin-plan'
+import { addDaysToKey } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,13 +69,10 @@ const DUTCH_DAY_NAMES: ReadonlyArray<string> = [
 
 function emptyConflicts(weekStart: string, weekEnd: string): WeekConflicts {
   const dates: string[] = []
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekEnd + 'T00:00:00Z')
-  const current = new Date(start)
-
-  while (current <= end) {
-    dates.push(current.toISOString().slice(0, 10))
-    current.setUTCDate(current.getUTCDate() + 1)
+  let cursor = weekStart
+  while (cursor <= weekEnd) {
+    dates.push(cursor)
+    cursor = addDaysToKey(cursor, 1)
   }
 
   return {

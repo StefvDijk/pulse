@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 /* ── Response types from GET /api/schema/week ──────────────── */
 
@@ -23,10 +24,35 @@ export interface ScheduleDay {
   duration_min: number
 }
 
+export type ActivityType = 'gym' | 'run' | 'padel'
+export type TokenState =
+  | 'done-as-planned'
+  | 'done-swap'
+  | 'done-extra'
+  | 'planned'
+  | 'planned-today'
+
+export interface ActivityToken {
+  type: ActivityType
+  state: TokenState
+  title: string
+  swappedFrom?: string
+  actualId?: string
+  actualDurationSeconds?: number | null
+  actualStartedAt?: string
+  distanceMeters?: number
+  exercises?: ExerciseData[]
+  subtitle?: string
+  durationMin?: number
+}
+
 export interface SchemaWeekDay {
   date: string
   dayLabel: string
   dayName: string
+  isToday: boolean
+  tokens: ActivityToken[]
+  // Backwards-compat, afgeleid uit tokens. Nieuwe code: gebruik `tokens`.
   status: 'completed' | 'today' | 'planned' | 'rest'
   workout: ScheduleDay | null
   completedWorkout?: {
@@ -65,9 +91,8 @@ export function useSchemaWeek() {
     { refreshInterval: 60_000 },
   )
 
-  const today = data?.days?.find(
-    (d) => d.status === 'today' || (d.date === new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })),
-  )
+  const todayKey = todayAmsterdam()
+  const today = data?.days?.find((d) => d.isToday || d.date === todayKey)
 
   return {
     data,

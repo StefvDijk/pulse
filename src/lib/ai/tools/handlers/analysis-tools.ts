@@ -1,18 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { daysAgoAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 
-// ---------------------------------------------------------------------------
-// Date helpers
-// ---------------------------------------------------------------------------
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function daysAgo(n: number): string {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - n)
-  return d.toISOString().slice(0, 10)
-}
+const today = (): string => todayAmsterdam()
+const daysAgo = (n: number): string => daysAgoAmsterdam(n)
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })

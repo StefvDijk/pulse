@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createJsonCompletion } from '@/lib/ai/client'
 import { NUTRITION_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts/nutrition-analysis'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 const NutritionAnalysisSchema = z.object({
   calories: z.number().nonnegative(),
@@ -42,7 +43,7 @@ export async function analyzeNutrition(
   params: AnalyzeNutritionParams,
 ): Promise<AnalyzeNutritionResult> {
   const { userId, input, date, mealType } = params
-  const logDate = date ?? new Date().toISOString().slice(0, 10)
+  const logDate = date ?? todayAmsterdam()
 
   // Call Claude for macro analysis
   const rawText = await createJsonCompletion({

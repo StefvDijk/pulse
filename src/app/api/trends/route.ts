@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
+import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 type MonthlyRow = Database['public']['Tables']['monthly_aggregations']['Row']
 type WeeklyRow = Database['public']['Tables']['weekly_aggregations']['Row']
@@ -28,26 +29,21 @@ export async function GET() {
     // Data queries via admin client (SSR cookie-based client JWT not propagated to PostgREST)
     const admin = createAdminClient()
 
-    const now = new Date()
-    const currentYear = now.getUTCFullYear()
-    const currentMonth = now.getUTCMonth() + 1
+    const today = todayAmsterdam()
+    const [yearStr, monthStr] = today.split('-')
+    const currentYear = Number(yearStr)
+    const currentMonth = Number(monthStr)
 
-    // ISO week start (Monday) for current week
-    const dayOfWeek = now.getUTCDay() === 0 ? 6 : now.getUTCDay() - 1
-    const monday = new Date(now)
-    monday.setUTCDate(now.getUTCDate() - dayOfWeek)
-    const currentWeekStart = monday.toISOString().slice(0, 10)
+    // ISO week start (maandag) in Amsterdam-tijd
+    const currentWeekStart = weekStartAmsterdam()
 
-    // Same week last year
-    const lastYearMonday = new Date(monday)
-    lastYearMonday.setUTCFullYear(lastYearMonday.getUTCFullYear() - 1)
-    const lastYearWeekStart = lastYearMonday.toISOString().slice(0, 10)
+    // Zelfde week vorig jaar — gewoon 364 dagen ervoor (precies 52 weken).
+    const lastYearWeekStart = addDaysToKey(currentWeekStart, -364)
 
-    // 12 months back
-    const twelveMonthsAgo = new Date(now)
-    twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 11)
-    const startYear = twelveMonthsAgo.getUTCFullYear()
-    const startMonth = twelveMonthsAgo.getUTCMonth() + 1
+    // 12 maanden terug
+    const startMonth0 = currentMonth - 11
+    const startYear = startMonth0 <= 0 ? currentYear - 1 : currentYear
+    const startMonth = startMonth0 <= 0 ? startMonth0 + 12 : startMonth0
 
     const [monthsResult, currentWeekResult, lastYearWeekResult] = await Promise.all([
       admin

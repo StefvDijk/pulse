@@ -1,6 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
+import { dayIndexAmsterdam } from '@/lib/time/amsterdam'
 
 interface SuggestionsResponse {
   suggestions: string[]
@@ -16,7 +17,10 @@ async function fetcher(url: string): Promise<SuggestionsResponse> {
 }
 
 function getDayBasedFallback(): string[] {
-  const day = new Date().getDay()
+  // Amsterdam-bewust dagnummer → JS-style (0=zo, 1=ma, …, 6=za) zodat de
+  // bestaande v2-structuur (case 0/1/5/6) intact blijft.
+  const idx = dayIndexAmsterdam() // 1=ma…7=zo
+  const day = idx === 7 ? 0 : idx
   switch (day) {
     case 0:
       return ['Hoe was mijn week?', 'Check mijn progressie', 'Hoe sta ik met mijn doelen?', 'Log wat ik heb gegeten']

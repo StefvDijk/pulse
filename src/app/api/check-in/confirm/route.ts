@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createEvents, type CreateEventInput } from '@/lib/google/calendar'
 import { getValidTokens } from '@/lib/google/oauth'
 import type { Database, Json } from '@/types/database'
+import { addDaysToKey } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -267,12 +268,8 @@ async function updateScheduledOverrides(
 
   // Iterate all 7 days of the week, computing overrides where needed
   const newOverrides: Record<string, string | null> = {}
-  const weekStartDate = new Date(weekStart)
-
   WEEK_DAYS.forEach((dayName, index) => {
-    const date = new Date(weekStartDate)
-    date.setUTCDate(weekStartDate.getUTCDate() + index)
-    const dateStr = date.toISOString().slice(0, 10)
+    const dateStr = addDaysToKey(weekStart, index)
 
     const defaultWorkout = defaultSchedule.get(dayName)
     const plannedWorkout = plannedByDate.get(dateStr)

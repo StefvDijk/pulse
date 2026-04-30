@@ -68,8 +68,15 @@ export function SchemaWeekView() {
   if (!data) return null
 
   const weekNumber = getIsoWeekNumber(data.days[0].date)
-  const completedCount = data.days.filter((d) => d.status === 'completed').length
-  const plannedCount = data.days.filter((d) => d.status !== 'rest').length
+  // Telling op basis van tokens: gedaan = elke done-* token, gepland = totaal aan zichtbare tokens.
+  let completedCount = 0
+  let plannedCount = 0
+  for (const day of data.days) {
+    for (const token of day.tokens) {
+      plannedCount += 1
+      if (token.state.startsWith('done-')) completedCount += 1
+    }
+  }
 
   return (
     <>
@@ -105,18 +112,22 @@ export function SchemaWeekView() {
           )}
         </div>
 
-        {/* Full week — workout cards + rest day indicators */}
+        {/* Volledige week — token-stack per dag, of rust-aanduiding. */}
         <div className="flex flex-col gap-3">
-          {data.days.map((day) => (
-            day.status === 'rest' ? (
+          {data.days.map((day) =>
+            day.tokens.length === 0 ? (
               <div key={day.date} className="flex items-center gap-3 px-4 py-2 opacity-40">
                 <span className="text-xs font-medium text-text-tertiary w-6 text-center">{day.dayLabel}</span>
                 <span className="text-xs text-text-tertiary">Rustdag</span>
               </div>
             ) : (
-              <WorkoutCard key={day.date} day={day} />
-            )
-          ))}
+              <div key={day.date} className="flex flex-col gap-2">
+                {day.tokens.map((token, i) => (
+                  <WorkoutCard key={`${day.date}-${i}`} day={day} token={token} />
+                ))}
+              </div>
+            ),
+          )}
         </div>
       </div>
 

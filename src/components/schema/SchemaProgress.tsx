@@ -1,6 +1,7 @@
 'use client'
 
 import type { SchemaWeek } from '@/hooks/useSchema'
+import { addDaysToKey, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 interface SchemaProgressProps {
   title: string
@@ -20,14 +21,10 @@ function formatDate(dateStr: string): string {
 }
 
 function getNextMondayLabel(startDate: string, currentWeek: number): string {
-  const start = new Date(startDate + 'T00:00:00Z')
-  const dayOfWeek = start.getUTCDay()
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const firstMonday = new Date(start)
-  firstMonday.setUTCDate(start.getUTCDate() + mondayOffset)
-  const nextMonday = new Date(firstMonday)
-  nextMonday.setUTCDate(firstMonday.getUTCDate() + currentWeek * 7)
-  return formatDate(nextMonday.toISOString().slice(0, 10))
+  // Maandag van de schema-week: weekStartAmsterdam(startDate) + currentWeek * 7 dagen.
+  const firstMonday = weekStartAmsterdam(startDate)
+  const nextMonday = addDaysToKey(firstMonday, currentWeek * 7)
+  return formatDate(nextMonday)
 }
 
 export function SchemaProgress({

@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // Extractor system prompt
@@ -118,7 +119,7 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
           key: update.key,
           category: update.category,
           value: update.value,
-          source_date: new Date().toISOString().slice(0, 10),
+          source_date: todayAmsterdam(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,key' },

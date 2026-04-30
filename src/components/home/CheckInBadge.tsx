@@ -4,6 +4,7 @@ import Link from 'next/link'
 import useSWR from 'swr'
 import { ClipboardCheck } from 'lucide-react'
 import type { CheckInStatusData } from '@/app/api/check-in/status/route'
+import { dayIndexAmsterdam } from '@/lib/time/amsterdam'
 
 async function fetcher(url: string): Promise<CheckInStatusData> {
   const res = await fetch(url)
@@ -12,9 +13,9 @@ async function fetcher(url: string): Promise<CheckInStatusData> {
 }
 
 function isCheckInDay(): boolean {
-  const day = new Date().getDay()
-  // Saturday (6), Sunday (0), Monday (1)
-  return day === 6 || day === 0 || day === 1
+  const idx = dayIndexAmsterdam() // 1=ma ... 7=zo
+  // Zaterdag (6), zondag (7), maandag (1)
+  return idx === 6 || idx === 7 || idx === 1
 }
 
 export function CheckInBadge() {

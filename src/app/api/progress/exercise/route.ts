@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
 
     for (const we of uniqueExercises) {
       const workout = we.workouts as unknown as { started_at: string; user_id: string }
-      const date = workout.started_at.slice(0, 10)
+      const date = dayKeyAmsterdam(workout.started_at)
       const sets = (we.workout_sets ?? []) as Array<{
         weight_kg: number | null
         reps: number | null

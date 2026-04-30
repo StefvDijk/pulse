@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -52,6 +53,44 @@ interface WorkoutWithExercises {
       rpe: number | null
     }>
   }>
+}
+
+/* ── Token model (plan-vs-realiteit) ───────────────────────── */
+
+export type ActivityType = 'gym' | 'run' | 'padel'
+export type TokenState =
+  | 'done-as-planned' // gepland + gedaan, zelfde titel
+  | 'done-swap'        // gepland iets anders, gedaan iets anders (gym)
+  | 'done-extra'       // gedaan zonder plan
+  | 'planned'          // gepland, nog niet gedaan, in de toekomst
+  | 'planned-today'    // gepland, vandaag, nog niet gedaan
+
+export interface ActivityToken {
+  type: ActivityType
+  state: TokenState
+  /** Titel om te tonen — actual als done, gepland als niet-done. */
+  title: string
+  /** Voor 'done-swap': wat oorspronkelijk gepland was. */
+  swappedFrom?: string
+  /** Actual sessie-ID (alleen voor done-* states). */
+  actualId?: string
+  actualDurationSeconds?: number | null
+  actualStartedAt?: string
+  /** Afstand in meters (alleen runs). */
+  distanceMeters?: number
+  /** Oefeningen (gym, voor done-states). */
+  exercises?: ExerciseData[]
+  /** Subtitel (alleen voor planned-states, uit schema). */
+  subtitle?: string
+  /** Geplande duur in minuten (alleen planned). */
+  durationMin?: number
+}
+
+function classifyByTitle(title: string): ActivityType {
+  const t = title.toLowerCase()
+  if (t.includes('padel')) return 'padel'
+  if (t.includes('hardlopen') || t.includes('run')) return 'run'
+  return 'gym'
 }
 
 /* ── Constants ─────────────────────────────────────────────── */
@@ -242,14 +281,51 @@ export async function GET() {
     if (runsResult.error) throw runsResult.error
 
     const weekWorkouts = (workoutsResult.data ?? []) as unknown as WorkoutWithExercises[]
+    const weekRuns = (runsResult.data ?? []) as Array<{
+      id: string
+      started_at: string
+      duration_seconds: number
+      distance_meters: number
+    }>
+    const weekPadel = (padelResult.data ?? []) as Array<{
+      id: string
+      started_at: string
+      duration_seconds: number
+    }>
 
-    // 3. Map each day to its status and data
-    const plannedTitles = new Set<string>()
+    // Groepeer actuals per Amsterdam-datum.
+    const gymByDate = new Map<string, WorkoutWithExercises[]>()
+    for (const w of weekWorkouts) {
+      const d = dayKeyAmsterdam(w.started_at)
+      const arr = gymByDate.get(d) ?? []
+      arr.push(w)
+      gymByDate.set(d, arr)
+    }
+    const runsByDate = new Map<string, typeof weekRuns>()
+    for (const r of weekRuns) {
+      const d = dayKeyAmsterdam(r.started_at)
+      const arr = runsByDate.get(d) ?? []
+      arr.push(r)
+      runsByDate.set(d, arr)
+    }
+    const padelByDate = new Map<string, typeof weekPadel>()
+    for (const p of weekPadel) {
+      const d = dayKeyAmsterdam(p.started_at)
+      const arr = padelByDate.get(d) ?? []
+      arr.push(p)
+      padelByDate.set(d, arr)
+    }
+
+    // 3. Voor iedere dag: bepaal planned-item, dan tokens via merge.
+    const plannedTitles = new Set<string>() // titles die nog last-performance lookup nodig hebben
 
     interface DayEntry {
       date: string
       dayLabel: string
       dayName: string
+      isToday: boolean
+      tokens: ActivityToken[]
+      // Backwards-compat (afgeleid uit tokens)
       status: 'completed' | 'today' | 'planned' | 'rest'
       workout: ScheduleDay | null
       completedWorkout?: {
@@ -258,134 +334,185 @@ export async function GET() {
         duration_seconds: number | null
         exercises: ExerciseData[]
       }
-      _title?: string // internal, stripped before response
     }
 
     const days: DayEntry[] = weekDates.map(({ date, dayName, dayLabel }) => {
-      // Check overrides first: date-specific override takes priority over template
-      let scheduled: ScheduleDay | null = null
+      const isToday = date === todayStr
+      const isPast = date < todayStr
+
+      // Bepaal planned (override > template, null = expliciete rust)
+      let planned: ScheduleDay | null = null
+      let isExplicitRest = false
       if (date in overrides) {
         const overrideFocus = overrides[date]
         if (overrideFocus === null) {
-          // Explicitly set to rest (workout moved away from this day)
-          return { date, dayLabel, dayName, status: 'rest' as const, workout: null }
-        }
-        // Find the workout details from the template by matching focus name
-        const templateEntry = Array.from(scheduleByDay.values()).find(
-          (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
-        )
-        scheduled = templateEntry ?? {
-          title: overrideFocus,
-          subtitle: '',
-          type: 'gym',
-          duration_min: 60,
+          isExplicitRest = true
+        } else {
+          const templateEntry = Array.from(scheduleByDay.values()).find(
+            (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
+          )
+          planned = templateEntry ?? {
+            title: overrideFocus,
+            subtitle: '',
+            type: 'gym',
+            duration_min: 60,
+          }
         }
       } else {
-        scheduled = scheduleByDay.get(dayName) ?? null
+        planned = scheduleByDay.get(dayName) ?? null
       }
 
-      if (!scheduled) {
-        return { date, dayLabel, dayName, status: 'rest' as const, workout: null }
+      const plannedType: ActivityType | null = planned ? classifyByTitle(planned.title) : null
+
+      // Verzamel actuals
+      const gyms = gymByDate.get(date) ?? []
+      const runs = runsByDate.get(date) ?? []
+      const padels = padelByDate.get(date) ?? []
+
+      const tokens: ActivityToken[] = []
+      let plannedConsumed = false
+
+      // Gym actuals
+      for (const gym of gyms) {
+        let state: TokenState = 'done-extra'
+        let swappedFrom: string | undefined
+        if (planned && plannedType === 'gym' && !plannedConsumed) {
+          state = titlesMatch(gym.title, planned.title) ? 'done-as-planned' : 'done-swap'
+          if (state === 'done-swap') swappedFrom = planned.title
+          plannedConsumed = true
+        }
+        tokens.push({
+          type: 'gym',
+          state,
+          title: gym.title,
+          swappedFrom,
+          actualId: gym.id,
+          actualDurationSeconds: gym.duration_seconds,
+          actualStartedAt: gym.started_at,
+          exercises: extractExercises(gym),
+        })
       }
 
-      const matched = weekWorkouts.find(
-        (w) => w.started_at.slice(0, 10) === date && titlesMatch(w.title, scheduled.title),
-      )
-
-      const status: 'completed' | 'today' | 'planned' = matched
-        ? 'completed'
-        : date === todayStr
-          ? 'today'
-          : 'planned'
-
-      if (!matched) {
-        plannedTitles.add(scheduled.title)
+      // Run actuals
+      for (const run of runs) {
+        let state: TokenState = 'done-extra'
+        let title = 'Hardlopen'
+        let swappedFrom: string | undefined
+        if (planned && plannedType === 'run' && !plannedConsumed) {
+          state = 'done-as-planned'
+          title = planned.title
+          plannedConsumed = true
+        } else if (planned && plannedType === 'gym' && !plannedConsumed) {
+          // Gym gepland maar je liep — telt als swap (gym → run)
+          state = 'done-swap'
+          swappedFrom = planned.title
+          plannedConsumed = true
+        }
+        tokens.push({
+          type: 'run',
+          state,
+          title,
+          swappedFrom,
+          actualId: run.id,
+          actualDurationSeconds: run.duration_seconds,
+          actualStartedAt: run.started_at,
+          distanceMeters: run.distance_meters,
+        })
       }
 
-      const entry: DayEntry = {
+      // Padel actuals
+      for (const padel of padels) {
+        let state: TokenState = 'done-extra'
+        let swappedFrom: string | undefined
+        if (planned && plannedType === 'padel' && !plannedConsumed) {
+          state = 'done-as-planned'
+          plannedConsumed = true
+        } else if (planned && !plannedConsumed) {
+          // Andere sport gepland → swap
+          state = 'done-swap'
+          swappedFrom = planned.title
+          plannedConsumed = true
+        }
+        tokens.push({
+          type: 'padel',
+          state,
+          title: 'Padel',
+          swappedFrom,
+          actualId: padel.id,
+          actualDurationSeconds: padel.duration_seconds,
+          actualStartedAt: padel.started_at,
+        })
+      }
+
+      // Plan dat niet "geconsumeerd" is door een actual:
+      // - in het verleden → missed (verbergen, conform Stef's keuze)
+      // - vandaag → planned-today
+      // - toekomst → planned
+      if (planned && !plannedConsumed && !isPast) {
+        tokens.push({
+          type: plannedType ?? 'gym',
+          state: isToday ? 'planned-today' : 'planned',
+          title: planned.title,
+          subtitle: planned.subtitle || undefined,
+          durationMin: planned.duration_min,
+        })
+        plannedTitles.add(planned.title)
+      }
+
+      // Backwards-compat afgeleide velden
+      const firstDone = tokens.find((t) => t.state.startsWith('done-'))
+      const firstToken = tokens[0]
+      const status: DayEntry['status'] =
+        firstDone
+          ? 'completed'
+          : tokens.some((t) => t.state === 'planned-today')
+            ? 'today'
+            : tokens.some((t) => t.state === 'planned')
+              ? 'planned'
+              : isExplicitRest || tokens.length === 0
+                ? 'rest'
+                : 'planned'
+
+      // workout-veld: voor compat — geef de planned door als die er is, anders de done.
+      let legacyWorkout: ScheduleDay | null = null
+      if (planned) {
+        legacyWorkout = planned
+      } else if (firstDone) {
+        legacyWorkout = {
+          title: firstDone.title,
+          subtitle:
+            firstDone.type === 'run' && firstDone.distanceMeters != null
+              ? `${(firstDone.distanceMeters / 1000).toFixed(1)} km`
+              : '',
+          type: firstDone.type,
+          duration_min:
+            firstDone.actualDurationSeconds != null
+              ? Math.round(firstDone.actualDurationSeconds / 60)
+              : 0,
+        }
+      }
+
+      const completedWorkout =
+        firstDone && firstDone.actualId
+          ? {
+              id: firstDone.actualId,
+              started_at: firstDone.actualStartedAt ?? '',
+              duration_seconds: firstDone.actualDurationSeconds ?? null,
+              exercises: firstDone.exercises ?? [],
+            }
+          : undefined
+
+      return {
         date,
         dayLabel,
         dayName,
-        status,
-        workout: scheduled,
-        _title: scheduled.title,
+        isToday,
+        tokens,
+        status: tokens.length === 0 ? 'rest' : status,
+        workout: legacyWorkout,
+        completedWorkout,
       }
-
-      if (matched) {
-        entry.completedWorkout = {
-          id: matched.id,
-          started_at: matched.started_at,
-          duration_seconds: matched.duration_seconds,
-          exercises: extractExercises(matched),
-        }
-      }
-
-      return entry
     })
-
-    // 3b. Overlay padel sessions onto days
-    for (const session of padelResult.data ?? []) {
-      const sessionDate = toAmsterdamDate(new Date(session.started_at))
-      const dayIdx = days.findIndex((d) => d.date === sessionDate)
-      if (dayIdx === -1) continue
-
-      const day = days[dayIdx]
-      if (!day.completedWorkout) {
-        days[dayIdx] = {
-          ...day,
-          status: 'completed',
-          workout: {
-            title: 'Padel',
-            subtitle: '',
-            type: 'padel',
-            duration_min: Math.round(session.duration_seconds / 60),
-          },
-          completedWorkout: {
-            id: session.id,
-            started_at: session.started_at,
-            duration_seconds: session.duration_seconds,
-            exercises: [],
-          },
-          _title: 'Padel',
-        }
-        plannedTitles.delete('Padel')
-      }
-    }
-
-    // 3c. Overlay runs onto days (matches scheduled "Hardlopen" or fills rest days)
-    for (const run of runsResult.data ?? []) {
-      const runDate = toAmsterdamDate(new Date(run.started_at))
-      const dayIdx = days.findIndex((d) => d.date === runDate)
-      if (dayIdx === -1) continue
-
-      const day = days[dayIdx]
-      if (!day.completedWorkout) {
-        const isScheduledRun =
-          day.workout?.title?.toLowerCase().includes('hardlopen') ||
-          day.workout?.title?.toLowerCase().includes('run')
-        const title = isScheduledRun ? (day.workout?.title ?? 'Hardlopen') : 'Hardlopen'
-        const distKm = (run.distance_meters / 1000).toFixed(1)
-
-        days[dayIdx] = {
-          ...day,
-          status: 'completed',
-          workout: {
-            title,
-            subtitle: `${distKm} km`,
-            type: 'run',
-            duration_min: Math.round(run.duration_seconds / 60),
-          },
-          completedWorkout: {
-            id: run.id,
-            started_at: run.started_at,
-            duration_seconds: run.duration_seconds,
-            exercises: [],
-          },
-          _title: title,
-        }
-        plannedTitles.delete(title)
-      }
-    }
 
     // 4. Fetch last performance for each planned workout title (in parallel)
     const lastPerfMap = new Map<string, { date: string; exercises: ExerciseData[] }>()
@@ -405,7 +532,7 @@ export async function GET() {
           if (data) {
             const typed = data as unknown as WorkoutWithExercises
             lastPerfMap.set(title.toLowerCase(), {
-              date: typed.started_at.slice(0, 10),
+              date: dayKeyAmsterdam(typed.started_at),
               exercises: extractExercises(typed),
             })
           }
@@ -413,15 +540,16 @@ export async function GET() {
       )
     }
 
-    // 5. Assemble response — strip internal fields, attach lastPerformance
-    const responseDays = days.map(({ _title, ...day }) => {
-      if (day.status !== 'rest' && !day.completedWorkout && _title) {
-        const lastPerf = lastPerfMap.get(_title.toLowerCase())
-        if (lastPerf) {
-          return { ...day, lastPerformance: lastPerf }
-        }
-      }
-      return day
+    // 5. Assemble response — attach lastPerformance to days/tokens that need it.
+    // De eerste planned/planned-today gym-token krijgt een lastPerformance-suggestie.
+    const responseDays = days.map((day) => {
+      const plannedToken = day.tokens.find(
+        (t) => (t.state === 'planned' || t.state === 'planned-today') && t.type === 'gym',
+      )
+      if (!plannedToken) return day
+      const lastPerf = lastPerfMap.get(plannedToken.title.toLowerCase())
+      if (!lastPerf) return day
+      return { ...day, lastPerformance: lastPerf }
     })
 
     return NextResponse.json({

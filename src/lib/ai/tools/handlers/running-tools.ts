@@ -1,54 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-
-// ---------------------------------------------------------------------------
-// Date helpers (shared logic — keep DRY with workout-tools)
-// ---------------------------------------------------------------------------
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function periodToDates(period: string): { start: string; end: string } {
-  const now = new Date()
-  const end = today()
-
-  switch (period) {
-    case 'this_week': {
-      const day = now.getUTCDay()
-      const diff = day === 0 ? 6 : day - 1
-      const start = new Date(now)
-      start.setUTCDate(now.getUTCDate() - diff)
-      return { start: start.toISOString().slice(0, 10), end }
-    }
-    case 'last_week': {
-      const day = now.getUTCDay()
-      const diff = day === 0 ? 6 : day - 1
-      const thisMonday = new Date(now)
-      thisMonday.setUTCDate(now.getUTCDate() - diff)
-      const lastMonday = new Date(thisMonday)
-      lastMonday.setUTCDate(thisMonday.getUTCDate() - 7)
-      const lastSunday = new Date(thisMonday)
-      lastSunday.setUTCDate(thisMonday.getUTCDate() - 1)
-      return { start: lastMonday.toISOString().slice(0, 10), end: lastSunday.toISOString().slice(0, 10) }
-    }
-    case 'this_month': {
-      const start = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1)
-      return { start: start.toISOString().slice(0, 10), end }
-    }
-    case 'last_month': {
-      const start = new Date(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
-      const endDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), 0)
-      return { start: start.toISOString().slice(0, 10), end: endDate.toISOString().slice(0, 10) }
-    }
-    case 'last_3_months': {
-      const start = new Date(now)
-      start.setUTCDate(now.getUTCDate() - 90)
-      return { start: start.toISOString().slice(0, 10), end }
-    }
-    default:
-      return { start: end, end }
-  }
-}
+import { periodToDates } from '@/lib/time/periods'
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })

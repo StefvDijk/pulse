@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { addDaysToKey, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { extractWeeklyLessons } from '@/lib/ai/lessons-extractor'
 import { extractSportInsight } from '@/lib/ai/sport-insight-extractor'
 
 /**
  * GET /api/cron/weekly-aggregate
- * Schedule: 0 3 * * 1 (Monday at 03:00 UTC)
+ * Schedule: 0 3 * * 1 (Monday at 03:00 UTC = 04:00/05:00 Amsterdam)
  *
- * Computes weekly aggregation for the previous ISO week for all users.
+ * Aggregeert de afgelopen ISO-week voor alle users (Amsterdam-week, niet UTC).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET
@@ -23,12 +24,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const admin = createAdminClient()
 
-  // This cron runs on Monday — previous week started 7 days ago
-  const now = new Date()
-  const prevWeekMonday = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7),
-  )
-  const prevWeekMondayStr = prevWeekMonday.toISOString().slice(0, 10)
+  // Cron draait maandag — vorige week start zeven dagen voor de huidige Amsterdam-maandag.
+  const prevWeekMondayStr = addDaysToKey(weekStartAmsterdam(), -7)
 
   // Fetch all user IDs
   const { data: profiles, error: profilesError } = await admin

@@ -1,6 +1,7 @@
 'use client'
 
 import type { Database } from '@/types/database'
+import { addDaysToKey, todayAmsterdam } from '@/lib/time/amsterdam'
 
 type DailyAggregationRow = Database['public']['Tables']['daily_aggregations']['Row']
 
@@ -35,13 +36,9 @@ export function AdherenceTracker({ dailyAggregations, weekStart }: AdherenceTrac
   }
 
   // Generate the 7 dates starting from weekStart (Monday)
-  const weekDates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart)
-    d.setUTCDate(d.getUTCDate() + i)
-    return d.toISOString().slice(0, 10)
-  })
+  const weekDates = Array.from({ length: 7 }, (_, i) => addDaysToKey(weekStart, i))
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayAmsterdam()
 
   return (
     <div className="flex justify-between gap-1">

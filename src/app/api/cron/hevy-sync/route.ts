@@ -4,15 +4,16 @@ import { syncHevyWorkouts } from '@/lib/hevy/sync'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
+import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
-function getCurrentWeekMonday(): string {
-  const now = new Date()
-  const day = now.getUTCDay()
-  const offset = day === 0 ? -6 : 1 - day
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
-  return monday.toISOString().slice(0, 10)
-}
-
+/**
+ * GET /api/cron/hevy-sync
+ * Schedule: 0 6 * * * (06:00 UTC = 07:00/08:00 Amsterdam)
+ *
+ * Trekt nieuwe Hevy-workouts op en re-aggregateert vandaag + deze-week (Amsterdam-tz).
+ * Voor live-sync: configureer een Hevy-webhook met HEVY_WEBHOOK_SECRET, of gebruik
+ * de in-app SyncButton om handmatig te triggeren.
+ */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   // Verify cron secret
   const cronSecret = process.env.CRON_SECRET
@@ -38,8 +39,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const weekMonday = getCurrentWeekMonday()
+  const todayStr = todayAmsterdam()
+  const weekMonday = weekStartAmsterdam()
   const results: Array<{ userId: string; synced: number; errors: string[] }> = []
 
   // Sync each user independently — one failure does not block others
