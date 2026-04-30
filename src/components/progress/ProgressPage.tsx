@@ -15,14 +15,18 @@ import { EmptyState } from '@/components/shared/EmptyState'
 
 function Card({
   title,
+  sub,
   children,
 }: {
   title: string
+  sub?: string
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl bg-surface-primary border border-separator p-4">
-      <h2 className="mb-3 text-base font-semibold text-label-primary">{title}</h2>
+    <div className="rounded-[22px] bg-bg-surface border-[0.5px] border-bg-border p-[18px]">
+      <div className="text-[16px] font-semibold text-text-primary">{title}</div>
+      {sub && <div className="mb-3 mt-1 text-[12px] text-text-tertiary">{sub}</div>}
+      {!sub && <div className="mb-3" />}
       {children}
     </div>
   )
@@ -66,8 +70,8 @@ export function ProgressPage() {
 
   if (progressError) {
     return (
-      <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-        <h1 className="text-title1 font-bold tracking-tight text-label-primary">Progressie</h1>
+      <div className="flex flex-col gap-3.5 px-4 pb-24 pt-[60px]">
+        <h1 className="text-[34px] font-bold tracking-[-0.8px] text-text-primary">Progressie</h1>
         <ErrorAlert message="Kon data niet laden." onRetry={refresh} />
       </div>
     )
@@ -76,8 +80,11 @@ export function ProgressPage() {
   const hasData = (progressData?.personalRecords.length ?? 0) > 0 || exercises.length > 0
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-24 pt-6">
-      <h1 className="text-title1 font-bold tracking-tight text-label-primary">Progressie</h1>
+    <div className="flex flex-col gap-3.5 px-4 pb-24 pt-[60px]">
+      <div className="pt-1">
+        <h1 className="text-[34px] font-bold tracking-[-0.8px] text-text-primary">Progressie</h1>
+        <div className="mt-1 text-[13px] text-text-tertiary">Je metrics over tijd</div>
+      </div>
 
       {!hasData ? (
         <EmptyState
@@ -96,13 +103,13 @@ export function ProgressPage() {
               />
               {chartLoading ? (
                 <div className="flex h-40 items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-separator border-t-text-primary" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-border border-t-text-primary" />
                 </div>
               ) : exerciseProgress ? (
                 <ProgressionChart data={exerciseProgress} />
               ) : (
                 <div className="flex h-40 items-center justify-center">
-                  <p className="text-sm text-label-tertiary">
+                  <p className="text-sm text-text-tertiary">
                     Selecteer een oefening om je progressie te zien
                   </p>
                 </div>

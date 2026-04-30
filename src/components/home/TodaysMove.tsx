@@ -36,14 +36,14 @@ export function TodaysMove() {
   if (isLoading || !data) {
     return (
       <div
-        className="rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm"
+        className="rounded-3xl border border-bg-border bg-bg-surface p-6"
         aria-hidden="true"
       >
         <div className="flex flex-col gap-3">
-          <div className="h-3 w-24 rounded-full bg-system-gray6" />
-          <div className="h-8 w-3/4 rounded-full bg-system-gray6" />
-          <div className="h-4 w-2/3 rounded-full bg-system-gray6" />
-          <div className="mt-2 h-9 w-32 rounded-full bg-system-gray6" />
+          <div className="h-3 w-24 rounded-full bg-white/[0.06]" />
+          <div className="h-8 w-3/4 rounded-full bg-white/[0.06]" />
+          <div className="h-4 w-2/3 rounded-full bg-white/[0.06]" />
+          <div className="mt-2 h-9 w-32 rounded-full bg-white/[0.06]" />
         </div>
       </div>
     )
@@ -54,25 +54,25 @@ export function TodaysMove() {
   return (
     <Link
       href={data.actionHref}
-      className="block rounded-3xl border border-separator bg-surface-primary p-6 shadow-apple-sm transition-opacity active:opacity-80"
+      className="block rounded-3xl border border-bg-border bg-bg-surface p-6 transition-opacity active:opacity-80"
       style={{ background: style.bgGradient }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-caption2 font-semibold uppercase tracking-wider text-label-tertiary">
+          <p className="text-caption2 font-semibold uppercase tracking-wider text-text-tertiary">
             {style.eyebrow}
           </p>
-          <h2 className="mt-1.5 text-title1 font-bold leading-tight tracking-tight text-label-primary">
+          <h2 className="mt-1.5 text-title1 font-bold leading-tight tracking-tight text-text-primary">
             {data.title}
           </h2>
-          <p className="mt-2 text-subhead leading-snug text-label-secondary">
+          <p className="mt-2 text-subhead leading-snug text-text-secondary">
             {data.subtitle}
           </p>
         </div>
         <CoachOrb size={32} state={style.orbState} className="mt-1" />
       </div>
 
-      <div className="mt-5 flex items-center gap-1.5 text-system-blue">
+      <div className="mt-5 flex items-center gap-1.5 text-[#0A84FF]">
         <span className="text-subhead font-semibold">{data.actionLabel}</span>
         <ChevronRight size={18} strokeWidth={2.5} />
       </div>

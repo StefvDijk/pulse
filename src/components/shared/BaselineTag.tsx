@@ -11,13 +11,15 @@ export interface BaselineTagProps {
   window?: BaselineWindow
   /** Override the metric's default "higher is better" sentiment. */
   higherIsBetterOverride?: boolean
+  /** Hide the "vs 30d" suffix — useful in tight grids where space is scarce. */
+  compact?: boolean
   className?: string
 }
 
 const SENTIMENT_CLASS = {
-  positive: 'text-system-green',
-  negative: 'text-system-red',
-  neutral: 'text-label-tertiary',
+  positive: 'text-[var(--color-status-good)]',
+  negative: 'text-[var(--color-status-bad)]',
+  neutral: 'text-text-tertiary',
 } as const
 
 const WINDOW_LABEL: Record<BaselineWindow, string> = {
@@ -36,6 +38,7 @@ function BaselineTagImpl({
   metric,
   window = '30d',
   higherIsBetterOverride,
+  compact = false,
   className = '',
 }: BaselineTagProps) {
   const { text, sentiment, pct } = formatBaseline({
@@ -55,7 +58,7 @@ function BaselineTagImpl({
       aria-label={`${text} vs ${window} gemiddelde`}
     >
       <span>{text}</span>
-      <span className="text-label-tertiary">vs {WINDOW_LABEL[window]}</span>
+      {!compact && <span className="text-text-tertiary">vs {WINDOW_LABEL[window]}</span>}
     </span>
   )
 }

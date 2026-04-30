@@ -7,10 +7,10 @@ interface TrendSparklineProps {
 }
 
 const STATUS_FILL: Record<WorkloadStatus, string> = {
-  low: 'var(--color-system-gray3)',
-  optimal: 'var(--color-system-green)',
-  warning: 'var(--color-system-orange)',
-  danger: 'var(--color-system-red)',
+  low: 'rgba(255,255,255,0.16)',
+  optimal: 'var(--color-status-good)',
+  warning: 'var(--color-status-warn)',
+  danger: 'var(--color-status-bad)',
 }
 
 const Y_MIN = 0
@@ -106,7 +106,7 @@ export function TrendSparkline({ points }: TrendSparklineProps) {
             cy={yFor(p.ratio)}
             r={isCurrent ? 5 : 3.5}
             fill={STATUS_FILL[p.status]}
-            stroke="var(--color-surface-primary)"
+            stroke="var(--color-bg-surface)"
             strokeWidth="2"
           />
         )

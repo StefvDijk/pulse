@@ -74,8 +74,8 @@ function SetSummary({ exercise }: { exercise: ExerciseData }) {
 
   return (
     <div className="flex items-center justify-between py-2.5">
-      <span className="text-subhead text-label-primary">{exercise.name}</span>
-      <span className="text-subhead tabular-nums text-label-secondary">
+      <span className="text-subhead text-text-primary">{exercise.name}</span>
+      <span className="text-subhead tabular-nums text-text-secondary">
         {workingSets.length}×{reps ?? '?'}
         {weight ? ` · ${weight}kg` : ''}
       </span>
@@ -91,12 +91,12 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
     return (
       <Card padding="lg">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-system-gray6">
-            <Moon size={20} strokeWidth={1.5} className="text-label-tertiary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06]">
+            <Moon size={20} strokeWidth={1.5} className="text-text-tertiary" />
           </div>
           <div>
-            <p className="text-headline text-label-primary">Rustdag</p>
-            <p className="text-subhead text-label-secondary">
+            <p className="text-headline text-text-primary">Rustdag</p>
+            <p className="text-subhead text-text-secondary">
               {tomorrowWorkout
                 ? `Morgen: ${tomorrowWorkout}`
                 : 'Geniet van je herstel'}
@@ -119,27 +119,27 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              isCompleted ? 'bg-system-green/10' : 'bg-system-blue/10'
+              isCompleted ? 'bg-[var(--color-status-good)]/10' : 'bg-[#0A84FF]/10'
             }`}
           >
             {isCompleted ? (
-              <CheckCircle2 size={20} strokeWidth={1.5} className="text-system-green" />
+              <CheckCircle2 size={20} strokeWidth={1.5} className="text-[var(--color-status-good)]" />
             ) : (
-              <Dumbbell size={20} strokeWidth={1.5} className="text-system-blue" />
+              <Dumbbell size={20} strokeWidth={1.5} className="text-[#0A84FF]" />
             )}
           </div>
           <div>
-            <p className="text-headline text-label-primary">
+            <p className="text-headline text-text-primary">
               {day.workout.title}
             </p>
-            <p className="text-subhead text-label-secondary">
+            <p className="text-subhead text-text-secondary">
               {day.workout.subtitle}
               {day.workout.duration_min ? ` · ~${day.workout.duration_min} min` : ''}
             </p>
           </div>
         </div>
         {isCompleted && (
-          <span className="rounded-full bg-system-green/10 px-2.5 py-1 text-caption1 font-semibold text-system-green">
+          <span className="rounded-full bg-[var(--color-status-good)]/10 px-2.5 py-1 text-caption1 font-semibold text-[var(--color-status-good)]">
             Gedaan
           </span>
         )}
@@ -148,8 +148,8 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
       {/* Achievement highlight for completed workouts */}
       {isCompleted && (
         <div className="mt-3 flex items-center gap-1.5">
-          <TrendingUp size={14} strokeWidth={1.5} className="text-system-blue" />
-          <span className="text-subhead font-medium text-system-blue">
+          <TrendingUp size={14} strokeWidth={1.5} className="text-[#0A84FF]" />
+          <span className="text-subhead font-medium text-[#0A84FF]">
             {findAchievement(
               day.completedWorkout?.exercises ?? [],
               day.lastPerformance?.exercises ?? [],
@@ -160,7 +160,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Compact summary for completed workouts */}
       {isCompleted && (
-        <p className="mt-1.5 text-caption1 text-label-tertiary">
+        <p className="mt-1.5 text-caption1 text-text-tertiary">
           {day.completedWorkout?.duration_seconds != null
             ? `${formatDuration(day.completedWorkout.duration_seconds)} · `
             : ''}
@@ -179,7 +179,7 @@ export function TodayWorkoutCard({ day, tomorrowWorkout }: TodayWorkoutCardProps
 
       {/* Reference note for planned workouts */}
       {!isCompleted && day.lastPerformance && (
-        <p className="mt-3 text-caption1 text-label-tertiary">
+        <p className="mt-3 text-caption1 text-text-tertiary">
           Op basis van je sessie van {day.lastPerformance.date}
         </p>
       )}

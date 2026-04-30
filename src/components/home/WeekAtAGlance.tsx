@@ -35,26 +35,26 @@ function SportIcon({ sport, size = 14 }: { sport: SportType; size?: number }) {
 function sportBgClass(sport: SportType): string {
   switch (sport) {
     case 'gym':
-      return 'bg-system-blue'
+      return 'bg-[#0A84FF]'
     case 'run':
-      return 'bg-system-orange'
+      return 'bg-[var(--color-status-warn)]'
     case 'padel':
-      return 'bg-system-yellow'
+      return 'bg-[var(--color-status-warn)]'
     default:
-      return 'bg-system-blue'
+      return 'bg-[#0A84FF]'
   }
 }
 
 function sportTextClass(sport: SportType): string {
   switch (sport) {
     case 'gym':
-      return 'text-system-blue'
+      return 'text-[#0A84FF]'
     case 'run':
-      return 'text-system-orange'
+      return 'text-[var(--color-status-warn)]'
     case 'padel':
-      return 'text-system-yellow'
+      return 'text-[var(--color-status-warn)]'
     default:
-      return 'text-label-tertiary'
+      return 'text-text-tertiary'
   }
 }
 
@@ -69,7 +69,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
       {/* Day label */}
       <span
         className={`text-caption2 font-medium uppercase tracking-wider ${
-          isToday ? 'text-system-blue' : 'text-label-tertiary'
+          isToday ? 'text-[#0A84FF]' : 'text-text-tertiary'
         }`}
       >
         {day.dayLabel}
@@ -81,10 +81,10 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
           isCompleted
             ? `${sportBgClass(sport)} text-white`
             : isToday
-              ? 'bg-system-blue text-white ring-2 ring-system-blue/30 ring-offset-2 ring-offset-surface-primary'
+              ? 'bg-[#0A84FF] text-white ring-2 ring-[#0A84FF]/30 ring-offset-2 ring-offset-bg-surface'
               : isRest
-                ? 'bg-system-gray6'
-                : `border-2 border-separator bg-transparent ${sportTextClass(sport)}`
+                ? 'bg-white/[0.06]'
+                : `border-2 border-bg-border bg-transparent ${sportTextClass(sport)}`
         }`}
       >
         {!isRest && <SportIcon sport={sport} />}
@@ -93,7 +93,7 @@ function DayPill({ day }: { day: SchemaWeekDay }) {
       {/* Workout name (abbreviated) */}
       <span
         className={`text-caption2 leading-tight text-center truncate w-full ${
-          isToday ? 'font-medium text-label-secondary' : 'text-label-tertiary'
+          isToday ? 'font-medium text-text-secondary' : 'text-text-tertiary'
         }`}
       >
         {isRest ? '' : day.workout?.title ?? ''}
@@ -154,7 +154,7 @@ export function WeekAtAGlance({ days }: WeekAtAGlanceProps) {
       </div>
 
       {summary && (
-        <p className="mt-3 text-caption1 text-label-tertiary text-center">
+        <p className="mt-3 text-caption1 text-text-tertiary text-center">
           {summary}
         </p>
       )}

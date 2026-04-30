@@ -14,13 +14,11 @@ const paddingClasses: Record<CardPadding, string> = {
 }
 
 const baseClasses = [
-  'rounded-2xl',
-  'bg-surface-primary',
-  'shadow-apple',
-  // Dark mode: vervang shadow door subtiele border
-  'dark:shadow-none',
-  'dark:border',
-  'dark:border-white/[0.06]',
+  'rounded-[18px]',
+  'bg-bg-surface',
+  'border-[0.5px]',
+  'border-bg-border',
+  'overflow-hidden',
 ].join(' ')
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(

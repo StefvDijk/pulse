@@ -37,29 +37,29 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
       {/* Trigger button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-xl border border-separator bg-surface-primary px-4 py-3 text-left transition-colors hover:bg-system-gray6"
+        className="flex w-full items-center justify-between rounded-xl border border-bg-border bg-bg-surface px-4 py-3 text-left transition-colors hover:bg-white/[0.06]"
       >
-        <span className={`text-sm ${selected ? 'text-label-primary font-medium' : 'text-label-tertiary'}`}>
+        <span className={`text-sm ${selected ? 'text-text-primary font-medium' : 'text-text-tertiary'}`}>
           {selected ?? 'Kies een oefening...'}
         </span>
         <ChevronDown
           size={16}
-          className={`text-label-tertiary transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-text-tertiary transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-separator bg-surface-primary shadow-lg overflow-hidden">
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-bg-border bg-bg-surface shadow-lg overflow-hidden">
           {/* Search */}
-          <div className="flex items-center gap-2 border-b border-separator px-3 py-2">
-            <Search size={14} className="text-label-tertiary shrink-0" />
+          <div className="flex items-center gap-2 border-b border-bg-border px-3 py-2">
+            <Search size={14} className="text-text-tertiary shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Zoek oefening..."
-              className="w-full bg-transparent text-sm text-label-primary placeholder:text-label-tertiary outline-none"
+              className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
               autoFocus
             />
           </div>
@@ -67,7 +67,7 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
           {/* Options */}
           <div className="max-h-64 overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-label-tertiary">Geen resultaten</p>
+              <p className="px-4 py-3 text-sm text-text-tertiary">Geen resultaten</p>
             ) : (
               filtered.map((exercise) => (
                 <button
@@ -77,12 +77,12 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
                     setOpen(false)
                     setQuery('')
                   }}
-                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-system-gray6 ${
-                    exercise.name === selected ? 'bg-system-gray6' : ''
+                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/[0.06] ${
+                    exercise.name === selected ? 'bg-white/[0.06]' : ''
                   }`}
                 >
-                  <span className="text-sm text-label-primary">{exercise.name}</span>
-                  <span className="text-xs text-label-tertiary">{exercise.primaryMuscleGroup}</span>
+                  <span className="text-sm text-text-primary">{exercise.name}</span>
+                  <span className="text-xs text-text-tertiary">{exercise.primaryMuscleGroup}</span>
                 </button>
               ))
             )}

@@ -97,14 +97,14 @@ export function MuscleDrilldownSheet({
       />
 
       {/* Sheet */}
-      <div className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-surface-primary shadow-2xl sm:rounded-3xl max-h-[85vh]">
+      <div className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-bg-surface shadow-2xl sm:rounded-3xl max-h-[85vh]">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-separator px-5 pt-5 pb-3">
+        <div className="flex items-start justify-between gap-3 border-b border-bg-border px-5 pt-5 pb-3">
           <div className="min-w-0">
-            <h2 className="text-headline font-semibold text-label-primary">
+            <h2 className="text-headline font-semibold text-text-primary">
               {getMuscleLabel(muscleGroup)}
             </h2>
-            <p className="mt-0.5 text-caption1 text-label-tertiary">
+            <p className="mt-0.5 text-caption1 text-text-tertiary">
               {Math.round(totalHits)} {Math.round(totalHits) === 1 ? 'hit' : 'hits'}
               {hits.length > 0 && (
                 <>
@@ -117,7 +117,7 @@ export function MuscleDrilldownSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray5"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
             aria-label="Sluiten"
           >
             <X size={16} />
@@ -128,7 +128,7 @@ export function MuscleDrilldownSheet({
         <div className="flex-1 overflow-y-auto">
           {groups.length === 0 ? (
             <div className="px-5 py-10 text-center">
-              <p className="text-subhead text-label-secondary">
+              <p className="text-subhead text-text-secondary">
                 Geen oefeningen voor deze spiergroep in de geselecteerde dagen.
               </p>
             </div>
@@ -137,10 +137,10 @@ export function MuscleDrilldownSheet({
               {groups.map((group) => (
                 <div key={group.workoutId} className="flex flex-col gap-2">
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="truncate text-footnote font-semibold text-label-primary">
+                    <h3 className="truncate text-footnote font-semibold text-text-primary">
                       {group.workoutTitle}
                     </h3>
-                    <span className="shrink-0 text-caption1 text-label-tertiary">
+                    <span className="shrink-0 text-caption1 text-text-tertiary">
                       {formatWorkoutDate(group.workoutStartedAt)}
                     </span>
                   </div>
@@ -148,24 +148,24 @@ export function MuscleDrilldownSheet({
                     {group.hits.map((hit, idx) => (
                       <li
                         key={`${hit.workoutId}-${hit.exerciseName}-${idx}`}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-system-gray6 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.06] px-3 py-2"
                       >
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-footnote text-label-primary">
+                          <span className="truncate text-footnote text-text-primary">
                             {hit.exerciseName}
                           </span>
                           <span
                             className={[
                               'shrink-0 rounded-full px-1.5 py-0.5 text-caption2 font-medium',
                               hit.role === 'primary'
-                                ? 'bg-system-orange/15 text-system-orange'
-                                : 'bg-system-gray5 text-label-secondary',
+                                ? 'bg-[var(--color-status-warn)]/15 text-[var(--color-status-warn)]'
+                                : 'bg-white/[0.08] text-text-secondary',
                             ].join(' ')}
                           >
                             {hit.role === 'primary' ? 'primair' : 'secundair'}
                           </span>
                         </div>
-                        <span className="shrink-0 text-caption1 tabular-nums text-label-secondary">
+                        <span className="shrink-0 text-caption1 tabular-nums text-text-secondary">
                           {hit.sets} {hit.sets === 1 ? 'set' : 'sets'}
                         </span>
                       </li>

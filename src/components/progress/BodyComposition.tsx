@@ -21,15 +21,15 @@ function ProgressMetric({ label, value, unit, delta, higherIsBetter }: ProgressM
 
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="text-xs text-label-tertiary">{label}</p>
-      <p className="text-xl font-bold tabular-nums text-label-primary">
+      <p className="text-xs text-text-tertiary">{label}</p>
+      <p className="text-xl font-bold tabular-nums text-text-primary">
         {value % 1 === 0 ? value : value.toFixed(1)}
-        <span className="text-xs font-normal text-label-tertiary ml-0.5">{unit}</span>
+        <span className="text-xs font-normal text-text-tertiary ml-0.5">{unit}</span>
       </p>
       {hasDelta && (
         <span
           className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-            isGood ? 'text-system-green' : 'text-system-red'
+            isGood ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'
           }`}
         >
           {isPositive ? (
@@ -83,7 +83,7 @@ function CompositionBar({ fatPct, label }: CompositionBarProps) {
     <div className="flex flex-col gap-1.5">
       <div className="flex h-3 w-full overflow-hidden rounded-full">
         <div
-          className="bg-system-blue transition-all duration-500"
+          className="bg-[#0A84FF] transition-all duration-500"
           style={{ width: `${leanPct}%` }}
         />
         <div
@@ -91,7 +91,7 @@ function CompositionBar({ fatPct, label }: CompositionBarProps) {
           style={{ width: `${fatPct}%` }}
         />
       </div>
-      <div className="flex justify-between text-[10px] text-label-tertiary">
+      <div className="flex justify-between text-[10px] text-text-tertiary">
         <span>Lean {leanPct.toFixed(1)}%</span>
         <span>{label}</span>
         <span>Vet {fatPct.toFixed(1)}%</span>
@@ -122,7 +122,7 @@ export function BodyComposition() {
   if (error) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-system-red">Laden mislukt</p>
+        <p className="text-sm text-[var(--color-status-bad)]">Laden mislukt</p>
       </div>
     )
   }
@@ -134,7 +134,7 @@ export function BodyComposition() {
   if (!latest) {
     return (
       <div className="flex h-24 items-center justify-center">
-        <p className="text-sm text-label-tertiary">
+        <p className="text-sm text-text-tertiary">
           Nog geen body composition data — sync via InBody + Apple Health
         </p>
       </div>
@@ -214,18 +214,18 @@ export function BodyComposition() {
 
       {/* Lean-to-fat ratio */}
       {ratio !== null && (
-        <div className="border-t border-separator pt-3">
+        <div className="border-t border-bg-border pt-3">
           <div className="flex items-baseline justify-between">
             <div className="flex flex-col gap-0.5">
-              <p className="text-xs text-label-tertiary">Lean-to-fat ratio</p>
+              <p className="text-xs text-text-tertiary">Lean-to-fat ratio</p>
               <div className="flex items-baseline gap-2">
-                <p className="text-xl font-bold tabular-nums text-label-primary">
+                <p className="text-xl font-bold tabular-nums text-text-primary">
                   {ratio.toFixed(2)}
                 </p>
                 {ratioDelta !== null && ratioDelta !== 0 && (
                   <span
                     className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-                      ratioDelta > 0 ? 'text-system-green' : 'text-system-red'
+                      ratioDelta > 0 ? 'text-[var(--color-status-good)]' : 'text-[var(--color-status-bad)]'
                     }`}
                   >
                     {ratioDelta > 0 ? (
@@ -239,7 +239,7 @@ export function BodyComposition() {
                 )}
               </div>
             </div>
-            <p className="text-[10px] text-label-tertiary text-right max-w-[140px]">
+            <p className="text-[10px] text-text-tertiary text-right max-w-[140px]">
               Kg lean mass per kg vet. Hoger = betere compositie.
             </p>
           </div>
@@ -248,7 +248,7 @@ export function BodyComposition() {
 
       {/* Secondary metrics — only if available */}
       {(latest.visceral_fat_level !== null || latest.body_water_pct !== null) && (
-        <div className="grid grid-cols-2 gap-4 border-t border-separator pt-3">
+        <div className="grid grid-cols-2 gap-4 border-t border-bg-border pt-3">
           <ProgressMetric
             label="Visceraal vet"
             value={latest.visceral_fat_level}
@@ -267,7 +267,7 @@ export function BodyComposition() {
       )}
 
       {/* Metadata */}
-      <p className="text-xs text-label-tertiary">
+      <p className="text-xs text-text-tertiary">
         {new Date(latest.date).toLocaleDateString('nl-NL', {
           day: 'numeric',
           month: 'long',

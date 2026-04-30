@@ -9,6 +9,7 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
 import { AIContextSection } from './AIContextSection'
 import { CoachingMemoryEditor } from './CoachingMemoryEditor'
+import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
 
 export function SettingsPage() {
@@ -157,11 +158,30 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
-      <h1 className="text-xl font-bold text-label-primary">Instellingen</h1>
+    <div className="flex flex-col gap-4 px-4 pb-24 pt-[60px]">
+      <h1 className="text-[34px] font-bold tracking-[-0.8px] text-text-primary">Instellingen</h1>
+
+      {/* Profile header */}
+      <div
+        className="flex items-center gap-3.5 rounded-[18px] border-[0.5px] border-bg-border-strong p-[18px]"
+        style={{ background: 'linear-gradient(135deg, rgba(0,229,199,0.10), rgba(124,58,237,0.10))' }}
+      >
+        <div
+          className="flex h-[60px] w-[60px] items-center justify-center rounded-full text-[24px] font-bold text-white"
+          style={{ background: 'linear-gradient(135deg, #00E5C7, #7C3AED)' }}
+        >
+          {(displayName || 'S').charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[17px] font-semibold text-text-primary">{displayName || 'Pulse user'}</div>
+          <div className="text-[12px] text-text-tertiary">
+            {[heightCm && `${heightCm} cm`, weightKg && `${weightKg} kg`].filter(Boolean).join(' · ') || 'Bewerk profiel hieronder'}
+          </div>
+        </div>
+      </div>
 
       {/* Profile section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Profiel" />
         <div className="flex flex-col gap-4">
           <Field label="Naam">
@@ -215,7 +235,7 @@ export function SettingsPage() {
       </div>
 
       {/* Connections section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Koppelingen" />
         <div className="flex flex-col gap-4">
           <Field label="Hevy API key">
@@ -249,16 +269,16 @@ export function SettingsPage() {
       </div>
 
       {/* Google Calendar section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Google Agenda" />
 
         {calendarStatus === 'connected' && (
-          <div className="mb-3 rounded-lg bg-system-green/10 px-3 py-2 text-sm text-system-green">
+          <div className="mb-3 rounded-lg bg-[var(--color-status-good)]/10 px-3 py-2 text-sm text-[var(--color-status-good)]">
             Google Agenda gekoppeld ✓
           </div>
         )}
         {calendarStatus === 'error' && (
-          <div className="mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
+          <div className="mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
             Koppeling mislukt — probeer opnieuw.
           </div>
         )}
@@ -268,16 +288,16 @@ export function SettingsPage() {
             <div className="flex items-center gap-2">
               <StatusDot active />
               <div>
-                <p className="text-sm font-medium text-label-primary">Verbonden</p>
+                <p className="text-sm font-medium text-text-primary">Verbonden</p>
                 {data.settings.google_calendar_email && (
-                  <p className="text-xs text-label-tertiary">{data.settings.google_calendar_email}</p>
+                  <p className="text-xs text-text-tertiary">{data.settings.google_calendar_email}</p>
                 )}
               </div>
             </div>
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnecting}
-              className="rounded-lg border border-separator px-3 py-1.5 text-sm text-label-secondary transition-colors hover:bg-system-gray6 disabled:opacity-50"
+              className="rounded-lg border border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-white/[0.06] disabled:opacity-50"
             >
               {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
             </button>
@@ -286,11 +306,11 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <StatusDot active={false} />
-              <p className="text-sm text-label-secondary">Niet gekoppeld</p>
+              <p className="text-sm text-text-secondary">Niet gekoppeld</p>
             </div>
             <a
               href="/api/calendar/auth"
-              className="rounded-lg bg-system-blue px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
+              className="rounded-lg bg-[#0A84FF] px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
             >
               Koppel Google Agenda
             </a>
@@ -299,7 +319,7 @@ export function SettingsPage() {
       </div>
 
       {/* Training goals section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Trainingsdoelen" />
         <div className="flex flex-col gap-4">
           <Field label="Proteïne doel (g/kg lichaamsgewicht)">
@@ -315,7 +335,7 @@ export function SettingsPage() {
             />
           </Field>
           <div>
-            <p className="mb-2 text-xs font-medium text-label-tertiary">Wekelijkse sessies</p>
+            <p className="mb-2 text-xs font-medium text-text-tertiary">Wekelijkse sessies</p>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Gym">
                 <input
@@ -356,7 +376,7 @@ export function SettingsPage() {
       </div>
 
       {/* Account section */}
-      <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
         <SectionHeader title="Wachtwoord wijzigen" />
         <div className="flex flex-col gap-4">
           <Field label="Nieuw wachtwoord">
@@ -379,7 +399,7 @@ export function SettingsPage() {
             />
           </Field>
           {passwordError && (
-            <p className="text-sm text-system-red">{passwordError}</p>
+            <p className="text-sm text-[var(--color-status-bad)]">{passwordError}</p>
           )}
           <div className="flex justify-end">
             <SaveButton
@@ -391,7 +411,7 @@ export function SettingsPage() {
       </div>
 
       {/* AI Coach section */}
-      <h2 className="mt-4 text-lg font-semibold text-label-primary">AI Coach</h2>
+      <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
 
       <AIContextSection
         currentValue={data?.settings.ai_custom_instructions ?? null}
@@ -399,6 +419,8 @@ export function SettingsPage() {
       />
 
       <CoachingMemoryEditor />
+
+      <WeeklyLessonsTimeline />
 
       <AIContextPreview />
     </div>

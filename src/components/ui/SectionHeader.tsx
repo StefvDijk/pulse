@@ -11,7 +11,7 @@ const baseClasses = [
   'text-footnote',
   'uppercase',
   'tracking-wider',
-  'text-label-secondary',
+  'text-text-secondary',
   'px-4',
   'mb-2',
 ].join(' ')

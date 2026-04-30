@@ -200,9 +200,9 @@ export async function computeBaselinesForUser(userId: string, endDate: string): 
 
   if (rows.length === 0) return
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const baselinesTable = (admin as any).from('metric_baselines')
-  const { error } = await baselinesTable.upsert(rows, { onConflict: 'user_id,metric,date' })
+  const { error } = await admin
+    .from('metric_baselines')
+    .upsert(rows, { onConflict: 'user_id,metric,date' })
 
   if (error) {
     throw new Error(`Failed to upsert baselines: ${error.message ?? String(error)}`)

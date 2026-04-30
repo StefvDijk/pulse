@@ -2,8 +2,11 @@
 
 import { Footprints, Heart, Activity, Moon, Scale } from 'lucide-react'
 import { useTodayHealth } from '@/hooks/useTodayHealth'
+import { useBaselines } from '@/hooks/useBaselines'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { Card } from '@/components/ui'
+import { BaselineTag } from '@/components/shared/BaselineTag'
+import type { BaselineMetric } from '@/lib/baselines/types'
 
 function formatSteps(n: number): string {
   return n.toLocaleString('nl-NL')
@@ -23,22 +26,30 @@ interface StatProps {
   icon: React.ReactNode
   label: string
   value: string | null
+  current?: number | null
+  baseline?: number | null
+  metric?: BaselineMetric
 }
 
-function Stat({ icon, label, value }: StatProps) {
+function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
+  const showTag = current != null && baseline != null && metric != null
   return (
     <div className="flex flex-col items-center gap-1 py-2">
-      <div className="text-label-tertiary">{icon}</div>
-      <p className="text-subhead font-semibold tabular-nums text-label-primary">
+      <div className="text-text-tertiary">{icon}</div>
+      <p className="text-subhead font-semibold tabular-nums text-text-primary">
         {value ?? '—'}
       </p>
-      <p className="text-caption2 text-label-tertiary">{label}</p>
+      <p className="text-caption2 text-text-tertiary">{label}</p>
+      {showTag && (
+        <BaselineTag current={current} baseline={baseline} metric={metric} compact />
+      )}
     </div>
   )
 }
 
 export function DailyHealthBar() {
   const { health, isLoading } = useTodayHealth()
+  const { getBaseline } = useBaselines()
 
   if (isLoading) {
     return (
@@ -75,7 +86,7 @@ export function DailyHealthBar() {
   return (
     <div className="flex flex-col gap-2">
       {!isToday && dateLabel && (
-        <p className="text-caption2 text-label-tertiary uppercase tracking-wider px-1">
+        <p className="text-caption2 text-text-tertiary uppercase tracking-wider px-1">
           {dateLabel}
         </p>
       )}
@@ -90,30 +101,44 @@ export function DailyHealthBar() {
             icon={<Heart size={14} strokeWidth={1.5} />}
             label="Rust HR"
             value={health?.resting_heart_rate != null ? `${health.resting_heart_rate}` : null}
+            current={health?.resting_heart_rate ?? null}
+            baseline={getBaseline('resting_hr')}
+            metric="resting_hr"
           />
           <Stat
             icon={<Activity size={14} strokeWidth={1.5} />}
             label="HRV"
             value={health?.hrv_average != null ? `${Math.round(health.hrv_average)}` : null}
+            current={health?.hrv_average ?? null}
+            baseline={getBaseline('hrv_rmssd')}
+            metric="hrv_rmssd"
           />
           <Stat
             icon={<Moon size={14} strokeWidth={1.5} />}
             label="Slaap"
             value={health?.sleep_minutes != null ? formatSleep(health.sleep_minutes) : null}
+            current={health?.sleep_minutes ?? null}
+            baseline={getBaseline('sleep_minutes')}
+            metric="sleep_minutes"
           />
         </div>
       </Card>
 
       {/* Weight — separate compact line */}
       {health?.weight_kg != null && (
-        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-label-tertiary">
+        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-text-tertiary">
           <Scale size={12} strokeWidth={1.5} />
           <span>{formatWeight(health.weight_kg)}</span>
           {health.weight_date && health.weight_date !== health.date && (
-            <span className="text-label-tertiary opacity-60">
+            <span className="text-text-tertiary opacity-60">
               ({new Date(health.weight_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })})
             </span>
           )}
+          <BaselineTag
+            current={health.weight_kg}
+            baseline={getBaseline('weight_kg')}
+            metric="weight_kg"
+          />
         </div>
       )}
     </div>

@@ -12,8 +12,22 @@ Alle stories die voortvloeien uit `PLAN-UX-REDESIGN.md`. Volgorde = sprint-volgo
 
 ## ⏯️ Continue here (volgende sessie)
 
-**Branch:** `redesign-pulse.v2` (5 commits ahead van `main`).
-Laatste commit: `7cc6602 — feat: sprint 4 + UXR-120 — visual richness + journal foundation` (2026-04-29).
+**Branch:** `main` — alle sprint-stories gemerged.
+Laatste commit: `515fae0 — feat: UXR-130 — goal cards talk to PRs (sparkline + confetti)` (2026-04-29).
+
+**Status:** 23/23 sprint-stories ✅ done. Open: alleen "Later"-stories (UXR-200, UXR-210, UXR-220).
+
+**Open eindjes voor de volgende sessie:**
+1. UXR-130 acceptance "Wekelijks coach-bericht in chat: Je zit nog Xkg af van doel Y" — niet geïmplementeerd. Het journal/lessons-systeem dekt dit nu indirect, maar een dedicated goal-progress-bericht in chat is nog open.
+2. `package.json` (`next` bumped lokaal naar `^16.2.4`) + `package-lock.json` (per ongeluk aangemaakt) → opruimen met `rm package-lock.json && git checkout package.json && corepack pnpm install`.
+3. Aanbevolen: `pnpm backfill:baselines --days=60` zodat UXR-150 tags op `/` direct gevuld zijn.
+
+---
+
+## Pre-2026-04-29 sessie (oud)
+
+**Branch (oud):** `redesign-pulse.v2` (gemerged via PR #1 in commit `675b7a1`).
+Laatste commit op die branch: `7cc6602 — feat: sprint 4 + UXR-120 — visual richness + journal foundation` (2026-04-29).
 
 **Project setup op nieuwe machine:**
 1. `git clone … && git checkout redesign-pulse.v2`
@@ -64,11 +78,11 @@ Tot stappen 1-3 gedaan zijn:
 | Sprint 2 — Homescreen identity | UXR-040, UXR-050, UXR-060 | ✅ done (commit 5b7297c) |
 | Sprint 3 — Foundation: baseline-engine | UXR-100, UXR-101, UXR-102 | ✅ done (commit a3cc046) — **vereist migration + types regen** |
 | Sprint 4 — Visuele rijkheid | UXR-070, UXR-080, UXR-090 | ✅ done (commit 7cc6602) — pending preview test |
-| Sprint 5 — Differentiator features | UXR-110, UXR-120, UXR-121, UXR-122 | UXR-120 ✅ done (commit 7cc6602) · UXR-110/121/122 ⬜ open |
-| Sprint 6 — Polishing | UXR-130, UXR-140, UXR-150, UXR-160 | ⬜ open |
+| Sprint 5 — Differentiator features | UXR-110, UXR-120, UXR-121, UXR-122 | ✅ done (commits 7cc6602, 85fc154, 13308d8, ecdf5d4) |
+| Sprint 6 — Polishing | UXR-130, UXR-140, UXR-150, UXR-160 | ✅ done (commits 515fae0, 216dced, ed69765, 5b96e3b) |
 | Later | UXR-200, UXR-210, UXR-220 | ⬜ open |
 
-**16 van 23 stories done.** 7 stories open: UXR-110, UXR-121, UXR-122, UXR-130, UXR-140, UXR-150, UXR-160 (+ 3 Later).
+**23 van 23 sprint-stories done.** Alleen 3 "Later"-stories nog open (UXR-200/210/220).
 
 ---
 
@@ -333,7 +347,7 @@ Tot stappen 1-3 gedaan zijn:
 
 # Sprint 5 — Differentiator features
 
-## UXR-110 — Sport-correlation panel
+## UXR-110 — Sport-correlation panel  ✅
 
 **Tier:** 3.2 · **Size:** L · **Depends on:** UXR-100, UXR-101
 
@@ -365,7 +379,7 @@ Tot stappen 1-3 gedaan zijn:
 
 ---
 
-## UXR-121 — Journal pagina
+## UXR-121 — Journal pagina  ✅
 
 **Tier:** 3.3 (deel 2) · **Size:** M · **Depends on:** UXR-120
 
@@ -380,7 +394,7 @@ Tot stappen 1-3 gedaan zijn:
 
 ---
 
-## UXR-122 — Wekelijkse lessons-extractor
+## UXR-122 — Wekelijkse lessons-extractor  ✅
 
 **Tier:** 3.3 (deel 3) · **Size:** S · **Depends on:** UXR-120, bestaande memory-extractor
 
@@ -397,7 +411,7 @@ Tot stappen 1-3 gedaan zijn:
 
 # Sprint 6 — Polishing
 
-## UXR-140 — Goal-driven chat suggestions
+## UXR-140 — Goal-driven chat suggestions  ✅
 
 **Tier:** 1.6 · **Size:** M · **Depends on:** —
 
@@ -412,7 +426,7 @@ Tot stappen 1-3 gedaan zijn:
 
 ---
 
-## UXR-160 — Burn Bar in weekly check-in
+## UXR-160 — Burn Bar in weekly check-in  ✅
 
 **Tier:** 2.3 · **Size:** S · **Depends on:** UXR-101 (voor de baselines)
 
@@ -427,7 +441,7 @@ Tot stappen 1-3 gedaan zijn:
 
 ---
 
-## UXR-150 — Compacte baseline-tags overal
+## UXR-150 — Compacte baseline-tags overal  ✅
 
 **Tier:** 1.7 · **Size:** S · **Depends on:** UXR-102
 
@@ -441,7 +455,7 @@ Tot stappen 1-3 gedaan zijn:
 
 ---
 
-## UXR-130 — Goals praten met PR's
+## UXR-130 — Goals praten met PR's  ✅ (deels — wekelijks chat-bericht nog open)
 
 **Tier:** 3.4 · **Size:** M · **Depends on:** UXR-101
 

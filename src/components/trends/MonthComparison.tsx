@@ -36,12 +36,12 @@ function MetricRow({ label, current, previous, unit, decimals = 0 }: Metric) {
     v === null ? '–' : `${v.toFixed(decimals)} ${unit}`
 
   return (
-    <div className="flex items-center justify-between gap-2 py-2 border-b border-separator">
-      <span className="text-sm text-label-tertiary">{label}</span>
+    <div className="flex items-center justify-between gap-2 py-2 border-b border-bg-border">
+      <span className="text-sm text-text-tertiary">{label}</span>
       <div className="flex items-center gap-3">
-        <span className="text-xs text-label-tertiary">{fmt(previous)}</span>
+        <span className="text-xs text-text-tertiary">{fmt(previous)}</span>
         <Delta current={current} previous={previous} />
-        <span className="min-w-[60px] text-right text-sm font-medium text-label-primary">
+        <span className="min-w-[60px] text-right text-sm font-medium text-text-primary">
           {fmt(current)}
         </span>
       </div>
@@ -68,10 +68,10 @@ export function MonthComparison({ current, previous }: MonthComparisonProps) {
     <div>
       {/* Column headers */}
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-label-tertiary">Metric</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Metric</span>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-label-tertiary">{monthLabel(previous)}</span>
-          <span className="min-w-[60px] text-right text-xs font-medium text-label-primary">{monthLabel(current)}</span>
+          <span className="text-xs text-text-tertiary">{monthLabel(previous)}</span>
+          <span className="min-w-[60px] text-right text-xs font-medium text-text-primary">{monthLabel(current)}</span>
         </div>
       </div>
 

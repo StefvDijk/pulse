@@ -15,10 +15,10 @@ interface Zone {
 const MAX_RATIO = 2.0
 
 const ZONES: readonly Zone[] = [
-  { key: 'low', label: 'Te licht', start: 0, end: 0.6, fill: 'var(--color-system-gray3)' },
-  { key: 'optimal', label: 'In balans', start: 0.6, end: 1.3, fill: 'var(--color-system-green)' },
-  { key: 'warning', label: 'Opbouw', start: 1.3, end: 1.5, fill: 'var(--color-system-orange)' },
-  { key: 'danger', label: 'Overbelast', start: 1.5, end: 2.0, fill: 'var(--color-system-red)' },
+  { key: 'low', label: 'Te licht', start: 0, end: 0.6, fill: 'rgba(255,255,255,0.16)' },
+  { key: 'optimal', label: 'In balans', start: 0.6, end: 1.3, fill: 'var(--color-status-good)' },
+  { key: 'warning', label: 'Opbouw', start: 1.3, end: 1.5, fill: 'var(--color-status-warn)' },
+  { key: 'danger', label: 'Overbelast', start: 1.5, end: 2.0, fill: 'var(--color-status-bad)' },
 ]
 
 const TICKS = [0.6, 1.3, 1.5] as const
@@ -45,7 +45,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
           className="absolute top-0 flex flex-col items-center -translate-x-1/2"
           style={{ left: `${pointerPct}%` }}
         >
-          <span className="text-caption1 font-semibold tabular-nums text-label-primary">
+          <span className="text-caption1 font-semibold tabular-nums text-text-primary">
             {ratio.toFixed(2)}
           </span>
           <svg
@@ -77,7 +77,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
           {TICKS.map((tick) => (
             <span
               key={tick}
-              className="absolute -translate-x-1/2 text-[10px] tabular-nums text-label-tertiary"
+              className="absolute -translate-x-1/2 text-[10px] tabular-nums text-text-tertiary"
               style={{ left: `${(tick / MAX_RATIO) * 100}%` }}
             >
               {tick.toFixed(1)}
@@ -95,7 +95,7 @@ export function ZoneBar({ ratio }: ZoneBarProps) {
               style={{ backgroundColor: zone.fill }}
               aria-hidden="true"
             />
-            <span className="text-caption1 text-label-secondary">{zone.label}</span>
+            <span className="text-caption1 text-text-secondary">{zone.label}</span>
           </div>
         ))}
       </div>

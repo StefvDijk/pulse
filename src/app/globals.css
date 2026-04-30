@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/* ─── SF Pro Display — self-hosted ───────────────────────────────────────── */
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/sf-pro-display/SFPRODISPLAYREGULAR.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/sf-pro-display/SFPRODISPLAYMEDIUM.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/sf-pro-display/SFPRODISPLAYBOLD.OTF') format('opentype');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/sf-pro-display/SFPRODISPLAYBOLD.OTF') format('opentype');
+}
+
 /* ─── Dark mode variant — class-based (ready for future toggle) ──────────── */
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -270,4 +301,22 @@ body {
 .dark .glass {
   background: rgba(28, 28, 30, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Pulse v2 — gradient utilities ──────────────────────────────────────── */
+
+@utility bg-gradient-aurora {
+  background-image: var(--gradient-aurora);
+}
+@utility bg-gradient-fire {
+  background-image: var(--gradient-fire);
+}
+@utility bg-gradient-cool {
+  background-image: var(--gradient-cool);
+}
+@utility bg-gradient-coach {
+  background-image: var(--gradient-coach);
+}
+@utility bg-gradient-ember {
+  background-image: var(--gradient-ember);
 }
