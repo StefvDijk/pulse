@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 type NutritionSummaryRow = Database['public']['Tables']['daily_nutrition_summary']['Row']
 type NutritionLogRow = Database['public']['Tables']['nutrition_logs']['Row']
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
     const admin = createAdminClient()
 
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
+    const date = searchParams.get('date') ?? todayAmsterdam()
 
     const [summaryResult, logsResult] = await Promise.all([
       admin

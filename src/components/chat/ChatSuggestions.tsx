@@ -1,20 +1,23 @@
 'use client'
 
+import { dayIndexAmsterdam } from '@/lib/time/amsterdam'
+
 function getSuggestions(): string[] {
-  const day = new Date().getDay()
+  // 1=ma, 2=di, 3=wo, 4=do, 5=vr, 6=za, 7=zo
+  const day = dayIndexAmsterdam()
 
   switch (day) {
-    case 0: // Sunday - weekly review
+    case 7: // zondag — weekly review
       return ['Hoe was mijn week?', 'Check mijn progressie', 'Hoe sta ik met mijn doelen?']
-    case 1: // Monday - gym + padel
+    case 1: // maandag — gym + padel
       return ['Wat train ik vandaag?', 'Log wat ik heb gegeten', 'Hoe bereid ik me voor op padel?']
-    case 2: // Tuesday
-    case 3: // Wednesday
-    case 4: // Thursday
+    case 2: // dinsdag
+    case 3: // woensdag
+    case 4: // donderdag
       return ['Wat train ik vandaag?', 'Log wat ik heb gegeten', 'Hoe zit ik met eiwit vandaag?']
-    case 5: // Friday - run day
+    case 5: // vrijdag — run day
       return ['Tips voor mijn run vandaag', 'Log wat ik heb gegeten', 'Hoe was mijn trainingsweek?']
-    case 6: // Saturday - rest / flexible
+    case 6: // zaterdag — rust / flex
       return ['Log wat ik heb gegeten', 'Hoe sta ik met mijn doelen?', 'Analyseer mijn week tot nu toe']
     default:
       return ['Log wat ik heb gegeten', 'Hoe sta ik met mijn doelen?', 'Hoe zit ik met eiwit vandaag?']

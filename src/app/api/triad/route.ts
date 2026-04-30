@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
+import {
+  startOfWeekUtcIso,
+  todayAmsterdam as todayAmsterdamHelper,
+  weekStartAmsterdam,
+} from '@/lib/time/amsterdam'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,18 +34,11 @@ interface WeeklyTarget {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function startOfWeekAmsterdam(): string {
-  const now = new Date()
-  // Convert to Amsterdam local
-  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Amsterdam' }))
-  const day = local.getDay() // 0 = Sun, 1 = Mon
-  const diff = day === 0 ? 6 : day - 1
-  local.setDate(local.getDate() - diff)
-  local.setHours(0, 0, 0, 0)
-  return local.toISOString().slice(0, 10)
+  return weekStartAmsterdam()
 }
 
 function todayAmsterdam(): string {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+  return todayAmsterdamHelper()
 }
 
 function parseWeeklyTarget(raw: Json | null): WeeklyTarget {
@@ -86,6 +84,10 @@ export async function GET() {
     const admin = createAdminClient()
     const today = todayAmsterdam()
     const weekStart = startOfWeekAmsterdam()
+    // Amsterdam-maandag 00:00 als ondubbelzinnige UTC-instant — voorkomt dat
+    // late-zondag-NL-sessies (UTC nog zaterdag/zondag) deze week binnenglippen,
+    // én dat maandagochtend-NL-sessies (UTC zondagavond) deze week missen.
+    const weekStartUtc = startOfWeekUtcIso()
 
     const [workoutsThisWeek, runsThisWeek, padelThisWeek, settings, profile, weekly, nutrition] =
       await Promise.all([
@@ -93,17 +95,17 @@ export async function GET() {
           .from('workouts')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .gte('started_at', `${weekStart}T00:00:00`),
+          .gte('started_at', weekStartUtc),
         admin
           .from('runs')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .gte('started_at', `${weekStart}T00:00:00`),
+          .gte('started_at', weekStartUtc),
         admin
           .from('padel_sessions')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .gte('started_at', `${weekStart}T00:00:00`),
+          .gte('started_at', weekStartUtc),
         admin
           .from('user_settings')
           .select('protein_target_per_kg, weekly_training_target')
@@ -136,14 +138,24 @@ export async function GET() {
     const totalSessions = gymCount + runCount + padelCount
 
     const target = parseWeeklyTarget(settings.data?.weekly_training_target ?? null)
-    const totalTarget =
-      (target.gym ?? 0) + (target.run ?? 0) + (target.padel ?? 0) || 5 // sensible default
+    const summedTarget = (target.gym ?? 0) + (target.run ?? 0) + (target.padel ?? 0)
+    const hasTarget = summedTarget > 0
 
-    const train: TriadRing = {
-      value: clamp(Math.round((totalSessions / totalTarget) * 100)),
-      label: `${totalSessions}/${totalTarget}`,
-      sub: 'sessies deze week',
-    }
+    const train: TriadRing = hasTarget
+      ? {
+          value: clamp(Math.round((totalSessions / summedTarget) * 100)),
+          label: `${totalSessions}/${summedTarget}`,
+          sub: 'sessies deze week',
+        }
+      : {
+          // Geen weekdoel ingesteld — geen kunstmatige noemer (5) meer.
+          value: clamp(Math.min(totalSessions * 20, 100)), // visuele indicatie, geen oordeel
+          label: String(totalSessions),
+          sub:
+            totalSessions === 0
+              ? 'sessies deze week — stel je weekdoel in'
+              : `${totalSessions === 1 ? 'sessie' : 'sessies'} deze week`,
+        }
 
     // ── Recover ring ───────────────────────────────────────────────────────
     const acwr = weekly.data?.acute_chronic_ratio ?? null

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database, Json } from '@/types/database'
+import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -73,20 +74,13 @@ export interface CheckInReviewData {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Get the Monday (ISO week start) for a given date */
+/** Get the Monday (ISO week start) for a given date — Amsterdam-tz. */
 function getWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  // Shift Sunday (0) to 7 so Monday=1 is always the start
-  const diff = (day === 0 ? 6 : day - 1)
-  d.setUTCDate(d.getUTCDate() - diff)
-  return d.toISOString().slice(0, 10)
+  return weekStartAmsterdam(date)
 }
 
 function getWeekEnd(weekStart: string): string {
-  const d = new Date(weekStart + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + 6)
-  return d.toISOString().slice(0, 10)
+  return addDaysToKey(weekStart, 6)
 }
 
 function getISOWeekNumber(dateStr: string): { weekNumber: number; year: number } {
@@ -171,16 +165,11 @@ function detectGaps(
   padelSessions: PadelSessionRow[],
   runs: RunRow[],
 ): DetectedGap[] {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayAmsterdam()
   const gaps: DetectedGap[] = []
 
-  // Build date → day-of-week for the review week (Mon=0 .. Sun=6)
-  const startDate = new Date(weekStart + 'T00:00:00Z')
-
   for (let i = 0; i < 7; i++) {
-    const d = new Date(startDate)
-    d.setUTCDate(startDate.getUTCDate() + i)
-    const dateStr = d.toISOString().slice(0, 10)
+    const dateStr = addDaysToKey(weekStart, i)
     const dayName = DAY_ORDER[i]
 
     // Only check past days (not today or future)
@@ -206,15 +195,13 @@ function detectGaps(
 
     if (expected) {
       // Check if a matching workout exists
-      const hasMatchingWorkout = workouts.some((w) => {
-        const workoutDate = w.started_at.slice(0, 10)
-        return workoutDate === dateStr
-      })
+      const hasMatchingWorkout = workouts.some(
+        (w) => dayKeyAmsterdam(w.started_at) === dateStr,
+      )
 
-      const hasMatchingRun = runs.some((r) => {
-        const runDate = r.started_at.slice(0, 10)
-        return runDate === dateStr
-      })
+      const hasMatchingRun = runs.some(
+        (r) => dayKeyAmsterdam(r.started_at) === dateStr,
+      )
 
       if (!hasMatchingWorkout && !hasMatchingRun) {
         gaps.push({
@@ -228,10 +215,9 @@ function detectGaps(
 
     // Check padel for Monday
     if (isPadelDay) {
-      const hasPadel = padelSessions.some((p) => {
-        const padelDate = p.started_at.slice(0, 10)
-        return padelDate === dateStr
-      })
+      const hasPadel = padelSessions.some(
+        (p) => dayKeyAmsterdam(p.started_at) === dateStr,
+      )
 
       if (!hasPadel) {
         // Only add if we didn't already add a gap for this date with padel focus
@@ -274,10 +260,8 @@ export async function GET(request: Request) {
     const weekEnd = getWeekEnd(weekStart)
     const { weekNumber, year } = getISOWeekNumber(weekStart)
 
-    // Previous week for fetching previous review
-    const prevWeekStart = new Date(weekStart + 'T00:00:00Z')
-    prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7)
-    const prevWeekStartStr = prevWeekStart.toISOString().slice(0, 10)
+    // Vorige week — Amsterdam-aware datum-arithmetic.
+    const prevWeekStartStr = addDaysToKey(weekStart, -7)
 
     // Parallel queries
     const [

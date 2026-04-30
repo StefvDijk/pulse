@@ -3,6 +3,7 @@ import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import type { SyncResult } from '@/lib/hevy/sync'
+import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // System prompt for the sync analyst
@@ -80,19 +81,11 @@ interface AnalysisInput {
 // ---------------------------------------------------------------------------
 
 function getCurrentWeekMonday(): string {
-  const now = new Date()
-  const day = now.getUTCDay()
-  const offset = day === 0 ? -6 : 1 - day
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
-  return monday.toISOString().slice(0, 10)
+  return weekStartAmsterdam()
 }
 
 function getPreviousWeekMonday(): string {
-  const now = new Date()
-  const day = now.getUTCDay()
-  const offset = day === 0 ? -6 : 1 - day
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset - 7))
-  return monday.toISOString().slice(0, 10)
+  return addDaysToKey(weekStartAmsterdam(), -7)
 }
 
 function getWeekNumber(): number {
@@ -227,7 +220,7 @@ ${prSection}${existingSection}`
           key: update.key,
           category: update.category,
           value: update.value,
-          source_date: new Date().toISOString().slice(0, 10),
+          source_date: todayAmsterdam(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,key' },

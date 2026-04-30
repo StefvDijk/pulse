@@ -8,6 +8,7 @@ import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import type { Database } from '@/types/database'
+import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
@@ -497,14 +498,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const totalDataIngested = runsProcessed + padelProcessed + activityProcessed
   if (totalDataIngested > 0) {
     try {
-      const todayStr = new Date().toISOString().slice(0, 10)
-      await computeDailyAggregation(userId, todayStr)
-
-      const now = new Date()
-      const day = now.getUTCDay()
-      const offset = day === 0 ? -6 : 1 - day
-      const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
-      await computeWeeklyAggregation(userId, monday.toISOString().slice(0, 10))
+      await computeDailyAggregation(userId, todayAmsterdam())
+      await computeWeeklyAggregation(userId, weekStartAmsterdam())
     } catch (aggError) {
       console.error('apple-health ingest: re-aggregation failed', aggError)
       errors.push(`Re-aggregation: ${aggError instanceof Error ? aggError.message : String(aggError)}`)

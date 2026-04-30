@@ -16,6 +16,7 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { useWeekPlan, type PlannedSession } from '@/hooks/useWeekPlan'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { DayConflict, DayAvailability } from '@/lib/google/conflicts'
+import { addDaysToKey } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -388,16 +389,13 @@ export function WeekPlanCard({
     }
   }, [plan])
 
-  // Build week dates array
+  // Build week dates array (inclusief).
   const weekDates = useMemo(() => {
     const dates: string[] = []
-    let current = new Date(weekStart + 'T00:00:00Z')
-    const end = new Date(weekEnd + 'T00:00:00Z')
-    while (current <= end) {
-      dates.push(current.toISOString().slice(0, 10))
-      const next = new Date(current)
-      next.setUTCDate(next.getUTCDate() + 1)
-      current = next
+    let cursor = weekStart
+    while (cursor <= weekEnd) {
+      dates.push(cursor)
+      cursor = addDaysToKey(cursor, 1)
     }
     return dates
   }, [weekStart, weekEnd])

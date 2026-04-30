@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { addDaysToKey, todayAmsterdam } from '@/lib/time/amsterdam'
 
 export interface TonnageWeek {
   week_start: string
@@ -31,9 +32,7 @@ export async function GET(request: NextRequest) {
   const weeksParam = parseInt(searchParams.get('weeks') ?? '8', 10)
   const weeksWanted = Math.max(2, Math.min(52, isNaN(weeksParam) ? 8 : weeksParam))
 
-  const fromDate = new Date()
-  fromDate.setUTCDate(fromDate.getUTCDate() - weeksWanted * 7)
-  const fromStr = fromDate.toISOString().slice(0, 10)
+  const fromStr = addDaysToKey(todayAmsterdam(), -weeksWanted * 7)
 
   try {
     const admin = createAdminClient()

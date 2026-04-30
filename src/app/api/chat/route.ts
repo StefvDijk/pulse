@@ -10,6 +10,7 @@ import { analyzeNutrition } from '@/lib/nutrition/analyze'
 import { selectSkills } from '@/lib/ai/skills/router'
 import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -342,7 +343,7 @@ export async function POST(request: Request) {
               .from('injury_logs')
               .insert({
                 user_id: user.id,
-                date: new Date().toISOString().slice(0, 10),
+                date: todayAmsterdam(),
                 body_location: injuryLog.body_location,
                 severity: injuryLog.severity ?? 'mild',
                 description: injuryLog.description,
@@ -370,7 +371,7 @@ export async function POST(request: Request) {
                   title: schemaGeneration.title,
                   schema_type: safeSchemaType,
                   weeks_planned: schemaGeneration.weeks_planned ?? 8,
-                  start_date: schemaGeneration.start_date ?? new Date().toISOString().slice(0, 10),
+                  start_date: schemaGeneration.start_date ?? todayAmsterdam(),
                   workout_schedule: (schemaGeneration.workout_schedule ?? []) as import('@/types/database').Json,
                   is_active: false,
                   ai_generated: true,
@@ -543,7 +544,7 @@ async function applySchemaUpdate(
   await admin.from('coaching_memory').upsert(
     {
       user_id: userId,
-      key: `ai_schema_update_${new Date().toISOString().slice(0, 10)}`,
+      key: `ai_schema_update_${todayAmsterdam()}`,
       category: 'program',
       value: `Coach heeft het schema aangepast: ${description}`,
     },

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 type Supabase = SupabaseClient<Database>
 
@@ -39,16 +40,14 @@ export async function checkGoalProgress(userId: string, supabase: Supabase): Pro
 
     if (goal.category === 'running') {
       if (goal.target_type === 'count') {
-        // Count running sessions in the current month
-        const startOfMonth = new Date()
-        startOfMonth.setUTCDate(1)
-        startOfMonth.setUTCHours(0, 0, 0, 0)
+        // Tel running-sessies in de huidige Amsterdam-maand
+        const startOfMonth = `${todayAmsterdam().slice(0, 7)}-01`
 
         const { data: weeks } = await supabase
           .from('weekly_aggregations')
           .select('running_sessions')
           .eq('user_id', userId)
-          .gte('week_start', startOfMonth.toISOString().slice(0, 10))
+          .gte('week_start', startOfMonth)
 
         if (weeks) {
           currentValue = weeks.reduce((sum, w) => sum + (w.running_sessions ?? 0), 0)
@@ -68,16 +67,14 @@ export async function checkGoalProgress(userId: string, supabase: Supabase): Pro
     }
 
     if (goal.target_type === 'count' && (goal.category === 'strength' || goal.category === 'general')) {
-      // Count gym sessions in the current month
-      const startOfMonth = new Date()
-      startOfMonth.setUTCDate(1)
-      startOfMonth.setUTCHours(0, 0, 0, 0)
+      // Tel gym-sessies in de huidige Amsterdam-maand
+      const startOfMonth = `${todayAmsterdam().slice(0, 7)}-01`
 
       const { data: weeks } = await supabase
         .from('weekly_aggregations')
         .select('gym_sessions')
         .eq('user_id', userId)
-        .gte('week_start', startOfMonth.toISOString().slice(0, 10))
+        .gte('week_start', startOfMonth)
 
       if (weeks) {
         currentValue = weeks.reduce((sum, w) => sum + (w.gym_sessions ?? 0), 0)

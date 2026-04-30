@@ -1,20 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-// ---------------------------------------------------------------------------
-// Helpers (duplicated from review/route.ts to keep this endpoint lightweight)
-// ---------------------------------------------------------------------------
-
-function getWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? 6 : day - 1
-  d.setUTCDate(d.getUTCDate() - diff)
-  return d.toISOString().slice(0, 10)
-}
+import { weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 function getISOWeekNumber(dateStr: string): number {
+  // ISO-weeknummer berekening op een UTC-midnight anchor — datum-only arithmetic, DST-onafhankelijk.
   const d = new Date(dateStr + 'T00:00:00Z')
   d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7))
   const year = d.getUTCFullYear()
@@ -60,8 +50,7 @@ export async function GET() {
 
     const admin = createAdminClient()
 
-    const now = new Date()
-    const weekStart = getWeekStart(now)
+    const weekStart = weekStartAmsterdam()
     const weekNumber = getISOWeekNumber(weekStart)
 
     const { data, error } = await admin

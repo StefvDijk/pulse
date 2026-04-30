@@ -17,9 +17,10 @@ import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
+import { formatTime } from '@/lib/time/amsterdam'
 
 function getGreeting(): string {
-  const hour = new Date().getHours()
+  const hour = Number(formatTime(new Date()).slice(0, 2))
   if (hour < 6) return 'Goedenacht'
   if (hour < 12) return 'Goedemorgen'
   if (hour < 18) return 'Goedemiddag'

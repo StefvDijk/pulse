@@ -3,23 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkloadStatus } from '@/lib/aggregations/workload'
 import type { TrendPoint, WorkloadData, WorkloadStatus } from '@/types/workload'
+import { addDaysToKey, dayKeyAmsterdam } from '@/lib/time/amsterdam'
 
 const ACUTE_DAYS = 7
 const CHRONIC_DAYS = 28
 const TREND_POINTS = 8
 const TREND_INTERVAL_DAYS = 7
 
-/** Format a date as YYYY-MM-DD in Amsterdam timezone. */
-function toAmsterdamDate(date: Date): string {
-  return date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-}
-
-/** Add (or subtract) whole days to a YYYY-MM-DD string, returning YYYY-MM-DD. */
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
+const toAmsterdamDate = (date: Date): string => dayKeyAmsterdam(date)
+const addDays = (dateStr: string, days: number): string => addDaysToKey(dateStr, days)
 
 interface ComputedPoint {
   windowEnd: string

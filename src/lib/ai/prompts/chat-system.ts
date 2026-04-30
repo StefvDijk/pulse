@@ -1,3 +1,5 @@
+import { currentDateContext } from '@/lib/time/amsterdam'
+
 interface SystemPromptParams {
   activeSchema?: { title: string; schema_type: string; weeks_planned: number | null; current_week?: number } | null
   activeInjuries?: Array<{ body_location: string; severity: string | null; description: string; status: string | null }>
@@ -7,6 +9,7 @@ interface SystemPromptParams {
 
 export function buildSystemPrompt(params: SystemPromptParams = {}): string {
   const { activeSchema, activeInjuries, activeGoals, customInstructions } = params
+  const ctx = currentDateContext()
 
   const staticSections = `## 1. ROL & TOON
 
@@ -155,7 +158,16 @@ Doel: ~16-17% vetpercentage. Scan 3 gepland eind april 2026 (25-27 apr).
     ? activeGoals.map(g => `- [${g.category}] ${g.title}: ${g.current_value ?? '?'} \u2192 ${g.target_value}${g.deadline ? ` (deadline: ${g.deadline})` : ''}`).join('\n')
     : 'Geen actieve doelen'
 
-  const dynamicSections = `## HUIDIG SCHEMA
+  const dynamicSections = `## HUIDIG MOMENT (autoritatief — gebruik deze waarden voor "vandaag", "deze week", "gisteren")
+
+- Datum: ${ctx.longLabel}
+- ISO-datum: ${ctx.date}
+- Lokale tijd: ${ctx.time} (${ctx.timezone})
+- Maandag van deze week: ${ctx.weekStart}
+
+Negeer eventuele "knowledge cutoff"-aannames over de huidige datum — bovenstaande waarden zijn de bron van waarheid.
+
+## HUIDIG SCHEMA
 ${dynamicSchema}
 
 ## ACTIEVE BLESSURES

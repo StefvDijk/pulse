@@ -5,6 +5,7 @@ import { getValidTokens } from '@/lib/google/oauth'
 import { analyzeConflicts } from '@/lib/google/conflicts'
 import type { WeekConflicts } from '@/lib/google/conflicts'
 import { z } from 'zod'
+import { addDaysToKey } from '@/lib/time/amsterdam'
 
 /* ── Validation ─────────────────────────────────────────── */
 
@@ -25,13 +26,10 @@ const DUTCH_DAY_NAMES: ReadonlyArray<string> = [
 /** Build an empty "all available" response for when calendar is not connected */
 function emptyConflicts(weekStart: string, weekEnd: string): WeekConflicts {
   const dates: string[] = []
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekEnd + 'T00:00:00Z')
-  const current = new Date(start)
-
-  while (current <= end) {
-    dates.push(current.toISOString().slice(0, 10))
-    current.setUTCDate(current.getUTCDate() + 1)
+  let cursor = weekStart
+  while (cursor <= weekEnd) {
+    dates.push(cursor)
+    cursor = addDaysToKey(cursor, 1)
   }
 
   return {

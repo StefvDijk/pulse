@@ -5,6 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import type { Json } from '@/types/database'
+import {
+  addDaysToKey,
+  dayIndexAmsterdam,
+  formatTime,
+  todayAmsterdam as todayAmsterdamHelper,
+  weekStartAmsterdam,
+} from '@/lib/time/amsterdam'
 
 export const maxDuration = 20
 
@@ -34,7 +41,7 @@ interface WeekBlock {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayAmsterdam(): string {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+  return todayAmsterdamHelper()
 }
 
 function todayDayName(): string {
@@ -44,10 +51,11 @@ function todayDayName(): string {
 }
 
 function nowInAmsterdam(): { dayOfWeek: number; hour: number } {
-  const local = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'Europe/Amsterdam' }),
-  )
-  return { dayOfWeek: local.getDay(), hour: local.getHours() }
+  // dayOfWeek is in JS-conventie (0=zo, 1=ma, ..., 6=za) voor backwards compat met onderstaande logica.
+  const idx = dayIndexAmsterdam() // 1=ma...7=zo
+  const dayOfWeek = idx === 7 ? 0 : idx
+  const hour = Number(formatTime(new Date()).slice(0, 2))
+  return { dayOfWeek, hour }
 }
 
 function extractSessions(schedule: Json): ScheduleSession[] {
@@ -165,11 +173,12 @@ export async function GET() {
 
     let alreadyReviewedThisWeek = false
     if (isCheckInWindow) {
-      // Find the Monday of the current/upcoming week
-      const monday = new Date()
-      const offset = monday.getDay() === 0 ? 1 : 1 - monday.getDay()
-      monday.setDate(monday.getDate() + offset)
-      const mondayStr = monday.toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
+      // Maandag van de huidige (zo) of komende (ma) Amsterdam-week.
+      const idx = dayIndexAmsterdam()
+      const mondayStr =
+        idx === 7
+          ? addDaysToKey(weekStartAmsterdam(), 7) // zondag → komende maandag
+          : weekStartAmsterdam() // maandag → vandaag
 
       const { data } = await admin
         .from('weekly_reviews')

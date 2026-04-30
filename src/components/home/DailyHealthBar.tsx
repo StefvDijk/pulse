@@ -1,9 +1,10 @@
 'use client'
 
-import { Footprints, Heart, Activity, Moon, Scale } from 'lucide-react'
+import { Footprints, Heart, Activity, Moon, Scale, AlertCircle } from 'lucide-react'
 import { useTodayHealth } from '@/hooks/useTodayHealth'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { Card } from '@/components/ui'
+import { formatShortDate, formatTime } from '@/lib/time/amsterdam'
 
 function formatSteps(n: number): string {
   return n.toLocaleString('nl-NL')
@@ -37,6 +38,17 @@ function Stat({ icon, label, value }: StatProps) {
   )
 }
 
+function lastSyncedLabel(lastSyncedAt: string | null): string | null {
+  if (!lastSyncedAt) return null
+  const d = new Date(lastSyncedAt)
+  if (Number.isNaN(d.getTime())) return null
+  const today = new Date()
+  const sameDay = formatShortDate(today) === formatShortDate(d)
+  return sameDay
+    ? `Laatst gesynced om ${formatTime(d)}`
+    : `Laatst gesynced ${formatShortDate(d)} ${formatTime(d)}`
+}
+
 export function DailyHealthBar() {
   const { health, isLoading } = useTodayHealth()
 
@@ -53,65 +65,91 @@ export function DailyHealthBar() {
     )
   }
 
-  // Don't render anything if there's no health data at all
-  const hasAnyData = health && (
-    health.steps != null ||
-    health.resting_heart_rate != null ||
-    health.hrv_average != null ||
-    health.sleep_minutes != null ||
-    health.weight_kg != null
-  )
+  if (!health) return null
 
-  if (!hasAnyData) return null
+  const headerLabel = `Vandaag, ${formatShortDate(`${health.today}T12:00:00Z`)}`
+  const data = health.data
+  const syncLabel = lastSyncedLabel(health.lastSyncedAt)
 
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const isToday = health?.date === todayStr
-  const dateLabel = isToday
-    ? 'Vandaag'
-    : health?.date
-      ? new Date(health.date + 'T00:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
-      : ''
+  // Geen data ooit — toon alleen kop + leeg signaal.
+  const hasNoDataAtAll = !data && !health.weight
+
+  if (hasNoDataAtAll) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-caption2 text-label-tertiary uppercase tracking-wider px-1">
+          {headerLabel}
+        </p>
+        <Card padding="md">
+          <div className="flex items-center gap-2 text-caption1 text-label-tertiary">
+            <AlertCircle size={14} strokeWidth={1.5} />
+            <span>Nog geen Apple Health-data gesynced.</span>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  // Data aanwezig (mogelijk stale).
+  const staleNote =
+    data && health.isStale
+      ? `Data van ${formatShortDate(`${data.date}T12:00:00Z`)} — vandaag nog niet gesynced`
+      : null
 
   return (
     <div className="flex flex-col gap-2">
-      {!isToday && dateLabel && (
-        <p className="text-caption2 text-label-tertiary uppercase tracking-wider px-1">
-          {dateLabel}
+      <div className="flex items-baseline justify-between px-1">
+        <p className="text-caption2 text-label-tertiary uppercase tracking-wider">
+          {headerLabel}
         </p>
-      )}
-      <Card padding="none">
-        <div className="grid grid-cols-4 divide-x divide-separator">
-          <Stat
-            icon={<Footprints size={14} strokeWidth={1.5} />}
-            label="Stappen"
-            value={health?.steps != null ? formatSteps(health.steps) : null}
-          />
-          <Stat
-            icon={<Heart size={14} strokeWidth={1.5} />}
-            label="Rust HR"
-            value={health?.resting_heart_rate != null ? `${health.resting_heart_rate}` : null}
-          />
-          <Stat
-            icon={<Activity size={14} strokeWidth={1.5} />}
-            label="HRV"
-            value={health?.hrv_average != null ? `${Math.round(health.hrv_average)}` : null}
-          />
-          <Stat
-            icon={<Moon size={14} strokeWidth={1.5} />}
-            label="Slaap"
-            value={health?.sleep_minutes != null ? formatSleep(health.sleep_minutes) : null}
-          />
-        </div>
-      </Card>
+        {syncLabel && (
+          <span className="text-caption2 text-label-tertiary opacity-70">
+            {syncLabel}
+          </span>
+        )}
+      </div>
 
-      {/* Weight — separate compact line */}
-      {health?.weight_kg != null && (
+      {staleNote && (
+        <div className="flex items-center gap-1.5 px-1 text-caption2 text-system-orange">
+          <AlertCircle size={11} strokeWidth={2} />
+          <span>{staleNote}</span>
+        </div>
+      )}
+
+      {data && (
+        <Card padding="none">
+          <div className="grid grid-cols-4 divide-x divide-separator">
+            <Stat
+              icon={<Footprints size={14} strokeWidth={1.5} />}
+              label="Stappen"
+              value={data.steps != null ? formatSteps(data.steps) : null}
+            />
+            <Stat
+              icon={<Heart size={14} strokeWidth={1.5} />}
+              label="Rust HR"
+              value={data.resting_heart_rate != null ? `${data.resting_heart_rate}` : null}
+            />
+            <Stat
+              icon={<Activity size={14} strokeWidth={1.5} />}
+              label="HRV"
+              value={data.hrv_average != null ? `${Math.round(data.hrv_average)}` : null}
+            />
+            <Stat
+              icon={<Moon size={14} strokeWidth={1.5} />}
+              label="Slaap"
+              value={data.sleep_minutes != null ? formatSleep(data.sleep_minutes) : null}
+            />
+          </div>
+        </Card>
+      )}
+
+      {health.weight && (
         <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-label-tertiary">
           <Scale size={12} strokeWidth={1.5} />
-          <span>{formatWeight(health.weight_kg)}</span>
-          {health.weight_date && health.weight_date !== health.date && (
+          <span>{formatWeight(health.weight.kg)}</span>
+          {health.weight.date !== health.today && (
             <span className="text-label-tertiary opacity-60">
-              ({new Date(health.weight_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })})
+              ({formatShortDate(`${health.weight.date}T12:00:00Z`)})
             </span>
           )}
         </div>

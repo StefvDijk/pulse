@@ -4,14 +4,9 @@ import { syncHevyWorkouts } from '@/lib/hevy/sync'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
+import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
-function getCurrentWeekMonday(): string {
-  const now = new Date()
-  const day = now.getUTCDay()
-  const offset = day === 0 ? -6 : 1 - day
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
-  return monday.toISOString().slice(0, 10)
-}
+const getCurrentWeekMonday = (): string => weekStartAmsterdam()
 
 export async function POST(): Promise<NextResponse> {
   try {
@@ -29,7 +24,7 @@ export async function POST(): Promise<NextResponse> {
 
     // Re-aggregate today + current week so dashboard stats are immediately up-to-date
     try {
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = todayAmsterdam()
       await computeDailyAggregation(user.id, todayStr)
       await computeWeeklyAggregation(user.id, getCurrentWeekMonday())
     } catch (aggError) {

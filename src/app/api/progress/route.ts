@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
+import { addDaysToKey, todayAmsterdam } from '@/lib/time/amsterdam'
 
 type WeeklyAggregationRow = Database['public']['Tables']['weekly_aggregations']['Row']
 type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
@@ -20,9 +21,7 @@ function periodToWeeks(period: Period): number {
 }
 
 function getStartDate(weeks: number): string {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - weeks * 7)
-  return d.toISOString().slice(0, 10)
+  return addDaysToKey(todayAmsterdam(), -weeks * 7)
 }
 
 export async function GET(request: Request) {

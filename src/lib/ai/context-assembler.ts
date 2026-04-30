@@ -2,29 +2,28 @@ export { classifyQuestion, type QuestionType } from './classifier'
 
 import { type QuestionType } from './classifier'
 import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  daysAgoAmsterdam,
+  todayAmsterdam,
+  weekStartAmsterdam,
+} from '@/lib/time/amsterdam'
 
 const MAX_CONTEXT_CHARS = 32000
 
 // ---------------------------------------------------------------------------
-// Date helpers
+// Date helpers — alle data-windows zijn Amsterdam-relatief, niet UTC.
 // ---------------------------------------------------------------------------
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayAmsterdam()
 }
 
 function daysAgo(n: number): string {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - n)
-  return d.toISOString().slice(0, 10)
+  return daysAgoAmsterdam(n)
 }
 
 function weekStart(): string {
-  const d = new Date()
-  const day = d.getUTCDay()
-  const diff = day === 0 ? 6 : day - 1 // Monday = start of week
-  d.setUTCDate(d.getUTCDate() - diff)
-  return d.toISOString().slice(0, 10)
+  return weekStartAmsterdam()
 }
 
 function formatDate(d: string): string {
