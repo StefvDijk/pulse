@@ -64,40 +64,40 @@ function StepIndicator({ current }: { current: StepNumber }) {
         const stepNum = (i + 1) as StepNumber
         const isDone = stepNum < current
         const isActive = stepNum === current
-
+        const isLast = i === STEPS.length - 1
         return (
-          <div key={label} className="flex items-center gap-2">
-            {i > 0 && (
-              <div
-                className={`h-px w-4 ${
-                  isDone ? 'bg-system-green' : 'bg-border-light'
-                }`}
-              />
-            )}
+          <div
+            key={label}
+            className="flex items-center gap-2"
+            style={{ flex: isLast ? 'none' : 1 }}
+          >
             <div className="flex items-center gap-1.5">
               <div
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                  isDone
-                    ? 'bg-system-green/10 text-system-green'
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold"
+                style={{
+                  background: isDone
+                    ? 'rgba(34,214,122,0.15)'
                     : isActive
-                      ? 'bg-system-blue text-white'
-                      : 'bg-system-gray6 text-label-tertiary'
-                }`}
+                      ? '#0A84FF'
+                      : 'rgba(255,255,255,0.08)',
+                  color: isDone ? '#22D67A' : isActive ? '#fff' : 'var(--color-text-tertiary)',
+                }}
               >
-                {isDone ? (
-                  <CheckCircle2 size={14} />
-                ) : (
-                  stepNum
-                )}
+                {isDone ? <CheckCircle2 size={13} /> : stepNum}
               </div>
               <span
-                className={`text-xs font-medium ${
-                  isActive ? 'text-label-primary' : 'text-label-tertiary'
-                }`}
+                className="text-[11px] font-medium"
+                style={{ color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)' }}
               >
                 {label}
               </span>
             </div>
+            {!isLast && (
+              <div
+                className="h-px flex-1"
+                style={{ minWidth: 8, background: isDone ? '#22D67A' : 'rgba(255,255,255,0.10)' }}
+              />
+            )}
           </div>
         )
       })}
@@ -185,26 +185,28 @@ export function CheckInFlow() {
   // Success screen
   if (confirmed) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-system-green/10">
-          <CheckCircle2 size={32} className="text-system-green" />
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 pt-[80px] pb-16">
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-full"
+          style={{ background: 'rgba(34,214,122,0.15)', boxShadow: '0 0 32px rgba(34,214,122,0.3)' }}
+        >
+          <CheckCircle2 size={32} style={{ color: '#22D67A' }} />
         </div>
-        <h1 className="text-title1 font-bold tracking-tight text-label-primary">
+        <h1 className="text-[28px] font-bold tracking-[-0.6px] text-text-primary">
           Week {data.week.weekNumber} afgesloten!
         </h1>
-        <p className="text-center text-sm text-label-secondary">
-          Je check-in is opgeslagen. Goed bezig!
-        </p>
+        <p className="text-center text-[14px] text-text-secondary">Je check-in is opgeslagen. Goed bezig!</p>
         <Link
           href="/"
-          className="mt-4 rounded-xl bg-system-blue px-6 py-2.5 text-sm font-medium text-white"
+          className="mt-4 rounded-2xl px-6 py-3 text-[15px] font-semibold text-white"
+          style={{
+            background: 'linear-gradient(135deg, #0A84FF, #7C3AED)',
+            boxShadow: '0 4px 16px rgba(10,132,255,0.4)',
+          }}
         >
           Naar home
         </Link>
-        <Link
-          href="/check-in/history"
-          className="mt-1 text-sm font-medium text-system-blue"
-        >
+        <Link href="/check-in/history" className="mt-1 text-[13px] font-medium text-[#0A84FF]">
           Bekijk je check-in historie
         </Link>
       </div>
@@ -213,33 +215,28 @@ export function CheckInFlow() {
 
   return (
     <div className="mx-auto max-w-lg pb-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+      <div className="px-4 pt-[60px] pb-2">
         {step > 1 ? (
           <button
             onClick={() => setStep((s) => (s - 1) as StepNumber)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
+            className="-ml-1 flex w-fit items-center gap-0.5 text-[#0A84FF] active:opacity-60"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={22} strokeWidth={2.5} />
+            <span className="text-[17px] tracking-[-0.2px]">Terug</span>
           </button>
         ) : (
-          <Link
-            href="/"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary"
-          >
-            <ChevronLeft size={18} />
+          <Link href="/" className="-ml-1 flex w-fit items-center gap-0.5 text-[#0A84FF] active:opacity-60">
+            <ChevronLeft size={22} strokeWidth={2.5} />
+            <span className="text-[17px] tracking-[-0.2px]">Terug</span>
           </Link>
         )}
-        <div>
-          <h1 className="text-headline text-label-primary">Week {data.week.weekNumber}</h1>
-          <p className="text-xs text-label-tertiary">
-            {formatDateRange(data.week.weekStart, data.week.weekEnd)}
-          </p>
-        </div>
+        <h1 className="mt-2 text-[34px] font-bold tracking-[-0.8px] text-text-primary">Check-in</h1>
+        <p className="mt-1 text-[13px] text-text-tertiary">
+          Week {data.week.weekNumber} · {formatDateRange(data.week.weekStart, data.week.weekEnd)}
+        </p>
       </div>
 
-      {/* Step indicator */}
-      <div className="px-4 py-3">
+      <div className="px-4 pb-3 pt-3">
         <StepIndicator current={step} />
       </div>
 

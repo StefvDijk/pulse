@@ -42,7 +42,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
   if (weeks.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-subhead text-label-tertiary">Geen trainingsdata beschikbaar</p>
+        <p className="text-subhead text-text-tertiary">Geen trainingsdata beschikbaar</p>
       </div>
     )
   }
@@ -94,7 +94,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
           contentStyle={appleTooltipStyle}
           labelStyle={appleTooltipLabelStyle}
           itemStyle={appleTooltipItemStyle}
-          cursor={{ fill: 'var(--color-system-gray6)', opacity: 0.5 }}
+          cursor={{ fill: 'rgba(255,255,255,0.06)', opacity: 0.5 }}
           formatter={(value, name) => {
             const key = String(name)
             if (key === 'acwr') return [`${Number(value).toFixed(2)}`, 'ACWR']

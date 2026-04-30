@@ -10,6 +10,7 @@ import {
   MessageCircle,
   LogOut,
   Settings as SettingsIcon,
+  Apple,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'Home', icon: LayoutGrid },
   { href: '/schema', label: 'Schema', icon: ClipboardList },
   { href: '/progress', label: 'Progressie', icon: TrendingUp },
+  { href: '/nutrition', label: 'Voeding', icon: Apple },
   { href: '/chat', label: 'Coach', icon: MessageCircle },
 ]
 
@@ -39,16 +41,19 @@ export function Navigation() {
 
   return (
     <>
-      {/* ─── Bottom Tab Bar — mobiel (Apple HIG glass) ─────────────────── */}
+      {/* ─── Bottom Tab Bar — mobile (Pulse v2 glass) ─────────────────── */}
       <nav
         className={[
           'fixed bottom-0 left-0 right-0 z-50 lg:hidden',
-          'bg-white/72 dark:bg-[#1C1C1E]/72',
-          'backdrop-blur-xl backdrop-saturate-150',
-          'border-t border-separator',
           'flex items-stretch justify-around',
-          'h-[83px] pt-2 pb-[34px]',
+          'h-[86px] pt-2 pb-[28px]',
+          'border-t border-bg-border-strong',
         ].join(' ')}
+        style={{
+          background: 'rgba(30,34,48,0.85)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        }}
         aria-label="Hoofdnavigatie"
       >
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -59,53 +64,41 @@ export function Navigation() {
               href={href}
               aria-current={isActive ? 'page' : undefined}
               className={[
-                'flex flex-col items-center justify-center gap-1',
+                'relative flex flex-col items-center justify-center gap-1',
                 'min-w-[44px] flex-1 px-1',
-                'transition-colors duration-150',
-                'active:scale-90 transition-transform',
-                isActive
-                  ? 'text-system-blue'
-                  : 'text-system-gray hover:text-label-primary',
+                'active:opacity-60 transition-opacity duration-150',
+                isActive ? 'text-text-primary' : 'text-text-tertiary',
               ].join(' ')}
             >
-              <Icon size={22} strokeWidth={1.5} />
-              <span className="text-caption2 font-medium">{label}</span>
+              <Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[10px] font-semibold tracking-[0.2px]">{label}</span>
+              {isActive && (
+                <span
+                  className="absolute bottom-[18px] h-1 w-1 rounded-full"
+                  style={{
+                    background: 'var(--color-sport-gym-base)',
+                    boxShadow: '0 0 8px var(--color-sport-gym-base)',
+                  }}
+                />
+              )}
             </Link>
           )
         })}
-        <button
-          onClick={handleSignOut}
-          aria-label="Uitloggen"
-          className={[
-            'flex flex-col items-center justify-center gap-1',
-            'min-w-[44px] flex-1 px-1',
-            'text-system-gray hover:text-label-primary',
-            'transition-colors duration-150',
-          ].join(' ')}
-        >
-          <LogOut size={22} strokeWidth={1.5} />
-          <span className="text-caption2 font-medium">Uit</span>
-        </button>
       </nav>
 
-      {/* ─── Sidebar — desktop (iPadOS-style) ──────────────────────────── */}
+      {/* ─── Sidebar — desktop (Pulse v2 dark) ─────────────────────────── */}
       <aside
         className={[
           'hidden lg:flex lg:flex-col lg:w-56',
           'lg:fixed lg:inset-y-0 lg:left-0 lg:z-40',
-          'bg-surface-primary',
-          'border-r border-separator',
-          'dark:bg-bg-secondary',
+          'bg-bg-surface',
+          'border-r border-bg-border',
         ].join(' ')}
       >
-        {/* Branding */}
-        <div className="flex items-center px-6 py-6 border-b border-separator">
-          <span className="text-title3 font-bold text-label-primary tracking-tight">
-            Pulse
-          </span>
+        <div className="flex items-center px-6 py-6 border-b border-bg-border">
+          <span className="text-[20px] font-bold tracking-tight text-text-primary">Pulse</span>
         </div>
 
-        {/* Primary nav */}
         <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Hoofdnavigatie">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href
@@ -116,17 +109,17 @@ export function Navigation() {
                 aria-current={isActive ? 'page' : undefined}
                 className={[
                   'relative flex items-center gap-3 px-3 py-2.5 rounded-xl',
-                  'text-subhead font-medium',
-                  'transition-colors duration-150',
+                  'text-[15px] font-medium transition-colors duration-150',
                   isActive
-                    ? 'text-system-blue'
-                    : 'text-label-secondary hover:bg-system-gray6 hover:text-label-primary',
+                    ? 'text-text-primary'
+                    : 'text-text-secondary hover:bg-white/[0.04] hover:text-text-primary',
                 ].join(' ')}
               >
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active-pill"
-                    className="absolute inset-0 rounded-xl bg-system-blue/10"
+                    className="absolute inset-0 rounded-xl"
+                    style={{ background: 'rgba(0,229,199,0.12)' }}
                     transition={springLayout}
                   />
                 )}
@@ -137,18 +130,16 @@ export function Navigation() {
           })}
         </nav>
 
-        {/* Footer: settings + sign out */}
-        <div className="px-3 py-4 space-y-1 border-t border-separator">
+        <div className="px-3 py-4 space-y-1 border-t border-bg-border">
           <Link
             href="/settings"
             aria-current={pathname === '/settings' ? 'page' : undefined}
             className={[
               'flex items-center gap-3 px-3 py-2.5 rounded-xl',
-              'text-subhead font-medium',
-              'transition-colors duration-150',
+              'text-[15px] font-medium transition-colors duration-150',
               pathname === '/settings'
-                ? 'bg-system-blue/10 text-system-blue'
-                : 'text-label-secondary hover:bg-system-gray6 hover:text-label-primary',
+                ? 'bg-white/[0.06] text-text-primary'
+                : 'text-text-secondary hover:bg-white/[0.04] hover:text-text-primary',
             ].join(' ')}
           >
             <SettingsIcon size={22} strokeWidth={1.5} />
@@ -158,8 +149,8 @@ export function Navigation() {
             onClick={handleSignOut}
             className={[
               'flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left',
-              'text-subhead font-medium',
-              'text-label-secondary hover:bg-system-gray6 hover:text-label-primary',
+              'text-[15px] font-medium text-text-secondary',
+              'hover:bg-white/[0.04] hover:text-text-primary',
               'transition-colors duration-150',
             ].join(' ')}
           >

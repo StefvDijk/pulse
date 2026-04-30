@@ -3,8 +3,18 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 
-export interface TodayHealthMetrics {
-  /** YYYY-MM-DD van de gevonden rij. */
+/**
+ * Response is bewust backwards-compatibel: alle oorspronkelijke flat-velden
+ * (steps/resting_heart_rate/etc + weight_kg/weight_date + date) blijven bestaan
+ * zodat consumers die de vlakke shape lezen ongewijzigd doorwerken.
+ *
+ * Daarnaast bieden we drie additieve velden voor stale-state UX:
+ *   - `today`: autoritatieve "vandaag" in Amsterdam-tz (los van de data-rij)
+ *   - `isStale`: true als de getoonde rij niet van vandaag is
+ *   - `lastSyncedAt`: ISO-instant van laatste Apple Health-push (UI-hint)
+ */
+export interface TodayHealthData {
+  // Bestaande flat shape (compat) — `date` is de YYYY-MM-DD van de gevonden rij.
   date: string
   steps: number | null
   active_calories: number | null
@@ -14,26 +24,12 @@ export interface TodayHealthMetrics {
   hrv_average: number | null
   stand_hours: number | null
   sleep_minutes: number | null
-}
+  weight_kg: number | null
+  weight_date: string | null
 
-export interface TodayWeight {
-  kg: number
-  date: string
-}
-
-export interface TodayHealthData {
-  /** Echte vandaag in Amsterdam (autoritatief). */
+  // Nieuwe additieve velden (mogen consumers negeren).
   today: string
-  /** True als de gevonden activity/sleep niet van vandaag is. */
   isStale: boolean
-  /**
-   * Activity + sleep voor vandaag, of de laatst beschikbare dag als vandaag nog
-   * geen data heeft. `null` als er überhaupt geen data is.
-   */
-  data: TodayHealthMetrics | null
-  /** Laatste body-weight, mogelijk van een eerdere dag (weegt typisch wekelijks). */
-  weight: TodayWeight | null
-  /** ISO-instant van de laatste Apple Health-sync, of null. */
   lastSyncedAt: string | null
 }
 
@@ -83,34 +79,24 @@ export async function GET() {
     const s = sleepResult.data
     const w = weightResult.data
 
-    // Bouw metrics: alleen samenvoegen als er minstens één data-bron is.
-    const metricsDate = a?.date ?? s?.date ?? null
-    const data: TodayHealthMetrics | null = metricsDate
-      ? {
-          date: metricsDate,
-          steps: a?.steps ?? null,
-          active_calories: a?.active_calories != null ? Number(a.active_calories) : null,
-          total_calories: a?.total_calories != null ? Number(a.total_calories) : null,
-          active_minutes: a?.active_minutes ?? null,
-          resting_heart_rate: a?.resting_heart_rate ?? null,
-          hrv_average: a?.hrv_average != null ? Number(a.hrv_average) : null,
-          stand_hours: a?.stand_hours ?? null,
-          sleep_minutes: s?.total_sleep_minutes ?? null,
-        }
-      : null
-
-    const isStale = data ? data.date !== today : false
-
-    const weight: TodayWeight | null =
-      w?.weight_kg != null && w.date
-        ? { kg: Number(w.weight_kg), date: w.date }
-        : null
+    const metricsDate = a?.date ?? s?.date ?? today
+    const isStale = metricsDate !== today
 
     const response: TodayHealthData = {
+      date: metricsDate,
+      steps: a?.steps ?? null,
+      active_calories: a?.active_calories != null ? Number(a.active_calories) : null,
+      total_calories: a?.total_calories != null ? Number(a.total_calories) : null,
+      active_minutes: a?.active_minutes ?? null,
+      resting_heart_rate: a?.resting_heart_rate ?? null,
+      hrv_average: a?.hrv_average != null ? Number(a.hrv_average) : null,
+      stand_hours: a?.stand_hours ?? null,
+      sleep_minutes: s?.total_sleep_minutes ?? null,
+      weight_kg: w?.weight_kg != null ? Number(w.weight_kg) : null,
+      weight_date: w?.date ?? null,
+
       today,
       isStale,
-      data,
-      weight,
       lastSyncedAt: settingsResult.data?.last_apple_health_sync_at ?? null,
     }
 

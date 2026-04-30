@@ -1,30 +1,43 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Trophy, Clock, Flame, Heart, ChevronRight } from 'lucide-react'
+import { ChevronLeft, Trophy } from 'lucide-react'
 import { useWorkoutDetail } from '@/hooks/useWorkoutDetail'
 import { ExerciseImage } from '@/components/shared/ExerciseImage'
+import { Card } from '@/components/ui/v2'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import type { WorkoutExerciseDetail, WorkoutSet } from '@/app/api/workouts/[id]/route'
 
-/* ── Helpers ─────────────────────────────────────────────── */
+const MUSCLE_COLOR: Record<string, string> = {
+  chest: '#FF5E3A',
+  shoulders: '#FFB020',
+  arms: '#A78BFA',
+  back: '#00E5C7',
+  legs: '#9CFF4F',
+  core: '#4FC3F7',
+}
+
+function muscleColor(group: string | null | undefined): string {
+  if (!group) return '#A78BFA'
+  return MUSCLE_COLOR[group.toLowerCase()] ?? '#A78BFA'
+}
 
 function formatDuration(s: number): string {
   const m = Math.round(s / 60)
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}u ${m % 60}m`
 }
 
-function formatDate(iso: string): string {
+function formatDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('nl-NL', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   })
 }
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
 }
-
-/* ── Set row ─────────────────────────────────────────────── */
 
 function SetRow({
   set,
@@ -37,61 +50,48 @@ function SetRow({
 }) {
   const isWarmup = set.set_type === 'warmup'
   const isDropset = set.set_type === 'dropset'
-
-  const improved =
-    prevSet?.weight_kg && set.weight_kg && set.weight_kg > prevSet.weight_kg
+  const improved = prevSet?.weight_kg && set.weight_kg && set.weight_kg > prevSet.weight_kg
 
   return (
     <div
-      className={`flex items-center gap-3 py-2 ${isWarmup ? 'opacity-50' : ''}`}
+      className={`flex items-center gap-3 py-1.5 ${index > 0 ? 'border-t-[0.5px] border-bg-border' : ''}`}
+      style={{ opacity: isWarmup ? 0.5 : 1 }}
     >
-      {/* Set number */}
-      <span className="w-5 text-xs text-label-tertiary text-right shrink-0">
-        {isWarmup ? 'W' : isDropset ? 'D' : index + 1}
-      </span>
-
-      {/* Weight + reps */}
-      <div className="flex flex-1 items-center gap-2">
+      <div className="w-4 text-center text-[11px] font-semibold text-text-tertiary">
+        {isWarmup ? 'W' : isDropset ? 'D' : index}
+      </div>
+      <div className="flex flex-1 items-baseline gap-1.5">
         {set.weight_kg != null && (
-          <span className="text-sm font-medium tabular-nums text-label-primary">
-            {set.weight_kg} kg
-          </span>
+          <div className="text-[15px] font-semibold tabular-nums text-text-primary">
+            {set.weight_kg}
+            <span className="ml-0.5 text-[11px] font-medium text-text-tertiary">kg</span>
+          </div>
         )}
         {set.reps != null && (
-          <span className="text-sm text-label-secondary">
-            × {set.reps}
-          </span>
+          <div className="text-[13px] tabular-nums text-text-secondary">× {set.reps}</div>
         )}
         {set.distance_meters != null && set.distance_meters > 0 && (
-          <span className="text-sm text-label-secondary tabular-nums">
+          <div className="text-[13px] tabular-nums text-text-secondary">
             {(set.distance_meters / 1000).toFixed(2)} km
-          </span>
+          </div>
         )}
         {set.duration_seconds != null && set.duration_seconds > 0 && !set.distance_meters && (
-          <span className="text-sm text-label-secondary tabular-nums">
+          <div className="text-[13px] tabular-nums text-text-secondary">
             {Math.round(set.duration_seconds)}s
-          </span>
+          </div>
         )}
       </div>
-
-      {/* Progress vs previous */}
       {improved && (
-        <span className="text-[10px] font-semibold text-green-400 shrink-0">
-          ↑ +{(set.weight_kg! - prevSet!.weight_kg!)}kg
+        <span className="text-[10px] font-semibold" style={{ color: '#22D67A' }}>
+          ↑ +{(set.weight_kg! - prevSet!.weight_kg!).toFixed(1)}kg
         </span>
       )}
-
-      {/* RPE */}
       {set.rpe != null && (
-        <span className="text-xs text-label-tertiary shrink-0">
-          RPE {set.rpe}
-        </span>
+        <span className="text-[11px] text-text-tertiary tabular-nums">RPE {set.rpe}</span>
       )}
     </div>
   )
 }
-
-/* ── Exercise card ───────────────────────────────────────── */
 
 function ExerciseCard({
   exercise,
@@ -100,39 +100,55 @@ function ExerciseCard({
   exercise: WorkoutExerciseDetail
   prevExercise?: { name: string; sets: WorkoutSet[] }
 }) {
+  const c = muscleColor(exercise.primary_muscle_group)
   const workingSets = exercise.sets.filter((s) => s.set_type !== 'warmup')
   const warmupSets = exercise.sets.filter((s) => s.set_type === 'warmup')
 
   return (
-    <div className="rounded-2xl bg-surface-primary border border-separator p-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-3">
-        <ExerciseImage
-          imageUrl={exercise.image_url}
-          muscleGroup={exercise.primary_muscle_group}
-          name={exercise.name}
-          size="md"
-        />
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2.5 p-[14px_16px_10px]">
+        <div
+          className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px]"
+          style={{
+            background: `${c}1f`,
+            border: `0.5px solid ${c}40`,
+          }}
+        >
+          <div
+            className="h-3.5 w-3.5 rounded-[4px]"
+            style={{ background: c, boxShadow: `0 0 8px ${c}` }}
+          />
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-label-primary truncate">
+          <div className="flex items-center gap-1.5">
+            <div className="truncate text-[15px] font-semibold tracking-[-0.2px] text-text-primary">
               {exercise.name}
-            </span>
+            </div>
             {exercise.is_pr && (
-              <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+              <span
+                className="flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{ background: 'rgba(255,176,32,0.16)', color: '#FFB020' }}
+              >
                 <Trophy size={9} /> PR
               </span>
             )}
           </div>
-          <span className="text-xs text-label-tertiary">
-            {workingSets.length} {workingSets.length === 1 ? 'set' : 'sets'}
-            {warmupSets.length > 0 && ` + ${warmupSets.length} opwarming`}
-          </span>
+          <div className="text-[11px] capitalize text-text-tertiary">
+            {exercise.primary_muscle_group ?? 'work'} · {workingSets.length}{' '}
+            {workingSets.length === 1 ? 'set' : 'sets'}
+            {warmupSets.length > 0 && ` + ${warmupSets.length} warmup`}
+          </div>
         </div>
+        {exercise.image_url && (
+          <ExerciseImage
+            imageUrl={exercise.image_url}
+            muscleGroup={exercise.primary_muscle_group}
+            name={exercise.name}
+            size="md"
+          />
+        )}
       </div>
-
-      {/* Sets */}
-      <div className="divide-y divide-separator">
+      <div className="p-[0_16px_10px]">
         {exercise.sets.map((set, i) => {
           const workingIndex = exercise.sets
             .filter((s) => s.set_type !== 'warmup')
@@ -143,21 +159,19 @@ function ExerciseCard({
               key={set.set_order}
               set={set}
               prevSet={prevSet}
-              index={workingIndex >= 0 ? workingIndex : i}
+              index={i === 0 ? 0 : workingIndex >= 0 ? workingIndex + 1 : i + 1}
             />
           )
         })}
       </div>
-
-      {/* Notes */}
       {exercise.notes && (
-        <p className="mt-2 text-xs text-label-tertiary italic">{exercise.notes}</p>
+        <div className="border-t-[0.5px] border-bg-border p-[10px_16px] text-[12px] italic text-text-tertiary">
+          {exercise.notes}
+        </div>
       )}
-    </div>
+    </Card>
   )
 }
-
-/* ── Page ────────────────────────────────────────────────── */
 
 interface WorkoutDetailPageProps {
   workoutId: string
@@ -169,7 +183,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
+      <div className="flex flex-col gap-4 px-4 pb-24 pt-[60px]">
         <SkeletonLine width="w-1/3" height="h-5" />
         <SkeletonCard className="flex flex-col gap-2">
           <SkeletonLine width="w-1/2" />
@@ -180,10 +194,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         </SkeletonCard>
         {[1, 2, 3].map((i) => (
           <SkeletonCard key={i} className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-system-gray6" />
-              <SkeletonLine width="w-1/3" />
-            </div>
             <SkeletonRect height="h-24" />
           </SkeletonCard>
         ))}
@@ -193,14 +203,15 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   if (error || !workout) {
     return (
-      <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
+      <div className="flex flex-col gap-4 px-4 pb-24 pt-[60px]">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-label-tertiary"
+          className="flex items-center gap-1 text-[#0A84FF] active:opacity-60"
         >
-          <ArrowLeft size={15} /> Terug
+          <ChevronLeft size={22} strokeWidth={2.5} />
+          <span className="text-[17px]">Terug</span>
         </button>
-        <p className="text-sm text-label-tertiary">Workout niet gevonden.</p>
+        <p className="text-[14px] text-text-tertiary">Workout niet gevonden.</p>
       </div>
     )
   }
@@ -209,112 +220,123 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
     (workout.previous?.exercises ?? []).map((e) => [e.name.toLowerCase(), e]),
   )
 
+  const visibleExercises = workout.exercises.filter(
+    (e) => !e.name.toLowerCase().includes('warm up'),
+  )
+
+  const totalSets = visibleExercises.reduce((acc, e) => acc + e.sets.length, 0)
+
   return (
-    <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="flex w-fit items-center gap-1.5 text-sm text-label-tertiary hover:text-label-primary transition-colors"
-      >
-        <ArrowLeft size={15} /> Terug
-      </button>
-
-      {/* Workout header card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-4">
-        <h1 className="text-xl font-bold text-label-primary mb-1">{workout.title}</h1>
-        <p className="text-sm text-label-tertiary mb-4">
-          {formatDate(workout.started_at)} · {formatTime(workout.started_at)}
-        </p>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {workout.duration_seconds != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
-              <Clock size={14} className="text-label-tertiary shrink-0" />
-              <div>
-                <p className="text-sm font-semibold tabular-nums text-label-primary">
-                  {formatDuration(workout.duration_seconds)}
-                </p>
-                <p className="text-[10px] text-label-tertiary">Duur</p>
-              </div>
-            </div>
-          )}
-          {workout.total_volume_kg != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
-              <span className="text-label-tertiary text-sm shrink-0">⚡</span>
-              <div>
-                <p className="text-sm font-semibold tabular-nums text-label-primary">
-                  {Math.round(workout.total_volume_kg).toLocaleString('nl-NL')} kg
-                </p>
-                <p className="text-[10px] text-label-tertiary">Volume</p>
-              </div>
-            </div>
-          )}
-          {workout.calories_burned != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
-              <Flame size={14} className="text-orange-400 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold tabular-nums text-label-primary">
-                  {workout.calories_burned} kcal
-                </p>
-                <p className="text-[10px] text-label-tertiary">Calorieën</p>
-              </div>
-            </div>
-          )}
-          {workout.avg_heart_rate != null && (
-            <div className="flex items-center gap-2 rounded-xl bg-system-gray6 px-3 py-2">
-              <Heart size={14} className="text-red-400 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold tabular-nums text-label-primary">
-                  {workout.avg_heart_rate} bpm
-                  {workout.max_heart_rate && (
-                    <span className="text-label-tertiary font-normal text-xs"> / {workout.max_heart_rate}</span>
-                  )}
-                </p>
-                <p className="text-[10px] text-label-tertiary">Hartslag</p>
-              </div>
+    <div className="flex flex-col gap-3 pb-24">
+      {/* Hero with gradient */}
+      <div className="relative overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(80% 100% at 100% 0%, rgba(0,229,199,0.30), transparent 60%), radial-gradient(60% 80% at 0% 100%, rgba(124,58,237,0.18), transparent 60%)',
+          }}
+        />
+        <div className="relative px-4 pb-5 pt-[60px]">
+          <button
+            onClick={() => router.back()}
+            className="-ml-1 mb-2 flex items-center gap-0.5 text-[#0A84FF] active:opacity-60"
+          >
+            <ChevronLeft size={22} strokeWidth={2.5} />
+            <span className="text-[17px] tracking-[-0.2px]">Terug</span>
+          </button>
+          <div
+            className="text-[11px] font-semibold uppercase tracking-[0.4px]"
+            style={{ color: '#00E5C7' }}
+          >
+            {formatDateLong(workout.started_at)} · {formatTime(workout.started_at)}
+          </div>
+          <h1 className="mt-1.5 text-[30px] font-bold tracking-[-0.7px] text-text-primary">
+            {workout.title}
+          </h1>
+          {(workout.pr_count ?? 0) > 0 && (
+            <div
+              className="mt-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
+              style={{
+                background: 'linear-gradient(135deg, #FFB020, #FF5E3A)',
+                boxShadow: '0 4px 12px rgba(255,176,32,0.4)',
+              }}
+            >
+              <Trophy size={13} color="#1a1a1a" />
+              <span className="text-[12px] font-bold" style={{ color: '#1a1a1a' }}>
+                {workout.pr_count} nieuwe PR{workout.pr_count === 1 ? '' : 's'}
+              </span>
             </div>
           )}
         </div>
-
-        {/* PR badge */}
-        {(workout.pr_count ?? 0) > 0 && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-            <Trophy size={14} className="text-amber-400 shrink-0" />
-            <p className="text-sm font-medium text-amber-300">
-              {workout.pr_count} persoonlijk{workout.pr_count === 1 ? '' : 'e'} record{workout.pr_count === 1 ? '' : 's'} gebroken!
-            </p>
-          </div>
-        )}
-
-        {/* Previous session link */}
-        {workout.previous && (
-          <div className="mt-3 flex items-center justify-between text-xs text-label-tertiary">
-            <span>
-              Vorige sessie: {new Date(workout.previous.started_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
-            </span>
-            <ChevronRight size={12} />
-          </div>
-        )}
       </div>
 
-      {/* Exercise cards — filter out standalone warm-up entries */}
-      <div className="flex flex-col gap-3">
-        {workout.exercises
-          .filter((e) => !e.name.toLowerCase().includes('warm up'))
-          .map((exercise) => (
-            <ExerciseCard
-              key={exercise.exercise_order}
-              exercise={exercise}
-              prevExercise={prevExerciseMap.get(exercise.name.toLowerCase())}
-            />
-          ))}
+      {/* Stats grid bar */}
+      <div className="px-4">
+        <Card className="grid grid-cols-4 p-[14px_8px]">
+          {[
+            workout.duration_seconds != null && {
+              v: formatDuration(workout.duration_seconds).replace(' min', ''),
+              u: workout.duration_seconds < 3600 ? 'min' : '',
+              l: 'Duur',
+            },
+            { v: totalSets, u: 'sets', l: 'Volume' },
+            workout.total_volume_kg != null && {
+              v: (workout.total_volume_kg / 1000).toFixed(1),
+              u: 'k',
+              l: 'Tonnage',
+            },
+            workout.avg_heart_rate != null && {
+              v: workout.avg_heart_rate,
+              u: 'bpm',
+              l: 'Avg HR',
+            },
+            workout.calories_burned != null && {
+              v: workout.calories_burned,
+              u: 'kcal',
+              l: 'Kcal',
+            },
+          ]
+            .filter(Boolean)
+            .slice(0, 4)
+            .map((stat, i) => {
+              if (!stat) return null
+              const s = stat as { v: string | number; u: string; l: string }
+              return (
+                <div
+                  key={i}
+                  className={`text-center px-1.5 ${i > 0 ? 'border-l-[0.5px] border-bg-border' : ''}`}
+                >
+                  <div className="text-[18px] font-bold tracking-[-0.4px] tabular-nums">
+                    {s.v}
+                    <span className="ml-0.5 text-[10px] font-medium text-text-tertiary">{s.u}</span>
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-medium text-text-tertiary">{s.l}</div>
+                </div>
+              )
+            })}
+        </Card>
+      </div>
+
+      {/* Exercises */}
+      <div className="flex flex-col gap-2.5 px-4">
+        {visibleExercises.map((exercise) => (
+          <ExerciseCard
+            key={exercise.exercise_order}
+            exercise={exercise}
+            prevExercise={prevExerciseMap.get(exercise.name.toLowerCase())}
+          />
+        ))}
       </div>
 
       {workout.notes && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-4">
-          <p className="text-sm font-medium text-label-secondary mb-1">Notities</p>
-          <p className="text-sm text-label-primary">{workout.notes}</p>
+        <div className="px-4">
+          <Card className="p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.4px] text-text-tertiary">
+              Notities
+            </div>
+            <div className="mt-1.5 text-[13px] leading-snug text-text-secondary">{workout.notes}</div>
+          </Card>
         </div>
       )}
     </div>

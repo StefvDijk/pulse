@@ -1,10 +1,12 @@
 'use client'
 
-import { Footprints, Heart, Activity, Moon, Scale, AlertCircle } from 'lucide-react'
+import { Footprints, Heart, Activity, Moon, Scale } from 'lucide-react'
 import { useTodayHealth } from '@/hooks/useTodayHealth'
+import { useBaselines } from '@/hooks/useBaselines'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { Card } from '@/components/ui'
-import { formatShortDate, formatTime } from '@/lib/time/amsterdam'
+import { BaselineTag } from '@/components/shared/BaselineTag'
+import type { BaselineMetric } from '@/lib/baselines/types'
 
 function formatSteps(n: number): string {
   return n.toLocaleString('nl-NL')
@@ -24,33 +26,30 @@ interface StatProps {
   icon: React.ReactNode
   label: string
   value: string | null
+  current?: number | null
+  baseline?: number | null
+  metric?: BaselineMetric
 }
 
-function Stat({ icon, label, value }: StatProps) {
+function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
+  const showTag = current != null && baseline != null && metric != null
   return (
     <div className="flex flex-col items-center gap-1 py-2">
-      <div className="text-label-tertiary">{icon}</div>
-      <p className="text-subhead font-semibold tabular-nums text-label-primary">
+      <div className="text-text-tertiary">{icon}</div>
+      <p className="text-subhead font-semibold tabular-nums text-text-primary">
         {value ?? '—'}
       </p>
-      <p className="text-caption2 text-label-tertiary">{label}</p>
+      <p className="text-caption2 text-text-tertiary">{label}</p>
+      {showTag && (
+        <BaselineTag current={current} baseline={baseline} metric={metric} compact />
+      )}
     </div>
   )
 }
 
-function lastSyncedLabel(lastSyncedAt: string | null): string | null {
-  if (!lastSyncedAt) return null
-  const d = new Date(lastSyncedAt)
-  if (Number.isNaN(d.getTime())) return null
-  const today = new Date()
-  const sameDay = formatShortDate(today) === formatShortDate(d)
-  return sameDay
-    ? `Laatst gesynced om ${formatTime(d)}`
-    : `Laatst gesynced ${formatShortDate(d)} ${formatTime(d)}`
-}
-
 export function DailyHealthBar() {
   const { health, isLoading } = useTodayHealth()
+  const { getBaseline } = useBaselines()
 
   if (isLoading) {
     return (
@@ -65,93 +64,81 @@ export function DailyHealthBar() {
     )
   }
 
-  if (!health) return null
+  // Don't render anything if there's no health data at all
+  const hasAnyData = health && (
+    health.steps != null ||
+    health.resting_heart_rate != null ||
+    health.hrv_average != null ||
+    health.sleep_minutes != null ||
+    health.weight_kg != null
+  )
 
-  const headerLabel = `Vandaag, ${formatShortDate(`${health.today}T12:00:00Z`)}`
-  const data = health.data
-  const syncLabel = lastSyncedLabel(health.lastSyncedAt)
+  if (!hasAnyData) return null
 
-  // Geen data ooit — toon alleen kop + leeg signaal.
-  const hasNoDataAtAll = !data && !health.weight
-
-  if (hasNoDataAtAll) {
-    return (
-      <div className="flex flex-col gap-2">
-        <p className="text-caption2 text-label-tertiary uppercase tracking-wider px-1">
-          {headerLabel}
-        </p>
-        <Card padding="md">
-          <div className="flex items-center gap-2 text-caption1 text-label-tertiary">
-            <AlertCircle size={14} strokeWidth={1.5} />
-            <span>Nog geen Apple Health-data gesynced.</span>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  // Data aanwezig (mogelijk stale).
-  const staleNote =
-    data && health.isStale
-      ? `Data van ${formatShortDate(`${data.date}T12:00:00Z`)} — vandaag nog niet gesynced`
-      : null
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const isToday = health?.date === todayStr
+  const dateLabel = isToday
+    ? 'Vandaag'
+    : health?.date
+      ? new Date(health.date + 'T00:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
+      : ''
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between px-1">
-        <p className="text-caption2 text-label-tertiary uppercase tracking-wider">
-          {headerLabel}
+      {!isToday && dateLabel && (
+        <p className="text-caption2 text-text-tertiary uppercase tracking-wider px-1">
+          {dateLabel}
         </p>
-        {syncLabel && (
-          <span className="text-caption2 text-label-tertiary opacity-70">
-            {syncLabel}
-          </span>
-        )}
-      </div>
-
-      {staleNote && (
-        <div className="flex items-center gap-1.5 px-1 text-caption2 text-system-orange">
-          <AlertCircle size={11} strokeWidth={2} />
-          <span>{staleNote}</span>
+      )}
+      <Card padding="none">
+        <div className="grid grid-cols-4 divide-x divide-separator">
+          <Stat
+            icon={<Footprints size={14} strokeWidth={1.5} />}
+            label="Stappen"
+            value={health?.steps != null ? formatSteps(health.steps) : null}
+          />
+          <Stat
+            icon={<Heart size={14} strokeWidth={1.5} />}
+            label="Rust HR"
+            value={health?.resting_heart_rate != null ? `${health.resting_heart_rate}` : null}
+            current={health?.resting_heart_rate ?? null}
+            baseline={getBaseline('resting_hr')}
+            metric="resting_hr"
+          />
+          <Stat
+            icon={<Activity size={14} strokeWidth={1.5} />}
+            label="HRV"
+            value={health?.hrv_average != null ? `${Math.round(health.hrv_average)}` : null}
+            current={health?.hrv_average ?? null}
+            baseline={getBaseline('hrv_rmssd')}
+            metric="hrv_rmssd"
+          />
+          <Stat
+            icon={<Moon size={14} strokeWidth={1.5} />}
+            label="Slaap"
+            value={health?.sleep_minutes != null ? formatSleep(health.sleep_minutes) : null}
+            current={health?.sleep_minutes ?? null}
+            baseline={getBaseline('sleep_minutes')}
+            metric="sleep_minutes"
+          />
         </div>
-      )}
+      </Card>
 
-      {data && (
-        <Card padding="none">
-          <div className="grid grid-cols-4 divide-x divide-separator">
-            <Stat
-              icon={<Footprints size={14} strokeWidth={1.5} />}
-              label="Stappen"
-              value={data.steps != null ? formatSteps(data.steps) : null}
-            />
-            <Stat
-              icon={<Heart size={14} strokeWidth={1.5} />}
-              label="Rust HR"
-              value={data.resting_heart_rate != null ? `${data.resting_heart_rate}` : null}
-            />
-            <Stat
-              icon={<Activity size={14} strokeWidth={1.5} />}
-              label="HRV"
-              value={data.hrv_average != null ? `${Math.round(data.hrv_average)}` : null}
-            />
-            <Stat
-              icon={<Moon size={14} strokeWidth={1.5} />}
-              label="Slaap"
-              value={data.sleep_minutes != null ? formatSleep(data.sleep_minutes) : null}
-            />
-          </div>
-        </Card>
-      )}
-
-      {health.weight && (
-        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-label-tertiary">
+      {/* Weight — separate compact line */}
+      {health?.weight_kg != null && (
+        <div className="flex items-center gap-2 px-3 py-1.5 text-caption1 text-text-tertiary">
           <Scale size={12} strokeWidth={1.5} />
-          <span>{formatWeight(health.weight.kg)}</span>
-          {health.weight.date !== health.today && (
-            <span className="text-label-tertiary opacity-60">
-              ({formatShortDate(`${health.weight.date}T12:00:00Z`)})
+          <span>{formatWeight(health.weight_kg)}</span>
+          {health.weight_date && health.weight_date !== health.date && (
+            <span className="text-text-tertiary opacity-60">
+              ({new Date(health.weight_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })})
             </span>
           )}
+          <BaselineTag
+            current={health.weight_kg}
+            baseline={getBaseline('weight_kg')}
+            metric="weight_kg"
+          />
         </div>
       )}
     </div>

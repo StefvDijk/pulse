@@ -19,16 +19,16 @@ export function ProteinTracker({ current, target }: ProteinTrackerProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-label-primary">
+        <span className="text-sm font-medium text-text-primary">
           {Math.round(current)}g / {target}g eiwit
         </span>
         {remaining > 0 && (
-          <span className="text-xs text-label-tertiary">
+          <span className="text-xs text-text-tertiary">
             nog {Math.round(remaining)}g
           </span>
         )}
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-system-gray6">
+      <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}

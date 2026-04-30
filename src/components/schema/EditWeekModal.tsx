@@ -134,21 +134,21 @@ export function EditWeekModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-surface-primary shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-label-primary">
+            <h2 className="text-base font-semibold text-text-primary">
               Week {weekNumber} aanpassen
             </h2>
-            <p className="text-xs text-label-tertiary mt-0.5">
+            <p className="text-xs text-text-tertiary mt-0.5">
               Pas per dag aan of laat leeg voor rust
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={status === 'saving'}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray6 disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
           >
             <X size={16} />
           </button>
@@ -165,22 +165,22 @@ export function EditWeekModal({
               <div
                 key={draft.date}
                 className={`rounded-xl border p-3 transition-colors ${
-                  draft.dirty ? 'border-system-blue bg-system-blue/5' : 'border-separator'
+                  draft.dirty ? 'border-[#0A84FF] bg-[#0A84FF]/5' : 'border-bg-border'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <span className="text-sm font-medium text-label-primary">
+                    <span className="text-sm font-medium text-text-primary">
                       {DAY_LABELS[draft.dayName] ?? draft.dayName}
                     </span>
-                    <span className="ml-1.5 text-xs text-label-tertiary tabular-nums">
+                    <span className="ml-1.5 text-xs text-text-tertiary tabular-nums">
                       {dateNum}
                     </span>
                   </div>
                   {showResetButton && (
                     <button
                       onClick={() => resetToTemplate(draft.date, draft.dayName)}
-                      className="flex items-center gap-1 text-[11px] text-label-tertiary hover:text-label-secondary"
+                      className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-secondary"
                       title={`Terug naar template (${templateFocus || 'rust'})`}
                     >
                       <RotateCcw size={11} />
@@ -195,7 +195,7 @@ export function EditWeekModal({
                   onChange={(e) => updateDraft(draft.date, e.target.value)}
                   placeholder="Rustdag"
                   list={`suggestions-${draft.date}`}
-                  className="w-full rounded-lg border border-separator bg-system-gray6 px-3 py-2 text-sm text-label-primary outline-none focus:border-system-blue"
+                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none focus:border-[#0A84FF]"
                 />
                 <datalist id={`suggestions-${draft.date}`}>
                   {suggestions.map((s) => (
@@ -208,20 +208,20 @@ export function EditWeekModal({
         </div>
 
         {errorMsg && (
-          <div className="mx-5 mb-3 rounded-lg bg-system-red/10 px-3 py-2 text-sm text-system-red">
+          <div className="mx-5 mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
             {errorMsg}
           </div>
         )}
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-separator bg-surface-primary px-5 py-4">
-          <span className="text-sm text-label-tertiary">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+          <span className="text-sm text-text-tertiary">
             {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
           </span>
           <button
             onClick={handleSave}
             disabled={status === 'saving' || dirtyCount === 0}
-            className="flex items-center gap-2 rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {status === 'saving' && <Loader2 size={16} className="animate-spin" />}
             Opslaan

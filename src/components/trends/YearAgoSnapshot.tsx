@@ -81,7 +81,7 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
     <div>
       <div className="mb-3 flex items-center gap-2">
         <ClockIcon />
-        <p className="text-sm text-label-tertiary">
+        <p className="text-sm text-text-tertiary">
           {hasLastYear
             ? `Vergelijking week van ${weekLabel} — vorig jaar`
             : `Geen data van ${currentWeek?.week_start ? new Date(currentWeek.week_start).getFullYear() - 1 : 'vorig jaar'} beschikbaar`}
@@ -97,17 +97,17 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
           return (
             <div
               key={m.label}
-              className="flex items-center justify-between gap-2 py-2 border-b border-separator"
+              className="flex items-center justify-between gap-2 py-2 border-b border-bg-border"
             >
-              <span className="text-sm text-label-tertiary">{m.label}</span>
+              <span className="text-sm text-text-tertiary">{m.label}</span>
               <div className="flex items-center gap-3">
                 {hasLastYear && (
-                  <span className="text-xs text-label-tertiary">
+                  <span className="text-xs text-text-tertiary">
                     {fmt(m.lastYear)} vorig jaar
                   </span>
                 )}
                 <Delta current={m.current} lastYear={m.lastYear} />
-                <span className="min-w-[50px] text-right text-sm font-medium text-label-primary">
+                <span className="min-w-[50px] text-right text-sm font-medium text-text-primary">
                   {fmt(m.current)}
                 </span>
               </div>
@@ -120,7 +120,7 @@ export function YearAgoSnapshot({ currentWeek, sameWeekLastYear }: YearAgoSnapsh
 
 function ClockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-label-tertiary shrink-0">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-text-tertiary shrink-0">
       <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
       <path d="M7 4v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>

@@ -47,7 +47,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
   if (!hasData) {
     return (
       <div className="flex h-[200px] items-center justify-center">
-        <p className="text-subhead text-label-tertiary">Geen hardloopdata voor deze periode</p>
+        <p className="text-subhead text-text-tertiary">Geen hardloopdata voor deze periode</p>
       </div>
     )
   }
@@ -73,7 +73,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
           contentStyle={appleTooltipStyle}
           labelStyle={appleTooltipLabelStyle}
           itemStyle={appleTooltipItemStyle}
-          cursor={{ fill: 'var(--color-system-gray6)', opacity: 0.5 }}
+          cursor={{ fill: 'rgba(255,255,255,0.06)', opacity: 0.5 }}
           formatter={(value, name) => {
             const key = String(name)
             if (key === 'km') return [`${value} km`, 'Totaal']

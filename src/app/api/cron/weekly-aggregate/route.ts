@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { addDaysToKey, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { extractWeeklyLessons } from '@/lib/ai/lessons-extractor'
+import { extractSportInsight } from '@/lib/ai/sport-insight-extractor'
 
 /**
  * GET /api/cron/weekly-aggregate
@@ -38,12 +40,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const results: Array<{ userId: string; status: 'ok' | 'error'; error?: string }> = []
+  const results: Array<{
+    userId: string
+    status: 'ok' | 'error'
+    error?: string
+    lessonsInserted?: number
+    sportInsightWritten?: boolean
+  }> = []
 
   for (const { id: userId } of profiles ?? []) {
     try {
       await computeWeeklyAggregation(userId, prevWeekMondayStr)
-      results.push({ userId, status: 'ok' })
+      // AI extractors run after aggregation — both catch internally and
+      // never throw, so a Claude failure can't break the cron.
+      const { inserted } = await extractWeeklyLessons(userId, prevWeekMondayStr)
+      const { written } = await extractSportInsight(userId)
+      results.push({
+        userId,
+        status: 'ok',
+        lessonsInserted: inserted,
+        sportInsightWritten: written,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error(`[GET /api/cron/weekly-aggregate] Failed for user ${userId}:`, error)
@@ -52,11 +69,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const totalErrors = results.filter((r) => r.status === 'error').length
+  const totalLessonsInserted = results.reduce((s, r) => s + (r.lessonsInserted ?? 0), 0)
+  const totalSportInsightsWritten = results.filter((r) => r.sportInsightWritten).length
 
   return NextResponse.json({
     weekStart: prevWeekMondayStr,
     processed: results.length,
     totalErrors,
+    totalLessonsInserted,
+    totalSportInsightsWritten,
     results,
   })
 }

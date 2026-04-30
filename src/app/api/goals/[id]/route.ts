@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Database } from '@/types/database'
+
+type GoalUpdate = Database['public']['Tables']['goals']['Update']
 
 const UpdateGoalSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -36,7 +39,7 @@ export async function PATCH(
       )
     }
 
-    const updateData: Record<string, unknown> = { ...parsed.data }
+    const updateData: GoalUpdate = { ...parsed.data }
     if (parsed.data.status === 'completed') {
       updateData.completed_at = new Date().toISOString()
     }

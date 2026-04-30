@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Pencil, Trash2, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useCoachingMemory, type CoachingMemoryEntry } from '@/hooks/useCoachingMemory'
 import { SectionHeader, INPUT_CLASSES } from './shared'
 
@@ -64,7 +64,7 @@ function MemoryItem({
 
   if (editing) {
     return (
-      <div className="flex flex-col gap-2 rounded-lg bg-system-gray6 p-3">
+      <div className="flex flex-col gap-2 rounded-lg bg-white/[0.06] p-3">
         <textarea
           value={editValue}
           onChange={(e) => setEditValue(e.target.value.slice(0, 500))}
@@ -72,18 +72,18 @@ function MemoryItem({
           className={`${INPUT_CLASSES} w-full resize-none`}
         />
         <div className="flex items-center justify-between">
-          <span className="text-xs text-label-tertiary">{editValue.length}/500</span>
+          <span className="text-xs text-text-tertiary">{editValue.length}/500</span>
           <div className="flex gap-2">
             <button
               onClick={() => { setEditing(false); setEditValue(memory.value) }}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-label-secondary hover:bg-system-gray6"
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-secondary hover:bg-white/[0.06]"
             >
               <X size={12} /> Annuleer
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !editValue.trim()}
-              className="flex items-center gap-1 rounded-lg bg-system-blue px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg bg-[#0A84FF] px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
             >
               <Check size={12} /> Opslaan
             </button>
@@ -94,10 +94,10 @@ function MemoryItem({
   }
 
   return (
-    <div className="group flex items-start gap-2 rounded-lg px-3 py-2 hover:bg-system-gray6">
+    <div className="group flex items-start gap-2 rounded-lg px-3 py-2 hover:bg-white/[0.06]">
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-label-primary">{memory.value}</p>
-        <p className="mt-0.5 text-xs text-label-tertiary">
+        <p className="text-sm text-text-primary">{memory.value}</p>
+        <p className="mt-0.5 text-xs text-text-tertiary">
           {memory.key} &middot; {memory.source_date}
         </p>
       </div>
@@ -107,14 +107,14 @@ function MemoryItem({
             <button
               onClick={handleDelete}
               disabled={saving}
-              className="rounded p-1 text-system-red hover:bg-system-red/10 disabled:opacity-50"
+              className="rounded p-1 text-[var(--color-status-bad)] hover:bg-[var(--color-status-bad)]/10 disabled:opacity-50"
               title="Bevestig verwijderen"
             >
               <Check size={14} />
             </button>
             <button
               onClick={() => setConfirming(false)}
-              className="rounded p-1 text-label-tertiary hover:bg-system-gray6"
+              className="rounded p-1 text-text-tertiary hover:bg-white/[0.06]"
               title="Annuleer"
             >
               <X size={14} />
@@ -124,14 +124,14 @@ function MemoryItem({
           <>
             <button
               onClick={() => { setEditing(true); setEditValue(memory.value) }}
-              className="rounded p-1 text-label-tertiary hover:bg-system-gray6 hover:text-label-primary"
+              className="rounded p-1 text-text-tertiary hover:bg-white/[0.06] hover:text-text-primary"
               title="Bewerk"
             >
               <Pencil size={14} />
             </button>
             <button
               onClick={() => setConfirming(true)}
-              className="rounded p-1 text-label-tertiary hover:bg-system-gray6 hover:text-system-red"
+              className="rounded p-1 text-text-tertiary hover:bg-white/[0.06] hover:text-[var(--color-status-bad)]"
               title="Verwijder"
             >
               <Trash2 size={14} />
@@ -160,7 +160,7 @@ function CategoryGroup({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-label-tertiary hover:text-label-secondary"
+        className="flex w-full items-center gap-1.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-tertiary hover:text-text-secondary"
       >
         {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         {getCategoryLabel(category)}
@@ -179,7 +179,19 @@ function CategoryGroup({
 
 export function CoachingMemoryEditor() {
   const { memories, isLoading, updateMemory, deleteMemory } = useCoachingMemory()
-  const groups = groupByCategory(memories)
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return memories
+    return memories.filter((m) =>
+      m.value.toLowerCase().includes(q) ||
+      m.key.toLowerCase().includes(q) ||
+      getCategoryLabel(m.category).toLowerCase().includes(q),
+    )
+  }, [memories, query])
+
+  const groups = groupByCategory(filtered)
   const categoryOrder = Object.keys(CATEGORY_LABELS)
   const sortedCategories = [
     ...categoryOrder.filter((c) => groups[c]),
@@ -187,21 +199,43 @@ export function CoachingMemoryEditor() {
   ]
 
   return (
-    <div className="bg-surface-primary border border-separator rounded-[14px] p-[14px_16px]">
+    <div className="bg-bg-surface border border-bg-border rounded-[14px] p-[14px_16px]">
       <SectionHeader title="Coaching Geheugen" />
-      <p className="mb-3 text-xs text-label-tertiary">
+      <p className="mb-3 text-xs text-text-tertiary">
         Feiten die de AI coach heeft onthouden uit jullie gesprekken.
       </p>
+
+      {memories.length > 0 && (
+        <div className="relative mb-3">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Zoek in herinneringen..."
+            className={`${INPUT_CLASSES} w-full pl-9`}
+            aria-label="Zoek in coaching geheugen"
+          />
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 animate-pulse rounded-lg bg-system-gray6" />
+            <div key={i} className="h-10 animate-pulse rounded-lg bg-white/[0.06]" />
           ))}
         </div>
       ) : memories.length === 0 ? (
-        <p className="py-4 text-center text-sm text-label-tertiary">
+        <p className="py-4 text-center text-sm text-text-tertiary">
           Nog geen herinneringen. Chat met je coach om het geheugen te vullen.
+        </p>
+      ) : filtered.length === 0 ? (
+        <p className="py-4 text-center text-sm text-text-tertiary">
+          Geen resultaten voor &ldquo;{query}&rdquo;.
         </p>
       ) : (
         <div className="flex flex-col gap-3">

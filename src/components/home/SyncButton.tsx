@@ -66,14 +66,14 @@ export function SyncButton() {
         <button
           onClick={handleSync}
           disabled={status === 'syncing'}
-          className="flex items-center gap-1.5 rounded-full bg-system-blue/10 px-4 py-2 text-caption1 font-semibold text-system-blue hover:bg-system-blue/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
+          className="flex items-center gap-1.5 rounded-full bg-[#0A84FF]/10 px-4 py-2 text-caption1 font-semibold text-[#0A84FF] hover:bg-[#0A84FF]/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
         >
           {status === 'syncing' ? (
             <RefreshCw size={12} strokeWidth={2} className="animate-spin" />
           ) : status === 'success' ? (
-            <Check size={12} strokeWidth={2} className="text-system-green" />
+            <Check size={12} strokeWidth={2} className="text-[var(--color-status-good)]" />
           ) : status === 'error' ? (
-            <AlertCircle size={12} strokeWidth={2} className="text-system-red" />
+            <AlertCircle size={12} strokeWidth={2} className="text-[var(--color-status-bad)]" />
           ) : (
             <RefreshCw size={12} strokeWidth={2} />
           )}
@@ -82,7 +82,7 @@ export function SyncButton() {
 
         <div className="flex items-center gap-2">
           {message && (
-            <span className={`text-caption1 ${status === 'error' ? 'text-system-red' : 'text-label-tertiary'}`}>
+            <span className={`text-caption1 ${status === 'error' ? 'text-[var(--color-status-bad)]' : 'text-text-tertiary'}`}>
               {message}
             </span>
           )}
@@ -90,7 +90,7 @@ export function SyncButton() {
             type="button"
             onClick={() => setShowInfo((v) => !v)}
             aria-label="Hoe werkt syncen?"
-            className="flex h-6 w-6 items-center justify-center rounded-full text-label-tertiary hover:bg-system-gray6 transition-colors"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] transition-colors"
           >
             <Info size={13} strokeWidth={2} />
           </button>
@@ -98,13 +98,13 @@ export function SyncButton() {
       </div>
 
       {showInfo && (
-        <div className="rounded-xl bg-system-gray6 p-3 text-caption1 leading-relaxed text-label-secondary">
+        <div className="rounded-xl bg-white/[0.06] p-3 text-caption1 leading-relaxed text-text-secondary">
           <p className="mb-1.5">
-            <strong className="text-label-primary">Hevy</strong>: deze knop trekt jouw nieuwste workouts op.
+            <strong className="text-text-primary">Hevy</strong>: deze knop trekt jouw nieuwste workouts op.
             Hevy synct automatisch elke ochtend; gebruik deze knop alleen als je net iets hebt afgerond.
           </p>
           <p>
-            <strong className="text-label-primary">Apple Health</strong>: pusht zichzelf vanuit de
+            <strong className="text-text-primary">Apple Health</strong>: pusht zichzelf vanuit de
             Health Auto Export-app op je iPhone (typisch dagelijks). Open die app als je
             de data van vandaag eerder wilt zien — Pulse kan HAE niet zelf aansporen.
           </p>

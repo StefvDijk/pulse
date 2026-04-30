@@ -99,7 +99,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex h-[200px] items-center justify-center">
-      <p className="text-subhead text-label-tertiary">{message}</p>
+      <p className="text-subhead text-text-tertiary">{message}</p>
     </div>
   )
 }

@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -658,6 +638,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      metric_baselines: {
+        Row: {
+          created_at: string | null
+          date: string
+          metric: string
+          sample_count_30d: number
+          sample_count_365d: number
+          sample_count_60d: number
+          user_id: string
+          value_30d_avg: number | null
+          value_365d_avg: number | null
+          value_60d_avg: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          metric: string
+          sample_count_30d?: number
+          sample_count_365d?: number
+          sample_count_60d?: number
+          user_id: string
+          value_30d_avg?: number | null
+          value_365d_avg?: number | null
+          value_60d_avg?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          metric?: string
+          sample_count_30d?: number
+          sample_count_365d?: number
+          sample_count_60d?: number
+          user_id?: string
+          value_30d_avg?: number | null
+          value_365d_avg?: number | null
+          value_60d_avg?: number | null
+        }
+        Relationships: []
       }
       monthly_aggregations: {
         Row: {
@@ -1382,6 +1401,33 @@ export type Database = {
           },
         ]
       }
+      weekly_lessons: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          lesson_text: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          lesson_text: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          lesson_text?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       weekly_reviews: {
         Row: {
           calendar_synced: boolean | null
@@ -1742,11 +1788,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-

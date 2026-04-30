@@ -32,17 +32,17 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
   return (
     <div className="flex items-center justify-between py-2.5">
       <div className="flex flex-1 items-center gap-2 min-w-0">
-        <span className="text-sm text-label-primary truncate">{exercise.name}</span>
+        <span className="text-sm text-text-primary truncate">{exercise.name}</span>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm tabular-nums text-label-secondary">
+        <span className="text-sm tabular-nums text-text-secondary">
           {workingSets.length > 0
             ? `${workingSets.length}×${reps ?? '?'}${weight ? ` · ${weight}kg` : ''}`
             : '—'}
         </span>
         <Link
           href={`/chat?context=exercise&name=${encodeURIComponent(exercise.name)}&workout=${encodeURIComponent(workoutTitle)}`}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-label-tertiary hover:bg-system-gray6 hover:text-system-blue transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] hover:text-[#0A84FF] transition-colors"
           title={`Vraag de coach over ${exercise.name}`}
         >
           <MessageCircle size={14} />
@@ -66,22 +66,22 @@ function SportIcon({ type, size = 14 }: { type: ActivityType; size?: number }) {
 function sportBgClass(type: ActivityType): string {
   switch (type) {
     case 'gym':
-      return 'bg-system-blue text-white'
+      return 'bg-[#0A84FF] text-white'
     case 'run':
-      return 'bg-system-orange text-white'
+      return 'bg-[var(--color-status-warn)] text-white'
     case 'padel':
-      return 'bg-system-yellow text-white'
+      return 'bg-[var(--color-status-warn)] text-white'
   }
 }
 
 function sportTextClass(type: ActivityType): string {
   switch (type) {
     case 'gym':
-      return 'text-system-blue'
+      return 'text-[#0A84FF]'
     case 'run':
-      return 'text-system-orange'
+      return 'text-[var(--color-status-warn)]'
     case 'padel':
-      return 'text-system-yellow'
+      return 'text-[var(--color-status-warn)]'
   }
 }
 
@@ -123,8 +123,8 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
 
   return (
     <div
-      className={`rounded-2xl border bg-surface-primary overflow-hidden transition-colors ${
-        isToday ? 'border-text-primary' : 'border-separator'
+      className={`rounded-2xl border bg-bg-surface overflow-hidden transition-colors ${
+        isToday ? 'border-text-primary' : 'border-bg-border'
       }`}
     >
       <button
@@ -140,7 +140,7 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
               ? sportBgClass(token.type)
               : isToday
                 ? 'bg-text-primary text-white'
-                : `border-2 border-separator bg-transparent ${sportTextClass(token.type)}`
+                : `border-2 border-bg-border bg-transparent ${sportTextClass(token.type)}`
           }`}
         >
           {isDone ? <Check size={16} strokeWidth={3} /> : <SportIcon type={token.type} />}
@@ -148,7 +148,7 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
           {isExtra && (
             <span
               aria-label="Ongepland toegevoegd"
-              className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-system-green text-white border-2 border-surface-primary"
+              className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-status-good)] text-white border-2 border-bg-surface"
             >
               <Plus size={10} strokeWidth={3} />
             </span>
@@ -158,13 +158,13 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
         {/* Inhoud */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-label-primary truncate">
+            <span className="text-sm font-semibold text-text-primary truncate">
               {token.title}
             </span>
-            <span className="text-xs text-label-tertiary shrink-0">{day.dayLabel}</span>
+            <span className="text-xs text-text-tertiary shrink-0">{day.dayLabel}</span>
           </div>
           {(subtitle || duration) && (
-            <p className="text-xs text-label-tertiary mt-0.5">
+            <p className="text-xs text-text-tertiary mt-0.5">
               {subtitle}
               {subtitle && duration ? ' · ' : ''}
               {duration}
@@ -175,7 +175,7 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
         {hasExpandableContent && (
           <ChevronDown
             size={16}
-            className={`text-label-tertiary transition-transform shrink-0 ${
+            className={`text-text-tertiary transition-transform shrink-0 ${
               expanded ? 'rotate-180' : ''
             }`}
           />
@@ -184,8 +184,8 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
 
       {/* Uitklap (alleen gym met content). */}
       {hasExpandableContent && expanded && exercises.length > 0 && (
-        <div className="border-t border-separator px-4 pb-3">
-          <div className="divide-y divide-separator">
+        <div className="border-t border-bg-border px-4 pb-3">
+          <div className="divide-y divide-bg-border">
             {exercises.map((exercise) => (
               <ExerciseRow
                 key={exercise.exercise_order}
@@ -195,7 +195,7 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
             ))}
           </div>
           {!isDone && day.lastPerformance && (
-            <p className="mt-2 text-xs text-label-tertiary">
+            <p className="mt-2 text-xs text-text-tertiary">
               Gebaseerd op sessie van {day.lastPerformance.date}
             </p>
           )}
@@ -203,8 +203,8 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
       )}
 
       {hasExpandableContent && expanded && exercises.length === 0 && day.lastPerformance && (
-        <div className="border-t border-separator px-4 py-3">
-          <p className="text-xs text-label-tertiary">
+        <div className="border-t border-bg-border px-4 py-3">
+          <p className="text-xs text-text-tertiary">
             Vorige sessie: {day.lastPerformance.date}
           </p>
         </div>

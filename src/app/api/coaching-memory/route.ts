@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Database } from '@/types/database'
+
+type CoachingMemoryUpdate = Database['public']['Tables']['coaching_memory']['Update']
 
 const UpdateSchema = z.object({
   id: z.string().uuid(),
@@ -59,7 +62,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient()
-    const updates: Record<string, string> = { value: parsed.data.value, updated_at: new Date().toISOString() }
+    const updates: CoachingMemoryUpdate = {
+      value: parsed.data.value,
+      updated_at: new Date().toISOString(),
+    }
     if (parsed.data.category) {
       updates.category = parsed.data.category
     }

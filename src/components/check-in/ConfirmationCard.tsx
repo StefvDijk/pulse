@@ -128,50 +128,50 @@ export function ConfirmationCard({
   return (
     <div className="flex flex-col gap-3">
       {/* Summary card */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
-        <h3 className="text-subhead font-semibold text-label-primary mb-4">Samenvatting</h3>
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
+        <h3 className="text-subhead font-semibold text-text-primary mb-4">Samenvatting</h3>
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           {/* Total sessions */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
-            <span className="text-title2 font-bold tabular-nums text-label-primary">{totalSessions}</span>
-            <span className="text-xs text-label-tertiary">sessies</span>
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
+            <span className="text-title2 font-bold tabular-nums text-text-primary">{totalSessions}</span>
+            <span className="text-xs text-text-tertiary">sessies</span>
           </div>
 
           {/* Breakdown */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
             <div className="flex items-center gap-1">
-              <Dumbbell size={12} className="text-system-blue" />
-              <span className="text-sm font-semibold text-label-primary">{gymCount}</span>
+              <Dumbbell size={12} className="text-[#0A84FF]" />
+              <span className="text-sm font-semibold text-text-primary">{gymCount}</span>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
-              <Footprints size={12} className="text-system-orange" />
-              <span className="text-sm font-semibold text-label-primary">{runCount}</span>
+              <Footprints size={12} className="text-[var(--color-status-warn)]" />
+              <span className="text-sm font-semibold text-text-primary">{runCount}</span>
             </div>
             {padelCount > 0 && (
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-xs">🎾</span>
-                <span className="text-sm font-semibold text-label-primary">{padelCount}</span>
+                <span className="text-sm font-semibold text-text-primary">{padelCount}</span>
               </div>
             )}
           </div>
 
           {/* Nutrition */}
-          <div className="flex flex-col items-center rounded-xl bg-system-gray6 p-3">
-            <span className="text-title2 font-bold tabular-nums text-label-primary">
+          <div className="flex flex-col items-center rounded-xl bg-white/[0.06] p-3">
+            <span className="text-title2 font-bold tabular-nums text-text-primary">
               {reviewData.nutrition.avgProteinG != null
                 ? `${Math.round(reviewData.nutrition.avgProteinG)}g`
                 : '–'}
             </span>
-            <span className="text-xs text-label-tertiary">eiwit/dag</span>
+            <span className="text-xs text-text-tertiary">eiwit/dag</span>
           </div>
         </div>
 
         {/* Sleep */}
         {reviewData.sleep.avgTotalMinutes != null && (
-          <div className="flex items-center justify-between py-2 border-t border-separator">
-            <span className="text-sm text-label-secondary">Gem. slaap</span>
-            <span className="text-sm font-medium text-label-primary">
+          <div className="flex items-center justify-between py-2 border-t border-bg-border">
+            <span className="text-sm text-text-secondary">Gem. slaap</span>
+            <span className="text-sm font-medium text-text-primary">
               {Math.floor(reviewData.sleep.avgTotalMinutes / 60)}u{' '}
               {Math.round(reviewData.sleep.avgTotalMinutes % 60)}m
             </span>
@@ -180,9 +180,9 @@ export function ConfirmationCard({
 
         {/* Manual additions count */}
         {manualAdditions.length > 0 && (
-          <div className="flex items-center justify-between py-2 border-t border-separator">
-            <span className="text-sm text-label-secondary">Handmatig toegevoegd</span>
-            <span className="text-sm font-medium text-label-primary">
+          <div className="flex items-center justify-between py-2 border-t border-bg-border">
+            <span className="text-sm text-text-secondary">Handmatig toegevoegd</span>
+            <span className="text-sm font-medium text-text-primary">
               {manualAdditions.length} {manualAdditions.length === 1 ? 'item' : 'items'}
             </span>
           </div>
@@ -191,11 +191,11 @@ export function ConfirmationCard({
 
       {/* Planned sessions summary */}
       {plannedSessions && plannedSessions.length > 0 && (
-        <div className="rounded-2xl bg-surface-primary border border-separator p-5">
+        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Calendar size={16} className="text-label-tertiary" />
-            <h3 className="text-subhead font-semibold text-label-primary">Weekplan</h3>
-            <span className="text-xs text-label-tertiary">
+            <Calendar size={16} className="text-text-tertiary" />
+            <h3 className="text-subhead font-semibold text-text-primary">Weekplan</h3>
+            <span className="text-xs text-text-tertiary">
               {plannedSessions.length} {plannedSessions.length === 1 ? 'sessie' : 'sessies'}
             </span>
           </div>
@@ -205,15 +205,15 @@ export function ConfirmationCard({
                 key={s.date}
                 className="flex items-center justify-between py-1"
               >
-                <span className="text-sm text-label-primary">
+                <span className="text-sm text-text-primary">
                   {DAY_ABBREVS_SHORT[s.day] ?? s.day}: {s.workout}
                 </span>
-                <span className="text-xs text-label-tertiary">{s.time}</span>
+                <span className="text-xs text-text-tertiary">{s.time}</span>
               </div>
             ))}
           </div>
           {syncToCalendar && (
-            <p className="mt-2 text-xs text-label-tertiary">
+            <p className="mt-2 text-xs text-text-tertiary">
               Wordt gesynchroniseerd naar Google Agenda
             </p>
           )}
@@ -221,11 +221,11 @@ export function ConfirmationCard({
       )}
 
       {/* Coach quote */}
-      <div className="rounded-2xl bg-surface-primary border border-separator p-5">
-        <p className="text-sm italic text-label-secondary leading-relaxed">
+      <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
+        <p className="text-sm italic text-text-secondary leading-relaxed">
           &ldquo;{analysis.summary}&rdquo;
         </p>
-        <p className="mt-2 text-xs text-label-tertiary">— Pulse Coach</p>
+        <p className="mt-2 text-xs text-text-tertiary">— Pulse Coach</p>
       </div>
 
       {/* Error */}
@@ -235,7 +235,7 @@ export function ConfirmationCard({
       <button
         onClick={handleConfirm}
         disabled={saving}
-        className="flex items-center justify-center gap-2 rounded-xl bg-system-blue px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
       >
         {saving ? (
           <Loader2 size={16} className="animate-spin" />

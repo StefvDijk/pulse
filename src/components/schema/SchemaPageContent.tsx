@@ -23,7 +23,7 @@ function SchemaPageSkeleton() {
         <SkeletonLine width="w-1/3" height="h-3" />
         <div className="flex gap-1 mt-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-1 h-2 rounded-full bg-system-gray6" />
+            <div key={i} className="flex-1 h-2 rounded-full bg-white/[0.06]" />
           ))}
         </div>
       </SkeletonCard>
@@ -101,7 +101,14 @@ export function SchemaPageContent() {
   const modalDays: SchemaWeekDay[] = weekData?.days ?? []
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 px-4 pb-24 pt-[60px]">
+      <div className="pt-1">
+        <div className="text-[13px] font-medium text-text-tertiary">Schema</div>
+        <h1 className="text-[28px] font-bold leading-[1.1] tracking-[-0.6px] text-text-primary">
+          {data.title}
+        </h1>
+      </div>
+
       {/* Progress indicator */}
       <SchemaProgress
         title={data.title}

@@ -78,7 +78,7 @@ export function DayIndicator({ calories, calorieTarget, protein, proteinTarget }
       >
         {statusInfo.label}
       </span>
-      <p className="text-sm text-label-primary">
+      <p className="text-sm text-text-primary">
         {message}
       </p>
     </div>

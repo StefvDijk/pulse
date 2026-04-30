@@ -11,13 +11,17 @@ const PUBLIC_ROUTES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Expose pathname to server components (for OnboardingCheck etc.)
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-pathname', pathname)
+
   // Allow public routes through without auth
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next({ request })
+    return NextResponse.next({ request: { headers: reqHeaders } })
   }
 
   // Create a Supabase client that reads session cookies
-  let response = NextResponse.next({ request })
+  let response = NextResponse.next({ request: { headers: reqHeaders } })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
