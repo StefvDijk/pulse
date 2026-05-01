@@ -70,6 +70,17 @@ export interface CheckInReviewData {
     proteinTargetPerKg: number | null
   }
   gaps: DetectedGap[]
+  schemaPosition: {
+    title: string
+    weekNumber: number | null
+    totalWeeks: number | null
+  } | null
+  previousWeek: {
+    sessionsCompleted: number | null
+    avgProteinG: number | null
+    avgSleepMinutes: number | null
+    avgCalories: number | null
+  } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +277,9 @@ export async function GET(request: Request) {
       prevReviewResult,
       settingsResult,
       schemaResult,
+      prevAggResult,
+      prevSleepResult,
+      prevNutritionResult,
     ] = await Promise.all([
       // Weekly aggregation for this week
       admin
@@ -344,13 +358,37 @@ export async function GET(request: Request) {
         .eq('user_id', user.id)
         .maybeSingle(),
 
-      // Active training schema (for gap detection)
+      // Active training schema (for gap detection + schema position header)
       admin
         .from('training_schemas')
-        .select('workout_schedule, scheduled_overrides')
+        .select('workout_schedule, scheduled_overrides, title, start_date, weeks_planned')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .maybeSingle(),
+
+      // Previous week's aggregation (for week-over-week comparison)
+      admin
+        .from('weekly_aggregations')
+        .select('completed_sessions')
+        .eq('user_id', user.id)
+        .eq('week_start', prevWeekStartStr)
+        .maybeSingle(),
+
+      // Previous week's sleep (averaged client-side)
+      admin
+        .from('sleep_logs')
+        .select('total_sleep_minutes')
+        .eq('user_id', user.id)
+        .gte('date', prevWeekStartStr)
+        .lt('date', weekStart),
+
+      // Previous week's nutrition
+      admin
+        .from('daily_nutrition_summary')
+        .select('total_calories, total_protein_g')
+        .eq('user_id', user.id)
+        .gte('date', prevWeekStartStr)
+        .lt('date', weekStart),
     ])
 
     // Check for critical errors
@@ -415,6 +453,28 @@ export async function GET(request: Request) {
       },
       previousReview: prevReviewResult.data,
       previousFocus: extractPreviousFocus(prevReviewResult.data),
+      schemaPosition: schema
+        ? {
+            title: schema.title,
+            weekNumber: schema.start_date
+              ? Math.max(
+                  1,
+                  Math.floor(
+                    (new Date(weekStart + 'T00:00:00Z').getTime() -
+                      new Date(schema.start_date + 'T00:00:00Z').getTime()) /
+                      (7 * 86400000),
+                  ) + 1,
+                )
+              : null,
+            totalWeeks: schema.weeks_planned ?? null,
+          }
+        : null,
+      previousWeek: {
+        sessionsCompleted: prevAggResult.data?.completed_sessions ?? null,
+        avgProteinG: avg((prevNutritionResult.data ?? []).map((d) => d.total_protein_g)),
+        avgSleepMinutes: avg((prevSleepResult.data ?? []).map((d) => d.total_sleep_minutes)),
+        avgCalories: avg((prevNutritionResult.data ?? []).map((d) => d.total_calories)),
+      },
       targets: {
         weeklyTrainingTarget: settingsResult.data?.weekly_training_target ?? null,
         proteinTargetPerKg: settingsResult.data?.protein_target_per_kg ?? null,

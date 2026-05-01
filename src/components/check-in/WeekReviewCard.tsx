@@ -16,6 +16,7 @@ import { ManualAddModal } from '@/components/check-in/ManualAddModal'
 import { WeekTier } from '@/components/check-in/WeekTier'
 import { WeekReflectionBlock, MIN_REFLECTION_LENGTH } from '@/components/check-in/WeekReflectionBlock'
 import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
+import { WeekContextHeader } from '@/components/check-in/WeekContextHeader'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -115,6 +116,9 @@ export function WeekReviewCard({
           </p>
         </div>
       )}
+
+      {/* Schema position + week-vs-previous comparison */}
+      <WeekContextHeader data={data} />
 
       {/* Required free-text reflection — gates progression to step 2 */}
       <WeekReflectionBlock value={reflection} onChange={onReflectionChange} />
