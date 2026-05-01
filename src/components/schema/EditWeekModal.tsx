@@ -197,7 +197,7 @@ export function EditWeekModal({
                   onChange={(e) => updateDraft(draft.date, e.target.value)}
                   placeholder="Rustdag"
                   list={`suggestions-${draft.date}`}
-                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none focus:border-[#0A84FF]"
+                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
                 />
                 <datalist id={`suggestions-${draft.date}`}>
                   {suggestions.map((s) => (

@@ -84,7 +84,7 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
           placeholder="Wat heb je gegeten?"
           rows={2}
           disabled={isLoading}
-          className="flex-1 resize-none bg-transparent text-sm text-text-primary outline-none placeholder:opacity-40"
+          className="flex-1 resize-none bg-transparent text-[16px] text-text-primary outline-none placeholder:opacity-40"
         />
         <button
           onClick={handleSubmit}

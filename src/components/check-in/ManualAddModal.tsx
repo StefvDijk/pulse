@@ -62,7 +62,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
           onChange={(e) => setDuration(e.target.value)}
           placeholder="60"
           min={1}
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div>
@@ -144,7 +144,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           placeholder="82.5"
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -158,7 +158,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={muscleMass}
             onChange={(e) => setMuscleMass(e.target.value)}
             placeholder="38.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
@@ -171,7 +171,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatMass}
             onChange={(e) => setFatMass(e.target.value)}
             placeholder="12.5"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
@@ -186,7 +186,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatPct}
             onChange={(e) => setFatPct(e.target.value)}
             placeholder="15.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
         <div>
@@ -199,7 +199,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={waist}
             onChange={(e) => setWaist(e.target.value)}
             placeholder="82.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary"
           />
         </div>
       </div>
@@ -242,7 +242,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
           onChange={(e) => setText(e.target.value)}
           placeholder="Bijv. lichte kniepijn bij squats, extra wandeling gemaakt..."
           rows={3}
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none resize-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none resize-none placeholder:text-text-tertiary"
         />
       </div>
       <button

@@ -164,14 +164,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="time"
                         value={entry.startTime}
                         onChange={(e) => updateEntry(i, { startTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-[16px] text-text-primary outline-none"
                       />
                       <span className="text-xs text-text-tertiary">–</span>
                       <input
                         type="time"
                         value={entry.endTime}
                         onChange={(e) => updateEntry(i, { endTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-[16px] text-text-primary outline-none"
                       />
                     </div>
                   )}

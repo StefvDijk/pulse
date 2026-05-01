@@ -39,7 +39,7 @@ interface GoalData {
   targetUnit: string
 }
 
-const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-sm outline-none'
+const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none'
 
 export function OnboardingWizard() {
   const router = useRouter()

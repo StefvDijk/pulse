@@ -59,7 +59,7 @@ export function PreviousFocusBlock({ focusText, value, onChange }: PreviousFocus
           onChange={(e) => onChange({ ...value, note: e.target.value })}
           placeholder="Korte toelichting (optioneel)"
           maxLength={200}
-          className="w-full rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-[#0A84FF] focus:outline-none"
+          className="w-full rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-[16px] text-text-primary placeholder:text-text-tertiary focus:border-[#0A84FF] focus:outline-none"
         />
       )}
     </div>

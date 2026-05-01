@@ -163,14 +163,14 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary"
+          className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-[16px] text-text-primary"
         />
         <input
           type="text"
           value={workout}
           onChange={(e) => setWorkout(e.target.value)}
           placeholder={SPORT_LABELS[type]}
-          className="flex-1 rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary"
+          className="flex-1 rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-[16px] text-text-primary placeholder:text-text-tertiary"
         />
       </div>
       <div className="flex items-center gap-2">

@@ -164,7 +164,7 @@ export function PlanChat({
               rows={2}
               maxLength={500}
               placeholder="Schrijf wat je wil aanpassen…"
-              className="flex-1 resize-none bg-transparent px-1 py-1 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
+              className="flex-1 resize-none bg-transparent px-1 py-1 text-[16px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
               disabled={busy}
             />
             <button

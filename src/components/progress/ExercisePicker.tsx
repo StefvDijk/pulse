@@ -59,7 +59,7 @@ export function ExercisePicker({ exercises, selected, onSelect }: ExercisePicker
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Zoek oefening..."
-              className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none"
+              className="w-full bg-transparent text-[16px] text-text-primary placeholder:text-text-tertiary outline-none"
               autoFocus
             />
           </div>

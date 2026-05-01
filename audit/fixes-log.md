@@ -63,3 +63,41 @@ Group A raakt geen UI-codepatronen die nieuw findings opleveren in Vercel WIG. I
 
 ### Body-scroll-lock dekking
 7 modals/sheets voorzien: ManualAddModal, PlanWeekModal, EditWeekModal, DayDetailSheet, MuscleDrilldownSheet, SchemaCalendar's RescheduleMenu, ExplainSheet. Navigation More-sheet had al eigen lock (`document.body.style.overflow`); blijft zo om scope-creep te vermijden — kan in groep D opgeruimd worden naar de hook.
+
+---
+
+## Group C1 — Inputs to 16px (no iOS auto-zoom)
+
+**Datum:** 2026-05-01 · **Commit:** (pending)
+
+### Strategie
+Alle text-input/textarea font-size naar 16px (`text-[16px]`). 16px is iOS's drempel: lager triggert auto-zoom op focus. We gebruiken `text-[16px]` ipv `text-base` om mismatch met Tailwind defaults te vermijden en omdat onze tokens (`text-body` 17px) op buttons/labels al gebruikt worden.
+
+### Gefixte INPUT_CLASSES constanten (raken vele inputs tegelijk)
+- `src/components/settings/shared.tsx:66` — `text-[14px]` → `text-[16px]` (raakt SettingsPage 11×, CoachingMemoryEditor 2×, AIContextSection 1×)
+- `src/components/settings/OnboardingWizard.tsx:42` — `text-sm` → `text-[16px]` (raakt 7 inputs in wizard)
+- `src/components/goals/GoalForm.tsx:27` — `text-sm` → `text-[16px]` (raakt 5 form fields)
+
+### Per-file fixes
+- `src/components/check-in/EditReviewForm.tsx` — 3× textarea/input: `text-sm` → `text-[16px]`
+- `src/components/check-in/PreviousFocusBlock.tsx` — input `text-sm` → `text-[16px]`
+- `src/components/check-in/PlanChat.tsx` — chat textarea `text-[13px]` → `text-[16px]`
+- `src/components/check-in/WeekReflectionBlock.tsx` — textarea `text-[15px]` → `text-[16px]`
+- `src/components/check-in/ManualAddModal.tsx` — 7× input/textarea `text-sm` → `text-[16px]`
+- `src/components/check-in/WeekPlanCard.tsx` — 3× input (time + workout text) `text-sm` → `text-[16px]`
+- `src/components/progress/ExercisePicker.tsx` — search input `text-sm` → `text-[16px]`
+- `src/components/nutrition/NutritionInput.tsx` — textarea `text-sm` → `text-[16px]`
+- `src/components/schema/SchemaExerciseList.tsx` — 3× input `text-sm` → `text-[16px]`
+- `src/components/schema/EditWeekModal.tsx` — input `text-sm` → `text-[16px]`
+- `src/components/schema/PlanWeekModal.tsx` — 2× time input `text-xs` → `text-[16px]`
+- `src/app/auth/login/page.tsx` — 2× input `text-sm` → `text-[16px]`
+- `src/app/auth/signup/page.tsx` — 3× input `text-sm` → `text-[16px]`
+
+### Niet aangeraakt (bewust)
+- `src/components/chat/ChatInput.tsx:52` — gebruikt `text-body` = 17px (≥16). Audit's "vermoedelijk <16px" was speculatief.
+- WeekPlanCard.tsx:638 is een checkbox (h-4 w-4), geen text input — auto-zoom niet van toepassing.
+- Buttons en labels met `text-sm`/`text-xs` — alleen text-inputs triggeren iOS zoom.
+
+### Verificatie
+- `npx tsc --noEmit` → exit 0.
+- Sanity grep: geen `<input|textarea>` met `text-(sm|xs|[13/14/15px])` meer in `src/`.

@@ -117,7 +117,7 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
             onChange={(e) => setSummary(e.target.value)}
             rows={5}
             maxLength={2000}
-            className="mt-2 w-full resize-none rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-sm text-text-primary focus:border-[#0A84FF] focus:outline-none"
+            className="mt-2 w-full resize-none rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-[16px] text-text-primary focus:border-[#0A84FF] focus:outline-none"
           />
         </div>
 
@@ -132,7 +132,7 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
             maxLength={500}
-            className="mt-2 w-full rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-sm text-text-primary focus:border-[#0A84FF] focus:outline-none"
+            className="mt-2 w-full rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-[16px] text-text-primary focus:border-[#0A84FF] focus:outline-none"
           />
         </div>
 
@@ -147,7 +147,7 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             maxLength={2000}
-            className="mt-2 w-full resize-none rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-sm text-text-primary focus:border-[#0A84FF] focus:outline-none"
+            className="mt-2 w-full resize-none rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-[16px] text-text-primary focus:border-[#0A84FF] focus:outline-none"
           />
         </div>
 
