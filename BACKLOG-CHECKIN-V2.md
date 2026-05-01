@@ -234,7 +234,8 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-13 · Edit-na-confirm
-**Status:** 📋 todo · **Omvang:** S · **Fase:** 3 · **Parallel:** ✅
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-13-edit-after-confirm` · **Omvang:** S · **Fase:** 3 · **Parallel:** ✅
+**Scope:** dedicated edit-form ipv volledige wizard-rerun. Editable: summary, focus, wellness, notes, focus-outcome. Eindelijk geen SQL meer voor typefoutjes.
 **Why:** Typefout? Verkeerde focus opgeschreven? Nu alleen via SQL.
 **Files:** nieuwe `src/app/check-in/[id]/edit/page.tsx`, hergebruikt CheckInFlow
 **Acceptatie:**

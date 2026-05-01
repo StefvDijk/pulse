@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronLeft, ClipboardCheck, Calendar } from 'lucide-react'
+import { ChevronLeft, ClipboardCheck, Calendar, Pencil } from 'lucide-react'
 import { useCheckInHistory } from '@/hooks/useCheckInHistory'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
@@ -79,6 +79,7 @@ function EmptyState() {
 // ---------------------------------------------------------------------------
 
 interface HistoryCardProps {
+  id: string
   weekNumber: number
   weekStart: string
   weekEnd: string
@@ -90,6 +91,7 @@ interface HistoryCardProps {
 }
 
 function HistoryCard({
+  id,
   weekNumber,
   weekStart,
   weekEnd,
@@ -109,13 +111,22 @@ function HistoryCard({
             {formatDateRange(weekStart, weekEnd)}
           </p>
         </div>
-        {sessionsCompleted !== null && (
-          <div className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1">
-            <span className="text-xs font-medium text-text-secondary">
-              {sessionsCompleted}/{sessionsPlanned ?? '?'} sessies
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {sessionsCompleted !== null && (
+            <div className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1">
+              <span className="text-xs font-medium text-text-secondary">
+                {sessionsCompleted}/{sessionsPlanned ?? '?'} sessies
+              </span>
+            </div>
+          )}
+          <Link
+            href={`/check-in/${id}/edit`}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.10]"
+            aria-label="Bewerken"
+          >
+            <Pencil size={12} />
+          </Link>
+        </div>
       </div>
 
       {/* Summary */}
@@ -183,6 +194,7 @@ export function CheckInHistoryPage() {
             {entries.map((entry) => (
               <HistoryCard
                 key={entry.id}
+                id={entry.id}
                 weekNumber={entry.weekNumber}
                 weekStart={entry.weekStart}
                 weekEnd={entry.weekEnd}
