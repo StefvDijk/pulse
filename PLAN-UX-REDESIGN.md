@@ -1,3 +1,13 @@
+> **Visual references in this plan resolve to the v2 design system.**
+> Source of truth: `design/design_handoff_pulse_v2/` (tokens: `tokens.js`,
+> screens: `screens/*.jsx`, spec: `README.md`).
+>
+> Any reference to "Mineral", "light theme", "Inter", or `PULSE-DESIGN-SYSTEM.md`
+> in this document is **stale** — substitute the v2 dark tokens. Story intent
+> and structure below remain valid.
+
+---
+
 # PLAN-UX-REDESIGN.md
 
 Voorstel voor een gefaseerde UX/UI revisie van Pulse, gebaseerd op een vergelijking met Gentler Streak, Lumy, Strava, Train Fitness, Evolve, Calm, Headspace, Athlytic, Training Today, CHIPR en de visuele taal van Apple Fitness+.
