@@ -191,6 +191,7 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
 - Coaching memory + previousFocus zijn signalen — als ze er zijn, gebruik ze
 - **NOOIT spreken over slaap als er geen sleep-data is**. Geen "ik weet niet hoe je sliep", geen "log je slaap". Sla het thema gewoon over.
 - **NOOIT spreken over voeding als er geen nutrition-data is**. Zelfde regel: zwijg, vraag niet naar logging.
+- **NOOIT spreken over stappen/RHR/HRV/active kcal als die specifieke metric ontbreekt**. Dezelfde zwijg-regel.
 - Refereer alleen aan metrics die ECHT in de data staan.`
 
   // Build user message
@@ -209,11 +210,32 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
   // Week-vs-previous comparison
   if (reviewData.previousWeek) {
     const pw = reviewData.previousWeek
-    if (pw.sessionsCompleted != null || pw.avgProteinG != null || pw.avgSleepMinutes != null) {
+    const lines: string[] = []
+    if (pw.sessionsCompleted != null) lines.push(`- Sessies: ${pw.sessionsCompleted}`)
+    if (pw.avgProteinG != null) lines.push(`- Eiwit/dag: ${Math.round(pw.avgProteinG)}g`)
+    if (pw.avgSleepMinutes != null) lines.push(`- Slaap: ${Math.floor(pw.avgSleepMinutes / 60)}u${Math.round(pw.avgSleepMinutes % 60)}m`)
+    if (pw.avgSteps != null) lines.push(`- Stappen/dag: ${Math.round(pw.avgSteps).toLocaleString('nl-NL')}`)
+    if (pw.avgRestingHr != null) lines.push(`- Rust-HR: ${Math.round(pw.avgRestingHr)}bpm`)
+    if (pw.avgHrv != null) lines.push(`- HRV: ${Math.round(pw.avgHrv)}ms`)
+    if (pw.avgActiveCalories != null) lines.push(`- Actief kcal: ${Math.round(pw.avgActiveCalories)}`)
+    if (lines.length > 0) {
       parts.push('### Vorige week (ter vergelijking)')
-      if (pw.sessionsCompleted != null) parts.push(`- Sessies: ${pw.sessionsCompleted}`)
-      if (pw.avgProteinG != null) parts.push(`- Eiwit/dag: ${Math.round(pw.avgProteinG)}g`)
-      if (pw.avgSleepMinutes != null) parts.push(`- Slaap: ${Math.floor(pw.avgSleepMinutes / 60)}u${Math.round(pw.avgSleepMinutes % 60)}m`)
+      parts.push(...lines)
+      parts.push('')
+    }
+  }
+
+  // Vitalen deze week
+  if (reviewData.vitals) {
+    const v = reviewData.vitals
+    const lines: string[] = []
+    if (v.avgSteps != null) lines.push(`- Stappen/dag: ${Math.round(v.avgSteps).toLocaleString('nl-NL')}`)
+    if (v.avgActiveCalories != null) lines.push(`- Actief kcal/dag: ${Math.round(v.avgActiveCalories)}`)
+    if (v.avgRestingHr != null) lines.push(`- Rust-HR: ${Math.round(v.avgRestingHr)}bpm`)
+    if (v.avgHrv != null) lines.push(`- HRV: ${Math.round(v.avgHrv)}ms`)
+    if (lines.length > 0) {
+      parts.push('### Vitalen deze week (Apple Health)')
+      parts.push(...lines)
       parts.push('')
     }
   }

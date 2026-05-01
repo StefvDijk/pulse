@@ -50,6 +50,33 @@ function buildDataSnapshot(data: CheckInReviewData): string {
     if (data.nutrition.avgCalories != null) lines.push(`Calorieën: gem ${Math.round(data.nutrition.avgCalories)}/dag`)
   }
 
+  // Vitalen (Apple Health) — alleen als data
+  if (data.vitals) {
+    const v = data.vitals
+    const pw = data.previousWeek
+    const vitLines: string[] = []
+    if (v.avgSteps != null) {
+      const prev = pw?.avgSteps
+      vitLines.push(`Stappen: gem ${Math.round(v.avgSteps).toLocaleString('nl-NL')}/dag${prev != null ? ` (vorige wk ${Math.round(prev).toLocaleString('nl-NL')})` : ''}`)
+    }
+    if (v.avgActiveCalories != null) {
+      const prev = pw?.avgActiveCalories
+      vitLines.push(`Actief kcal: gem ${Math.round(v.avgActiveCalories)}/dag${prev != null ? ` (vorige wk ${Math.round(prev)})` : ''}`)
+    }
+    if (v.avgRestingHr != null) {
+      const prev = pw?.avgRestingHr
+      vitLines.push(`Rust-HR: gem ${Math.round(v.avgRestingHr)}bpm${prev != null ? ` (vorige wk ${Math.round(prev)}bpm)` : ''}`)
+    }
+    if (v.avgHrv != null) {
+      const prev = pw?.avgHrv
+      vitLines.push(`HRV: gem ${Math.round(v.avgHrv)}ms${prev != null ? ` (vorige wk ${Math.round(prev)}ms)` : ''}`)
+    }
+    if (vitLines.length > 0) {
+      lines.push('Vitalen:')
+      for (const v2 of vitLines) lines.push(`  - ${v2}`)
+    }
+  }
+
   // PRs deze week
   if (data.highlights.personalRecords.length > 0) {
     lines.push('PRs deze week:')
@@ -81,6 +108,7 @@ Vragen die hem aan het denken zetten of context vangen die de cijfers niet tonen
 - Stel ALLEEN vragen over patronen die je ECHT in de data ziet
 - Géén vragen over slaap als er geen sleep-data is
 - Géén vragen over voeding als er geen nutrition-data is
+- Géén vragen over stappen/RHR/HRV/active kcal als die specifieke metric ontbreekt
 - Géén vragen die al beantwoord worden door zijn reflectie
 - Géén generieke vragen ("hoe was de week", "voelde je je goed")
 
@@ -90,6 +118,9 @@ Vragen die hem aan het denken zetten of context vangen die de cijfers niet tonen
 - Sessies-aantal flink anders dan vorige week
 - Een PR die opvalt — vraag wat de doorbraak was
 - Slaap of eiwit-gemiddelden die merkbaar verschillen van vorige week
+- Stappen die >2000/dag verschillen van vorige week
+- Rust-HR die >3bpm omhoog gaat (mogelijk fatigue/ziekte)
+- HRV die >5ms omlaag gaat (mogelijk stress/overtraining)
 - Een focus die niet of deels gehaald is — vraag waarom
 - Reflectie die iets aanstipt maar onduidelijk laat (vraag om concretie)
 
