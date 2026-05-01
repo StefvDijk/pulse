@@ -9,13 +9,6 @@ interface ManualAddition {
   data: Record<string, unknown>
 }
 
-interface WellnessInput {
-  energy: number | null
-  motivation: number | null
-  stress: number | null
-  notes: string
-}
-
 interface FocusOutcomeInput {
   rating: 'gehaald' | 'deels' | 'niet' | null
   note: string
@@ -25,7 +18,7 @@ interface CheckInAnalyzeParams {
   reviewData: CheckInReviewData
   manualAdditions?: ManualAddition[]
   coachingMemory?: Array<{ key: string; category: string; value: string }>
-  wellness?: WellnessInput | null
+  reflection?: string | null
   focusOutcome?: FocusOutcomeInput | null
 }
 
@@ -143,7 +136,7 @@ function buildDataBlock(data: CheckInReviewData): string {
 // ---------------------------------------------------------------------------
 
 export function buildCheckInAnalyzePrompt(params: CheckInAnalyzeParams): { system: string; userMessage: string } {
-  const { reviewData, manualAdditions, coachingMemory, wellness, focusOutcome } = params
+  const { reviewData, manualAdditions, coachingMemory, reflection, focusOutcome } = params
 
   const system = `Je bent Pulse Coach, Stef's persoonlijke trainer.
 Je geeft een wekelijkse analyse die kort, concreet, en BRUIKBAAR is.
@@ -187,7 +180,10 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
 ## Hard rules
 - summary ≤120 woorden TOTAAL
 - Als data dun is: zeg dat in 1 zin en analyseer wat er WEL is
-- Coaching memory + previousFocus zijn signalen — als ze er zijn, gebruik ze`
+- Coaching memory + previousFocus zijn signalen — als ze er zijn, gebruik ze
+- **NOOIT spreken over slaap als er geen sleep-data is**. Geen "ik weet niet hoe je sliep", geen "log je slaap". Sla het thema gewoon over.
+- **NOOIT spreken over voeding als er geen nutrition-data is**. Zelfde regel: zwijg, vraag niet naar logging.
+- Refereer alleen aan metrics die ECHT in de data staan.`
 
   // Build user message
   const parts: string[] = []
@@ -207,13 +203,10 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
     parts.push('')
   }
 
-  // Subjectieve wellness ratings
-  if (wellness && (wellness.energy != null || wellness.motivation != null || wellness.stress != null || wellness.notes.trim())) {
-    parts.push('### Wellness (zelfrapportage 1-5)')
-    if (wellness.energy != null) parts.push(`- Energie: ${wellness.energy}/5`)
-    if (wellness.motivation != null) parts.push(`- Motivatie: ${wellness.motivation}/5`)
-    if (wellness.stress != null) parts.push(`- Stress: ${wellness.stress}/5 (hoger = pittiger)`)
-    if (wellness.notes.trim()) parts.push(`- Notitie: "${wellness.notes.trim()}"`)
+  // Free-text reflection van Stef (verplicht in stap 1, ≥10 chars)
+  if (reflection && reflection.trim()) {
+    parts.push('### Reflectie van Stef')
+    parts.push(`"${reflection.trim()}"`)
     parts.push('')
   }
 
