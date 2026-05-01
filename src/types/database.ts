@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -1512,6 +1507,9 @@ export type Database = {
           inbody_weight_kg: number | null
           manual_additions: Json | null
           next_week_plan: Json | null
+          notes_text: string | null
+          previous_focus_note: string | null
+          previous_focus_rating: string | null
           sessions_completed: number | null
           sessions_planned: number | null
           summary_text: string | null
@@ -1520,6 +1518,9 @@ export type Database = {
           week_end: string
           week_number: number
           week_start: string
+          wellness_energy: number | null
+          wellness_motivation: number | null
+          wellness_stress: number | null
         }
         Insert: {
           calendar_synced?: boolean | null
@@ -1534,6 +1535,9 @@ export type Database = {
           inbody_weight_kg?: number | null
           manual_additions?: Json | null
           next_week_plan?: Json | null
+          notes_text?: string | null
+          previous_focus_note?: string | null
+          previous_focus_rating?: string | null
           sessions_completed?: number | null
           sessions_planned?: number | null
           summary_text?: string | null
@@ -1542,6 +1546,9 @@ export type Database = {
           week_end: string
           week_number: number
           week_start: string
+          wellness_energy?: number | null
+          wellness_motivation?: number | null
+          wellness_stress?: number | null
         }
         Update: {
           calendar_synced?: boolean | null
@@ -1556,6 +1563,9 @@ export type Database = {
           inbody_weight_kg?: number | null
           manual_additions?: Json | null
           next_week_plan?: Json | null
+          notes_text?: string | null
+          previous_focus_note?: string | null
+          previous_focus_rating?: string | null
           sessions_completed?: number | null
           sessions_planned?: number | null
           summary_text?: string | null
@@ -1564,6 +1574,9 @@ export type Database = {
           week_end?: string
           week_number?: number
           week_start?: string
+          wellness_energy?: number | null
+          wellness_motivation?: number | null
+          wellness_stress?: number | null
         }
         Relationships: []
       }
@@ -1865,3 +1878,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

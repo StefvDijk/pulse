@@ -77,7 +77,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ## Sprint 2 — Sluit de week-loop
 
 ### CHECKIN-03 · Migratie: weekly_reviews uitbreiden
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 1 · **Parallel:** ⚠️ blokkeert 04, 05
+**Status:** ✅ done · **Branch:** `feature/CHECKIN-03-weekly-reviews-v2-fields` · **Omvang:** M · **Fase:** 1 · **Parallel:** ⚠️ blokkeert 04, 05
 **Why:** Wellness-data en focus-outcome moeten ergens landen. Kolommen op `weekly_reviews` ipv aparte tabel = simpeler, single-row-per-week past natuurlijk.
 **Files:** nieuwe `supabase/migrations/2026XXXX_checkin_v2_fields.sql`, regenerate `src/types/database.ts`
 **Acceptatie:**
