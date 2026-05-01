@@ -71,11 +71,9 @@ Niet aangeraakt — RSC-conversie is een eigen kerf, geen iOS polish.
 
 Twee parallelle Card-systemen. Niet aangeraakt — orthogonale refactor, eigen PR.
 
-## 10. Recharts charts in trends/ map
+## 10. ~~Recharts charts in trends/ map~~ — NVT
 
-Niet alle Recharts in `src/components/trends/` zijn handmatig geverifieerd op `isAnimationActive`. De CSS-blanket gate vangt CSS-transitions, maar Recharts gebruikt JS-animation die **niet** door de CSS-gate wordt geneutraliseerd. Als een chart in trends/ bestaat met inline animation, blijft die motion-active.
-
-**Actie nodig**: grep `from 'recharts'` in `src/components/trends/` en handmatig `isAnimationActive` toevoegen indien gevonden. Niet gedaan in deze sessie omdat audit alleen `progress/` chartfiles noemde.
+Geverifieerd na fase 4: `src/components/trends/` heeft geen Recharts files. Alle 7 Recharts-using bestanden in de codebase (`progress/Volume/Strength/Running/TonnageTrend`, `check-in/HistoryAnalytics`, `workload/AcwrCorridor`, `nutrition/MacroSummary`) hebben `isAnimationActive`-dekking matchend met hun chart-elementen.
 
 ---
 
