@@ -94,6 +94,8 @@ export async function POST(request: Request) {
       .from('coaching_memory')
       .select('key, category, value')
       .eq('user_id', user.id)
+      .is('superseded_by', null)
+      .gte('confidence', 0.3)
       .order('updated_at', { ascending: false })
       .limit(30)
 

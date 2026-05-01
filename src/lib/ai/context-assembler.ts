@@ -865,6 +865,8 @@ async function loadCoachingMemory(userId: string): Promise<string | null> {
     .from('coaching_memory')
     .select('category, key, value, source_date')
     .eq('user_id', userId)
+    .is('superseded_by', null)
+    .gte('confidence', 0.3)
     .order('category')
     .order('updated_at', { ascending: false })
 

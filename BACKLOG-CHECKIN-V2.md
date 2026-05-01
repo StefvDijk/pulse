@@ -183,7 +183,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-10 · Coaching memory met decay
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 2 · **Parallel:** ⚠️ schema-wijziging
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-10-memory-decay` · **Omvang:** M · **Fase:** 2 · **Parallel:** ⚠️ schema-wijziging
 **Why:** Na 6 maanden = bag-of-facts-soep. Memoria/PH-LLM patroon: confidence + supersession.
 **Files:** migratie, `src/lib/ai/memory-extractor.ts`, prompt-builders
 **Acceptatie:**
