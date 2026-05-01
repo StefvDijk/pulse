@@ -27,13 +27,6 @@ const ManualAdditionSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 })
 
-const WellnessSchema = z.object({
-  energy: z.number().nullable(),
-  motivation: z.number().nullable(),
-  stress: z.number().nullable(),
-  notes: z.string(),
-}).nullable().optional()
-
 const FocusOutcomeSchema = z.object({
   rating: z.enum(['gehaald', 'deels', 'niet']).nullable(),
   note: z.string(),
@@ -44,7 +37,7 @@ const AnalyzeRequestSchema = z.object({
     message: 'reviewData is required',
   }),
   manualAdditions: z.array(ManualAdditionSchema).optional(),
-  wellness: WellnessSchema,
+  reflection: z.string().nullable().optional(),
   focusOutcome: FocusOutcomeSchema,
 })
 
@@ -86,7 +79,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { reviewData, manualAdditions, wellness, focusOutcome } = parsed.data
+    const { reviewData, manualAdditions, reflection, focusOutcome } = parsed.data
 
     // Fetch coaching memory for context
     const admin = createAdminClient()
@@ -106,7 +99,7 @@ export async function POST(request: Request) {
       reviewData,
       manualAdditions,
       coachingMemory,
-      wellness: wellness ?? null,
+      reflection: reflection ?? null,
       focusOutcome: focusOutcome ?? null,
     })
 

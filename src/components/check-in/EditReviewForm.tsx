@@ -13,9 +13,6 @@ interface EditableReview {
   week_end: string
   summary_text: string | null
   notes_text: string | null
-  wellness_energy: number | null
-  wellness_motivation: number | null
-  wellness_stress: number | null
   previous_focus_rating: 'gehaald' | 'deels' | 'niet' | null
   previous_focus_note: string | null
   next_week_plan: { focusNextWeek?: string } | null
@@ -36,9 +33,6 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
   const [summary, setSummary] = useState('')
   const [focus, setFocus] = useState('')
   const [notes, setNotes] = useState('')
-  const [energy, setEnergy] = useState<number | null>(null)
-  const [motivation, setMotivation] = useState<number | null>(null)
-  const [stress, setStress] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -54,9 +48,6 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
         setSummary(data.summary_text ?? '')
         setFocus(data.next_week_plan?.focusNextWeek ?? '')
         setNotes(data.notes_text ?? '')
-        setEnergy(data.wellness_energy)
-        setMotivation(data.wellness_motivation)
-        setStress(data.wellness_stress)
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Laden mislukt')
       } finally {
@@ -80,9 +71,6 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
           summary_text: summary,
           focus_next_week: focus,
           notes_text: notes.trim() || null,
-          wellness_energy: energy,
-          wellness_motivation: motivation,
-          wellness_stress: stress,
         }),
       })
       if (!res.ok) throw new Error('Opslaan mislukt')
@@ -148,51 +136,16 @@ export function EditReviewForm({ reviewId }: EditReviewFormProps) {
           />
         </div>
 
-        {/* Wellness sliders (compact) */}
-        <div className="rounded-2xl border border-bg-border bg-bg-surface p-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">Wellness (1-5)</p>
-          {(
-            [
-              ['Energie', energy, setEnergy] as const,
-              ['Motivatie', motivation, setMotivation] as const,
-              ['Stress', stress, setStress] as const,
-            ]
-          ).map(([label, val, setter]) => (
-            <div key={label} className="mb-2 flex items-center gap-2">
-              <span className="w-20 text-sm text-text-secondary">{label}</span>
-              <div className="flex flex-1 gap-1">
-                {[1, 2, 3, 4, 5].map((n) => {
-                  const active = val != null && n <= val
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setter(n)}
-                      className="flex-1 rounded-md py-1.5 text-xs font-semibold"
-                      style={{
-                        background: active ? '#0A84FF' : 'rgba(255,255,255,0.06)',
-                        color: active ? '#fff' : 'var(--color-text-tertiary)',
-                      }}
-                    >
-                      {n}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Notes */}
+        {/* Reflectie / hoe was je week */}
         <div className="rounded-2xl border border-bg-border bg-bg-surface p-4">
           <label htmlFor="edit-notes" className="text-sm font-medium text-text-primary">
-            Notities
+            Hoe was je week?
           </label>
           <textarea
             id="edit-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={3}
+            rows={4}
             maxLength={2000}
             className="mt-2 w-full resize-none rounded-xl border border-bg-border bg-white/[0.04] px-3 py-2 text-sm text-text-primary focus:border-[#0A84FF] focus:outline-none"
           />

@@ -14,7 +14,7 @@ import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
 import { WeekTier } from '@/components/check-in/WeekTier'
-import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
+import { WeekReflectionBlock, MIN_REFLECTION_LENGTH } from '@/components/check-in/WeekReflectionBlock'
 import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
@@ -26,8 +26,8 @@ interface WeekReviewCardProps {
   manualAdditions: ManualAddition[]
   onAddManual: (addition: ManualAddition) => void
   onRemoveManual: (index: number) => void
-  wellness: WellnessState
-  onWellnessChange: (next: WellnessState) => void
+  reflection: string
+  onReflectionChange: (next: string) => void
   focusOutcome: FocusOutcomeState
   onFocusOutcomeChange: (next: FocusOutcomeState) => void
   onNext: () => void
@@ -76,12 +76,13 @@ export function WeekReviewCard({
   manualAdditions,
   onAddManual,
   onRemoveManual,
-  wellness,
-  onWellnessChange,
+  reflection,
+  onReflectionChange,
   focusOutcome,
   onFocusOutcomeChange,
   onNext,
 }: WeekReviewCardProps) {
+  const reflectionValid = reflection.trim().length >= MIN_REFLECTION_LENGTH
   const [showModal, setShowModal] = useState(false)
 
   const totalSessions = data.workouts.length + data.runs.length + data.padelSessions.length
@@ -115,11 +116,11 @@ export function WeekReviewCard({
         </div>
       )}
 
+      {/* Required free-text reflection — gates progression to step 2 */}
+      <WeekReflectionBlock value={reflection} onChange={onReflectionChange} />
+
       {/* Burn Bar tier — your week vs your 4-week average */}
       <WeekTier weekStart={data.week.weekStart} />
-
-      {/* Subjective wellness ratings + open notes */}
-      <WellnessBlock value={wellness} onChange={onWellnessChange} />
 
       {/* Sessions card */}
       <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
@@ -309,7 +310,8 @@ export function WeekReviewCard({
         </button>
         <button
           onClick={onNext}
-          className="flex-1 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white"
+          disabled={!reflectionValid}
+          className="flex-1 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Analyse genereren
         </button>

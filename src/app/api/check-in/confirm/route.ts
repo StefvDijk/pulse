@@ -45,14 +45,7 @@ const ConfirmRequestSchema = z.object({
   planned_sessions: z.array(PlannedSessionSchema).optional(),
   sync_to_calendar: z.boolean().optional().default(false),
   dry_run: z.boolean().optional().default(false),
-  wellness: z
-    .object({
-      energy: z.number().int().min(1).max(5).nullable(),
-      motivation: z.number().int().min(1).max(5).nullable(),
-      stress: z.number().int().min(1).max(5).nullable(),
-      notes: z.string().max(2000).nullable(),
-    })
-    .optional(),
+  reflection: z.string().min(1).max(2000).optional(),
   previous_focus_outcome: z
     .object({
       rating: z.enum(['gehaald', 'deels', 'niet']),
@@ -127,10 +120,9 @@ export async function POST(request: Request) {
       inbody_fat_mass_kg: inbody?.fat_mass_kg ?? null,
       inbody_muscle_mass_kg: inbody?.muscle_mass_kg ?? null,
       inbody_waist_cm: inbody?.waist_cm ?? null,
-      wellness_energy: input.wellness?.energy ?? null,
-      wellness_motivation: input.wellness?.motivation ?? null,
-      wellness_stress: input.wellness?.stress ?? null,
-      notes_text: input.wellness?.notes ?? null,
+      // wellness_energy/motivation/stress columns kept (nullable) for back-compat
+      // but no longer captured — replaced by free-text `reflection` in `notes_text`.
+      notes_text: input.reflection ?? null,
       previous_focus_rating: input.previous_focus_outcome?.rating ?? null,
       previous_focus_note: input.previous_focus_outcome?.note ?? null,
     }

@@ -7,7 +7,6 @@ import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import type { FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
-import type { WellnessState } from '@/components/check-in/WellnessBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -17,7 +16,7 @@ interface CoachAnalysisCardProps {
   reviewData: CheckInReviewData
   manualAdditions: ManualAddition[]
   analysis: AnalyzeResponse | null
-  wellness?: WellnessState
+  reflection?: string
   focusOutcome?: FocusOutcomeState
   onAnalysisComplete: (result: AnalyzeResponse) => void
   onNext: () => void
@@ -31,7 +30,7 @@ export function CoachAnalysisCard({
   reviewData,
   manualAdditions,
   analysis,
-  wellness,
+  reflection,
   focusOutcome,
   onAnalysisComplete,
   onNext,
@@ -58,7 +57,7 @@ export function CoachAnalysisCard({
               type: a.type,
               data: a.data,
             })),
-            wellness: wellness ?? null,
+            reflection: reflection ?? null,
             focusOutcome: focusOutcome ?? null,
           }),
         })

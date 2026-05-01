@@ -12,7 +12,6 @@ import { WeekPlanCard } from '@/components/check-in/WeekPlanCard'
 import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
-import type { WellnessState } from '@/components/check-in/WellnessBlock'
 import type { FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
@@ -132,12 +131,7 @@ export function CheckInFlow() {
   const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [dryRun, setDryRun] = useState(false)
-  const [wellness, setWellness] = useState<WellnessState>({
-    energy: null,
-    motivation: null,
-    stress: null,
-    notes: '',
-  })
+  const [reflection, setReflection] = useState('')
   const [focusOutcome, setFocusOutcome] = useState<FocusOutcomeState>({
     rating: null,
     note: '',
@@ -281,8 +275,8 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             onAddManual={handleAddManual}
             onRemoveManual={handleRemoveManual}
-            wellness={wellness}
-            onWellnessChange={setWellness}
+            reflection={reflection}
+            onReflectionChange={setReflection}
             focusOutcome={focusOutcome}
             onFocusOutcomeChange={setFocusOutcome}
             onNext={() => setStep(2)}
@@ -293,7 +287,7 @@ export function CheckInFlow() {
             reviewData={data}
             manualAdditions={manualAdditions}
             analysis={analysis}
-            wellness={wellness}
+            reflection={reflection}
             focusOutcome={focusOutcome}
             onAnalysisComplete={handleAnalysisComplete}
             onNext={handleGoToPlanning}
@@ -315,7 +309,7 @@ export function CheckInFlow() {
             plannedSessions={plannedSessions}
             syncToCalendar={syncToCalendar}
             dryRun={dryRun}
-            wellness={wellness}
+            reflection={reflection}
             focusOutcome={focusOutcome}
             onConfirmed={handleConfirmed}
           />
