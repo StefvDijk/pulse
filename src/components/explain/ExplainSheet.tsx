@@ -35,7 +35,7 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
         aria-hidden="true"
       />
 
-      <div className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface pb-[env(safe-area-inset-bottom)] sm:max-h-[85dvh] sm:rounded-[22px] sm:border-[0.5px] sm:pb-0">
+      <div className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface pb-safe sm:max-h-[85dvh] sm:rounded-[22px] sm:border-[0.5px] sm:pb-0">
         <div className="flex justify-center pt-2">
           <span className="h-1 w-9 rounded-full bg-bg-border-strong" aria-hidden="true" />
         </div>

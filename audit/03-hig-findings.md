@@ -15,7 +15,7 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 
 | Bestand:regel | Huidig | Gewenst | HIG | Sev |
 |---|---|---|---|---|
-| DashboardPage.tsx:67,216 | Vertical padding `pt-16` (64px) — duplicates layout's `pt-[env(safe-area-inset-top)]` and bakes in dynamic-island avoidance with a fixed value. | Use a single source of truth: rely on layout safe-area or `pt-[max(env(safe-area-inset-top),60px)]`. Currently iPhone 14 Pro+ users get extra 50px of dead space. | Deference | P1 |
+| DashboardPage.tsx:67,216 | Vertical padding `pt-16` (64px) — duplicates layout's `pt--ARB-env(safe-area-inset-top)-` and bakes in dynamic-island avoidance with a fixed value. | Use a single source of truth: rely on layout safe-area or `pt-[max(env(safe-area-inset-top),60px)]`. Currently iPhone 14 Pro+ users get extra 50px of dead space. | Deference | P1 |
 | DashboardPage.tsx:84-88,86-87,98-104,108-114,115,120-132,148-150,224,250 | Hard-coded `text-[28px]`, `text-[44px]`, `text-[24px]`, `text-[20px]`, `text-[11px]`, `text-[13px]`, `text-[18px]`, `tracking-[-1.2px]`, `leading-none`. | Use `text-large-title` / `text-title1` / `text-title2` / `text-headline` / `text-caption2` tokens. The whole point of defining the Apple type scale in globals.css is undermined here. | Clarity | P1 |
 | DashboardPage.tsx:122-125 | Primary CTA "Start workout" `h-12` — 48px, OK; secondary chevron button `h-12 w-12` with single `›` glyph at 18px. | OK on size; but `›` U+203A is non-semantic. Use `<ChevronRight />` icon for screen readers + Liquid Glass clarity. `aria-label="Detail"` is too vague. | Clarity | P2 |
 | DashboardPage.tsx:159-170 | Week-strip day dot 36×36 (`h-9 w-9`) is below 44pt though parent is a passive `<div>`. If meant to be tappable (per typical pattern) it must be a button. | If non-interactive, fine. If linkable to that day, wrap in `Link` with min 44pt hit area (e.g. invisible padding via `before:absolute -inset-…`). | Accessibility | P1 |
@@ -60,7 +60,7 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 | PlanChat.tsx:121,128 | User chat bubble `bg-[#0A84FF]` literal hex; assistant bubble border. | Use `--color-system-blue` token. | Clarity | P2 |
 | ManualAddModal.tsx:266-272 | Modal backdrop `bg-black/30 backdrop-blur-sm` → relatively translucent; on dark page this is barely a backdrop. | `bg-black/50` minimum for clear scrim, or use `glass` utility for true Liquid Glass. | Depth | P1 |
 | ManualAddModal.tsx:282-287 | Close button 32×32 (`h-8 w-8`). | 44pt. | Accessibility | P0 |
-| ManualAddModal.tsx:266 | `fixed inset-0 z-50` — modal does not respect safe-area-inset-bottom on devices with home indicator (sliding sheet is bottom-anchored). | Add `pb-[env(safe-area-inset-bottom)]`. | Safe area | P0 |
+| ManualAddModal.tsx:266 | `fixed inset-0 z-50` — modal does not respect safe-area-inset-bottom on devices with home indicator (sliding sheet is bottom-anchored). | Add `pb--ARB-env(safe-area-inset-bottom)-`. | Safe area | P0 |
 | ManualAddModal.tsx — modal mount | No `prefers-reduced-motion` check; modal slide-in is implicit via `items-end` + `rounded-t-3xl` (no animation). | OK. | — | — |
 | ManualAddModal.tsx:87-93,205-211,247-253 | Form CTA `py-2.5` ≈ 38px. | 44pt minimum. | Accessibility | P0 |
 | WeekPlanCard.tsx:300-304 | Each session card has 3 buttons (`h-7 w-7`) for edit/remove/expand. | All 28px → bump to 44pt; or convert to swipe-to-delete + tap-to-edit. | Accessibility | P0 |
@@ -87,7 +87,7 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 | ChatInterface.tsx:343-350 | Streaming reveal driven by rAF — runs continuously; no reduced-motion fallback. | If reduce-motion, skip smoothing, render full text. | Motion | P1 |
 | ChatInput.tsx:39-42 | `min-h-[44px]` ✓ — meets Apple minimum, good. | — | — | — |
 | ChatInput.tsx:56-61 | Send button `h-9 w-9` = 36px. | Min 44pt. (Tap target inside larger input still valid only if hit area extends to parent — it doesn't here.) | Accessibility | P0 |
-| ChatInput.tsx:39 | Input bar has no safe-area padding; covers home indicator on iOS PWA. | `pb-[env(safe-area-inset-bottom)]` on the wrapper or on `<main>`. | Safe area | P0 |
+| ChatInput.tsx:39 | Input bar has no safe-area padding; covers home indicator on iOS PWA. | `pb--ARB-env(safe-area-inset-bottom)-` on the wrapper or on `<main>`. | Safe area | P0 |
 | ChatInput.tsx:62-66 | Loading spinner pure CSS `animate-spin` — no reduce-motion variant. | Add `motion-reduce:animate-none`. | Motion | P1 |
 | ChatMessage.tsx:75 | `max-w-[85%]` — fine; `text-subhead` (15px) inside; bubble corner radius 16/4 = good iMessage-like asymmetry. | — | — | — |
 | ChatMessage.tsx:77 | User bubble `bg-[#0A84FF]` literal. | Use system-blue token. | Clarity | P2 |
@@ -111,12 +111,12 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 | SchemaWeekView.tsx:106-112 | "Koppel agenda" plain `<a>` underlined link, ~14×30px. | 44pt. | Accessibility | P0 |
 | DayDetailSheet.tsx:74-79 | Close button 28×28 (`h-7 w-7`). | 44pt. | Accessibility | P0 |
 | DayDetailSheet.tsx:59-61 | Modal `bg-black/20 backdrop-blur-sm` — too light a scrim; legibility on dark theme suffers. | `bg-black/45+`. | Depth | P1 |
-| DayDetailSheet.tsx — sheet | No safe-area padding on bottom-sheet variant `items-end`. | `pb-[env(safe-area-inset-bottom)]`. | Safe area | P0 |
+| DayDetailSheet.tsx — sheet | No safe-area padding on bottom-sheet variant `items-end`. | `pb--ARB-env(safe-area-inset-bottom)-`. | Safe area | P0 |
 | PlanWeekModal.tsx:102-107 | Close button 32×32. | 44pt. | Accessibility | P0 |
 | PlanWeekModal.tsx:140-146 | Native checkbox + label, target ≈ 16pt. | Switch or lift to 44pt. | Accessibility | P0 |
 | PlanWeekModal.tsx:160-174 | Time `<input type="time">` with `py-1` ≈ 22px tall on iOS Safari. | 44pt. | Accessibility | P0 |
 | PlanWeekModal.tsx:191-202 | Sticky footer "Toevoegen aan agenda" `py-2.5` ≈ 38px. | 44pt. | Accessibility | P0 |
-| PlanWeekModal.tsx:187 | Sticky footer no `pb-[env(safe-area-inset-bottom)]`. | Add. | Safe area | P0 |
+| PlanWeekModal.tsx:187 | Sticky footer no `pb--ARB-env(safe-area-inset-bottom)-`. | Add. | Safe area | P0 |
 | PlanWeekModal.tsx:88-92 | Same backdrop scrim as DayDetailSheet, `bg-black/30`. | OK at 30% with backdrop-blur, but for full-screen sheet on dark theme, blur saves it. | Depth | P2 |
 | EditWeekModal.tsx:148-155 | Close 32×32; same issue. | 44pt. | Accessibility | P0 |
 | EditWeekModal.tsx:181-188 | "Reset" mini-button no padding, `text-[11px]`. | 44pt or convert to icon button with hit area. | Accessibility | P0 |
@@ -155,8 +155,8 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 | Navigation.tsx:222-251 | Sidebar nav `py-2.5` ≈ 38px — desktop but still touch on iPad. | 44pt for iPad mode. | Accessibility | P1 |
 | Navigation.tsx:268-279 | Desktop sign-out `py-2.5`. | 44pt on iPad. | Accessibility | P1 |
 | MiniChat.tsx + Navigation tab bar | MiniChat FAB at `bottom-24` (96px) overlaps tab bar's safe-area zone. | Recompute: tab bar 86px + safe-area + 8px gap. | Safe area | P0 |
-| layout.tsx:45 | `<main>` only adds `pt-[env(safe-area-inset-top)]`; many child pages then add another `pt-[60px]`. Result: double padding on notched devices. | Pick one. Recommend: layout adds top safe-area only, children use a `<ScreenHeader>` component with consistent 16px content offset. | Safe area | P1 |
-| layout.tsx | No `<main>` `pb-[env(safe-area-inset-bottom)]` on desktop — ok since sidebar; but mobile relies on tab bar. | OK for current model. | — | — |
+| layout.tsx:45 | `<main>` only adds `pt--ARB-env(safe-area-inset-top)-`; many child pages then add another `pt-[60px]`. Result: double padding on notched devices. | Pick one. Recommend: layout adds top safe-area only, children use a `<ScreenHeader>` component with consistent 16px content offset. | Safe area | P1 |
+| layout.tsx | No `<main>` `pb--ARB-env(safe-area-inset-bottom)-` on desktop — ok since sidebar; but mobile relies on tab bar. | OK for current model. | — | — |
 
 **Tally Navigation — P0: 3 · P1: 3 · P2: 0**
 
@@ -221,7 +221,7 @@ Severity legend: **P0** = HIG blocker (a11y / target size / safe area), **P1** =
 | login.tsx:51,65 / signup.tsx:51,73,89 | All inputs `py-2 text-sm` ≈ 36px. | 44pt. | Accessibility | P0 |
 | login.tsx:78-83 / signup.tsx:100-105 | Submit `py-3` ≈ 48px ✓. | OK. | — | — |
 | login.tsx:88,signup.tsx:111 | "Registreren / Inloggen" link inline tap target ≈ 16×20px. | 44pt with padding. | Accessibility | P0 |
-| login.tsx:33 | No `pt-[env(safe-area-inset-top)]` — fine for centered layout. | OK. | — | — |
+| login.tsx:33 | No `pt--ARB-env(safe-area-inset-top)-` — fine for centered layout. | OK. | — | — |
 | login.tsx — no autofocus on email | iOS users land on a centered form with software keyboard collapsed. | `autoFocus` on email field. | Clarity | P2 |
 | login.tsx,signup.tsx | Card `rounded-[14px]` — uses non-token radius; v2 expects `radius-card-md` (16). | Token. | Clarity | P2 |
 | login.tsx,signup.tsx | Page background `bg-bg-grouped` resolves to `--color-bg-page` in dark mode — fine. Brand glow / hero absent → could feel boring; consider Liquid Glass card on radial gradient. | Polish. | Depth | P2 |
@@ -255,7 +255,7 @@ Apple HIG: every animation ≥ trivial duration must respect `prefers-reduced-mo
 
 - **Token discipline:** Apple type tokens (`text-large-title` … `text-caption2`) and v2 radius tokens are defined but bypassed in 80% of screens via raw `text-[Npx]` / `rounded-[Npx]`. This is the single biggest clarity tax — every refresh of the design system will require touching every component.
 - **Color tokens:** `#0A84FF` (system blue) is hard-coded in ~40 files instead of `var(--color-system-blue)`. Sport-padel uses status-warn instead of `--color-sport-padel-base`.
-- **Safe-area insets:** layout.tsx provides `pt-[env(safe-area-inset-top)]`, but children re-pad with literal `pt-[60px]`/`pt-16`. Tab bar uses `pb-[28px]` literal rather than env. All bottom-anchored sheets miss `pb-[env(safe-area-inset-bottom)]`.
+- **Safe-area insets:** layout.tsx provides `pt--ARB-env(safe-area-inset-top)-`, but children re-pad with literal `pt-[60px]`/`pt-16`. Tab bar uses `pb-[28px]` literal rather than env. All bottom-anchored sheets miss `pb--ARB-env(safe-area-inset-bottom)-`.
 - **Touch targets:** dozens of icon buttons are 24/28/32/36 px. Apple HIG floor is 44pt. This is by far the most frequent P0.
 - **Liquid Glass:** Navigation tab bar is the only true glass surface (translucency + blur + saturate); good. Modals use `backdrop-blur-sm` (4px) which is too weak for Apple's 2026 thick-material look. Cards correctly avoid glass per v2 spec.
 - **Dark-mode parity:** dark-only — but `:root` still sets `color-scheme: light` (globals.css:248). The `<html className="h-full dark">` is what activates dark, so the `:root` rule is dead but confusing. Consider `color-scheme: dark` directly.
@@ -287,6 +287,6 @@ Apple HIG: every animation ≥ trivial duration must respect `prefers-reduced-mo
 
 1. **Touch-target sweep** — bump every `h-6/h-7/h-8/h-9` and `py-1/py-1.5/py-2/py-2.5` button to `min-h-[44px]` (or wrap icons in 44pt frames). Single highest-yield a11y fix; ~50 sites.
 2. **Reduced-motion compliance** — add `useReducedMotion()` to all motion/react usage, `motion-reduce:animate-none` to all `animate-spin`/`animate-pulse`, and `isAnimationActive={!reduce}` to all Recharts.
-3. **Safe-area discipline** — replace `pt-[60px]` with `pt-[max(env(safe-area-inset-top),60px)]`; replace `pb-[28px]` in tab bar with env-based; add `pb-[env(safe-area-inset-bottom)]` to all bottom-sheet modals (ManualAddModal, PlanWeekModal, EditWeekModal, DayDetailSheet, ChatInput).
+3. **Safe-area discipline** — replace `pt-[60px]` with `pt-[max(env(safe-area-inset-top),60px)]`; replace `pb-[28px]` in tab bar with env-based; add `pb--ARB-env(safe-area-inset-bottom)-` to all bottom-sheet modals (ManualAddModal, PlanWeekModal, EditWeekModal, DayDetailSheet, ChatInput).
 4. **Token migration** — kill raw `text-[Npx]`, `rounded-[Npx]`, hard-coded hex colors. Lint-rule candidate.
 5. **Modal a11y** — add `role="dialog"`, `aria-modal="true"`, Escape handling, and focus trap to OnboardingWizard, ManualAddModal, DayDetailSheet, PlanWeekModal, EditWeekModal.

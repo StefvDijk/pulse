@@ -15,13 +15,13 @@ Code-niveau audit. Geen browser-test gedaan; bevindingen zijn statisch afgeleid 
 - `src/app/globals.css:282-285` — `-webkit-overflow-scrolling: touch` aanwezig op `.overflow-y-auto/.overflow-auto/.overflow-y-scroll`. — OK
 
 ### Safe-area
-- `src/app/layout.tsx:45` — `<main>` heeft `pt-[env(safe-area-inset-top)]` maar geen `pb-[env(safe-area-inset-bottom)]` op desktop (lg) en geen left/right inset voor landscape met notch (`viewport-fit=cover` is actief). — fix: voeg `pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]` toe. — P1
-- `src/components/layout/Navigation.tsx:60-72` — Mobile tab bar gebruikt vaste `pb-[28px]` ipv `env(safe-area-inset-bottom)`. Op iPhones zonder home-indicator is 28px overdreven; op landscape iPhone met notch zit content tegen de zijkant. — fix: `pb-[max(env(safe-area-inset-bottom),12px)]` + `pl/pr-[env(safe-area-inset-left/right)]`. — P1
+- `src/app/layout.tsx:45` — `<main>` heeft `pt--ARB-env(safe-area-inset-top)-` maar geen `pb--ARB-env(safe-area-inset-bottom)-` op desktop (lg) en geen left/right inset voor landscape met notch (`viewport-fit=cover` is actief). — fix: voeg `pl--ARB-env(safe-area-inset-left)- pr--ARB-env(safe-area-inset-right)-` toe. — P1
+- `src/components/layout/Navigation.tsx:60-72` — Mobile tab bar gebruikt vaste `pb-[28px]` ipv `env(safe-area-inset-bottom)`. Op iPhones zonder home-indicator is 28px overdreven; op landscape iPhone met notch zit content tegen de zijkant. — fix: `pb-[max(env(safe-area-inset-bottom),12px)]` + `pl/pr--ARB-env(safe-area-inset-left/right)-`. — P1
 - `src/app/layout.tsx:45` — `<main>` heeft `pb-[86px]` hardcoded; matcht tab bar height maar negeert dynamische safe-area-bottom. Combineert met punt hierboven; fout stapelt op. — fix: `pb-[calc(86px+env(safe-area-inset-bottom))]`. — P1
 - `src/components/layout/MiniChat.tsx:24` — `fixed bottom-24 right-4`, geen safe-area inset. In landscape met notch valt FAB onder display cutout. — fix: `right-[max(1rem,env(safe-area-inset-right))]` + `bottom-[calc(6rem+env(safe-area-inset-bottom))]`. — P2
 - `src/components/shared/InstallPrompt.tsx:75` — `bottom-[100px]` hardcoded; geen safe-area. Op landscape kan banner achter home-indicator vallen. — fix: gebruik `calc(100px + env(safe-area-inset-bottom))` of dynamisch t.o.v. tab bar. — P2
 - `src/components/layout/Navigation.tsx:152-153` — More-sheet heeft correcte `pb-[max(env(safe-area-inset-bottom),24px)]`. — OK
-- `src/components/check-in/ManualAddModal.tsx:266`, `src/components/schema/PlanWeekModal.tsx:87`, `src/components/schema/EditWeekModal.tsx:129`, `src/components/schema/DayDetailSheet.tsx:59`, `src/components/dashboard/MuscleDrilldownSheet.tsx:92`, `src/components/explain/ExplainSheet.tsx:36`, `src/components/schema/SchemaCalendar.tsx:95` — Alle bottom-sheets gebruiken `items-end` + `rounded-t-3xl` zonder `pb-[env(safe-area-inset-bottom)]` op de sheet body. Sheet content (incl. sticky footer in PlanWeek/EditWeek) belandt achter home-indicator op iPhone X+. — fix: voeg `pb-[env(safe-area-inset-bottom)]` toe aan inner sheet container of aan sticky footer-row. — P0
+- `src/components/check-in/ManualAddModal.tsx:266`, `src/components/schema/PlanWeekModal.tsx:87`, `src/components/schema/EditWeekModal.tsx:129`, `src/components/schema/DayDetailSheet.tsx:59`, `src/components/dashboard/MuscleDrilldownSheet.tsx:92`, `src/components/explain/ExplainSheet.tsx:36`, `src/components/schema/SchemaCalendar.tsx:95` — Alle bottom-sheets gebruiken `items-end` + `rounded-t-3xl` zonder `pb--ARB-env(safe-area-inset-bottom)-` op de sheet body. Sheet content (incl. sticky footer in PlanWeek/EditWeek) belandt achter home-indicator op iPhone X+. — fix: voeg `pb--ARB-env(safe-area-inset-bottom)-` toe aan inner sheet container of aan sticky footer-row. — P0
 - `src/components/schema/EditWeekModal.tsx:217`, `src/components/schema/PlanWeekModal.tsx:187` — Sticky footer (`sticky bottom-0`) zonder safe-area padding — knoppen overlappen home-indicator. — fix: `pb-[max(1rem,env(safe-area-inset-bottom))]`. — P0
 
 ### 100vh / dvh
@@ -116,7 +116,7 @@ iOS Safari zoomt in op focus zodra `<input>/<textarea>/<select>` < 16px is. `tex
 ### Kritieke quick wins (P0)
 1. Manifest `background_color`/`theme_color` → `#15171F` (witte splash flash).
 2. `appleWebApp.statusBarStyle` → `'black-translucent'`.
-3. Bottom-sheet content + sticky footers `pb-[env(safe-area-inset-bottom)]` (PlanWeekModal, EditWeekModal, ManualAddModal, etc.).
+3. Bottom-sheet content + sticky footers `pb--ARB-env(safe-area-inset-bottom)-` (PlanWeekModal, EditWeekModal, ManualAddModal, etc.).
 4. Auth login/signup inputs ≥16px + `autoComplete` + `inputMode="email"`/`autoCapitalize="none"`.
 5. OnboardingWizard inputs allemaal ≥16px (eerste-keer onboarding-zoom is jarring).
 6. Chat-textareas in `NutritionInput.tsx` en `PlanChat.tsx` ≥16px.
