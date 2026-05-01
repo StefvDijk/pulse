@@ -53,6 +53,12 @@ const ConfirmRequestSchema = z.object({
       notes: z.string().max(2000).nullable(),
     })
     .optional(),
+  previous_focus_outcome: z
+    .object({
+      rating: z.enum(['gehaald', 'deels', 'niet']),
+      note: z.string().max(500).nullable(),
+    })
+    .optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -125,6 +131,8 @@ export async function POST(request: Request) {
       wellness_motivation: input.wellness?.motivation ?? null,
       wellness_stress: input.wellness?.stress ?? null,
       notes_text: input.wellness?.notes ?? null,
+      previous_focus_rating: input.previous_focus_outcome?.rating ?? null,
+      previous_focus_note: input.previous_focus_outcome?.note ?? null,
     }
 
     // Upsert weekly_reviews (onConflict: user_id, week_start)

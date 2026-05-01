@@ -63,6 +63,7 @@ export interface CheckInReviewData {
     personalRecords: PersonalRecordRow[]
   }
   previousReview: WeeklyReviewRow | null
+  previousFocus: { text: string; weekStart: string } | null
   targets: {
     weeklyTrainingTarget: Json | null
     proteinTargetPerKg: number | null
@@ -91,6 +92,13 @@ function getISOWeekNumber(dateStr: string): { weekNumber: number; year: number }
   const jan4 = new Date(Date.UTC(year, 0, 4))
   const weekNumber = 1 + Math.round(((d.getTime() - jan4.getTime()) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7)
   return { weekNumber, year }
+}
+
+function extractPreviousFocus(prev: WeeklyReviewRow | null): { text: string; weekStart: string } | null {
+  if (!prev?.next_week_plan || typeof prev.next_week_plan !== 'object') return null
+  const plan = prev.next_week_plan as { focusNextWeek?: unknown }
+  if (typeof plan.focusNextWeek !== 'string' || !plan.focusNextWeek.trim()) return null
+  return { text: plan.focusNextWeek, weekStart: prev.week_start }
 }
 
 function avg(values: (number | null)[]): number | null {
@@ -402,6 +410,7 @@ export async function GET(request: Request) {
         personalRecords: prsResult.data ?? [],
       },
       previousReview: prevReviewResult.data,
+      previousFocus: extractPreviousFocus(prevReviewResult.data),
       targets: {
         weeklyTrainingTarget: settingsResult.data?.weekly_training_target ?? null,
         proteinTargetPerKg: settingsResult.data?.protein_target_per_kg ?? null,

@@ -109,7 +109,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-05 · Vorige-week-focus sectie + outcome-capture
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 1 · **Parallel:** ⚠️ raakt review-route + WeekReviewCard
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-05-previous-focus` · **Omvang:** M · **Fase:** 1 · **Parallel:** ⚠️ raakt review-route + WeekReviewCard
 **Why:** Hoogste-ROI continuïteits-move. "Last week you said X — here's what happened" sluit de loop die nu open is.
 **Files:** `src/app/api/check-in/review/route.ts`, `src/components/check-in/WeekReviewCard.tsx`, `src/lib/ai/prompts/checkin-analyze.ts`
 **Acceptatie:**

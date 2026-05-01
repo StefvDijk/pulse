@@ -9,10 +9,24 @@ interface ManualAddition {
   data: Record<string, unknown>
 }
 
+interface WellnessInput {
+  energy: number | null
+  motivation: number | null
+  stress: number | null
+  notes: string
+}
+
+interface FocusOutcomeInput {
+  rating: 'gehaald' | 'deels' | 'niet' | null
+  note: string
+}
+
 interface CheckInAnalyzeParams {
   reviewData: CheckInReviewData
   manualAdditions?: ManualAddition[]
   coachingMemory?: Array<{ key: string; category: string; value: string }>
+  wellness?: WellnessInput | null
+  focusOutcome?: FocusOutcomeInput | null
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +143,7 @@ function buildDataBlock(data: CheckInReviewData): string {
 // ---------------------------------------------------------------------------
 
 export function buildCheckInAnalyzePrompt(params: CheckInAnalyzeParams): { system: string; userMessage: string } {
-  const { reviewData, manualAdditions, coachingMemory } = params
+  const { reviewData, manualAdditions, coachingMemory, wellness, focusOutcome } = params
 
   const system = `Je bent Pulse Coach, Stef's persoonlijke trainer en coach.
 Je analyseert zijn wekelijkse check-in data en geeft een beknopte, eerlijke samenvatting.
@@ -160,6 +174,29 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
   const parts: string[] = []
 
   parts.push(buildDataBlock(reviewData))
+
+  // Vorige focus + outcome (continuïteit)
+  if (reviewData.previousFocus) {
+    parts.push('### Vorige week focus')
+    parts.push(`Stef beloofde zichzelf: "${reviewData.previousFocus.text}"`)
+    if (focusOutcome?.rating) {
+      const ratingLabel = { gehaald: 'GEHAALD', deels: 'DEELS GEHAALD', niet: 'NIET GEHAALD' }[focusOutcome.rating]
+      parts.push(`Eigen oordeel: ${ratingLabel}`)
+      if (focusOutcome.note.trim()) parts.push(`Toelichting: "${focusOutcome.note}"`)
+    }
+    parts.push('Verwerk dit expliciet in je analyse — refereer naar het al-dan-niet behalen van de focus.')
+    parts.push('')
+  }
+
+  // Subjectieve wellness ratings
+  if (wellness && (wellness.energy != null || wellness.motivation != null || wellness.stress != null || wellness.notes.trim())) {
+    parts.push('### Wellness (zelfrapportage 1-5)')
+    if (wellness.energy != null) parts.push(`- Energie: ${wellness.energy}/5`)
+    if (wellness.motivation != null) parts.push(`- Motivatie: ${wellness.motivation}/5`)
+    if (wellness.stress != null) parts.push(`- Stress: ${wellness.stress}/5 (hoger = pittiger)`)
+    if (wellness.notes.trim()) parts.push(`- Notitie: "${wellness.notes.trim()}"`)
+    parts.push('')
+  }
 
   // Add coaching memory context
   if (coachingMemory && coachingMemory.length > 0) {
