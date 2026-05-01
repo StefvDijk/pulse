@@ -1175,64 +1175,15 @@ De backend classificeert elke gebruikersvraag voordat de context assembler wordt
 
 ### 7.1 Design Systeem
 
-**Stijl:** Data-heavy/sporty, geïnspireerd door Strava en Whoop
+> **Source of truth:** `design/design_handoff_pulse_v2/` — dark, Apple-Fitness+-inspired.
+> Tokens: `tokens.js` · Visual patterns: `screens/*.jsx` · Spec: `README.md`.
+>
+> De voormalige paletten/typografie hieronder (Strava/Whoop-blauw, Inter) zijn **deprecated** en
+> bewust verwijderd. Raadpleeg uitsluitend de v2 handoff voor kleuren, typografie, radii en componenten.
 
-#### 7.1.1 Kleuren
-
-```
-// Achtergrond
---bg-primary: #0A0A0F        // Donker, bijna zwart
---bg-secondary: #12121A      // Iets lichter voor cards
---bg-tertiary: #1A1A2E       // Hover states, active states
-
-// Tekst
---text-primary: #F0F0F5      // Wit-achtig
---text-secondary: #8888A0    // Muted
---text-tertiary: #55556A     // Zeer muted
-
-// Accent
---accent-primary: #4F8CFF    // Blauw (primaire actie)
---accent-green: #34D399      // Groen (positief, op schema)
---accent-yellow: #FBBF24     // Geel (waarschuwing)
---accent-red: #F87171        // Rood (gevaar, onder target)
---accent-orange: #FB923C     // Oranje (aandacht)
-
-// Sport kleuren
---sport-gym: #8B5CF6         // Paars
---sport-running: #06B6D4     // Cyaan
---sport-padel: #F59E0B       // Amber
-
-// Spiergroep heatmap
---muscle-none: transparent
---muscle-light: #3B82F620
---muscle-moderate: #3B82F660
---muscle-heavy: #F59E0BA0
---muscle-very-heavy: #EF4444C0
-```
-
-#### 7.1.2 Typografie
-
-```
-// Font: Inter (via Google Fonts) of system font stack
---font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-// Sizes
---text-xs: 0.75rem     // Labels, badges
---text-sm: 0.875rem    // Secondary text, captions
---text-base: 1rem      // Body text
---text-lg: 1.125rem    // Sub-headers
---text-xl: 1.25rem     // Section headers
---text-2xl: 1.5rem     // Page headers
---text-3xl: 2rem       // Hero numbers (workload ratio, calorie total)
-```
-
-#### 7.1.3 Componenten
-
-- **Cards:** Rounded corners (12px), subtle border (1px, #1A1A2E), geen shadow
-- **Buttons:** Rounded (8px), primary = filled accent, secondary = outline
-- **Inputs:** Dark background (#12121A), subtle border, focus ring accent-primary
-- **Charts:** Gradient fills, rounded line caps, interactive tooltips
-- **Navigation:** Bottom tab bar (mobiel, 5 items: Dashboard, Progressie, Voeding, Trends, Chat), Sidebar (desktop)
+**Stijl:** dark-only, cinematisch, sport-data-eerst. Background `#15171F`, surface `#1E2230`,
+SF Pro Display, kaarten met `0.5px` hairline border en radius 22, sport-accents
+(gym `#00E5C7`, run `#FF5E3A`, padel `#FFB020`, cycle `#9CFF4F`).
 
 ### 7.2 Responsive Breakpoints
 

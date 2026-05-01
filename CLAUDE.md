@@ -208,11 +208,30 @@ Stop en vraag Stef om input wanneer:
 - **Timezone:** Alle tijden in UTC opslaan. Converteer naar Europe/Amsterdam in de frontend.
 - **Apple Health duplicaten:** Health Auto Export kan dezelfde data meerdere keren sturen. Dedupliceer op `apple_health_id`.
 
+## Design System (canonical)
+
+**Single source of truth:** `design/design_handoff_pulse_v2/`
+
+- **Tokens (runtime):** `design/design_handoff_pulse_v2/tokens.js` — `bg.*`, `text.*`, `sport.*`, `status.*`, `gradients.*`, `radius.*`, `font`. Translate to Tailwind via the extension documented in the handoff README.
+- **Visual patterns (per screen):**
+  - Home: `design/design_handoff_pulse_v2/screens/Home.jsx`
+  - Schema, Progress, Coach, Nutrition: `screens/Other.jsx`
+  - Workload, Goals, Trends, Check-in, Settings, WorkoutDetail: `screens/More.jsx`
+- **Spec & rules:** `design/design_handoff_pulse_v2/README.md`
+
+**Theme:** dark-only. Background `#15171F`. Font: SF Pro Display. Card pattern: `bg.surface (#1E2230)` + `0.5px solid bg.border` + `radius.lg (22)`, no drop shadow. Sport accents: gym `#00E5C7`, run `#FF5E3A`, padel `#FFB020`, cycle `#9CFF4F`. Coach indicator: `CoachOrb` (Anthropic coral `#D97757`).
+
+**Do NOT consult:**
+- `PULSE-DESIGN-SYSTEM.md` (deprecated — Mineral light theme, contradicts v2)
+- Any inline `#FFFFFF` / `#F5F3EF` / `Inter` references in older `PLAN-*.md` files
+
+When in doubt, open `design/design_handoff_pulse_v2/screens/*.jsx` and mirror the inline styles in Tailwind utility classes against the extended config.
+
 ## Huidige Prioriteit
 
 De data-pipeline, AI-laag, en UX redesign zijn af. Openstaand werk:
 
 - **Homescreen verbeteringen:** Zie `PLAN-HOMESCREEN-REDESIGN.md` (cleanup, readiness signal, coach nudge)
 - **Weekly check-in v1.1:** Zie `PLAN-WEEKLY-CHECKIN.md` (Google Calendar write, week plan proposals, interactive adjustments)
-- **Design systeem:** Zie `PULSE-DESIGN-SYSTEM.md` voor UI standaarden
+- **Design systeem:** Zie de "Design System (canonical)" sectie hierboven en `design/design_handoff_pulse_v2/`
 - **Product spec:** Zie `PRD.md` voor de volledige productspecificatie

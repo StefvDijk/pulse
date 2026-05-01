@@ -1,3 +1,12 @@
+> **Visual references in this plan resolve to the v2 design system.**
+> Source of truth: `design/design_handoff_pulse_v2/` (tokens: `tokens.js`,
+> screens: `screens/*.jsx`, spec: `README.md`).
+>
+> Any reference to `PULSE-DESIGN-SYSTEM.md` is **stale** — that file is deprecated.
+> Use the v2 dark tokens directly.
+
+---
+
 # PLAN-IMPLEMENTATION.md
 
 Hoe we `BACKLOG.md` praktisch afwerken — met welke agents, skills, plugins en in welke volgorde. Dit is geen vervanging voor de stories zelf; het is de *workflow* eromheen.
@@ -34,7 +43,7 @@ Opgesteld: 2026-04-29.
 | Bij Claude API-werk | `claude-api` | Prompt caching, tokens, model-keuzes |
 | Bij Anthropic SDK-debugging | `vercel:ai-sdk` (al bekend) | Stream errors, tool-use patterns |
 | Voor commit + PR | `commit-commands:commit-push-pr` | Conventional commit + PR-body |
-| Voor Pulse-design-systeem keuzes | `feature-dev:code-explorer` op `PULSE-DESIGN-SYSTEM.md` | Hergebruik tokens i.p.v. nieuwe |
+| Voor Pulse-design-systeem keuzes | Direct lezen: `design/design_handoff_pulse_v2/tokens.js` + relevant `screens/*.jsx` | v2 dark system; `PULSE-DESIGN-SYSTEM.md` is deprecated en niet meer raadplegen |
 | Voor security review (UXR-100, UXR-120 — RLS) | `security-review` slash command | RLS audit |
 
 ---

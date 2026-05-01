@@ -6,6 +6,7 @@ import { useSchemaWeek, type SchemaWeekDay } from '@/hooks/useSchemaWeek'
 import { useReadiness } from '@/hooks/useReadiness'
 import { useWorkload } from '@/hooks/useWorkload'
 import { Card, ReadinessOrb, MicroStat, ZoneBar, SportDot, SPORT_BASE, type Sport } from '@/components/ui/v2'
+import { ExplainTrigger } from '@/components/explain/ExplainTrigger'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
@@ -237,6 +238,7 @@ export function DashboardPage() {
 
       {/* Big Readiness card */}
       <motion.div variants={listItem} transition={springContent}>
+        <ExplainTrigger topic="readiness" ariaLabel="Open uitleg over readiness">
         <Card
           className="p-[18px]"
           style={{ background: 'linear-gradient(135deg, #1E2230 0%, #2A3340 100%)' }}
@@ -265,6 +267,7 @@ export function DashboardPage() {
             <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="7d" />
           </div>
         </Card>
+        </ExplainTrigger>
       </motion.div>
 
       {/* Strain bar */}
