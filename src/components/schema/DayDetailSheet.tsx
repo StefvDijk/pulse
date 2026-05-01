@@ -2,6 +2,7 @@
 
 import { X, Dumbbell, Footprints, CircleDot } from 'lucide-react'
 import type { SchemaDay, SchemaExercise } from '@/hooks/useSchema'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface DayDetailSheetProps {
   day: SchemaDay
@@ -49,6 +50,7 @@ function ExerciseRow({ exercise }: { exercise: SchemaExercise }) {
 }
 
 export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
+  useBodyScrollLock(Boolean(day.workoutFocus))
   if (!day.workoutFocus) return null
 
   const dateNum = new Date(day.date + 'T00:00:00Z').getUTCDate()
@@ -58,7 +60,7 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl max-h-[80vh] overflow-y-auto">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl max-h-[80dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
         <div className="px-5 pt-5 pb-3 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <SportIcon focus={day.workoutFocus} />

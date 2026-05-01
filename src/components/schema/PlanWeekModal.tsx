@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Calendar, Check, Loader2 } from 'lucide-react'
 import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface PlanWeekModalProps {
   days: SchemaWeekDay[]
@@ -28,6 +29,7 @@ function formatExerciseList(exercises: ExerciseData[]): string {
 }
 
 export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
+  useBodyScrollLock(true)
   const workoutDays = days.filter((d) => d.status !== 'rest' && d.workout)
 
   const [entries, setEntries] = useState<WorkoutEntry[]>(
@@ -92,7 +94,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
@@ -184,7 +186,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             )}
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <span className="text-sm text-text-tertiary">
                 {includedCount} van {entries.length} workout{entries.length !== 1 ? 's' : ''}
               </span>

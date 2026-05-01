@@ -99,7 +99,8 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-label="Pulse installeren"
-      className="fixed inset-x-3 bottom-[100px] z-50 mx-auto max-w-md rounded-[22px] border border-bg-border bg-bg-surface/95 p-4 shadow-apple-lg backdrop-blur-xl lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
+      className="fixed inset-x-3 z-50 mx-auto max-w-md rounded-[22px] border border-bg-border bg-bg-surface/95 p-4 shadow-apple-lg backdrop-blur-xl lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
+      style={{ bottom: 'calc(var(--nav-height) + 1rem)' }}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-aurora text-white">

@@ -16,7 +16,7 @@ export function ChatPage({ initialMessage }: ChatPageProps) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-86px)] flex-col lg:h-screen">
+    <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
       {/* Header */}
       <div
         className="flex shrink-0 items-center justify-between border-b-[0.5px] border-bg-border px-4 pt-[60px] pb-3"

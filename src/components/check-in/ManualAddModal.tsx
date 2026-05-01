@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -261,6 +262,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
 
 export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
   const [selectedType, setSelectedType] = useState<AdditionType | null>(null)
+  useBodyScrollLock(true)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -271,7 +273,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>

@@ -21,7 +21,14 @@ export function MiniChat() {
   }, [isOpen])
 
   return (
-    <div ref={containerRef} className="fixed bottom-24 right-4 z-50 lg:bottom-6">
+    <div
+      ref={containerRef}
+      className="fixed z-50 lg:bottom-6"
+      style={{
+        bottom: 'calc(var(--nav-height) + 1rem)',
+        right: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
       {/* Popup */}
       {isOpen && (
         <div

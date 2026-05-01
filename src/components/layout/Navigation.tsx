@@ -61,7 +61,9 @@ export function Navigation() {
         className={[
           'fixed bottom-0 left-0 right-0 z-50 lg:hidden',
           'flex items-stretch justify-around',
-          'h-[86px] pt-2 pb-[28px]',
+          'h-[var(--nav-height)]',
+          'pt-2 pb-[max(env(safe-area-inset-bottom),12px)]',
+          'pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
           'border-t border-bg-border-strong',
         ].join(' ')}
         style={{

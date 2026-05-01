@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Loader2, RotateCcw } from 'lucide-react'
 import type { SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface EditWeekModalProps {
   weekNumber: number
@@ -44,6 +45,7 @@ export function EditWeekModal({
   onClose,
   onSaved,
 }: EditWeekModalProps) {
+  useBodyScrollLock(true)
   const [drafts, setDrafts] = useState<DayDraft[]>(() =>
     days.map((d) => ({
       date: d.date,
@@ -134,7 +136,7 @@ export function EditWeekModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
@@ -214,7 +216,7 @@ export function EditWeekModal({
         )}
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <span className="text-sm text-text-tertiary">
             {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
           </span>

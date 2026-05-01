@@ -8,6 +8,7 @@ import {
   type ExerciseHit,
   type MuscleMapWorkout,
 } from '@/lib/muscle-map/volume'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 /* ── Props ──────────────────────────────────────────────────── */
 
@@ -78,6 +79,7 @@ export function MuscleDrilldownSheet({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [muscleGroup, onClose])
+  useBodyScrollLock(muscleGroup !== null)
 
   if (!muscleGroup) return null
 
@@ -97,7 +99,7 @@ export function MuscleDrilldownSheet({
       />
 
       {/* Sheet */}
-      <div className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-bg-surface shadow-2xl sm:rounded-3xl max-h-[85vh]">
+      <div className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-bg-surface shadow-2xl sm:rounded-3xl max-h-[85dvh] pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-bg-border px-5 pt-5 pb-3">
           <div className="min-w-0">

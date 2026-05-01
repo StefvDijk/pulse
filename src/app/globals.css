@@ -269,6 +269,14 @@ body {
   min-height: 100dvh;
   overscroll-behavior-y: none;
   touch-action: manipulation;
+  /* Mobile bottom-tab-bar height (incl. dynamic safe-area inset).
+   * Single source of truth for <main>, ChatPage and any other layout
+   * that needs to reserve space for the tab bar on mobile. */
+  --nav-height: calc(58px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+  body { --nav-height: 0px; }
 }
 
 /* Don't disable text selection globally — only in chrome (nav, buttons) */

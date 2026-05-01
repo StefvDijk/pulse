@@ -5,6 +5,7 @@ import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, More
 import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { EditWeekModal } from './EditWeekModal'
 import { DayDetailSheet } from './DayDetailSheet'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
@@ -87,6 +88,7 @@ interface RescheduleMenuProps {
 }
 
 function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps) {
+  useBodyScrollLock(true)
   const availableDays = weekDays.filter(
     (d) => d.date !== day.date && d.status !== 'completed',
   )
@@ -94,7 +96,7 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl pb-[env(safe-area-inset-bottom)]">
         <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold text-text-primary">
             {day.workoutFocus} verplaatsen
