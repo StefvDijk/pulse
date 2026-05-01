@@ -27,11 +27,25 @@ const ManualAdditionSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 })
 
+const WellnessSchema = z.object({
+  energy: z.number().nullable(),
+  motivation: z.number().nullable(),
+  stress: z.number().nullable(),
+  notes: z.string(),
+}).nullable().optional()
+
+const FocusOutcomeSchema = z.object({
+  rating: z.enum(['gehaald', 'deels', 'niet']).nullable(),
+  note: z.string(),
+}).nullable().optional()
+
 const AnalyzeRequestSchema = z.object({
   reviewData: z.custom<CheckInReviewData>((val) => val != null && typeof val === 'object', {
     message: 'reviewData is required',
   }),
   manualAdditions: z.array(ManualAdditionSchema).optional(),
+  wellness: WellnessSchema,
+  focusOutcome: FocusOutcomeSchema,
 })
 
 // ---------------------------------------------------------------------------
@@ -72,7 +86,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { reviewData, manualAdditions } = parsed.data
+    const { reviewData, manualAdditions, wellness, focusOutcome } = parsed.data
 
     // Fetch coaching memory for context
     const admin = createAdminClient()
@@ -90,6 +104,8 @@ export async function POST(request: Request) {
       reviewData,
       manualAdditions,
       coachingMemory,
+      wellness: wellness ?? null,
+      focusOutcome: focusOutcome ?? null,
     })
 
     // Call Claude

@@ -13,6 +13,7 @@ import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
 import type { WellnessState } from '@/components/check-in/WellnessBlock'
+import type { FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -136,6 +137,10 @@ export function CheckInFlow() {
     motivation: null,
     stress: null,
     notes: '',
+  })
+  const [focusOutcome, setFocusOutcome] = useState<FocusOutcomeState>({
+    rating: null,
+    note: '',
   })
 
   const handleAddManual = useCallback((addition: ManualAddition) => {
@@ -278,6 +283,8 @@ export function CheckInFlow() {
             onRemoveManual={handleRemoveManual}
             wellness={wellness}
             onWellnessChange={setWellness}
+            focusOutcome={focusOutcome}
+            onFocusOutcomeChange={setFocusOutcome}
             onNext={() => setStep(2)}
           />
         )}
@@ -286,6 +293,8 @@ export function CheckInFlow() {
             reviewData={data}
             manualAdditions={manualAdditions}
             analysis={analysis}
+            wellness={wellness}
+            focusOutcome={focusOutcome}
             onAnalysisComplete={handleAnalysisComplete}
             onNext={handleGoToPlanning}
           />
@@ -307,6 +316,7 @@ export function CheckInFlow() {
             syncToCalendar={syncToCalendar}
             dryRun={dryRun}
             wellness={wellness}
+            focusOutcome={focusOutcome}
             onConfirmed={handleConfirmed}
           />
         )}

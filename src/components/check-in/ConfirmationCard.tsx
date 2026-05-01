@@ -14,6 +14,7 @@ import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
 import type { WellnessState } from '@/components/check-in/WellnessBlock'
+import type { FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -27,6 +28,7 @@ interface ConfirmationCardProps {
   syncToCalendar: boolean
   dryRun?: boolean
   wellness?: WellnessState
+  focusOutcome?: FocusOutcomeState
   onConfirmed: () => void
 }
 
@@ -59,6 +61,7 @@ export function ConfirmationCard({
   syncToCalendar,
   dryRun = false,
   wellness,
+  focusOutcome,
   onConfirmed,
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
@@ -116,6 +119,12 @@ export function ConfirmationCard({
               motivation: wellness.motivation,
               stress: wellness.stress,
               notes: wellness.notes.trim() || null,
+            }
+          : undefined,
+        previous_focus_outcome: focusOutcome?.rating
+          ? {
+              rating: focusOutcome.rating,
+              note: focusOutcome.note.trim() || null,
             }
           : undefined,
       }

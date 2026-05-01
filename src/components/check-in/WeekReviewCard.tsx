@@ -16,6 +16,7 @@ import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
 import { WeekTier } from '@/components/check-in/WeekTier'
 import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
+import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -28,6 +29,8 @@ interface WeekReviewCardProps {
   onRemoveManual: (index: number) => void
   wellness: WellnessState
   onWellnessChange: (next: WellnessState) => void
+  focusOutcome: FocusOutcomeState
+  onFocusOutcomeChange: (next: FocusOutcomeState) => void
   onNext: () => void
 }
 
@@ -70,6 +73,8 @@ export function WeekReviewCard({
   onRemoveManual,
   wellness,
   onWellnessChange,
+  focusOutcome,
+  onFocusOutcomeChange,
   onNext,
 }: WeekReviewCardProps) {
   const [showModal, setShowModal] = useState(false)
@@ -78,6 +83,15 @@ export function WeekReviewCard({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Continuity: previous week's focus + outcome */}
+      {data.previousFocus && (
+        <PreviousFocusBlock
+          focusText={data.previousFocus.text}
+          value={focusOutcome}
+          onChange={onFocusOutcomeChange}
+        />
+      )}
+
       {/* Burn Bar tier — your week vs your 4-week average */}
       <WeekTier weekStart={data.week.weekStart} />
 
