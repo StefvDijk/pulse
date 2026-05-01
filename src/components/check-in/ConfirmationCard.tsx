@@ -24,6 +24,7 @@ interface ConfirmationCardProps {
   manualAdditions: ManualAddition[]
   plannedSessions: PlannedSession[] | null
   syncToCalendar: boolean
+  dryRun?: boolean
   onConfirmed: () => void
 }
 
@@ -54,6 +55,7 @@ export function ConfirmationCard({
   manualAdditions,
   plannedSessions,
   syncToCalendar,
+  dryRun = false,
   onConfirmed,
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
@@ -104,6 +106,7 @@ export function ConfirmationCard({
           : undefined,
         planned_sessions: plannedSessions ?? undefined,
         sync_to_calendar: syncToCalendar,
+        dry_run: dryRun,
       }
 
       const res = await fetch('/api/check-in/confirm', {
@@ -235,14 +238,15 @@ export function ConfirmationCard({
       <button
         onClick={handleConfirm}
         disabled={saving}
-        className="flex items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+        style={{ background: dryRun ? 'var(--color-status-warn)' : '#0A84FF' }}
       >
         {saving ? (
           <Loader2 size={16} className="animate-spin" />
         ) : (
           <CheckCircle2 size={16} />
         )}
-        Week {reviewData.week.weekNumber} afsluiten
+        {dryRun ? `Test: week ${reviewData.week.weekNumber} (geen writes)` : `Week ${reviewData.week.weekNumber} afsluiten`}
       </button>
     </div>
   )

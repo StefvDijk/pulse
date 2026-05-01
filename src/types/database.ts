@@ -12,8 +12,78 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      ai_usage_log: {
+        Row: {
+          cache_creation_tokens: number | null
+          cache_read_tokens: number | null
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          cache_creation_tokens?: number | null
+          cache_read_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          cache_creation_tokens?: number | null
+          cache_read_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       body_composition_logs: {
         Row: {
           arm_right_cm: number | null
@@ -1788,6 +1858,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { logAiUsage } from '@/lib/ai/usage'
 
 const KNOWN_CATEGORIES = ['program', 'lifestyle', 'injury', 'preference', 'pattern', 'goal'] as const
 type LessonCategory = (typeof KNOWN_CATEGORIES)[number]
@@ -183,11 +184,22 @@ export async function extractWeeklyLessons(
 
     const userContent = `${formatWeekContext(weekStart, weekly, prevWeekly, review)}${existingSection}`
 
-    const { text } = await generateText({
+    const startedAt = Date.now()
+    const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
       prompt: userContent,
       temperature: 0.4,
+    })
+    logAiUsage({
+      userId,
+      feature: 'weekly_lessons',
+      model: MEMORY_MODEL,
+      usage: {
+        inputTokens: usage.inputTokens ?? null,
+        outputTokens: usage.outputTokens ?? null,
+      },
+      durationMs: Date.now() - startedAt,
     })
 
     const match = text.match(/\[[\s\S]*\]/)

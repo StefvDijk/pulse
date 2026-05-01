@@ -72,7 +72,14 @@ export async function GET() {
       activeSchema: schemaResult.data,
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: {
+        // Per-user response — must be private. Vercel's edge serves the
+        // cached body in <50ms while a background revalidation refreshes
+        // it. SWR on the client also respects these via revalidateIfStale.
+        'Cache-Control': 'private, max-age=15, stale-while-revalidate=300',
+      },
+    })
   } catch (error) {
     console.error('Dashboard API error:', error)
     return NextResponse.json(

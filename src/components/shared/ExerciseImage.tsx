@@ -30,9 +30,9 @@ export function ExerciseImage({ imageUrl, muscleGroup, name, size = 'md' }: Exer
         alt={name}
         width={px}
         height={px}
+        sizes={`${px}px`}
         className="h-full w-full object-cover"
         onError={() => setFailed(true)}
-        unoptimized
       />
     </div>
   )

@@ -50,7 +50,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ## Sprint 1 — Quick wins
 
 ### CHECKIN-01 · Dry-run mode voor testen
-**Status:** 📋 todo · **Omvang:** XS · **Fase:** 3 (vooruitgehaald) · **Parallel:** ⚠️ raakt confirm-route + CheckInFlow
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-01-dry-run-mode` · **Omvang:** XS · **Fase:** 3 (vooruitgehaald) · **Parallel:** ⚠️ raakt confirm-route + CheckInFlow
 **Why:** Stef kan de hele wizard niet end-to-end testen zonder echte writes naar DB + Google Calendar.
 **Files:** `src/app/api/check-in/confirm/route.ts`, `src/components/check-in/CheckInFlow.tsx`, `src/components/check-in/ConfirmationCard.tsx`
 **Acceptatie:**
@@ -176,8 +176,8 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 - [ ] Plan-route berekent voor het voorgestelde plan de projected ratio
 - [ ] Response includeert `loadProjection: { current, projected, ratio, status: 'green'|'amber'|'red' }`
 - [ ] UI toont badge bij plan: groen ≤1.3, oranje 1.3-1.5, rood >1.5
-- [ ] Bij rood: knop "Genereer rustiger plan" die Claude opnieuw aanroept met expliciet "verlaag volume tot ratio ≤1.3"
-- [ ] Bij oranje: waarschuwing maar geen blokkade
+- [ ] Bij oranje + rood: waarschuwing met uitleg ("acute load is X% boven chronic baseline — let op herstel"), géén blokkade
+- [ ] Optionele knop "Genereer rustiger plan" beschikbaar bij oranje en rood
 - [ ] Volume-bron: `workouts.total_volume_kg` + `runs.distance_km × 50` als heuristiek (configureerbaar)
 
 ---
@@ -281,12 +281,16 @@ Elke story is pas `✅ done` als:
 
 ---
 
-## Open beslissingen (te nemen voor sprint 2 start)
+## Beslissingen (vastgelegd 1 mei 2026)
 
-| # | Beslissing | Default | Stef akkoord? |
-|---|---|---|---|
-| D1 | Wellness sliders 1-5 of 1-10? | 1-5 (sneller tikken) | ⬜ |
-| D2 | `focus_outcome` als kolom op `weekly_reviews` of aparte tabel? | Kolom (simpeler) | ⬜ |
-| D3 | ACWR red = blocker of waarschuwing? | Blocker met "genereer rustiger plan" knop | ⬜ |
-| D4 | `user_profile` migratie in 1 story (CHECKIN-08) of opsplitsen per categorie? | 1 story (atomic refactor) | ⬜ |
-| D5 | Confirm-splits (CHECKIN-12) nu of pas wanneer er een echte productie-failure optreedt? | Nu — gevolg-schade is hoog | ⬜ |
+| # | Beslissing | Keuze |
+|---|---|---|
+| D1 | Wellness sliders | **1-5** |
+| D2 | `focus_outcome` opslag | **Kolom op `weekly_reviews`** |
+| D3 | ACWR red gedrag | **Alleen waarschuwing**, geen blokkade |
+| D4 | `user_profile` migratie | **Atomair in CHECKIN-08** |
+| D5 | Confirm-splits | **Nu** (in sprint 4) |
+
+Gevolg voor stories:
+- CHECKIN-09 acceptatie aangepast: rood toont waarschuwings-badge + uitleg, "rustiger plan" knop wordt optioneel ipv verplicht
+- Geen wijziging in 03/04/05/08/12 — defaults waren al de keuzes

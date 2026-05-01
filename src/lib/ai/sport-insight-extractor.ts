@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { logAiUsage } from '@/lib/ai/usage'
 
 const COACHING_MEMORY_KEY = 'sport_pattern_hardest_combo'
 
@@ -123,11 +124,22 @@ export async function extractSportInsight(
 
     const tableText = formatDataTable(rows)
 
-    const { text } = await generateText({
+    const startedAt = Date.now()
+    const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: SYSTEM_PROMPT,
       prompt: `28 dagen data:\n\n${tableText}`,
       temperature: 0.3,
+    })
+    logAiUsage({
+      userId,
+      feature: 'sport_insight',
+      model: MEMORY_MODEL,
+      usage: {
+        inputTokens: usage.inputTokens ?? null,
+        outputTokens: usage.outputTokens ?? null,
+      },
+      durationMs: Date.now() - startedAt,
     })
 
     const match = text.match(/\{[\s\S]*\}/)

@@ -33,6 +33,7 @@ const NEAR_BOTTOM_PX = 120
 export function ChatInterface({ sessionId: initialSessionId, compact = false, initialMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
+  const [isThinking, setIsThinking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
   const [showSuggestions, setShowSuggestions] = useState(true)
@@ -42,6 +43,17 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
+
+  // Smooth-streaming buffer — decouples Anthropic's bursty token cadence
+  // from React render cadence. Tokens land in `targetRef`; an rAF loop
+  // reveals characters at a steady ~1 char per ~12ms when buffered, slowing
+  // down to match upstream rate when the buffer is empty. This eliminates
+  // the visible "stutter" between bursts of 20+ tokens followed by a pause.
+  const targetRef = useRef('')
+  const renderedRef = useRef('')
+  const streamDoneRef = useRef(false)
+  const smoothRafRef = useRef<number | null>(null)
+  const lastTickRef = useRef<number>(0)
 
   // Load history on mount
   useEffect(() => {
@@ -98,7 +110,42 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+      if (smoothRafRef.current !== null) cancelAnimationFrame(smoothRafRef.current)
     }
+  }, [])
+
+  // Drive the smooth-reveal loop. Reveals chars at a target rate based on
+  // how far ahead the upstream buffer is — bigger backlog = faster reveal,
+  // so we never fall too far behind, but a small backlog still feels typed.
+  const startSmoothReveal = useCallback(() => {
+    if (smoothRafRef.current !== null) return
+    const tick = (now: number) => {
+      const last = lastTickRef.current || now
+      const dt = Math.min(now - last, 64) // clamp on tab-resume
+      lastTickRef.current = now
+
+      const target = targetRef.current
+      const rendered = renderedRef.current
+      const backlog = target.length - rendered.length
+
+      if (backlog > 0) {
+        // Adaptive cadence: ~80 chars/s baseline, scaling up with backlog
+        // so a 200-char burst flushes in ~1s without feeling like a dump.
+        const charsPerMs = backlog > 400 ? 0.5 : backlog > 120 ? 0.18 : 0.08
+        const reveal = Math.max(1, Math.min(backlog, Math.ceil(dt * charsPerMs)))
+        const next = target.slice(0, rendered.length + reveal)
+        renderedRef.current = next
+        setStreamingContent(next)
+      } else if (streamDoneRef.current) {
+        // Caught up and upstream finished — stop the loop.
+        smoothRafRef.current = null
+        lastTickRef.current = 0
+        return
+      }
+
+      smoothRafRef.current = requestAnimationFrame(tick)
+    }
+    smoothRafRef.current = requestAnimationFrame(tick)
   }, [])
 
   const handleSend = useCallback(
@@ -116,6 +163,11 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       }
       setMessages((prev) => [...prev, userMsg])
       setStreamingContent('')
+      setIsThinking(false)
+      targetRef.current = ''
+      renderedRef.current = ''
+      streamDoneRef.current = false
+      lastTickRef.current = 0
 
       try {
         const res = await fetch('/api/chat', {
@@ -154,8 +206,17 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
             try {
               const parsed: unknown = JSON.parse(payload)
               if (typeof parsed === 'string') {
+                if (isThinking) setIsThinking(false)
                 accumulated += parsed
-                setStreamingContent(accumulated)
+                targetRef.current = accumulated
+                startSmoothReveal()
+              } else if (
+                parsed &&
+                typeof parsed === 'object' &&
+                '__thinking' in parsed &&
+                (parsed as { __thinking: unknown }).__thinking === true
+              ) {
+                setIsThinking(true)
               } else if (
                 parsed &&
                 typeof parsed === 'object' &&
@@ -172,6 +233,16 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
               // skip malformed
             }
           }
+        }
+
+        // Upstream done — flush the smooth-reveal buffer to the end so
+        // the user sees the full message immediately on stream close.
+        streamDoneRef.current = true
+        targetRef.current = accumulated
+        renderedRef.current = accumulated
+        if (smoothRafRef.current !== null) {
+          cancelAnimationFrame(smoothRafRef.current)
+          smoothRafRef.current = null
         }
 
         // Persist any partial response we did get before the error.
@@ -210,10 +281,18 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         setLastFailedMessage(message)
       } finally {
         setStreamingContent('')
+        setIsThinking(false)
+        targetRef.current = ''
+        renderedRef.current = ''
+        streamDoneRef.current = false
+        if (smoothRafRef.current !== null) {
+          cancelAnimationFrame(smoothRafRef.current)
+          smoothRafRef.current = null
+        }
         setIsLoading(false)
       }
     },
-    [isLoading, sessionId],
+    [isLoading, sessionId, startSmoothReveal],
   )
 
   // Auto-send initialMessage once history has loaded and there are no existing messages
@@ -259,9 +338,15 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
           <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
         ))}
 
-        {/* Streaming message */}
-        {streamingContent && (
-          <ChatMessage role="assistant" content={streamingContent} isStreaming />
+        {/* Streaming message — show empty bubble with typing indicator
+            the instant the server flushes its __thinking event, even
+            before the first token arrives. */}
+        {(streamingContent || isThinking) && (
+          <ChatMessage
+            role="assistant"
+            content={streamingContent}
+            isStreaming
+          />
         )}
 
         <div ref={bottomRef} />
