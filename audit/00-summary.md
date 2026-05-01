@@ -44,9 +44,9 @@ Volgorde gebaseerd op (a) impact op echte iPhone-gebruik, (b) afhankelijkheden t
 
 ### Groep 2 — iOS Safari safe areas & viewport _(visuele blokkers iPhone)_
 **Effort: S.** Files: ~10.
-- Tab bar `pb-[28px]` → `pb-[max(env(safe-area-inset-bottom),12px)]` + `pl/pr-[env(...)]`.
-- `<main>` `pb-[86px]` → `pb-[calc(86px+env(safe-area-inset-bottom))]` + `pl/pr-[env(...)]` voor landscape.
-- 7 bottom-sheets + 2 sticky footers: `pb-[env(safe-area-inset-bottom)]` toevoegen.
+- Tab bar `pb-[28px]` → `pb-[max(env(safe-area-inset-bottom),12px)]` + `pl/pr--ARB-env(...)-`.
+- `<main>` `pb-[86px]` → `pb-[calc(86px+env(safe-area-inset-bottom))]` + `pl/pr--ARB-env(...)-` voor landscape.
+- 7 bottom-sheets + 2 sticky footers: `pb--ARB-env(safe-area-inset-bottom)-` toevoegen.
 - 7 modals: `vh` → `dvh`.
 - `MiniChat`, `InstallPrompt`: safe-area op `bottom`/`right`.
 - `ChatPage` `h-[calc(100dvh-86px)]` herrekenen na tab-bar fix.

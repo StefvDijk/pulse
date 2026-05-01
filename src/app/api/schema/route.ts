@@ -197,48 +197,150 @@ export async function GET() {
       padelDates.add(dayKeyAmsterdam(p.started_at))
     }
 
-    function isFocusCompleted(date: string, focus: string): boolean {
-      const focusLower = focus.toLowerCase().trim()
-
-      // Run-type day → check runs table.
-      if (focusLower.includes('hardlopen') || focusLower.includes('run')) {
-        if (runDates.has(date)) return true
-      }
-
-      // Padel-type day → check padel_sessions table.
-      if (focusLower.includes('padel')) {
-        if (padelDates.has(date)) return true
-      }
-
-      // Gym workouts: title must match a workout logged on that date.
-      return workoutsByDate.get(date)?.has(focusLower) ?? false
+    function focusKind(focus: string): 'run' | 'padel' | 'gym' {
+      const f = focus.toLowerCase().trim()
+      if (f.includes('hardlopen') || f.includes('run')) return 'run'
+      if (f.includes('padel')) return 'padel'
+      return 'gym'
     }
 
     // Enrich weeks with completion status
     const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
 
     const enrichedWeeks = weeks.map((week) => {
-      const enrichedDays = week.days.map((day) => {
-        const completed = day.workoutFocus ? isFocusCompleted(day.date, day.workoutFocus) : false
+      const weekDates = new Set(week.days.map((d) => d.date))
 
-        const status: 'completed' | 'today' | 'planned' | 'rest' = !day.workoutFocus
+      type ExerciseList = Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+      type PlannedRecord = {
+        plannedDate: string
+        focus: string
+        exercises?: ExerciseList
+        actualDate?: string
+        completed: boolean
+      }
+
+      const planned: PlannedRecord[] = []
+      for (const d of week.days) {
+        if (d.workoutFocus) {
+          const exercises = d.exercises ?? schedule.find((s) => s.day.toLowerCase() === d.dayName)?.exercises
+          planned.push({ plannedDate: d.date, focus: d.workoutFocus, exercises, completed: false })
+        }
+      }
+
+      type Completion = { date: string; kind: 'gym' | 'run' | 'padel'; title?: string; used: boolean }
+      const completions: Completion[] = []
+      for (const [date, titles] of workoutsByDate) {
+        if (!weekDates.has(date)) continue
+        for (const t of titles) completions.push({ date, kind: 'gym', title: t, used: false })
+      }
+      for (const d of runDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'run', used: false })
+      for (const d of padelDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'padel', used: false })
+
+      function findCompletion(kind: 'gym' | 'run' | 'padel', focusLower: string, dateConstraint?: string) {
+        return completions.find(
+          (c) =>
+            !c.used &&
+            c.kind === kind &&
+            (kind !== 'gym' || c.title === focusLower) &&
+            (dateConstraint === undefined || c.date === dateConstraint),
+        )
+      }
+
+      // Pass 1: exact-date pairing.
+      for (const r of planned) {
+        const kind = focusKind(r.focus)
+        const focusLower = r.focus.toLowerCase().trim()
+        const c = findCompletion(kind, focusLower, r.plannedDate)
+        if (c) {
+          c.used = true
+          r.actualDate = c.date
+          r.completed = true
+        }
+      }
+
+      // Pass 2: pair remaining planned with any in-week completion.
+      for (const r of planned) {
+        if (r.completed) continue
+        const kind = focusKind(r.focus)
+        const focusLower = r.focus.toLowerCase().trim()
+        const c = findCompletion(kind, focusLower)
+        if (c) {
+          c.used = true
+          r.actualDate = c.date
+          r.completed = true
+        }
+      }
+
+      type DayItem = {
+        focus: string
+        exercises?: ExerciseList
+        status: 'completed' | 'today' | 'planned'
+        plannedDate?: string
+        actualDate?: string
+        unplanned?: boolean
+      }
+      const itemsByDate = new Map<string, DayItem[]>()
+      for (const r of planned) {
+        const displayDate = r.actualDate ?? r.plannedDate
+        const status: DayItem['status'] = r.completed
+          ? 'completed'
+          : displayDate === todayStr
+            ? 'today'
+            : 'planned'
+        const item: DayItem = {
+          focus: r.focus,
+          exercises: r.exercises,
+          status,
+          plannedDate: r.plannedDate,
+          actualDate: r.actualDate,
+        }
+        const arr = itemsByDate.get(displayDate) ?? []
+        arr.push(item)
+        itemsByDate.set(displayDate, arr)
+      }
+
+      // Add unplanned completions (e.g. unscheduled padel/run/gym workout) as extra chips.
+      function focusLabel(c: Completion): string {
+        if (c.kind === 'run') return 'Hardlopen'
+        if (c.kind === 'padel') return 'Padel'
+        if (!c.title) return 'Workout'
+        return c.title.replace(/\b\w/g, (m) => m.toUpperCase())
+      }
+      for (const c of completions) {
+        if (c.used) continue
+        const item: DayItem = {
+          focus: focusLabel(c),
+          status: 'completed',
+          actualDate: c.date,
+          unplanned: true,
+        }
+        const arr = itemsByDate.get(c.date) ?? []
+        arr.push(item)
+        itemsByDate.set(c.date, arr)
+      }
+
+      const enrichedDays = week.days.map((day) => {
+        const items = itemsByDate.get(day.date) ?? []
+        const primary = items[0]
+        const dayStatus: 'completed' | 'today' | 'planned' | 'rest' = !primary
           ? 'rest'
-          : completed
+          : items.every((i) => i.status === 'completed')
             ? 'completed'
             : day.date === todayStr
               ? 'today'
-              : day.date < todayStr
-                ? 'planned' // missed — still show as planned
-                : 'planned'
-
-        // For template days without override exercises, look up from schedule
-        const exercises = day.exercises ?? schedule.find((s) => s.day.toLowerCase() === day.dayName)?.exercises
-
-        return { ...day, status, exercises }
+              : 'planned'
+        return {
+          date: day.date,
+          dayName: day.dayName,
+          workoutFocus: primary?.focus ?? null,
+          exercises: primary?.exercises,
+          status: dayStatus,
+          items,
+        }
       })
 
-      const sessionsPlanned = enrichedDays.filter((d) => d.workoutFocus).length
-      const sessionsCompleted = enrichedDays.filter((d) => d.status === 'completed').length
+      const sessionsPlanned = planned.length
+      const sessionsCompleted = planned.filter((r) => r.completed).length
 
       return {
         ...week,

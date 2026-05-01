@@ -12,7 +12,7 @@ Volledige re-run van de drie audit-agents (Vercel WIG, Apple HIG, iOS Safari) zo
 |---|---|---|---|
 | `<input>`/`<textarea>` met `text-sm/xs/[13/14/15px]` | 17+ | **0** | ✅ |
 | Modals/sheets met `max-h-[Nvh]` (legacy `vh`) | 7 | **0** | ✅ |
-| Modals met `items-end` zonder `pb-[env(safe-area-...)]` | 7 | **0** | ✅ |
+| Modals met `items-end` zonder `pb--ARB-env(safe-area-...)-` | 7 | **0** | ✅ |
 | `document.body.style.overflow` ad-hoc | 2 | **0** | ✅ |
 | `role="dialog"` op modals | 4 | **9** | ✅ +5 |
 | Escape-key handlers (via `useEscapeKey` of inline) | 2 | **14** | ✅ +12 |

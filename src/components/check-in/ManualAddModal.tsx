@@ -280,7 +280,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto pb-safe">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>

@@ -8,6 +8,7 @@ import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Sk
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
 import { AIContextSection } from './AIContextSection'
+import { CoachToneSection, type CoachTone } from './CoachToneSection'
 import { CoachingMemoryEditor } from './CoachingMemoryEditor'
 import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
@@ -412,6 +413,11 @@ export function SettingsPage() {
 
       {/* AI Coach section */}
       <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
+
+      <CoachToneSection
+        currentValue={(data?.settings.coach_tone ?? null) as CoachTone | null}
+        onSaved={refresh}
+      />
 
       <AIContextSection
         currentValue={data?.settings.ai_custom_instructions ?? null}

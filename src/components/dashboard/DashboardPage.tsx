@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'motion/react'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { useSchemaWeek, type SchemaWeekDay } from '@/hooks/useSchemaWeek'
 import { useReadiness } from '@/hooks/useReadiness'
+import { useReadinessSummary } from '@/hooks/useReadinessSummary'
 import { useWorkload } from '@/hooks/useWorkload'
+import { ReadinessDrilldownSheet } from '@/components/home/ReadinessDrilldownSheet'
 import { Card, ReadinessOrb, MicroStat, ZoneBar, SportDot, SPORT_BASE, type Sport } from '@/components/ui/v2'
 import { ExplainTrigger } from '@/components/explain/ExplainTrigger'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
@@ -189,7 +192,9 @@ export function DashboardPage() {
     refresh: refreshSchema,
   } = useSchemaWeek()
   const { data: readiness } = useReadiness()
+  const { data: summary } = useReadinessSummary()
   const { data: workload } = useWorkload()
+  const [drilldownOpen, setDrilldownOpen] = useState(false)
 
   if (schemaLoading) return <HomeSkeleton />
   if (schemaError) {
@@ -257,6 +262,21 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
+          {summary?.sentence && (
+            <p className="mt-3 text-[13px] leading-snug text-text-secondary">
+              {summary.sentence}
+            </p>
+          )}
+          {summary?.coldStart?.active && (
+            <p className="mt-2 text-[11px] text-text-tertiary" aria-live="polite">
+              Pulse leert nog je baseline. Nog{' '}
+              <span className="font-semibold text-text-secondary">
+                {summary.coldStart.nightsRemaining}{' '}
+                {summary.coldStart.nightsRemaining === 1 ? 'nacht' : 'nachten'}
+              </span>{' '}
+              voor betrouwbare readiness.
+            </p>
+          )}
           <div className="mt-[18px] grid grid-cols-4 gap-2.5 border-t-[0.5px] border-bg-border pt-3.5">
             <MicroStat label="HRV" value={readiness?.hrv ?? '—'} delta={readiness?.hrv ? 'ms' : undefined} good />
             <MicroStat label="RHR" value={readiness?.restingHR ?? '—'} delta={readiness?.restingHR ? 'bpm' : undefined} good />
@@ -266,9 +286,24 @@ export function DashboardPage() {
             />
             <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="7d" />
           </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setDrilldownOpen(true)
+            }}
+            className="mt-3 w-full rounded-lg border border-bg-border bg-white/[0.04] py-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-white/[0.06] focus-ring"
+          >
+            Wat bepaalt dit? →
+          </button>
         </Card>
         </ExplainTrigger>
       </motion.div>
+
+      <ReadinessDrilldownSheet
+        open={drilldownOpen}
+        onClose={() => setDrilldownOpen(false)}
+      />
 
       {/* Strain bar */}
       {ratio !== null && (

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Exclude markdown docs from Tailwind's class scanner. They contain literal
+ * class strings inside code-fences (audit/*.md, research/*.md) which Turbopack
+ * then mis-parses when generating CSS for arbitrary `env(...)` values. */
+@source not "../../audit";
+@source not "../../research";
+@source not "../../design";
+@source not "../../*.md";
+
 /* ─── SF Pro Display — self-hosted ───────────────────────────────────────── */
 
 @font-face {
@@ -414,4 +422,29 @@ button, a, [role="button"] {
 }
 @utility bg-gradient-ember {
   background-image: var(--gradient-ember);
+}
+
+/* Safe-area utilities. Using arbitrary `pb-[env(...)]` classes triggers a
+ * Tailwind 4 + Turbopack CSS-parsing bug that emits truncated `env(...)`
+ * values. Define them as named utilities here instead. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-safe-12 {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+@utility pb-safe-16 {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+@utility pb-safe-24 {
+  padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+@utility pr-safe {
+  padding-right: env(safe-area-inset-right);
 }

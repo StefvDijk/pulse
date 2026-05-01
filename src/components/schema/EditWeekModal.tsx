@@ -225,7 +225,7 @@ export function EditWeekModal({
         )}
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-safe-16">
           <span className="text-sm text-text-tertiary">
             {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
           </span>

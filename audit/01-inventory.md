@@ -76,7 +76,7 @@ Layout (`src/app/layout.tsx`):
 - `viewport-fit: cover` ✅
 - `themeColor: #15171F` ✅
 - `appleWebApp.capable: true` ✅
-- `pt-[env(safe-area-inset-top)]` op `<main>` ✅
+- `pt--ARB-env(safe-area-inset-top)-` op `<main>` ✅
 - `pb-[86px]` voor tab bar offset (mobile) ✅
 - `min-h-[100dvh]` ✅
 - `maximumScale: 1` ⚠️ — blokkeert pinch-zoom (a11y issue, telt in audit)

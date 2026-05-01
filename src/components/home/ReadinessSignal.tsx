@@ -58,9 +58,11 @@ interface ScoreRingProps {
   ringColor: string
   trackColor: string
   size?: number
+  /** When true, render the progress arc dashed to signal "provisional". */
+  provisional?: boolean
 }
 
-function ScoreRing({ score, ringColor, trackColor, size = 132 }: ScoreRingProps) {
+function ScoreRing({ score, ringColor, trackColor, size = 132, provisional = false }: ScoreRingProps) {
   const stroke = 8
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
@@ -85,15 +87,17 @@ function ScoreRing({ score, ringColor, trackColor, size = 132 }: ScoreRingProps)
           fill="none"
           stroke={ringColor}
           strokeWidth={stroke}
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
+          strokeDasharray={provisional ? '4 6' : circumference}
+          strokeDashoffset={provisional ? 0 : dashOffset}
           strokeLinecap="round"
+          opacity={provisional ? 0.7 : 1}
           style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-large-title font-semibold tabular-nums text-text-primary">
           {score}
+          {provisional && <span aria-hidden className="text-text-tertiary">*</span>}
         </span>
         <span className="text-caption2 uppercase tracking-wide text-text-tertiary">
           readiness
@@ -148,6 +152,7 @@ export function ReadinessSignal() {
 
   const config = LEVEL_CONFIG[data.level]
   const acwrLabel = data.acwr !== null ? `ACWR ${data.acwr.toFixed(2)}` : null
+  const cold = data.coldStart?.active ?? false
 
   return (
     <div className={`rounded-2xl border border-bg-border ${config.bgClass} p-4`}>
@@ -170,8 +175,23 @@ export function ReadinessSignal() {
           score={data.score}
           ringColor={config.ringColor}
           trackColor={config.trackColor}
+          provisional={cold}
         />
       </div>
+
+      {/* Cold-start hint */}
+      {cold && (
+        <p
+          className="mt-3 text-center text-caption1 text-text-tertiary"
+          aria-live="polite"
+        >
+          Pulse leert nog je baseline. Nog{' '}
+          <span className="font-semibold text-text-secondary">
+            {data.coldStart.nightsRemaining} {data.coldStart.nightsRemaining === 1 ? 'nacht' : 'nachten'}
+          </span>{' '}
+          voor betrouwbare readiness.
+        </p>
+      )}
 
       {/* Metric breakdown */}
       <div className="mt-4 space-y-2">

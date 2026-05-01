@@ -67,7 +67,7 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
       aria-label={day.workoutFocus ?? 'Dag-detail'}
     >
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl max-h-[80dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl max-h-[80dvh] overflow-y-auto pb-safe">
         <div className="px-5 pt-5 pb-3 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <SportIcon focus={day.workoutFocus} />

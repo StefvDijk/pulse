@@ -37,7 +37,7 @@ export async function GET() {
         .limit(10),
       admin
         .from('user_settings')
-        .select('ai_custom_instructions')
+        .select('ai_custom_instructions, coach_tone')
         .eq('user_id', user.id)
         .maybeSingle(),
       loadUserProfile(user.id),
@@ -53,12 +53,14 @@ export async function GET() {
       : null
 
     const customInstructions = settingsResult.data?.ai_custom_instructions ?? null
+    const coachTone = (settingsResult.data?.coach_tone ?? 'direct') as 'direct' | 'friendly' | 'scientific'
 
     const systemPrompt = buildSystemPrompt({
       activeSchema,
       activeInjuries: injuriesResult.data ?? [],
       activeGoals: goalsResult.data ?? [],
       customInstructions,
+      coachTone,
       profileBlock: renderProfileBlock(profile),
     })
 

@@ -194,7 +194,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             )}
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-safe-16">
               <span className="text-sm text-text-tertiary">
                 {includedCount} van {entries.length} workout{entries.length !== 1 ? 's' : ''}
               </span>

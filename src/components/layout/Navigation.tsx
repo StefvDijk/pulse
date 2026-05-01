@@ -58,8 +58,8 @@ export function Navigation() {
           'fixed bottom-0 left-0 right-0 z-50 lg:hidden',
           'flex items-stretch justify-around',
           'h-[var(--nav-height)]',
-          'pt-2 pb-[max(env(safe-area-inset-bottom),12px)]',
-          'pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
+          'pt-2 pb-safe-12',
+          'pl-safe pr-safe',
           'border-t border-bg-border-strong',
         ].join(' ')}
         style={{
@@ -148,7 +148,7 @@ export function Navigation() {
                 'bg-bg-elevated',
                 'rounded-t-[28px]',
                 'border-t border-bg-border-strong',
-                'pb-[max(env(safe-area-inset-bottom),24px)]',
+                'pb-safe-24',
               ].join(' ')}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
