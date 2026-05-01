@@ -15,6 +15,7 @@ import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
 import { WeekTier } from '@/components/check-in/WeekTier'
+import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -25,6 +26,8 @@ interface WeekReviewCardProps {
   manualAdditions: ManualAddition[]
   onAddManual: (addition: ManualAddition) => void
   onRemoveManual: (index: number) => void
+  wellness: WellnessState
+  onWellnessChange: (next: WellnessState) => void
   onNext: () => void
 }
 
@@ -65,6 +68,8 @@ export function WeekReviewCard({
   manualAdditions,
   onAddManual,
   onRemoveManual,
+  wellness,
+  onWellnessChange,
   onNext,
 }: WeekReviewCardProps) {
   const [showModal, setShowModal] = useState(false)
@@ -75,6 +80,9 @@ export function WeekReviewCard({
     <div className="flex flex-col gap-3">
       {/* Burn Bar tier — your week vs your 4-week average */}
       <WeekTier weekStart={data.week.weekStart} />
+
+      {/* Subjective wellness ratings + open notes */}
+      <WellnessBlock value={wellness} onChange={onWellnessChange} />
 
       {/* Sessions card */}
       <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">

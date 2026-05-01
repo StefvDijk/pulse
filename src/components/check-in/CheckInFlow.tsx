@@ -12,6 +12,7 @@ import { WeekPlanCard } from '@/components/check-in/WeekPlanCard'
 import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
+import type { WellnessState } from '@/components/check-in/WellnessBlock'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -130,6 +131,12 @@ export function CheckInFlow() {
   const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [dryRun, setDryRun] = useState(false)
+  const [wellness, setWellness] = useState<WellnessState>({
+    energy: null,
+    motivation: null,
+    stress: null,
+    notes: '',
+  })
 
   const handleAddManual = useCallback((addition: ManualAddition) => {
     setManualAdditions((prev) => [...prev, addition])
@@ -269,6 +276,8 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             onAddManual={handleAddManual}
             onRemoveManual={handleRemoveManual}
+            wellness={wellness}
+            onWellnessChange={setWellness}
             onNext={() => setStep(2)}
           />
         )}
@@ -297,6 +306,7 @@ export function CheckInFlow() {
             plannedSessions={plannedSessions}
             syncToCalendar={syncToCalendar}
             dryRun={dryRun}
+            wellness={wellness}
             onConfirmed={handleConfirmed}
           />
         )}

@@ -13,6 +13,7 @@ import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
+import type { WellnessState } from '@/components/check-in/WellnessBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -25,6 +26,7 @@ interface ConfirmationCardProps {
   plannedSessions: PlannedSession[] | null
   syncToCalendar: boolean
   dryRun?: boolean
+  wellness?: WellnessState
   onConfirmed: () => void
 }
 
@@ -56,6 +58,7 @@ export function ConfirmationCard({
   plannedSessions,
   syncToCalendar,
   dryRun = false,
+  wellness,
   onConfirmed,
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
@@ -107,6 +110,14 @@ export function ConfirmationCard({
         planned_sessions: plannedSessions ?? undefined,
         sync_to_calendar: syncToCalendar,
         dry_run: dryRun,
+        wellness: wellness
+          ? {
+              energy: wellness.energy,
+              motivation: wellness.motivation,
+              stress: wellness.stress,
+              notes: wellness.notes.trim() || null,
+            }
+          : undefined,
       }
 
       const res = await fetch('/api/check-in/confirm', {

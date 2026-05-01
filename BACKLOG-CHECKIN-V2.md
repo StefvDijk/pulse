@@ -95,7 +95,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-04 · Wellness-blok in stap 1
-**Status:** 📋 todo · **Omvang:** S · **Fase:** 1 · **Parallel:** ✅ (na 03)
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-04-wellness-block` · **Omvang:** S · **Fase:** 1 · **Parallel:** ✅ (na 03)
 **Why:** Subjectieve scores zijn vaak vroegere voorspellers dan biomarkers. ≤30 sec werk voor de gebruiker.
 **Files:** `src/components/check-in/WeekReviewCard.tsx`, eventueel `src/components/check-in/WellnessBlock.tsx`
 **Acceptatie:**
