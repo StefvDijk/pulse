@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion } from 'motion/react'
+import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   LayoutGrid,
   TrendingUp,
@@ -11,6 +12,8 @@ import {
   LogOut,
   Settings as SettingsIcon,
   Apple,
+  MoreHorizontal,
+  ChevronRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
@@ -32,6 +35,18 @@ const NAV_ITEMS: NavItem[] = [
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  useEffect(() => {
+    setMoreOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = original }
+  }, [moreOpen])
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -84,7 +99,112 @@ export function Navigation() {
             </Link>
           )
         })}
+
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-label="Meer"
+          aria-expanded={moreOpen}
+          aria-haspopup="dialog"
+          className={[
+            'relative flex flex-col items-center justify-center gap-1',
+            'min-w-[44px] flex-1 px-1',
+            'active:opacity-60 transition-opacity duration-150',
+            moreOpen ? 'text-text-primary' : 'text-text-tertiary',
+          ].join(' ')}
+        >
+          <MoreHorizontal size={22} strokeWidth={moreOpen ? 2 : 1.5} />
+          <span className="text-[10px] font-semibold tracking-[0.2px]">Meer</span>
+          {moreOpen && (
+            <span
+              className="absolute bottom-[18px] h-1 w-1 rounded-full"
+              style={{
+                background: 'var(--color-sport-gym-base)',
+                boxShadow: '0 0 8px var(--color-sport-gym-base)',
+              }}
+            />
+          )}
+        </button>
       </nav>
+
+      {/* ─── More sheet — mobile (Pulse v2) ───────────────────────────── */}
+      <AnimatePresence>
+        {moreOpen && (
+          <motion.div
+            className="fixed inset-0 z-[60] lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Meer opties"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setMoreOpen(false)}
+            />
+            <motion.div
+              className={[
+                'absolute bottom-0 left-0 right-0',
+                'bg-bg-elevated',
+                'rounded-t-[28px]',
+                'border-t border-bg-border-strong',
+                'pb-[max(env(safe-area-inset-bottom),24px)]',
+              ].join(' ')}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            >
+              {/* Grabber */}
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="h-1 w-9 rounded-full bg-white/15" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 pt-2 pb-3">
+                <h2 className="text-[17px] font-semibold text-text-primary tracking-[-0.2px]">Meer</h2>
+              </div>
+
+              {/* List */}
+              <div className="px-3 pb-3">
+                <Link
+                  href="/settings"
+                  onClick={() => setMoreOpen(false)}
+                  className={[
+                    'flex items-center gap-3 px-3 py-3 rounded-xl',
+                    'text-[15px] font-medium text-text-primary',
+                    'hover:bg-white/[0.04] active:bg-white/[0.08]',
+                    'transition-colors duration-150',
+                  ].join(' ')}
+                >
+                  <SettingsIcon size={22} strokeWidth={1.5} className="text-text-secondary" />
+                  <span className="flex-1">Instellingen</span>
+                  <ChevronRight size={18} strokeWidth={1.5} className="text-text-muted" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false)
+                    handleSignOut()
+                  }}
+                  className={[
+                    'mt-1 flex w-full items-center gap-3 px-3 py-3 rounded-xl text-left',
+                    'text-[15px] font-medium text-status-bad',
+                    'hover:bg-status-bad/10 active:bg-status-bad/15',
+                    'transition-colors duration-150',
+                  ].join(' ')}
+                >
+                  <LogOut size={22} strokeWidth={1.5} />
+                  <span>Uitloggen</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Sidebar — desktop (Pulse v2 dark) ─────────────────────────── */}
       <aside
