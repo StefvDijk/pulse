@@ -217,3 +217,41 @@ Toegevoegd aan: `settings/shared.tsx` INPUT_CLASSES, `OnboardingWizard` INPUT_CL
 
 ### Verificatie
 - `npx tsc --noEmit` → exit 0.
+
+---
+
+## Group 3 — Reduced-motion compliance
+
+**Datum:** 2026-05-01 · **Commit:** (pending)
+
+### Strategie
+Drie lagen, één per technologie:
+1. **CSS-utilities** (`animate-spin`, `animate-pulse`, ad-hoc `transition`, SVG `stroke-dashoffset`): blanket-override via `@media (prefers-reduced-motion: reduce)` in globals.css.
+2. **motion/react**: `<MotionConfig reducedMotion="user">` op de root template — neutraliseert variants/whileHover/whileTap automatisch voor de hele app.
+3. **Recharts**: per-chart `isAnimationActive={animated}` via gedeelde `useMotionEnabled` hook (geen globale config beschikbaar).
+
+### Nieuwe shared utility
+- `src/hooks/useReducedMotion.ts` — re-export van motion/react's `useReducedMotion` + convenience `useMotionEnabled(): boolean` voor non-motion APIs.
+
+### Wijzigingen
+
+| File | Wat |
+|---|---|
+| `src/app/globals.css` | Reduced-motion blok uitgebreid: kill `animate-{spin,pulse,bounce,ping,coach-orb}` looping; universal `transition-duration: 0` op `*, *::before, *::after`; `scroll-behavior: auto`. View-transition gate behouden. |
+| `src/app/template.tsx` | `<MotionConfig reducedMotion="user">` als root van page-tree. Eén lijn dekt alle motion/react gebruik (Navigation, DashboardPage, etc.). |
+| `src/components/progress/VolumeChart.tsx` | `useMotionEnabled` + `isAnimationActive={animated}` op 3 Bars + 1 Line |
+| `src/components/progress/StrengthChart.tsx` | idem op N Lines |
+| `src/components/progress/RunningChart.tsx` | idem op Bar + Line |
+| `src/components/check-in/HistoryAnalytics.tsx` | idem op 3 stacked Bars |
+| `src/components/nutrition/MacroSummary.tsx` | idem op Pie |
+
+### Niet aangeraakt (bewust)
+- `progress/TonnageTrend.tsx` en `workload/AcwrCorridor.tsx` hadden al hardcoded `isAnimationActive={false}` — altijd uit, ook voor non-reduced-motion users. Niet veranderd: dat is ander gedrag (force-off vs respect-user) maar niet incorrect.
+- `CoachOrb` heeft al een eigen reduced-motion gate in zijn keyframe declaratie + de blanket CSS-gate kapt 'm nu ook.
+- Per-component motion/react useReducedMotion checks: niet nodig, MotionConfig dekt ze allemaal.
+- TimeOfDayTheme `transition-[background] duration-[1500ms]`: gevangen door de blanket CSS-gate (`transition-duration: 0ms !important`).
+- ReadinessSignal inline `style={{ transition: 'stroke-dashoffset 600ms' }}`: idem — `!important` in stylesheet beats inline shorthand.
+
+### Verificatie
+- `npx tsc --noEmit` → exit 0.
+- Test handmatig: macOS Settings → Display → Reduce Motion. Refresh app: charts moeten zonder slide-in tonen, page transitions zijn instant fades, skeletons frozen, coach-orb stilstaand.

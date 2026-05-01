@@ -19,6 +19,7 @@ import {
   appleTooltipLabelStyle,
   appleTooltipStyle,
 } from '@/lib/chart-styles'
+import { useMotionEnabled } from '@/hooks/useReducedMotion'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -31,6 +32,7 @@ function formatWeek(dateStr: string): string {
 }
 
 export const RunningChart = memo(function RunningChart({ weeks }: RunningChartProps) {
+  const animated = useMotionEnabled()
   const chartData = weeks.map((w) => {
     const km = w.total_running_km ?? 0
     const sessions = w.running_sessions ?? 0
@@ -87,6 +89,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
           fill={appleChartColors.orange}
           opacity={0.85}
           radius={appleBarRadius}
+          isAnimationActive={animated}
         />
         <Line
           yAxisId="avg"
@@ -96,6 +99,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
           strokeWidth={2.5}
           dot={false}
           activeDot={{ r: 4 }}
+          isAnimationActive={animated}
         />
       </ComposedChart>
     </ResponsiveContainer>

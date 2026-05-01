@@ -6,6 +6,7 @@ import {
   appleTooltipStyle,
   macroColors,
 } from '@/lib/chart-styles'
+import { useMotionEnabled } from '@/hooks/useReducedMotion'
 
 export interface MacroSummaryProps {
   calories: number
@@ -22,6 +23,7 @@ const SEGMENTS = [
 ] as const
 
 export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: MacroSummaryProps) {
+  const animated = useMotionEnabled()
   const data = [
     { name: 'Eiwit', value: protein_g, color: macroColors.protein },
     { name: 'Koolhydraten', value: carbs_g, color: macroColors.carbs },
@@ -46,6 +48,7 @@ export function MacroSummary({ calories, protein_g, carbs_g, fat_g, fiber_g }: M
                 paddingAngle={2}
                 dataKey="value"
                 strokeWidth={0}
+                isAnimationActive={animated}
               >
                 {data.map((entry) => (
                   <Cell key={entry.name} fill={entry.color} />

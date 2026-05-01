@@ -21,6 +21,7 @@ import {
   appleTooltipStyle,
   sportColors,
 } from '@/lib/chart-styles'
+import { useMotionEnabled } from '@/hooks/useReducedMotion'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -39,6 +40,7 @@ const SPORT_LABELS: Record<string, string> = {
 }
 
 export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps) {
+  const animated = useMotionEnabled()
   if (weeks.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center">
@@ -105,14 +107,15 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
           wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'var(--color-label-secondary)' }}
           formatter={(value) => SPORT_LABELS[value] ?? value}
         />
-        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill={sportColors.gym} />
-        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill={sportColors.run} />
+        <Bar yAxisId="minutes" dataKey="gym" stackId="vol" fill={sportColors.gym} isAnimationActive={animated} />
+        <Bar yAxisId="minutes" dataKey="run" stackId="vol" fill={sportColors.run} isAnimationActive={animated} />
         <Bar
           yAxisId="minutes"
           dataKey="padel"
           stackId="vol"
           fill={sportColors.padel}
           radius={appleBarRadius}
+          isAnimationActive={animated}
         />
         {hasAcwr && (
           <Line
@@ -124,6 +127,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
             dot={false}
             activeDot={{ r: 4 }}
             name="acwr"
+            isAnimationActive={animated}
           />
         )}
       </ComposedChart>
