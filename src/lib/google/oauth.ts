@@ -2,7 +2,11 @@ import crypto from 'crypto'
 import { google } from 'googleapis'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'openid',
+]
 
 function getStateSecret(): string {
   const secret = process.env.CRON_SECRET
