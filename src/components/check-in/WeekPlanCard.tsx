@@ -13,7 +13,8 @@ import {
   Footprints,
 } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
-import { useWeekPlan, type PlannedSession } from '@/hooks/useWeekPlan'
+import { useWeekPlan, type PlannedSession, type LoadProjection } from '@/hooks/useWeekPlan'
+import { PlanChat, type PlanChatTurn } from '@/components/check-in/PlanChat'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { DayConflict, DayAvailability } from '@/lib/google/conflicts'
 import { addDaysToKey } from '@/lib/time/amsterdam'
@@ -391,6 +392,9 @@ export function WeekPlanCard({
   const [editingDate, setEditingDate] = useState<string | null>(null)
   const [addingDate, setAddingDate] = useState<string | null>(null)
   const [showReasoning, setShowReasoning] = useState(false)
+  const [chatHistory, setChatHistory] = useState<PlanChatTurn[]>([])
+  const [refinedReasoning, setRefinedReasoning] = useState<string | null>(null)
+  const [refinedLoadProjection, setRefinedLoadProjection] = useState<LoadProjection | null>(null)
 
   // Generate plan on mount
   useEffect(() => {
@@ -543,16 +547,20 @@ export function WeekPlanCard({
         </div>
       </div>
 
-      {/* ACWR load projection (informative — never blocks) */}
-      {plan.loadProjection && (
+      {/* ACWR load projection (informative — never blocks).
+          Prefer the refined projection if the user has chatted with the coach. */}
+      {(() => {
+        const lp = refinedLoadProjection ?? plan.loadProjection
+        if (!lp) return null
+        return (
         <div
           className="rounded-2xl border p-4"
           style={{
             background: 'var(--color-bg-surface)',
             borderColor:
-              plan.loadProjection.projected.status === 'red'
+              lp.projected.status === 'red'
                 ? 'var(--color-status-bad)'
-                : plan.loadProjection.projected.status === 'amber'
+                : lp.projected.status === 'amber'
                   ? 'var(--color-status-warn)'
                   : 'var(--color-bg-border)',
           }}
@@ -562,9 +570,9 @@ export function WeekPlanCard({
               className="inline-block h-2 w-2 rounded-full"
               style={{
                 background:
-                  plan.loadProjection.projected.status === 'red'
+                  lp.projected.status === 'red'
                     ? 'var(--color-status-bad)'
-                    : plan.loadProjection.projected.status === 'amber'
+                    : lp.projected.status === 'amber'
                       ? 'var(--color-status-warn)'
                       : 'var(--color-status-good)',
               }}
@@ -573,23 +581,26 @@ export function WeekPlanCard({
               Trainingsbelasting (ACWR)
             </span>
             <span className="ml-auto text-xs tabular-nums text-text-tertiary">
-              {plan.loadProjection.current.ratio.toFixed(2)} → {plan.loadProjection.projected.ratio.toFixed(2)}
+              {lp.current.ratio.toFixed(2)} → {lp.projected.ratio.toFixed(2)}
             </span>
           </div>
           <p className="mt-1 text-xs text-text-secondary leading-relaxed">
-            {plan.loadProjection.message}
+            {lp.message}
           </p>
         </div>
-      )}
+        )
+      })()}
 
-      {/* AI reasoning (collapsible) */}
-      {plan.reasoning && (
+      {/* AI reasoning (collapsible). Refined reasoning takes precedence. */}
+      {(refinedReasoning ?? plan.reasoning) && (
         <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
           <button
             onClick={() => setShowReasoning((prev) => !prev)}
             className="flex w-full items-center justify-between"
           >
-            <span className="text-xs font-medium text-text-tertiary">AI redenering</span>
+            <span className="text-xs font-medium text-text-tertiary">
+              {refinedReasoning ? 'Coach-aanpassing' : 'AI redenering'}
+            </span>
             {showReasoning ? (
               <ChevronUp size={14} className="text-text-tertiary" />
             ) : (
@@ -598,11 +609,28 @@ export function WeekPlanCard({
           </button>
           {showReasoning && (
             <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-              {plan.reasoning}
+              {refinedReasoning ?? plan.reasoning}
             </p>
           )}
         </div>
       )}
+
+      {/* Chat with the coach to adjust the plan */}
+      <PlanChat
+        weekStart={weekStart}
+        weekEnd={weekEnd}
+        currentSessions={sessions}
+        history={chatHistory}
+        onPlanUpdate={(newSessions, reasoning, _conflicts, lp) => {
+          setSessions(newSessions)
+          setRefinedReasoning(reasoning)
+          setRefinedLoadProjection(lp)
+          setShowReasoning(true)
+          setEditingDate(null)
+          setAddingDate(null)
+        }}
+        onHistoryUpdate={setChatHistory}
+      />
 
       {/* Calendar sync toggle */}
       <div className="rounded-2xl bg-bg-surface border border-bg-border p-4">
