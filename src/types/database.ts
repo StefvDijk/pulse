@@ -1392,6 +1392,7 @@ export type Database = {
       user_settings: {
         Row: {
           ai_custom_instructions: string | null
+          coach_tone: string
           created_at: string | null
           google_calendar_access_token: string | null
           google_calendar_email: string | null
@@ -1409,6 +1410,7 @@ export type Database = {
         }
         Insert: {
           ai_custom_instructions?: string | null
+          coach_tone?: string
           created_at?: string | null
           google_calendar_access_token?: string | null
           google_calendar_email?: string | null
@@ -1426,6 +1428,7 @@ export type Database = {
         }
         Update: {
           ai_custom_instructions?: string | null
+          coach_tone?: string
           created_at?: string | null
           google_calendar_access_token?: string | null
           google_calendar_email?: string | null

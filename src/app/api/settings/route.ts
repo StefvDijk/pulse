@@ -37,6 +37,7 @@ const SettingsUpdateSchema = z.object({
     .nullable()
     .optional(),
   ai_custom_instructions: z.string().max(2000).nullable().optional(),
+  coach_tone: z.enum(['direct', 'friendly', 'scientific']).optional(),
 })
 
 const PatchBodySchema = z.object({
@@ -60,7 +61,7 @@ export async function GET() {
       admin
         .from('user_settings')
         .select(
-          'user_id, hevy_api_key, health_auto_export_token, protein_target_per_kg, weekly_training_target, ai_custom_instructions, last_hevy_sync_at, last_apple_health_sync_at, google_calendar_email, preferred_unit_system, created_at, updated_at',
+          'user_id, hevy_api_key, health_auto_export_token, protein_target_per_kg, weekly_training_target, ai_custom_instructions, coach_tone, last_hevy_sync_at, last_apple_health_sync_at, google_calendar_email, preferred_unit_system, created_at, updated_at',
         )
         .eq('user_id', user.id)
         .single(),

@@ -24,6 +24,16 @@ export interface ReadinessSummary {
   acwr: number | null
   todayWorkout: string | null
   cachedAt: string
+  /**
+   * Cold-start status. Pulse needs ~14 days of HRV samples to compute
+   * trustworthy baselines. While `coldStart` is true the UI shows a
+   * "still learning, X nights to go" hint and softens the score visual.
+   */
+  coldStart: {
+    active: boolean
+    hrvDays: number
+    nightsRemaining: number
+  }
 }
 
 interface ScheduleSession {
@@ -208,7 +218,12 @@ export async function GET() {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
     const threeDaysAgoStr = toAmsterdamDate(threeDaysAgo)
 
-    const [weekly, activityToday, activityYesterday, recentWorkouts, schema] = await Promise.all([
+    // Cold-start window: count distinct dates with HRV in the last 21 days.
+    const twentyOneDaysAgo = new Date(now)
+    twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21)
+    const twentyOneDaysAgoStr = toAmsterdamDate(twentyOneDaysAgo)
+
+    const [weekly, activityToday, activityYesterday, recentWorkouts, schema, hrvHistory] = await Promise.all([
       admin
         .from('weekly_aggregations')
         .select('acute_chronic_ratio')
@@ -239,7 +254,21 @@ export async function GET() {
         .eq('user_id', user.id)
         .eq('is_active', true)
         .maybeSingle(),
+      admin
+        .from('daily_activity')
+        .select('date')
+        .eq('user_id', user.id)
+        .gte('date', twentyOneDaysAgoStr)
+        .not('hrv_average', 'is', null),
     ])
+
+    const hrvDays = hrvHistory.data?.length ?? 0
+    const COLD_START_THRESHOLD = 14
+    const coldStart = {
+      active: hrvDays < COLD_START_THRESHOLD,
+      hrvDays,
+      nightsRemaining: Math.max(0, COLD_START_THRESHOLD - hrvDays),
+    }
 
     const sessions = schema.data ? extractSessions(schema.data.workout_schedule) : []
     const todayWorkout = getWorkoutForDay(sessions, todayDayName)
@@ -295,6 +324,7 @@ export async function GET() {
       acwr,
       todayWorkout,
       cachedAt: new Date().toISOString(),
+      coldStart,
     }
 
     cache.set(key, { value: summary, expiresAt: Date.now() + CACHE_TTL_MS })

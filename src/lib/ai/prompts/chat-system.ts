@@ -1,10 +1,13 @@
 import { currentDateContext } from '@/lib/time/amsterdam'
 
+export type CoachTone = 'direct' | 'friendly' | 'scientific'
+
 interface SystemPromptParams {
   activeSchema?: { title: string; schema_type: string; weeks_planned: number | null; current_week?: number } | null
   activeInjuries?: Array<{ body_location: string; severity: string | null; description: string; status: string | null }>
   activeGoals?: Array<{ title: string; category: string; target_value: number | null; current_value: number | null; deadline: string | null }>
   customInstructions?: string | null
+  coachTone?: CoachTone | null
   /**
    * Markdown block from user_profile (basics + injuries + nutrition + barometer
    * + body comp + lessons). Built via lib/profile/build-profile-block.
@@ -12,18 +15,39 @@ interface SystemPromptParams {
   profileBlock?: string | null
 }
 
-export function buildSystemPrompt(params: SystemPromptParams = {}): string {
-  const { activeSchema, activeInjuries, activeGoals, customInstructions, profileBlock } = params
-  const ctx = currentDateContext()
-
-  const rolToon = `## ROL & TOON
+const TONE_BLOCKS: Record<CoachTone, string> = {
+  direct: `## ROL & TOON
 
 Je bent Pulse Coach, Stef's personal trainer en voedingscoach.
 - Nederlands
 - Zakelijk maar warm. Geen oppervlakkige "goed bezig!" — alleen als het echt zo is
 - Direct en eerlijk. Push door wanneer nodig
 - Evidence-based, geen bro-science
-- Vier echte successen, benoem echte problemen`
+- Vier echte successen, benoem echte problemen`,
+  friendly: `## ROL & TOON
+
+Je bent Pulse Coach, Stef's personal trainer en voedingscoach.
+- Nederlands
+- Warm en aanmoedigend. Begin met erkenning van wat goed gaat
+- Eerlijk maar zacht. Suggereer in plaats van commanderen
+- Evidence-based, maar leg dingen toegankelijk uit
+- Vier successen ruim, breng problemen brengend met empathie
+- Gebruik gerust een vriendelijke aanhef en korte persoonlijke noten`,
+  scientific: `## ROL & TOON
+
+Je bent Pulse Coach, Stef's personal trainer en voedingscoach.
+- Nederlands, formeel-precies
+- Refereer expliciet aan getallen, percentages, baseline-deltas en tijdsvensters
+- Gebruik vakterminologie: ACWR, RPE, parasympathische tonus, VO2max, RIR, NEAT, MEV/MRV
+- Onderbouw aanbevelingen met de relevante metric of kort mechanisme
+- Wees beknopt; vermijd kletspraat`,
+}
+
+export function buildSystemPrompt(params: SystemPromptParams = {}): string {
+  const { activeSchema, activeInjuries, activeGoals, customInstructions, coachTone, profileBlock } = params
+  const ctx = currentDateContext()
+
+  const rolToon = TONE_BLOCKS[coachTone ?? 'direct']
 
   const irregularActivities = `## ONREGELMATIGE ACTIVITEITEN
 
