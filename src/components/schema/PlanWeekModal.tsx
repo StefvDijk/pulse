@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Calendar, Check, Loader2 } from 'lucide-react'
 import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface PlanWeekModalProps {
   days: SchemaWeekDay[]
@@ -30,6 +31,7 @@ function formatExerciseList(exercises: ExerciseData[]): string {
 
 export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
   useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
   const workoutDays = days.filter((d) => d.status !== 'rest' && d.workout)
 
   const [entries, setEntries] = useState<WorkoutEntry[]>(
@@ -86,7 +88,12 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
   const includedCount = entries.filter((e) => e.include).length
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Plan je week"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"

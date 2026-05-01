@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { getMuscleLabel } from '@/components/home/MuscleGroupDot'
 import {
@@ -9,6 +8,7 @@ import {
   type MuscleMapWorkout,
 } from '@/lib/muscle-map/volume'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 /* ── Props ──────────────────────────────────────────────────── */
 
@@ -70,15 +70,7 @@ export function MuscleDrilldownSheet({
   workouts,
   onClose,
 }: MuscleDrilldownSheetProps) {
-  // Close on Escape for keyboard users.
-  useEffect(() => {
-    if (!muscleGroup) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [muscleGroup, onClose])
+  useEscapeKey(muscleGroup !== null, onClose)
   useBodyScrollLock(muscleGroup !== null)
 
   if (!muscleGroup) return null
@@ -91,7 +83,12 @@ export function MuscleDrilldownSheet({
   const groups = groupByWorkout(hits)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={getMuscleLabel(muscleGroup)}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"

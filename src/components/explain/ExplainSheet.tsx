@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { useExplain } from '@/hooks/useExplain'
 import type { ExplainTopic, ExplainInputRow } from '@/lib/explain/topics'
 import { ExplainAI } from './ExplainAI'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   topic: ExplainTopic | null
@@ -16,14 +16,7 @@ interface Props {
 
 export function ExplainSheet({ topic, params, onClose }: Props) {
   useBodyScrollLock(topic !== null)
-  useEffect(() => {
-    if (!topic) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [topic, onClose])
+  useEscapeKey(topic !== null, onClose)
 
   const { payload, error, isLoading } = useExplain(topic, params)
 

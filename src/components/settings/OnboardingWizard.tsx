@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface WizardStep {
   title: string
@@ -45,6 +46,7 @@ export function OnboardingWizard() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  useBodyScrollLock(true)
 
   const [profile, setProfile] = useState<ProfileData>({ displayName: '', weightKg: '', heightCm: '' })
   const [sports, setSports] = useState<SportData>({ gym: '3', running: '2', padel: '1' })
@@ -115,7 +117,13 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Onboarding"
+    >
       <div className="w-full max-w-md rounded-2xl p-6 bg-bg-surface border border-bg-border">
 
         {/* Step indicator */}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X, Loader2, RotateCcw } from 'lucide-react'
 import type { SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface EditWeekModalProps {
   weekNumber: number
@@ -58,6 +59,8 @@ export function EditWeekModal({
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEscapeKey(true, () => { if (status !== 'saving') onClose() })
 
   function updateDraft(date: string, focus: string) {
     setDrafts((prev) =>
@@ -128,7 +131,12 @@ export function EditWeekModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Week ${weekNumber} aanpassen`}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"

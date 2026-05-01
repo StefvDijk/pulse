@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -263,9 +264,15 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
 export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
   const [selectedType, setSelectedType] = useState<AdditionType | null>(null)
   useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Toevoegen aan check-in"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"

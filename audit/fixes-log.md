@@ -148,3 +148,33 @@ Dense rij-buttons zouden visuele regressie geven (44px verbreekt grid/row layout
 
 ### Verificatie
 - `npx tsc --noEmit` → exit 0.
+
+---
+
+## Group C3 — Modal a11y baseline
+
+**Datum:** 2026-05-01 · **Commit:** (pending)
+
+### Nieuwe shared utility
+- `src/hooks/useEscapeKey.ts` — `useEscapeKey(active, onEscape)`. No-op als inactief; safe om unconditional te mounten.
+
+### Modals voorzien van role="dialog" + aria-modal + Escape
+| File | role/aria-modal | Escape | aria-label |
+|---|---|---|---|
+| `check-in/ManualAddModal.tsx` | toegevoegd | `useEscapeKey(true, onClose)` | "Toevoegen aan check-in" |
+| `schema/PlanWeekModal.tsx` | toegevoegd | `useEscapeKey(true, onClose)` | "Plan je week" |
+| `schema/EditWeekModal.tsx` | toegevoegd | conditioneel — sluit niet tijdens saving | `Week N aanpassen` |
+| `schema/DayDetailSheet.tsx` | toegevoegd | conditioneel op `day.workoutFocus` | dynamisch op `day.workoutFocus` |
+| `settings/OnboardingWizard.tsx` | toegevoegd | n.v.t. (multi-step blocker, geen onClose) + body-scroll-lock | "Onboarding" |
+| `dashboard/MuscleDrilldownSheet.tsx` | toegevoegd | reeds aanwezig — vervangen door hook | dynamisch op muscle-label |
+
+### Refactor-met-de-vlek
+ExplainSheet en MuscleDrilldownSheet hadden ad-hoc `useEffect`-gebaseerde Escape-handlers — nu door `useEscapeKey` vervangen voor consistentie. Geen gedragsverandering.
+
+### Niet aangeraakt
+- `Navigation` More-sheet had al `role="dialog" aria-modal` (en eigen body-overflow lock — staat in open-list voor groep D harmonisatie).
+- `SchemaCalendar` `RescheduleMenu` is een light popup; technisch een menu, geen dialog. `role="menu"` + tabbable items hoort in groep 8 polish.
+- `InstallPrompt` had al `role="dialog"` + `aria-label`. Geen Escape — bewust (gebruiker moet expliciet later/installeren kiezen).
+
+### Verificatie
+- `npx tsc --noEmit` → exit 0.
