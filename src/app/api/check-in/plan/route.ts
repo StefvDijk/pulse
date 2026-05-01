@@ -99,23 +99,11 @@ function extractJson(text: string): string {
   return text.trim()
 }
 
-/** Build a minimal padel-only plan when no schema is active */
-function padelOnlyPlan(weekStart: string, conflicts: WeekConflicts): WeekPlan {
-  const mondayDate = weekStart // weekStart is always a Monday
+/** Build an empty plan when no schema is active */
+function emptyPlan(_weekStart: string, conflicts: WeekConflicts): WeekPlan {
   return {
-    sessions: [
-      {
-        day: 'monday',
-        date: mondayDate,
-        workout: 'Padel',
-        type: 'padel',
-        time: '20:00',
-        endTime: '21:30',
-        location: null,
-        reason: 'Vast moment',
-      },
-    ],
-    reasoning: 'Geen actief trainingsschema gevonden. Alleen het vaste padelmoment op maandag ingepland.',
+    sessions: [],
+    reasoning: 'Geen actief trainingsschema gevonden. Voeg sessies handmatig toe of activeer een schema.',
     conflicts,
   }
 }
@@ -170,9 +158,9 @@ export async function POST(request: Request) {
       conflicts = emptyConflicts(weekStart, weekEnd)
     }
 
-    // 3. No schema? Return padel-only plan
+    // 3. No schema? Return empty plan
     if (!schema) {
-      return NextResponse.json(padelOnlyPlan(weekStart, conflicts))
+      return NextResponse.json(emptyPlan(weekStart, conflicts))
     }
 
     // 4. Build the AI prompt
@@ -192,6 +180,7 @@ export async function POST(request: Request) {
       system,
       userMessage,
       maxOutputTokens: 2048,
+      meta: { userId: user.id, feature: 'check_in_plan' },
     })
 
     // 6. Parse and validate the AI response

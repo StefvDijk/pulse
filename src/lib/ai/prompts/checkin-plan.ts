@@ -94,14 +94,14 @@ Je plant trainingen voor de komende week op basis van het trainingsschema, de ag
 - Wees realistisch: als er weinig ruimte is, plan minder en benoem dat
 
 ## Trainingsregels
-1. Padel is ALTIJD op maandagavond (20:00–21:30). Dit staat vast.
-2. Geen 2 zware beendagen direct na elkaar (Lower A/Lower B niet op opeenvolgende dagen).
-3. Geen Bulgarian Split Squats (BSS) de dag na intervaltraining / hardlopen.
-4. Gym bij voorkeur in de ochtend (06:30–07:30), zeker op kantoordagen.
-5. Hardlopen op een rustdag of in de avond (18:00–19:00).
+1. Padel is een onregelmatige losse activiteit (0–meerdere keren per week, geen vaste dag/tijd). Plan alleen padel als Stef het expliciet aangeeft of als de agenda erom vraagt — anders niet.
+2. Hardlopen: streven naar ~1x per week, op een rustdag of in de avond (18:00–19:00).
+3. Geen 2 zware beendagen direct na elkaar (Lower A/Lower B niet op opeenvolgende dagen).
+4. Geen Bulgarian Split Squats (BSS) de dag na intervaltraining / hardlopen.
+5. Gym bij voorkeur in de ochtend (06:30–07:30), zeker op kantoordagen.
 6. Als een dag "niet beschikbaar" is: sla over, plan daar niks.
-7. Als alleen ochtend beschikbaar is: plan gym (niet hardlopen of padel).
-8. Als alleen avond beschikbaar is: hardlopen of padel kan, geen gym.
+7. Als alleen ochtend beschikbaar is: plan gym (niet hardlopen).
+8. Als alleen avond beschikbaar is: hardlopen kan, geen gym.
 9. Respecteer het schema-volgorde (Upper A → Lower A → Upper B → Lower B cyclus).
 10. Gym-locatie is altijd "Train More, Piet Heinkade".
 

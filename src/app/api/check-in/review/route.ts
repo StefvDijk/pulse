@@ -190,9 +190,6 @@ function detectGaps(
       expected = schedule.get(dayName) ?? null
     }
 
-    // Check for padel on Monday (fixed pattern, always expected)
-    const isPadelDay = dayName === 'monday'
-
     if (expected) {
       // Check if a matching workout exists
       const hasMatchingWorkout = workouts.some(
@@ -203,35 +200,17 @@ function detectGaps(
         (r) => dayKeyAmsterdam(r.started_at) === dateStr,
       )
 
-      if (!hasMatchingWorkout && !hasMatchingRun) {
+      const hasMatchingPadel = padelSessions.some(
+        (p) => dayKeyAmsterdam(p.started_at) === dateStr,
+      )
+
+      if (!hasMatchingWorkout && !hasMatchingRun && !hasMatchingPadel) {
         gaps.push({
           date: dateStr,
           dayName: DUTCH_DAY_NAMES[dayName],
           expected: expected.focus,
           type: expected.type,
         })
-      }
-    }
-
-    // Check padel for Monday
-    if (isPadelDay) {
-      const hasPadel = padelSessions.some(
-        (p) => dayKeyAmsterdam(p.started_at) === dateStr,
-      )
-
-      if (!hasPadel) {
-        // Only add if we didn't already add a gap for this date with padel focus
-        const alreadyAdded = gaps.some(
-          (g) => g.date === dateStr && g.expected === 'Padel',
-        )
-        if (!alreadyAdded) {
-          gaps.push({
-            date: dateStr,
-            dayName: DUTCH_DAY_NAMES[dayName],
-            expected: 'Padel',
-            type: 'padel',
-          })
-        }
       }
     }
   }
