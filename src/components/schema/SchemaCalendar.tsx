@@ -96,7 +96,7 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl pb-[env(safe-area-inset-bottom)]">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl pb-safe">
         <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold text-text-primary">
             {day.workoutFocus} verplaatsen
@@ -142,8 +142,9 @@ function DayCell({ day, isCurrentWeek, onOpenMenu, onOpenDetail }: DayCellProps)
   const isToday = day.date === today
   const isPast = day.date < today
   const dateNum = new Date(day.date + 'T00:00:00Z').getUTCDate()
+  const items = day.items ?? []
 
-  if (day.status === 'rest' || !day.workoutFocus) {
+  if (items.length === 0) {
     return (
       <div className={`flex flex-col items-center gap-1 py-2 ${isPast && !isCurrentWeek ? 'opacity-40' : 'opacity-60'}`}>
         <span className="text-[11px] text-text-tertiary tabular-nums">{dateNum}</span>
@@ -152,42 +153,57 @@ function DayCell({ day, isCurrentWeek, onOpenMenu, onOpenDetail }: DayCellProps)
     )
   }
 
-  const sport = classifySport(day.workoutFocus)
-
   return (
     <div
       onClick={onOpenDetail}
-      className={`flex flex-col items-center gap-1 rounded-xl py-2 px-1 transition-colors cursor-pointer ${
-        isToday
-          ? 'bg-text-primary/5 ring-1 ring-text-primary'
-          : day.status === 'completed'
-            ? sportLightClass(sport)
-            : 'hover:bg-white/[0.06]'
+      className={`flex flex-col items-center gap-1.5 rounded-xl py-2 px-1 transition-colors cursor-pointer ${
+        isToday ? 'bg-text-primary/5 ring-1 ring-text-primary' : 'hover:bg-white/[0.06]'
       } ${isPast && day.status !== 'completed' && !isCurrentWeek ? 'opacity-50' : ''}`}
     >
       <span className={`text-[11px] tabular-nums ${isToday ? 'font-bold text-text-primary' : 'text-text-tertiary'}`}>
         {dateNum}
       </span>
-      {day.status === 'completed' ? (
-        <div className={`flex h-5 w-5 items-center justify-center rounded-full ${sportColorClass(sport)}`}>
-          <Check size={10} strokeWidth={3} className="text-white" />
-        </div>
-      ) : (
-        <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
-          isToday ? 'bg-text-primary' : 'border border-bg-border'
-        }`}>
-          <SportIcon sport={sport} size={9} className={isToday ? 'text-white' : 'text-text-tertiary'} />
-        </div>
-      )}
-      <span className={`text-[9px] font-medium leading-tight text-center max-w-full truncate ${
-        day.status === 'completed' ? sportTextClass(sport) : isToday ? 'text-text-primary' : 'text-text-secondary'
-      }`}>
-        {day.workoutFocus}
-      </span>
-      {day.status !== 'completed' && (
+      {items.map((item, idx) => {
+        const sport = classifySport(item.focus)
+        const wasMoved = !!item.plannedDate && !!item.actualDate && item.plannedDate !== item.actualDate
+        const movedLabel = wasMoved && item.plannedDate
+          ? DAY_HEADERS[(new Date(item.plannedDate + 'T00:00:00Z').getUTCDay() + 6) % 7]
+          : null
+        return (
+          <div
+            key={`${item.focus}-${item.plannedDate}-${idx}`}
+            className={`flex flex-col items-center gap-0.5 w-full rounded-lg py-1 ${
+              item.status === 'completed' ? sportLightClass(sport) : ''
+            }`}
+          >
+            {item.status === 'completed' ? (
+              <div className={`flex h-5 w-5 items-center justify-center rounded-full ${sportColorClass(sport)}`}>
+                <Check size={10} strokeWidth={3} className="text-white" />
+              </div>
+            ) : (
+              <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                item.status === 'today' ? 'bg-text-primary' : 'border border-bg-border'
+              }`}>
+                <SportIcon sport={sport} size={9} className={item.status === 'today' ? 'text-white' : 'text-text-tertiary'} />
+              </div>
+            )}
+            <span className={`text-[9px] font-medium leading-tight text-center max-w-full truncate px-1 ${
+              item.status === 'completed' ? sportTextClass(sport) : item.status === 'today' ? 'text-text-primary' : 'text-text-secondary'
+            }`}>
+              {item.focus}
+            </span>
+            {movedLabel && (
+              <span className="text-[8px] text-text-tertiary leading-tight">
+                ↩ {movedLabel}
+              </span>
+            )}
+          </div>
+        )
+      })}
+      {items.some((i) => i.status !== 'completed') && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenMenu() }}
-          className="mt-0.5 p-0.5 rounded hover:bg-white/[0.06]"
+          className="p-0.5 rounded hover:bg-white/[0.06]"
         >
           <MoreHorizontal size={10} className="text-text-tertiary" />
         </button>

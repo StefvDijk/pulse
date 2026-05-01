@@ -16,12 +16,22 @@ export interface SchemaScheduleItem {
   duration_min?: number
 }
 
+export interface SchemaDayItem {
+  focus: string
+  exercises?: SchemaExercise[]
+  status: 'completed' | 'today' | 'planned'
+  plannedDate?: string
+  actualDate?: string
+  unplanned?: boolean
+}
+
 export interface SchemaDay {
   date: string
   dayName: string
   workoutFocus: string | null
   exercises?: SchemaExercise[]
   status: 'completed' | 'today' | 'planned' | 'rest'
+  items?: SchemaDayItem[]
 }
 
 export interface SchemaWeek {
