@@ -168,7 +168,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-09 · ACWR guardrail in plan-stap
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 2 · **Parallel:** ⚠️ raakt plan-route
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-09-acwr-guardrail` · **Omvang:** M · **Fase:** 2 · **Parallel:** ⚠️ raakt plan-route
 **Why:** Met schouder/knie-historie is dit dé objectieve regel. Sport-science consensus: EWMA, banden 0.8-1.3 = optimaal, >1.5 = injury-risk.
 **Files:** nieuwe `src/lib/training/acwr.ts`, `src/app/api/check-in/plan/route.ts`, `src/components/check-in/WeekPlanCard.tsx`
 **Acceptatie:**

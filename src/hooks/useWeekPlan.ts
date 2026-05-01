@@ -16,10 +16,17 @@ export interface PlannedSession {
   reason: string
 }
 
+export interface LoadProjection {
+  current: { acute: number; chronic: number; ratio: number; status: 'green' | 'amber' | 'red' }
+  projected: { acute: number; chronic: number; ratio: number; status: 'green' | 'amber' | 'red' }
+  message: string
+}
+
 export interface WeekPlan {
   sessions: PlannedSession[]
   reasoning: string
   conflicts: WeekConflicts
+  loadProjection?: LoadProjection
 }
 
 // ---------------------------------------------------------------------------

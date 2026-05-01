@@ -519,6 +519,45 @@ export function WeekPlanCard({
         </div>
       </div>
 
+      {/* ACWR load projection (informative — never blocks) */}
+      {plan.loadProjection && (
+        <div
+          className="rounded-2xl border p-4"
+          style={{
+            background: 'var(--color-bg-surface)',
+            borderColor:
+              plan.loadProjection.projected.status === 'red'
+                ? 'var(--color-status-bad)'
+                : plan.loadProjection.projected.status === 'amber'
+                  ? 'var(--color-status-warn)'
+                  : 'var(--color-bg-border)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{
+                background:
+                  plan.loadProjection.projected.status === 'red'
+                    ? 'var(--color-status-bad)'
+                    : plan.loadProjection.projected.status === 'amber'
+                      ? 'var(--color-status-warn)'
+                      : 'var(--color-status-good)',
+              }}
+            />
+            <span className="text-sm font-semibold text-text-primary">
+              Trainingsbelasting (ACWR)
+            </span>
+            <span className="ml-auto text-xs tabular-nums text-text-tertiary">
+              {plan.loadProjection.current.ratio.toFixed(2)} → {plan.loadProjection.projected.ratio.toFixed(2)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-secondary leading-relaxed">
+            {plan.loadProjection.message}
+          </p>
+        </div>
+      )}
+
       {/* AI reasoning (collapsible) */}
       {plan.reasoning && (
         <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">

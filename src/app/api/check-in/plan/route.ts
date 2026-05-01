@@ -9,6 +9,7 @@ import type { WeekConflicts } from '@/lib/google/conflicts'
 import { createJsonCompletion } from '@/lib/ai/client'
 import { buildCheckInPlanPrompt } from '@/lib/ai/prompts/checkin-plan'
 import { addDaysToKey } from '@/lib/time/amsterdam'
+import { computeACWR, projectACWR, type PlannedSessionLoad } from '@/lib/training/acwr'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,10 +26,17 @@ export interface PlannedSession {
   reason: string
 }
 
+export interface LoadProjection {
+  current: { acute: number; chronic: number; ratio: number; status: 'green' | 'amber' | 'red' }
+  projected: { acute: number; chronic: number; ratio: number; status: 'green' | 'amber' | 'red' }
+  message: string
+}
+
 export interface WeekPlan {
   sessions: PlannedSession[]
   reasoning: string
   conflicts: WeekConflicts
+  loadProjection?: LoadProjection
 }
 
 // ---------------------------------------------------------------------------
@@ -87,6 +95,12 @@ function emptyConflicts(weekStart: string, weekEnd: string): WeekConflicts {
     officeDays: [],
     unavailableDays: [],
   }
+}
+
+function buildLoadMessage(status: 'green' | 'amber' | 'red', ratio: number): string {
+  if (status === 'green') return `Load-balans is goed (ratio ${ratio.toFixed(2)} ≤ 1.3).`
+  if (status === 'amber') return `Let op: acute load is ${Math.round((ratio - 1) * 100)}% boven chronic baseline (ratio ${ratio.toFixed(2)}). Houd herstel in de gaten.`
+  return `Verhoogde belasting: ratio ${ratio.toFixed(2)} > 1.5 — sport-science zegt elevated injury risk. Overweeg een lichter plan.`
 }
 
 /** Extract JSON from a response that may contain markdown fences */
@@ -187,10 +201,32 @@ export async function POST(request: Request) {
     const jsonStr = extractJson(rawText)
     const aiPlan = PlanResponseSchema.parse(JSON.parse(jsonStr))
 
+    // 7. Compute ACWR projection (informative — never blocks)
+    let loadProjection: LoadProjection | undefined
+    try {
+      const yesterday = addDaysToKey(weekStart, -1)
+      const current = await computeACWR(user.id, yesterday)
+      const plannedLoads: PlannedSessionLoad[] = aiPlan.sessions.map((s) => {
+        const [sh, sm] = s.time.split(':').map(Number)
+        const [eh, em] = s.endTime.split(':').map(Number)
+        const minutes = Math.max(0, eh * 60 + em - (sh * 60 + sm))
+        return { type: s.type, estimatedMinutes: minutes || 60 }
+      })
+      const projected = projectACWR(current, plannedLoads)
+      loadProjection = {
+        current,
+        projected,
+        message: buildLoadMessage(projected.status, projected.ratio),
+      }
+    } catch (acwrError) {
+      console.error('ACWR projection failed (non-fatal):', acwrError)
+    }
+
     const weekPlan: WeekPlan = {
       sessions: aiPlan.sessions,
       reasoning: aiPlan.reasoning,
       conflicts,
+      loadProjection,
     }
 
     return NextResponse.json(weekPlan)
