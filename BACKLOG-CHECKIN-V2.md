@@ -140,7 +140,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-07 · Self-contained week framing
-**Status:** 📋 todo · **Omvang:** XS · **Fase:** 1 · **Parallel:** ✅
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-07-self-contained-week` · **Omvang:** XS · **Fase:** 1 · **Parallel:** ✅
 **Why:** MacroFactor's grote inzicht: streaks creëren all-or-nothing-druk. Pulse mag niet straffen voor gemiste weken.
 **Files:** `src/components/home/CheckInBadge.tsx`, `src/components/check-in/CheckInFlow.tsx`, copy in `WeekReviewCard.tsx`
 **Acceptatie:**

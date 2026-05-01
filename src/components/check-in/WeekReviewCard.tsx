@@ -62,6 +62,12 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
+function weeksBetween(earlier: string, later: string): number {
+  const a = new Date(earlier + 'T00:00:00Z').getTime()
+  const b = new Date(later + 'T00:00:00Z').getTime()
+  return Math.round((b - a) / (7 * 86400000))
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -81,15 +87,33 @@ export function WeekReviewCard({
 
   const totalSessions = data.workouts.length + data.runs.length + data.padelSessions.length
 
+  // Skip-recovery: if last review is >2 weeks old, don't ask about that focus —
+  // just look forward. Self-contained week framing (no guilt-trip).
+  const previousFocusGap = data.previousFocus
+    ? weeksBetween(data.previousFocus.weekStart, data.week.weekStart)
+    : null
+  const showPreviousFocus = data.previousFocus && previousFocusGap !== null && previousFocusGap <= 2
+  const showSkipRecovery = data.previousFocus && previousFocusGap !== null && previousFocusGap > 2
+
   return (
     <div className="flex flex-col gap-3">
       {/* Continuity: previous week's focus + outcome */}
-      {data.previousFocus && (
+      {showPreviousFocus && data.previousFocus && (
         <PreviousFocusBlock
           focusText={data.previousFocus.text}
           value={focusOutcome}
           onChange={onFocusOutcomeChange}
         />
+      )}
+
+      {/* Skip-recovery: gap >2 weeks since last check-in */}
+      {showSkipRecovery && (
+        <div className="rounded-2xl border border-bg-border bg-bg-surface p-5">
+          <h3 className="text-subhead font-semibold text-text-primary">Welkom terug</h3>
+          <p className="mt-1 text-sm text-text-secondary">
+            Laten we vooruit kijken — geen druk, gewoon door waar je bent.
+          </p>
+        </div>
       )}
 
       {/* Burn Bar tier — your week vs your 4-week average */}
