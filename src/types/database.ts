@@ -278,35 +278,52 @@ export type Database = {
       coaching_memory: {
         Row: {
           category: string
+          confidence: number
           created_at: string
           id: string
           key: string
+          last_confirmed_at: string
           source_date: string
+          superseded_by: string | null
           updated_at: string
           user_id: string
           value: string
         }
         Insert: {
           category: string
+          confidence?: number
           created_at?: string
           id?: string
           key: string
+          last_confirmed_at?: string
           source_date?: string
+          superseded_by?: string | null
           updated_at?: string
           user_id: string
           value: string
         }
         Update: {
           category?: string
+          confidence?: number
           created_at?: string
           id?: string
           key?: string
+          last_confirmed_at?: string
           source_date?: string
+          superseded_by?: string | null
           updated_at?: string
           user_id?: string
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coaching_memory_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "coaching_memory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_activity: {
         Row: {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { decayStaleMemories } from '@/lib/ai/memory-decay'
 import type { Database, Json } from '@/types/database'
 import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
@@ -239,6 +240,9 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient()
+
+    // Fire-and-forget: age stale memories so the prompt context stays fresh
+    decayStaleMemories(user.id).catch((err) => console.error('memory decay failed (non-fatal):', err))
 
     // Determine week range
     const { searchParams } = new URL(request.url)
