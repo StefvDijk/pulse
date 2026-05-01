@@ -123,7 +123,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-06 · Coach Analyse prompt herschrijven
-**Status:** 📋 todo · **Omvang:** S · **Fase:** 1 · **Parallel:** ✅ kan los van 03/04/05
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-06-analyze-prompt-rewrite` · **Omvang:** S · **Fase:** 1 · **Parallel:** ✅ kan los van 03/04/05
 **Why:** Whoop-thread bevestigde: lange AI-summaries verliezen vertrouwen. GROW + Tiny Habits zegt: open met named win.
 **Files:** `src/lib/ai/prompts/checkin-analyze.ts`
 **Acceptatie:**
