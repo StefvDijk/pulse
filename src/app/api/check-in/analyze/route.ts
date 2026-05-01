@@ -32,6 +32,11 @@ const FocusOutcomeSchema = z.object({
   note: z.string(),
 }).nullable().optional()
 
+const DialogTurnSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+})
+
 const AnalyzeRequestSchema = z.object({
   reviewData: z.custom<CheckInReviewData>((val) => val != null && typeof val === 'object', {
     message: 'reviewData is required',
@@ -39,6 +44,7 @@ const AnalyzeRequestSchema = z.object({
   manualAdditions: z.array(ManualAdditionSchema).optional(),
   reflection: z.string().nullable().optional(),
   focusOutcome: FocusOutcomeSchema,
+  dialog: z.array(DialogTurnSchema).optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { reviewData, manualAdditions, reflection, focusOutcome } = parsed.data
+    const { reviewData, manualAdditions, reflection, focusOutcome, dialog } = parsed.data
 
     // Fetch coaching memory for context
     const admin = createAdminClient()
@@ -101,6 +107,7 @@ export async function POST(request: Request) {
       coachingMemory,
       reflection: reflection ?? null,
       focusOutcome: focusOutcome ?? null,
+      dialog: dialog ?? [],
     })
 
     // Call Claude

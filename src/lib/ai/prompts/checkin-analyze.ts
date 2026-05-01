@@ -14,12 +14,18 @@ interface FocusOutcomeInput {
   note: string
 }
 
+interface DialogTurn {
+  question: string
+  answer: string
+}
+
 interface CheckInAnalyzeParams {
   reviewData: CheckInReviewData
   manualAdditions?: ManualAddition[]
   coachingMemory?: Array<{ key: string; category: string; value: string }>
   reflection?: string | null
   focusOutcome?: FocusOutcomeInput | null
+  dialog?: DialogTurn[]
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +144,7 @@ function buildDataBlock(data: CheckInReviewData): string {
 // ---------------------------------------------------------------------------
 
 export function buildCheckInAnalyzePrompt(params: CheckInAnalyzeParams): { system: string; userMessage: string } {
-  const { reviewData, manualAdditions, coachingMemory, reflection, focusOutcome } = params
+  const { reviewData, manualAdditions, coachingMemory, reflection, focusOutcome, dialog } = params
 
   const system = `Je bent Pulse Coach, Stef's persoonlijke trainer.
 Je geeft een wekelijkse analyse die kort, concreet, en BRUIKBAAR is.
@@ -229,6 +235,17 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
   if (reflection && reflection.trim()) {
     parts.push('### Reflectie van Stef')
     parts.push(`"${reflection.trim()}"`)
+    parts.push('')
+  }
+
+  // Coach-vragen + Stef's antwoorden (uit conversational stap 2)
+  if (dialog && dialog.length > 0) {
+    parts.push('### Gesprek met de coach (jij stelde, Stef antwoordde)')
+    for (const turn of dialog) {
+      parts.push(`Q: ${turn.question}`)
+      parts.push(`A: ${turn.answer || '(geen antwoord)'}`)
+    }
+    parts.push('Verwerk deze antwoorden expliciet in de analyse.')
     parts.push('')
   }
 
