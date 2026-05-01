@@ -45,6 +45,14 @@ const ConfirmRequestSchema = z.object({
   planned_sessions: z.array(PlannedSessionSchema).optional(),
   sync_to_calendar: z.boolean().optional().default(false),
   dry_run: z.boolean().optional().default(false),
+  wellness: z
+    .object({
+      energy: z.number().int().min(1).max(5).nullable(),
+      motivation: z.number().int().min(1).max(5).nullable(),
+      stress: z.number().int().min(1).max(5).nullable(),
+      notes: z.string().max(2000).nullable(),
+    })
+    .optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -113,6 +121,10 @@ export async function POST(request: Request) {
       inbody_fat_mass_kg: inbody?.fat_mass_kg ?? null,
       inbody_muscle_mass_kg: inbody?.muscle_mass_kg ?? null,
       inbody_waist_cm: inbody?.waist_cm ?? null,
+      wellness_energy: input.wellness?.energy ?? null,
+      wellness_motivation: input.wellness?.motivation ?? null,
+      wellness_stress: input.wellness?.stress ?? null,
+      notes_text: input.wellness?.notes ?? null,
     }
 
     // Upsert weekly_reviews (onConflict: user_id, week_start)
