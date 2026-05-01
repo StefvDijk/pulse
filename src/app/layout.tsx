@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Pulse',
   },
   icons: {
@@ -25,7 +25,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: 'cover',
   themeColor: '#15171F',
 }
@@ -41,8 +40,8 @@ export default function RootLayout({
         <SWRProvider>
           <TimeOfDayTheme />
           <Navigation />
-          {/* Desktop: offset voor sidebar. Mobile: ruimte voor 83px tab bar */}
-          <main className="lg:pl-56 pb-[86px] lg:pb-0 min-h-[100dvh] pt-[env(safe-area-inset-top)]">
+          {/* Desktop: offset voor sidebar. Mobile: ruimte voor dynamische tab bar incl. safe-area-bottom. */}
+          <main className="lg:pl-56 pb-[var(--nav-height)] min-h-[100dvh] pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
             {children}
           </main>
           <MiniChat />

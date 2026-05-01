@@ -29,7 +29,7 @@ export function WeekReflectionBlock({ value, onChange }: WeekReflectionBlockProp
         rows={5}
         maxLength={2000}
         placeholder="Schrijf hier…"
-        className="mt-4 w-full resize-none rounded-xl border bg-white/[0.04] px-3.5 py-3 text-[15px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2"
+        className="mt-4 w-full resize-none rounded-xl border bg-white/[0.04] px-3.5 py-3 text-[16px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2"
         style={{
           borderColor: valid ? 'rgba(34,214,122,0.3)' : 'var(--color-bg-border)',
         }}

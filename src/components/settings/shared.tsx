@@ -63,4 +63,4 @@ export function StatusDot({ active }: { active: boolean }) {
   )
 }
 
-export const INPUT_CLASSES = 'bg-white/[0.06] border-[0.5px] border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[14px] outline-none focus:border-bg-border-strong'
+export const INPUT_CLASSES = 'bg-white/[0.06] border-[0.5px] border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus:border-bg-border-strong focus-ring'

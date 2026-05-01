@@ -164,14 +164,14 @@ export function PlanChat({
               rows={2}
               maxLength={500}
               placeholder="Schrijf wat je wil aanpassen…"
-              className="flex-1 resize-none bg-transparent px-1 py-1 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
+              className="flex-1 resize-none bg-transparent px-1 py-1 text-[16px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
               disabled={busy}
             />
             <button
               type="button"
               onClick={() => send(draft)}
               disabled={busy || !draft.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>

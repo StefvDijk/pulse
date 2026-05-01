@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { X, Calendar, Check, Loader2 } from 'lucide-react'
 import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface PlanWeekModalProps {
   days: SchemaWeekDay[]
@@ -28,6 +30,8 @@ function formatExerciseList(exercises: ExerciseData[]): string {
 }
 
 export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
+  useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
   const workoutDays = days.filter((d) => d.status !== 'rest' && d.workout)
 
   const [entries, setEntries] = useState<WorkoutEntry[]>(
@@ -84,7 +88,12 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
   const includedCount = entries.filter((e) => e.include).length
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Plan je week"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
@@ -92,7 +101,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
@@ -101,9 +110,10 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
@@ -162,14 +172,14 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
                         type="time"
                         value={entry.startTime}
                         onChange={(e) => updateEntry(i, { startTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-[16px] text-text-primary outline-none"
                       />
                       <span className="text-xs text-text-tertiary">–</span>
                       <input
                         type="time"
                         value={entry.endTime}
                         onChange={(e) => updateEntry(i, { endTime: e.target.value })}
-                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none"
+                        className="rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1 text-[16px] text-text-primary outline-none"
                       />
                     </div>
                   )}
@@ -184,7 +194,7 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
             )}
 
             {/* Footer */}
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <span className="text-sm text-text-tertiary">
                 {includedCount} van {entries.length} workout{entries.length !== 1 ? 's' : ''}
               </span>

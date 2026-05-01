@@ -167,7 +167,8 @@ export function CheckInHistoryPage() {
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
         <Link
           href="/"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
+          aria-label="Terug"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
         >
           <ChevronLeft size={18} />
         </Link>

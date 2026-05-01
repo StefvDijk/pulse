@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface NavItem {
   href: string
@@ -41,12 +42,7 @@ export function Navigation() {
     setMoreOpen(false)
   }, [pathname])
 
-  useEffect(() => {
-    if (!moreOpen) return
-    const original = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = original }
-  }, [moreOpen])
+  useBodyScrollLock(moreOpen)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -61,7 +57,9 @@ export function Navigation() {
         className={[
           'fixed bottom-0 left-0 right-0 z-50 lg:hidden',
           'flex items-stretch justify-around',
-          'h-[86px] pt-2 pb-[28px]',
+          'h-[var(--nav-height)]',
+          'pt-2 pb-[max(env(safe-area-inset-bottom),12px)]',
+          'pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
           'border-t border-bg-border-strong',
         ].join(' ')}
         style={{

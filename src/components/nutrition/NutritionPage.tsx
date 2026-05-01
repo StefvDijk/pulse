@@ -78,7 +78,7 @@ export function NutritionPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setSelectedDate((d) => offsetDate(d, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary active:opacity-60"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary active:opacity-60"
               aria-label="Vorige dag"
             >
               <ChevronLeft size={16} />
@@ -86,7 +86,7 @@ export function NutritionPage() {
             <button
               onClick={() => setSelectedDate((d) => offsetDate(d, 1))}
               disabled={selectedDate >= today}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary disabled:opacity-20 active:opacity-60"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary disabled:opacity-20 active:opacity-60"
               aria-label="Volgende dag"
             >
               <ChevronRight size={16} />

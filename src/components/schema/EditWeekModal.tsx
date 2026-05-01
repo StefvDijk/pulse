@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { X, Loader2, RotateCcw } from 'lucide-react'
 import type { SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface EditWeekModalProps {
   weekNumber: number
@@ -44,6 +46,7 @@ export function EditWeekModal({
   onClose,
   onSaved,
 }: EditWeekModalProps) {
+  useBodyScrollLock(true)
   const [drafts, setDrafts] = useState<DayDraft[]>(() =>
     days.map((d) => ({
       date: d.date,
@@ -56,6 +59,8 @@ export function EditWeekModal({
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEscapeKey(true, () => { if (status !== 'saving') onClose() })
 
   function updateDraft(date: string, focus: string) {
     setDrafts((prev) =>
@@ -126,7 +131,12 @@ export function EditWeekModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Week ${weekNumber} aanpassen`}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
@@ -134,7 +144,7 @@ export function EditWeekModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
@@ -148,9 +158,10 @@ export function EditWeekModal({
           <button
             onClick={onClose}
             disabled={status === 'saving'}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
@@ -195,7 +206,7 @@ export function EditWeekModal({
                   onChange={(e) => updateDraft(draft.date, e.target.value)}
                   placeholder="Rustdag"
                   list={`suggestions-${draft.date}`}
-                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none focus:border-[#0A84FF]"
+                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
                 />
                 <datalist id={`suggestions-${draft.date}`}>
                   {suggestions.map((s) => (
@@ -214,7 +225,7 @@ export function EditWeekModal({
         )}
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4">
+        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <span className="text-sm text-text-tertiary">
             {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
           </span>

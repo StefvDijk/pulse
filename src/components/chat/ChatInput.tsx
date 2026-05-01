@@ -49,6 +49,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         placeholder="Stel een vraag of log een maaltijd..."
         rows={1}
         disabled={isLoading}
+        enterKeyHint="send"
         className="flex-1 resize-none bg-transparent text-body text-text-primary outline-none placeholder:text-text-tertiary py-1.5"
         style={{ maxHeight: '160px' }}
         autoFocus
@@ -56,7 +57,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
       <button
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
         aria-label="Verstuur bericht"
       >
         {isLoading ? (

@@ -84,12 +84,13 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
           placeholder="Wat heb je gegeten?"
           rows={2}
           disabled={isLoading}
-          className="flex-1 resize-none bg-transparent text-sm text-text-primary outline-none placeholder:opacity-40"
+          enterKeyHint="send"
+          className="flex-1 resize-none bg-transparent text-[16px] text-text-primary outline-none placeholder:opacity-40 focus-ring"
         />
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
           aria-label="Analyseer"
         >
           {isLoading ? (

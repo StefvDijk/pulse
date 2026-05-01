@@ -9,12 +9,21 @@ interface BeforeInstallPromptEvent extends Event {
 
 const STORAGE_KEY = 'pulse-install-dismissed-at'
 const COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000 // 14 days
+const IOS_HINT_DELAY_MS = 8000
 
 function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
   if (window.matchMedia?.('(display-mode: standalone)').matches) return true
-  // iOS Safari exposes a non-standard flag.
   return Boolean((window.navigator as { standalone?: boolean }).standalone)
+}
+
+function isIos(): boolean {
+  if (typeof window === 'undefined') return false
+  const ua = window.navigator.userAgent
+  const isIPhoneOrIPad = /iPhone|iPad|iPod/.test(ua)
+  // iPadOS 13+ reports as Mac; check touch.
+  const isIPadOs = ua.includes('Mac') && 'ontouchend' in document
+  return isIPhoneOrIPad || isIPadOs
 }
 
 function recentlyDismissed(): boolean {
@@ -26,8 +35,11 @@ function recentlyDismissed(): boolean {
   return Date.now() - ts < COOLDOWN_MS
 }
 
+type Mode = 'native' | 'ios-hint'
+
 export function InstallPrompt() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [mode, setMode] = useState<Mode | null>(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -36,12 +48,26 @@ export function InstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault()
       setEvt(e as BeforeInstallPromptEvent)
-      // Wait a beat so we don't pop the banner on cold load.
+      setMode('native')
       window.setTimeout(() => setVisible(true), 4000)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    // iOS Safari nooit firet `beforeinstallprompt`. Toon tutorial-toast
+    // als we na een ruime delay nog steeds geen native event hebben gekregen.
+    let iosTimer: number | undefined
+    if (isIos()) {
+      iosTimer = window.setTimeout(() => {
+        setMode((prev) => (prev === null ? 'ios-hint' : prev))
+        setVisible((prev) => prev || true)
+      }, IOS_HINT_DELAY_MS)
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      if (iosTimer) window.clearTimeout(iosTimer)
+    }
   }, [])
 
   const dismiss = () => {
@@ -66,13 +92,15 @@ export function InstallPrompt() {
     }
   }
 
-  if (!visible || !evt) return null
+  if (!visible || !mode) return null
+  if (mode === 'native' && !evt) return null
 
   return (
     <div
       role="dialog"
       aria-label="Pulse installeren"
-      className="fixed inset-x-3 bottom-[100px] z-50 mx-auto max-w-md rounded-[22px] border border-bg-border bg-bg-surface/95 p-4 shadow-apple-lg backdrop-blur-xl lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
+      className="fixed inset-x-3 z-50 mx-auto max-w-md rounded-[22px] border border-bg-border bg-bg-surface/95 p-4 shadow-apple-lg backdrop-blur-xl lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
+      style={{ bottom: 'calc(var(--nav-height) + 1rem)' }}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-aurora text-white">
@@ -80,23 +108,43 @@ export function InstallPrompt() {
         </div>
         <div className="flex-1">
           <p className="text-headline text-text-primary">Pulse installeren</p>
-          <p className="mt-0.5 text-caption1 text-text-secondary">
-            Voeg toe aan je beginscherm voor sneller starten en een full-screen ervaring.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={install}
-              className="rounded-full bg-[#0A84FF] px-4 py-1.5 text-caption1 font-semibold text-white transition-transform active:scale-95"
-            >
-              Installeer
-            </button>
-            <button
-              onClick={dismiss}
-              className="rounded-full px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-colors hover:text-text-primary"
-            >
-              Later
-            </button>
-          </div>
+          {mode === 'native' ? (
+            <>
+              <p className="mt-0.5 text-caption1 text-text-secondary">
+                Voeg toe aan je beginscherm voor sneller starten en een full-screen ervaring.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={install}
+                  className="rounded-full bg-[#0A84FF] px-4 py-1.5 text-caption1 font-semibold text-white transition-transform active:scale-95"
+                >
+                  Installeer
+                </button>
+                <button
+                  onClick={dismiss}
+                  className="rounded-full px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-colors hover:text-text-primary"
+                >
+                  Later
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-0.5 text-caption1 text-text-secondary">
+                Tik op <span aria-label="Deel-knop" className="font-semibold">Deel</span>{' '}
+                <span aria-hidden="true">↑</span> en daarna op{' '}
+                <span className="font-semibold">Zet op beginscherm</span> voor een full-screen ervaring.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={dismiss}
+                  className="rounded-full px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-colors hover:text-text-primary"
+                >
+                  Begrepen
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

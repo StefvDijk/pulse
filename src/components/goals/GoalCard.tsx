@@ -133,14 +133,14 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
           <button
             onClick={() => onComplete(goal.id)}
             title="Voltooien"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#22D67A] hover:bg-white/[0.06]"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[#22D67A] hover:bg-white/[0.06]"
           >
             <CheckIcon />
           </button>
           <button
             onClick={() => onDelete(goal.id)}
             title="Verwijderen"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-white/[0.06] hover:text-[var(--color-status-bad)]"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-text-tertiary hover:bg-white/[0.06] hover:text-[var(--color-status-bad)]"
           >
             <TrashIcon />
           </button>

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -61,7 +63,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
           onChange={(e) => setDuration(e.target.value)}
           placeholder="60"
           min={1}
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
         />
       </div>
       <div>
@@ -143,7 +145,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           placeholder="82.5"
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -157,7 +159,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={muscleMass}
             onChange={(e) => setMuscleMass(e.target.value)}
             placeholder="38.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
           />
         </div>
         <div>
@@ -170,7 +172,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatMass}
             onChange={(e) => setFatMass(e.target.value)}
             placeholder="12.5"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
           />
         </div>
       </div>
@@ -185,7 +187,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={fatPct}
             onChange={(e) => setFatPct(e.target.value)}
             placeholder="15.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
           />
         </div>
         <div>
@@ -198,7 +200,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
             value={waist}
             onChange={(e) => setWaist(e.target.value)}
             placeholder="82.0"
-            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+            className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
           />
         </div>
       </div>
@@ -241,7 +243,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
           onChange={(e) => setText(e.target.value)}
           placeholder="Bijv. lichte kniepijn bij squats, extra wandeling gemaakt..."
           rows={3}
-          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-sm text-text-primary outline-none resize-none placeholder:text-text-tertiary"
+          className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none resize-none placeholder:text-text-tertiary"
         />
       </div>
       <button
@@ -261,9 +263,16 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
 
 export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
   const [selectedType, setSelectedType] = useState<AdditionType | null>(null)
+  useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Toevoegen aan check-in"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
@@ -271,7 +280,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
@@ -281,9 +290,10 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

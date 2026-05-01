@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import type { CheckInHistoryEntry } from '@/app/api/check-in/history/route'
+import { useMotionEnabled } from '@/hooks/useReducedMotion'
 
 const MIN_ENTRIES = 3
 
@@ -23,6 +24,7 @@ function formatWeek(weekStart: string): string {
 }
 
 export function HistoryAnalytics({ entries }: HistoryAnalyticsProps) {
+  const animated = useMotionEnabled()
   if (entries.length < MIN_ENTRIES) return null
 
   // Oldest first for time-series
@@ -59,9 +61,9 @@ export function HistoryAnalytics({ entries }: HistoryAnalyticsProps) {
                   contentStyle={{ background: '#1E2230', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }}
                   labelStyle={{ color: '#fff' }}
                 />
-                <Bar dataKey="gehaald" stackId="a" fill="#22D67A" />
-                <Bar dataKey="deels" stackId="a" fill="#FFB020" />
-                <Bar dataKey="niet" stackId="a" fill="#FF453A" />
+                <Bar dataKey="gehaald" stackId="a" fill="#22D67A" isAnimationActive={animated} />
+                <Bar dataKey="deels" stackId="a" fill="#FFB020" isAnimationActive={animated} />
+                <Bar dataKey="niet" stackId="a" fill="#FF453A" isAnimationActive={animated} />
               </BarChart>
             </ResponsiveContainer>
           </div>

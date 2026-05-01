@@ -18,6 +18,7 @@ import {
   appleTooltipLabelStyle,
   appleTooltipStyle,
 } from '@/lib/chart-styles'
+import { useMotionEnabled } from '@/hooks/useReducedMotion'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -39,6 +40,7 @@ function formatWeek(dateStr: string): string {
 }
 
 export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChartProps) {
+  const animated = useMotionEnabled()
   if (weeks.length === 0) {
     return <EmptyState message="Geen trainingsdata beschikbaar" />
   }
@@ -89,6 +91,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
             strokeWidth={2.5}
             dot={false}
             activeDot={{ r: 4 }}
+            isAnimationActive={animated}
           />
         ))}
       </LineChart>

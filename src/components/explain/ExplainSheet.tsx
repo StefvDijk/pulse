@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { useExplain } from '@/hooks/useExplain'
 import type { ExplainTopic, ExplainInputRow } from '@/lib/explain/topics'
 import { ExplainAI } from './ExplainAI'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   topic: ExplainTopic | null
@@ -14,18 +15,8 @@ interface Props {
 }
 
 export function ExplainSheet({ topic, params, onClose }: Props) {
-  useEffect(() => {
-    if (!topic) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [topic, onClose])
+  useBodyScrollLock(topic !== null)
+  useEscapeKey(topic !== null, onClose)
 
   const { payload, error, isLoading } = useExplain(topic, params)
 
@@ -44,7 +35,7 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
         aria-hidden="true"
       />
 
-      <div className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface sm:max-h-[85vh] sm:rounded-[22px] sm:border-[0.5px]">
+      <div className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface pb-[env(safe-area-inset-bottom)] sm:max-h-[85dvh] sm:rounded-[22px] sm:border-[0.5px] sm:pb-0">
         <div className="flex justify-center pt-2">
           <span className="h-1 w-9 rounded-full bg-bg-border-strong" aria-hidden="true" />
         </div>
@@ -63,10 +54,10 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
             aria-label="Sluiten"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

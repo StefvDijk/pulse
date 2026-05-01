@@ -21,7 +21,14 @@ export function MiniChat() {
   }, [isOpen])
 
   return (
-    <div ref={containerRef} className="fixed bottom-24 right-4 z-50 lg:bottom-6">
+    <div
+      ref={containerRef}
+      className="fixed z-50 lg:bottom-6"
+      style={{
+        bottom: 'calc(var(--nav-height) + 1rem)',
+        right: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
       {/* Popup */}
       {isOpen && (
         <div
@@ -43,10 +50,10 @@ export function MiniChat() {
               </Link>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded p-0.5 text-text-tertiary hover:opacity-70"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-text-tertiary hover:opacity-70"
                 aria-label="Sluit chat"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
             </div>
           </div>
