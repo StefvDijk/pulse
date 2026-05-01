@@ -66,6 +66,7 @@ export function ConfirmationCard({
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stepFailures, setStepFailures] = useState<string[]>([])
 
   const gymCount = reviewData.workouts.length
   const runCount = reviewData.runs.length
@@ -138,6 +139,19 @@ export function ConfirmationCard({
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.error ?? 'Opslaan mislukt')
+      }
+
+      const result = await res.json().catch(() => ({}))
+      const steps = (result?.steps ?? {}) as Record<string, { status: string; error?: string }>
+      const failed = Object.entries(steps)
+        .filter(([, v]) => v?.status === 'failed')
+        .map(([k]) => k)
+
+      if (failed.length > 0 && !dryRun) {
+        // Review itself succeeded but a secondary step failed. Surface it
+        // and stay on this screen so the user can retry safely (idempotent).
+        setStepFailures(failed)
+        return
       }
 
       onConfirmed()
@@ -253,6 +267,28 @@ export function ConfirmationCard({
 
       {/* Error */}
       {error && <ErrorAlert message={error} />}
+
+      {/* Step-level failures: review succeeded but a side-effect didn't */}
+      {stepFailures.length > 0 && (
+        <div className="rounded-2xl border border-[var(--color-status-warn)]/40 bg-[var(--color-status-warn)]/10 p-4">
+          <p className="text-sm font-semibold text-text-primary">Review opgeslagen, maar:</p>
+          <ul className="mt-1 text-xs text-text-secondary">
+            {stepFailures.map((s) => {
+              const label = s === 'memory' ? 'Coaching memory' : s === 'calendar' ? 'Google Calendar' : 'Schema-overrides'
+              return <li key={s}>• {label} mislukte. Klik nogmaals op afsluiten om opnieuw te proberen (veilig — geen duplicaten).</li>
+            })}
+          </ul>
+          <button
+            onClick={() => {
+              setStepFailures([])
+              onConfirmed()
+            }}
+            className="mt-3 text-xs font-medium text-[#0A84FF]"
+          >
+            Toch doorgaan zonder opnieuw te proberen
+          </button>
+        </div>
+      )}
 
       {/* Confirm button */}
       <button

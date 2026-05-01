@@ -168,29 +168,43 @@ export async function POST(request: Request) {
       }
     }
 
-    // Save key insights to coaching_memory (fire-and-forget)
-    saveInsightsToMemory(admin, user.id, input.week_start, input.key_insights, input.focus_next_week)
-      .catch((memoryError) => {
-        console.error('Coaching memory save failed (non-fatal):', memoryError)
-      })
+    // Run all secondary writes in parallel and collect per-step status. Each
+    // write is idempotent (upsert / setting overrides by date), so a retry of
+    // the whole confirm endpoint is safe.
+    const stepResults = await Promise.allSettled([
+      // Step 1: coaching_memory (always)
+      saveInsightsToMemory(admin, user.id, input.week_start, input.key_insights, input.focus_next_week)
+        .then(() => ({ step: 'memory' as const })),
 
-    // Sync planned sessions to Google Calendar (fire-and-forget)
-    if (input.sync_to_calendar && input.planned_sessions?.length) {
-      syncSessionsToCalendar(admin, user.id, review.id, input.planned_sessions)
-        .catch((calendarError) => {
-          console.error('Calendar sync failed (non-fatal):', calendarError)
-        })
+      // Step 2: Google Calendar (only if requested + sessions present)
+      input.sync_to_calendar && input.planned_sessions?.length
+        ? syncSessionsToCalendar(admin, user.id, review.id, input.planned_sessions).then(() => ({
+            step: 'calendar' as const,
+          }))
+        : Promise.resolve({ step: 'calendar' as const, skipped: true }),
+
+      // Step 3: scheduled_overrides on training schema (if sessions present)
+      input.planned_sessions?.length
+        ? updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start).then(() => ({
+            step: 'overrides' as const,
+          }))
+        : Promise.resolve({ step: 'overrides' as const, skipped: true }),
+    ])
+
+    const stepStatus = {
+      memory: stepStatusFor(stepResults[0]),
+      calendar: stepStatusFor(stepResults[1]),
+      overrides: stepStatusFor(stepResults[2]),
     }
 
-    // Update scheduled overrides on training schema (fire-and-forget)
-    if (input.planned_sessions?.length) {
-      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start)
-        .catch((overrideError) => {
-          console.error('Scheduled override update failed (non-fatal):', overrideError)
-        })
+    // Log failures so they're visible in server logs
+    for (const [name, status] of Object.entries(stepStatus)) {
+      if (status.status === 'failed') {
+        console.error(`[check-in confirm] step ${name} failed:`, status.error)
+      }
     }
 
-    return NextResponse.json(review, { status: 201 })
+    return NextResponse.json({ ...review, steps: stepStatus }, { status: 201 })
   } catch (error) {
     console.error('Check-in confirm POST error:', error)
     return NextResponse.json(
@@ -201,7 +215,25 @@ export async function POST(request: Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Fire-and-forget: sync planned sessions to Google Calendar
+// Per-step status helper — translates Promise.allSettled results to a small
+// JSON shape the UI can render.
+// ---------------------------------------------------------------------------
+
+type StepStatus =
+  | { status: 'ok' }
+  | { status: 'skipped' }
+  | { status: 'failed'; error: string }
+
+function stepStatusFor(result: PromiseSettledResult<{ skipped?: boolean } | unknown>): StepStatus {
+  if (result.status === 'rejected') {
+    return { status: 'failed', error: result.reason instanceof Error ? result.reason.message : String(result.reason) }
+  }
+  const v = result.value as { skipped?: boolean }
+  return v?.skipped ? { status: 'skipped' } : { status: 'ok' }
+}
+
+// ---------------------------------------------------------------------------
+// Sync planned sessions to Google Calendar
 // ---------------------------------------------------------------------------
 
 interface PlannedSession {
