@@ -1303,6 +1303,45 @@ export type Database = {
           },
         ]
       }
+      user_profile: {
+        Row: {
+          barometer_exercises: Json | null
+          basics: Json | null
+          body_composition_notes: string | null
+          gym_location: string | null
+          injuries: Json | null
+          nutrition_targets: Json | null
+          recurring_habits: Json | null
+          training_response: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barometer_exercises?: Json | null
+          basics?: Json | null
+          body_composition_notes?: string | null
+          gym_location?: string | null
+          injuries?: Json | null
+          nutrition_targets?: Json | null
+          recurring_habits?: Json | null
+          training_response?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barometer_exercises?: Json | null
+          basics?: Json | null
+          body_composition_notes?: string | null
+          gym_location?: string | null
+          injuries?: Json | null
+          nutrition_targets?: Json | null
+          recurring_habits?: Json | null
+          training_response?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           ai_custom_instructions: string | null

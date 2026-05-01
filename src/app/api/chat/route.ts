@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
+import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { createClient } from '@/lib/supabase/server'
@@ -245,6 +246,7 @@ export async function POST(request: Request) {
             goalsResult,
             settingsResult,
             historyResult,
+            profile,
           ] = await Promise.all([
             assembleThinContext(user.id),
             admin
@@ -276,6 +278,7 @@ export async function POST(request: Request) {
               .eq('session_id', sessionId)
               .order('created_at', { ascending: false })
               .limit(20),
+            loadUserProfile(user.id),
           ])
 
           const history = historyResult.data
@@ -301,6 +304,7 @@ export async function POST(request: Request) {
               activeInjuries: injuriesResult.data ?? [],
               activeGoals: goalsResult.data ?? [],
               customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+              profileBlock: renderProfileBlock(profile),
             }) + thinContext
 
           const skills = selectSkills(questionType, message)

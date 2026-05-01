@@ -153,7 +153,7 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ## Sprint 3 — Meer signaal
 
 ### CHECKIN-08 · user_profile tabel + migratie hardcoded blokken
-**Status:** 📋 todo · **Omvang:** L · **Fase:** 2 · **Parallel:** ⚠️ raakt veel prompts
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-08-user-profile` · **Omvang:** L · **Fase:** 2 · **Parallel:** ⚠️ raakt veel prompts
 **Why:** Blessures, gewoontes, voeding-targets, gym-locatie, geleerde lessen zitten verspreid in `chat-system.ts` — ontoegankelijk voor users en niet AI-update-baar.
 **Files:** nieuwe migratie, `src/lib/ai/prompts/chat-system.ts`, `src/lib/ai/prompts/checkin-analyze.ts`, `src/lib/ai/prompts/checkin-plan.ts`, nieuwe `src/lib/profile/build-profile-block.ts`
 **Acceptatie:**
