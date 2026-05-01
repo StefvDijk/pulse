@@ -245,12 +245,12 @@ interface DayRowProps {
   date: string
   dayIndex: number
   conflict: DayConflict | null
-  session: PlannedSession | null
+  sessions: PlannedSession[]
   editingDate: string | null
   addingDate: string | null
-  onRemove: (date: string) => void
-  onStartEdit: (date: string) => void
-  onSaveEdit: (updated: PlannedSession) => void
+  onRemove: (date: string, time: string) => void
+  onStartEdit: (sessionKey: string) => void
+  onSaveEdit: (originalDate: string, originalTime: string, updated: PlannedSession) => void
   onCancelEdit: () => void
   onStartAdd: (date: string) => void
   onAdd: (session: PlannedSession) => void
@@ -261,7 +261,7 @@ function DayRow({
   date,
   dayIndex,
   conflict,
-  session,
+  sessions,
   editingDate,
   addingDate,
   onRemove,
@@ -274,7 +274,6 @@ function DayRow({
 }: DayRowProps) {
   const availability = conflict?.availability ?? 'available'
   const label = conflict ? availabilityLabel(conflict.availability, conflict.reason) : null
-  const isEditing = editingDate === date
   const isAdding = addingDate === date
 
   return (
@@ -291,42 +290,60 @@ function DayRow({
         )}
       </div>
 
-      {/* Session card or rest day */}
-      {session ? (
-        <div className={`ml-4 rounded-xl border ${SPORT_BORDER[session.type]} ${SPORT_BG[session.type]} p-3`}>
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60">
-              {SPORT_ICONS[session.type]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">
-                {session.workout}
-              </p>
-              <p className="text-xs text-text-tertiary">
-                {session.time} – {session.endTime}
-              </p>
-            </div>
+      {/* Session cards (one or more) */}
+      {sessions.length > 0 ? (
+        <div className="ml-4 flex flex-col gap-1.5">
+          {sessions.map((session) => {
+            const sessionKey = `${session.date}T${session.time}`
+            const isEditing = editingDate === sessionKey
+            return (
+              <div
+                key={sessionKey}
+                className={`rounded-xl border ${SPORT_BORDER[session.type]} ${SPORT_BG[session.type]} p-3`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60">
+                    {SPORT_ICONS[session.type]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary truncate">{session.workout}</p>
+                    <p className="text-xs text-text-tertiary">
+                      {session.time} – {session.endTime}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onStartEdit(sessionKey)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
+                    title="Aanpassen"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => onRemove(session.date, session.time)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
+                    title="Verwijderen"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+                {isEditing && (
+                  <EditSessionForm
+                    session={session}
+                    onSave={(updated) => onSaveEdit(session.date, session.time, updated)}
+                    onCancel={onCancelEdit}
+                  />
+                )}
+              </div>
+            )
+          })}
+          {/* Always offer +extra sessie button when there's already a session */}
+          {!isAdding && (
             <button
-              onClick={() => onStartEdit(date)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
-              title="Aanpassen"
+              onClick={() => onStartAdd(date)}
+              className="flex w-fit items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-text-tertiary hover:bg-white/[0.10]"
             >
-              <Pencil size={12} />
+              <Plus size={11} /> Extra sessie
             </button>
-            <button
-              onClick={() => onRemove(date)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
-              title="Verwijderen"
-            >
-              <X size={12} />
-            </button>
-          </div>
-          {isEditing && (
-            <EditSessionForm
-              session={session}
-              onSave={onSaveEdit}
-              onCancel={onCancelEdit}
-            />
           )}
         </div>
       ) : (
@@ -342,9 +359,9 @@ function DayRow({
         </div>
       )}
 
-      {/* Add form */}
-      {isAdding && !session && (
-        <div className="ml-4">
+      {/* Add form (separate from sessions list) */}
+      {isAdding && (
+        <div className="ml-4 mt-1.5">
           <AddSessionForm
             date={date}
             onAdd={onAdd}
@@ -408,26 +425,33 @@ export function WeekPlanCard({
     }
   }
 
-  // Build session lookup
-  const sessionMap = new Map<string, PlannedSession>()
+  // Build session lookup — multiple sessions per day allowed.
+  // Sessions binnen een dag worden gesorteerd op tijd.
+  const sessionsByDate = new Map<string, PlannedSession[]>()
   for (const s of sessions) {
-    sessionMap.set(s.date, s)
+    const list = sessionsByDate.get(s.date) ?? []
+    list.push(s)
+    sessionsByDate.set(s.date, list)
+  }
+  for (const list of sessionsByDate.values()) {
+    list.sort((a, b) => a.time.localeCompare(b.time))
   }
 
-  // Handlers
-  const handleRemove = useCallback((date: string) => {
-    setSessions((prev) => prev.filter((s) => s.date !== date))
+  // Handlers — sessies binnen een dag worden geïdentificeerd door (date, time)
+  // omdat PlannedSession geen id heeft.
+  const handleRemove = useCallback((date: string, time: string) => {
+    setSessions((prev) => prev.filter((s) => !(s.date === date && s.time === time)))
     setEditingDate(null)
   }, [])
 
-  const handleStartEdit = useCallback((date: string) => {
-    setEditingDate(date)
+  const handleStartEdit = useCallback((sessionKey: string) => {
+    setEditingDate(sessionKey)
     setAddingDate(null)
   }, [])
 
-  const handleSaveEdit = useCallback((updated: PlannedSession) => {
+  const handleSaveEdit = useCallback((originalDate: string, originalTime: string, updated: PlannedSession) => {
     setSessions((prev) =>
-      prev.map((s) => (s.date === updated.date ? updated : s))
+      prev.map((s) => (s.date === originalDate && s.time === originalTime ? updated : s))
     )
     setEditingDate(null)
   }, [])
@@ -503,7 +527,7 @@ export function WeekPlanCard({
                 date={date}
                 dayIndex={dayIdx}
                 conflict={conflictMap.get(date) ?? null}
-                session={sessionMap.get(date) ?? null}
+                sessions={sessionsByDate.get(date) ?? []}
                 editingDate={editingDate}
                 addingDate={addingDate}
                 onRemove={handleRemove}
