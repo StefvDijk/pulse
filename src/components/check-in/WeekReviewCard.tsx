@@ -14,6 +14,7 @@ import {
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
+import { GapItem } from '@/components/check-in/GapItem'
 import { WeekTier } from '@/components/check-in/WeekTier'
 import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
 import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
@@ -286,12 +287,13 @@ export function WeekReviewCard({
             <AlertTriangle size={16} className="text-[var(--color-status-warn)]" />
             <h3 className="text-subhead font-semibold text-text-primary">Mogelijk gemist</h3>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             {data.gaps.map((gap) => (
-              <div key={`${gap.date}-${gap.type}`} className="flex items-center gap-3 py-1">
-                <span className="text-sm text-[var(--color-status-warn)] capitalize">{gap.dayName}</span>
-                <span className="text-sm text-text-secondary">{gap.expected} niet gelogd</span>
-              </div>
+              <GapItem
+                key={`${gap.date}-${gap.type}`}
+                gap={gap}
+                onForgotLog={() => setShowModal(true)}
+              />
             ))}
           </div>
         </div>
