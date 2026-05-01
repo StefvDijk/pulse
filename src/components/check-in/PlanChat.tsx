@@ -177,6 +177,11 @@ export function PlanChat({
             </button>
           </div>
 
+          <p className="text-[11px] leading-relaxed text-text-tertiary">
+            Aanpassingen gelden alleen voor deze week. Volgende week begin je
+            weer met je standaard schema.
+          </p>
+
           {busy && (
             <p className="text-[11px] text-text-tertiary">Coach werkt je plan bij…</p>
           )}

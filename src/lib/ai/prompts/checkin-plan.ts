@@ -184,6 +184,12 @@ export function buildCheckInPlanRefinePrompt(params: PlanRefineParams): {
 - Reasoning legt in 2-3 zinnen uit WAT je hebt aangepast en waarom
 - Geen 'ik begrijp dat...' fluff — geef gewoon het nieuwe plan met reden
 
+## Belangrijk: aanpassingen zijn EENMALIG voor deze week
+- Het standaard schema verandert NIET. Volgende week begint Stef gewoon weer met de default.
+- Als de aanpassing groot is (bv. van 4 dagen → 2 dagen, of een hele sessie geskipt):
+  voeg in je reasoning een korte zin toe als "Vanaf volgende week zit je weer op je standaard X-daagse."
+- Bij kleine aanpassingen (tijd verschuiven, 1 oefening anders) hoeft die zin niet.
+
 ## Trainingsregels (zelfde als bij eerste planning)
 1. Padel is onregelmatig — plan alleen als Stef het expliciet aangeeft of agenda erom vraagt
 2. Hardlopen: streven naar ~1x/week, op rustdag of avond (18:00-19:00)
