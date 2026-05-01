@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { decayStaleMemories } from '@/lib/ai/memory-decay'
 import type { Database, Json } from '@/types/database'
 import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
@@ -63,6 +64,7 @@ export interface CheckInReviewData {
     personalRecords: PersonalRecordRow[]
   }
   previousReview: WeeklyReviewRow | null
+  previousFocus: { text: string; weekStart: string } | null
   targets: {
     weeklyTrainingTarget: Json | null
     proteinTargetPerKg: number | null
@@ -91,6 +93,13 @@ function getISOWeekNumber(dateStr: string): { weekNumber: number; year: number }
   const jan4 = new Date(Date.UTC(year, 0, 4))
   const weekNumber = 1 + Math.round(((d.getTime() - jan4.getTime()) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7)
   return { weekNumber, year }
+}
+
+function extractPreviousFocus(prev: WeeklyReviewRow | null): { text: string; weekStart: string } | null {
+  if (!prev?.next_week_plan || typeof prev.next_week_plan !== 'object') return null
+  const plan = prev.next_week_plan as { focusNextWeek?: unknown }
+  if (typeof plan.focusNextWeek !== 'string' || !plan.focusNextWeek.trim()) return null
+  return { text: plan.focusNextWeek, weekStart: prev.week_start }
 }
 
 function avg(values: (number | null)[]): number | null {
@@ -190,9 +199,6 @@ function detectGaps(
       expected = schedule.get(dayName) ?? null
     }
 
-    // Check for padel on Monday (fixed pattern, always expected)
-    const isPadelDay = dayName === 'monday'
-
     if (expected) {
       // Check if a matching workout exists
       const hasMatchingWorkout = workouts.some(
@@ -203,35 +209,17 @@ function detectGaps(
         (r) => dayKeyAmsterdam(r.started_at) === dateStr,
       )
 
-      if (!hasMatchingWorkout && !hasMatchingRun) {
+      const hasMatchingPadel = padelSessions.some(
+        (p) => dayKeyAmsterdam(p.started_at) === dateStr,
+      )
+
+      if (!hasMatchingWorkout && !hasMatchingRun && !hasMatchingPadel) {
         gaps.push({
           date: dateStr,
           dayName: DUTCH_DAY_NAMES[dayName],
           expected: expected.focus,
           type: expected.type,
         })
-      }
-    }
-
-    // Check padel for Monday
-    if (isPadelDay) {
-      const hasPadel = padelSessions.some(
-        (p) => dayKeyAmsterdam(p.started_at) === dateStr,
-      )
-
-      if (!hasPadel) {
-        // Only add if we didn't already add a gap for this date with padel focus
-        const alreadyAdded = gaps.some(
-          (g) => g.date === dateStr && g.expected === 'Padel',
-        )
-        if (!alreadyAdded) {
-          gaps.push({
-            date: dateStr,
-            dayName: DUTCH_DAY_NAMES[dayName],
-            expected: 'Padel',
-            type: 'padel',
-          })
-        }
       }
     }
   }
@@ -252,6 +240,9 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient()
+
+    // Fire-and-forget: age stale memories so the prompt context stays fresh
+    decayStaleMemories(user.id).catch((err) => console.error('memory decay failed (non-fatal):', err))
 
     // Determine week range
     const { searchParams } = new URL(request.url)
@@ -423,6 +414,7 @@ export async function GET(request: Request) {
         personalRecords: prsResult.data ?? [],
       },
       previousReview: prevReviewResult.data,
+      previousFocus: extractPreviousFocus(prevReviewResult.data),
       targets: {
         weeklyTrainingTarget: settingsResult.data?.weekly_training_target ?? null,
         proteinTargetPerKg: settingsResult.data?.protein_target_per_kg ?? null,

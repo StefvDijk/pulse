@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
+import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { createClient } from '@/lib/supabase/server'
@@ -187,46 +188,13 @@ export async function POST(request: Request) {
     const questionType = classifyQuestion(message)
     const admin = createAdminClient()
 
-    // Fetch dynamic data for system prompt + thin context in parallel
-    const [thinContext, schemaResult, injuriesResult, goalsResult, settingsResult] = await Promise.all([
-      assembleThinContext(user.id),
-      admin
-        .from('training_schemas')
-        .select('title, schema_type, weeks_planned, start_date')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle(),
-      admin
-        .from('injury_logs')
-        .select('body_location, severity, description, status')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .limit(10),
-      admin
-        .from('goals')
-        .select('title, category, target_value, current_value, deadline')
-        .eq('user_id', user.id)
-        .neq('status', 'completed')
-        .limit(10),
-      admin
-        .from('user_settings')
-        .select('ai_custom_instructions')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-    ])
-
-    const activeSchema = schemaResult.data
-      ? {
-          ...schemaResult.data,
-          current_week: schemaResult.data.start_date
-            ? Math.ceil((Date.now() - new Date(schemaResult.data.start_date).getTime()) / (7 * 86400000)) + 1
-            : undefined,
-        }
-      : null
-
-    // Get or create chat session
-    let sessionId = session_id
-    if (!sessionId) {
+    // Resolve sessionId BEFORE stream construction so we can set X-Session-Id
+    // on the response headers (frontend reads it). When a session already
+    // exists this is free; new-session creation costs ~50ms.
+    let sessionId: string
+    if (session_id) {
+      sessionId = session_id
+    } else {
       const { data: newSession, error: sessionError } = await admin
         .from('chat_sessions')
         .insert({
@@ -237,68 +205,124 @@ export async function POST(request: Request) {
         })
         .select('id')
         .single()
-
       if (sessionError || !newSession) {
         throw new Error('Failed to create chat session')
       }
       sessionId = newSession.id
     }
 
-    // Fetch last 20 messages for context
-    const { data: history } = await admin
-      .from('chat_messages')
-      .select('role, content')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    const historyMessages = (history ?? [])
-      .reverse()
-      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-
-    // Save user message
-    await admin.from('chat_messages').insert({
-      user_id: user.id,
-      session_id: sessionId,
-      role: 'user',
-      content: message,
-      message_type: questionType,
-    })
-
-    // Build system prompt with dynamic data + thin context
-    let systemWithContext = buildSystemPrompt({
-      activeSchema,
-      activeInjuries: injuriesResult.data ?? [],
-      activeGoals: goalsResult.data ?? [],
-      customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
-    }) + thinContext
-
-    // Append relevant skill prompts based on question type + keywords
-    const skills = selectSkills(questionType, message)
-    if (skills.length > 0) {
-      systemWithContext += '\n\n' + skills.join('\n\n')
-    }
-
-    // Model routing: simple greetings use Haiku (fast, cheap), rest uses Sonnet with tools
-    const isSimple = questionType === 'simple_greeting'
-    const tools = isSimple ? undefined : createToolsForUser(user.id)
-
-    const result = streamChat({
-      system: systemWithContext,
-      messages: [
-        ...historyMessages,
-        { role: 'user', content: message },
-      ],
-      tools,
-      ...(isSimple ? { model: MEMORY_MODEL } : {}),
-    })
-
+    // Stream starts IMMEDIATELY — client sees typing bubble within ~50ms
+    // instead of waiting 800-1500ms for context queries to resolve. All
+    // remaining prep (5 parallel context queries + history fetch) runs
+    // inside the stream behind the thinking indicator.
     const encoder = new TextEncoder()
     let fullResponse = ''
 
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          // 1. Flush thinking indicator FIRST — frontend shows typing bubble.
+          controller.enqueue(encoder.encode(`data: {"__thinking":true}\n\n`))
+
+          // 2. Run history fetch + 5 context queries fully in parallel.
+          //    Save user message fire-and-forget — doesn't block stream.
+          admin
+            .from('chat_messages')
+            .insert({
+              user_id: user.id,
+              session_id: sessionId,
+              role: 'user',
+              content: message,
+              message_type: questionType,
+            })
+            .then((r) => {
+              if (r.error) console.error('user-message insert failed:', r.error)
+            })
+
+          const [
+            thinContext,
+            schemaResult,
+            injuriesResult,
+            goalsResult,
+            settingsResult,
+            historyResult,
+            profile,
+          ] = await Promise.all([
+            assembleThinContext(user.id),
+            admin
+              .from('training_schemas')
+              .select('title, schema_type, weeks_planned, start_date')
+              .eq('user_id', user.id)
+              .eq('is_active', true)
+              .maybeSingle(),
+            admin
+              .from('injury_logs')
+              .select('body_location, severity, description, status')
+              .eq('user_id', user.id)
+              .eq('status', 'active')
+              .limit(10),
+            admin
+              .from('goals')
+              .select('title, category, target_value, current_value, deadline')
+              .eq('user_id', user.id)
+              .neq('status', 'completed')
+              .limit(10),
+            admin
+              .from('user_settings')
+              .select('ai_custom_instructions')
+              .eq('user_id', user.id)
+              .maybeSingle(),
+            admin
+              .from('chat_messages')
+              .select('role, content')
+              .eq('session_id', sessionId)
+              .order('created_at', { ascending: false })
+              .limit(20),
+            loadUserProfile(user.id),
+          ])
+
+          const history = historyResult.data
+          const historyMessages = (history ?? [])
+            .reverse()
+            .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+          const activeSchema = schemaResult.data
+            ? {
+                ...schemaResult.data,
+                current_week: schemaResult.data.start_date
+                  ? Math.ceil(
+                      (Date.now() - new Date(schemaResult.data.start_date).getTime()) /
+                        (7 * 86400000),
+                    ) + 1
+                  : undefined,
+              }
+            : null
+
+          let systemWithContext =
+            buildSystemPrompt({
+              activeSchema,
+              activeInjuries: injuriesResult.data ?? [],
+              activeGoals: goalsResult.data ?? [],
+              customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+              profileBlock: renderProfileBlock(profile),
+            }) + thinContext
+
+          const skills = selectSkills(questionType, message)
+          if (skills.length > 0) {
+            systemWithContext += '\n\n' + skills.join('\n\n')
+          }
+
+          const isSimple = questionType === 'simple_greeting'
+          const tools = isSimple ? undefined : createToolsForUser(user.id)
+
+          const result = streamChat({
+            system: systemWithContext,
+            messages: [...historyMessages, { role: 'user', content: message }],
+            tools,
+            ...(isSimple ? { model: MEMORY_MODEL } : {}),
+            meta: { userId: user.id, feature: isSimple ? 'chat_greeting' : 'chat' },
+          })
+
           for await (const chunk of result.textStream) {
             fullResponse += chunk
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))

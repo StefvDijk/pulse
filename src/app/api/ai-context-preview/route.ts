@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
 import { assembleThinContext } from '@/lib/ai/context-assembler'
+import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
 
     const admin = createAdminClient()
 
-    const [thinContext, schemaResult, injuriesResult, goalsResult, settingsResult] = await Promise.all([
+    const [thinContext, schemaResult, injuriesResult, goalsResult, settingsResult, profile] = await Promise.all([
       assembleThinContext(user.id),
       admin
         .from('training_schemas')
@@ -39,6 +40,7 @@ export async function GET() {
         .select('ai_custom_instructions')
         .eq('user_id', user.id)
         .maybeSingle(),
+      loadUserProfile(user.id),
     ])
 
     const activeSchema = schemaResult.data
@@ -57,6 +59,7 @@ export async function GET() {
       activeInjuries: injuriesResult.data ?? [],
       activeGoals: goalsResult.data ?? [],
       customInstructions,
+      profileBlock: renderProfileBlock(profile),
     })
 
     const totalChars = systemPrompt.length + thinContext.length

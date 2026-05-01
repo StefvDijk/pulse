@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { logAiUsage } from '@/lib/ai/usage'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 // ---------------------------------------------------------------------------
@@ -77,11 +78,22 @@ GEBRUIKER: ${userMessage}
 
 COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
 
-    const { text } = await generateText({
+    const startedAt = Date.now()
+    const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
       messages: [{ role: 'user', content: userContent }],
       maxOutputTokens: 512,
+    })
+    logAiUsage({
+      userId,
+      feature: 'memory_extractor',
+      model: MEMORY_MODEL,
+      usage: {
+        inputTokens: usage.inputTokens ?? null,
+        outputTokens: usage.outputTokens ?? null,
+      },
+      durationMs: Date.now() - startedAt,
     })
 
     // Extract JSON array — be lenient about surrounding whitespace/text

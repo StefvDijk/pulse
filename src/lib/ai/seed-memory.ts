@@ -186,16 +186,10 @@ const BASELINE_MEMORY: MemoryEntry[] = [
     source_date: '2026-03-24',
   },
   {
-    key: 'motivation_historical_pattern',
+    key: 'motivation_pattern',
     category: 'pattern',
-    value: 'Historisch: enthousiast starten → afhaken na ~2 maanden (skipdag → motivatiedip → stoppen). Doorbraak: 6 weken streak, langste ooit',
-    source_date: '2026-04-02',
-  },
-  {
-    key: 'current_gym_streak',
-    category: 'pattern',
-    value: '6 weken gym-streak t/m week 5 start (2 apr 2026): 4 weken 3x/week + gestart met 4x/week. Langste consistente periode ooit',
-    source_date: '2026-04-02',
+    value: 'Houdt het inmiddels lang vol en heeft er plezier in. Geen "gaat afhaken"-aanname. Wel: ochtendtraining beschermen, flexibel zijn als planning wisselt, 30 min > thuisblijven',
+    source_date: '2026-05-01',
   },
   {
     key: 'back_to_back_gym_works',

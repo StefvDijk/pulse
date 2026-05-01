@@ -14,7 +14,10 @@ import {
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
+import { GapItem } from '@/components/check-in/GapItem'
 import { WeekTier } from '@/components/check-in/WeekTier'
+import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
+import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -25,6 +28,10 @@ interface WeekReviewCardProps {
   manualAdditions: ManualAddition[]
   onAddManual: (addition: ManualAddition) => void
   onRemoveManual: (index: number) => void
+  wellness: WellnessState
+  onWellnessChange: (next: WellnessState) => void
+  focusOutcome: FocusOutcomeState
+  onFocusOutcomeChange: (next: FocusOutcomeState) => void
   onNext: () => void
 }
 
@@ -56,6 +63,12 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
+function weeksBetween(earlier: string, later: string): number {
+  const a = new Date(earlier + 'T00:00:00Z').getTime()
+  const b = new Date(later + 'T00:00:00Z').getTime()
+  return Math.round((b - a) / (7 * 86400000))
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -65,16 +78,50 @@ export function WeekReviewCard({
   manualAdditions,
   onAddManual,
   onRemoveManual,
+  wellness,
+  onWellnessChange,
+  focusOutcome,
+  onFocusOutcomeChange,
   onNext,
 }: WeekReviewCardProps) {
   const [showModal, setShowModal] = useState(false)
 
   const totalSessions = data.workouts.length + data.runs.length + data.padelSessions.length
 
+  // Skip-recovery: if last review is >2 weeks old, don't ask about that focus —
+  // just look forward. Self-contained week framing (no guilt-trip).
+  const previousFocusGap = data.previousFocus
+    ? weeksBetween(data.previousFocus.weekStart, data.week.weekStart)
+    : null
+  const showPreviousFocus = data.previousFocus && previousFocusGap !== null && previousFocusGap <= 2
+  const showSkipRecovery = data.previousFocus && previousFocusGap !== null && previousFocusGap > 2
+
   return (
     <div className="flex flex-col gap-3">
+      {/* Continuity: previous week's focus + outcome */}
+      {showPreviousFocus && data.previousFocus && (
+        <PreviousFocusBlock
+          focusText={data.previousFocus.text}
+          value={focusOutcome}
+          onChange={onFocusOutcomeChange}
+        />
+      )}
+
+      {/* Skip-recovery: gap >2 weeks since last check-in */}
+      {showSkipRecovery && (
+        <div className="rounded-2xl border border-bg-border bg-bg-surface p-5">
+          <h3 className="text-subhead font-semibold text-text-primary">Welkom terug</h3>
+          <p className="mt-1 text-sm text-text-secondary">
+            Laten we vooruit kijken — geen druk, gewoon door waar je bent.
+          </p>
+        </div>
+      )}
+
       {/* Burn Bar tier — your week vs your 4-week average */}
       <WeekTier weekStart={data.week.weekStart} />
+
+      {/* Subjective wellness ratings + open notes */}
+      <WellnessBlock value={wellness} onChange={onWellnessChange} />
 
       {/* Sessions card */}
       <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
@@ -240,12 +287,13 @@ export function WeekReviewCard({
             <AlertTriangle size={16} className="text-[var(--color-status-warn)]" />
             <h3 className="text-subhead font-semibold text-text-primary">Mogelijk gemist</h3>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             {data.gaps.map((gap) => (
-              <div key={`${gap.date}-${gap.type}`} className="flex items-center gap-3 py-1">
-                <span className="text-sm text-[var(--color-status-warn)] capitalize">{gap.dayName}</span>
-                <span className="text-sm text-text-secondary">{gap.expected} niet gelogd</span>
-              </div>
+              <GapItem
+                key={`${gap.date}-${gap.type}`}
+                gap={gap}
+                onForgotLog={() => setShowModal(true)}
+              />
             ))}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createJsonCompletion } from '@/lib/ai/client'
+import { createJsonCompletion, MEMORY_MODEL } from '@/lib/ai/client'
 import { NUTRITION_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts/nutrition-analysis'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
@@ -46,9 +46,15 @@ export async function analyzeNutrition(
   const logDate = date ?? todayAmsterdam()
 
   // Call Claude for macro analysis
+  // Haiku 4.5 — structured macro extraction with a strict zod schema.
+  // 3× cheaper than Sonnet and accuracy is comparable for this kind of
+  // well-bounded JSON output. Keep an eye on real logs; flip back to
+  // MODEL if calorie estimates start drifting.
   const rawText = await createJsonCompletion({
     system: NUTRITION_ANALYSIS_SYSTEM_PROMPT,
     userMessage: input,
+    model: MEMORY_MODEL,
+    meta: { userId, feature: 'nutrition' },
   })
 
   const analysis = NutritionAnalysisSchema.parse(JSON.parse(rawText))

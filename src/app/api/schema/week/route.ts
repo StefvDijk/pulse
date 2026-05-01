@@ -552,11 +552,18 @@ export async function GET() {
       return { ...day, lastPerformance: lastPerf }
     })
 
-    return NextResponse.json({
-      schemaTitle: schema.title,
-      displayName: profileResult.data?.display_name ?? null,
-      days: responseDays,
-    })
+    return NextResponse.json(
+      {
+        schemaTitle: schema.title,
+        displayName: profileResult.data?.display_name ?? null,
+        days: responseDays,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=300',
+        },
+      },
+    )
   } catch (error) {
     console.error('Schema week API error:', error)
     return NextResponse.json(

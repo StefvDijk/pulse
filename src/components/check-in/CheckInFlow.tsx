@@ -12,6 +12,8 @@ import { WeekPlanCard } from '@/components/check-in/WeekPlanCard'
 import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
+import type { WellnessState } from '@/components/check-in/WellnessBlock'
+import type { FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -129,6 +131,17 @@ export function CheckInFlow() {
   const [plannedSessions, setPlannedSessions] = useState<PlannedSession[] | null>(null)
   const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [dryRun, setDryRun] = useState(false)
+  const [wellness, setWellness] = useState<WellnessState>({
+    energy: null,
+    motivation: null,
+    stress: null,
+    notes: '',
+  })
+  const [focusOutcome, setFocusOutcome] = useState<FocusOutcomeState>({
+    rating: null,
+    note: '',
+  })
 
   const handleAddManual = useCallback((addition: ManualAddition) => {
     setManualAdditions((prev) => [...prev, addition])
@@ -193,9 +206,13 @@ export function CheckInFlow() {
           <CheckCircle2 size={32} style={{ color: '#22D67A' }} />
         </div>
         <h1 className="text-[28px] font-bold tracking-[-0.6px] text-text-primary">
-          Week {data.week.weekNumber} afgesloten!
+          {dryRun ? `Week ${data.week.weekNumber} (test)` : `Week ${data.week.weekNumber} afgesloten!`}
         </h1>
-        <p className="text-center text-[14px] text-text-secondary">Je check-in is opgeslagen. Goed bezig!</p>
+        <p className="text-center text-[14px] text-text-secondary">
+          {dryRun
+            ? '🧪 Test mode — er is niets opgeslagen.'
+            : 'Je check-in is opgeslagen. Goed bezig!'}
+        </p>
         <Link
           href="/"
           className="mt-4 rounded-2xl px-6 py-3 text-[15px] font-semibold text-white"
@@ -236,6 +253,22 @@ export function CheckInFlow() {
         </p>
       </div>
 
+      <div className="px-4 pt-2">
+        <label className="flex items-center justify-between rounded-xl border border-bg-border bg-bg-surface px-3 py-2">
+          <span className="flex items-center gap-2 text-[13px] text-text-secondary">
+            <span>🧪</span>
+            <span>Test mode {dryRun && <span className="text-[var(--color-status-warn)]">— niets wordt opgeslagen</span>}</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={dryRun}
+            onChange={(e) => setDryRun(e.target.checked)}
+            className="h-4 w-4 accent-[#0A84FF]"
+            aria-label="Test mode"
+          />
+        </label>
+      </div>
+
       <div className="px-4 pb-3 pt-3">
         <StepIndicator current={step} />
       </div>
@@ -248,6 +281,10 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             onAddManual={handleAddManual}
             onRemoveManual={handleRemoveManual}
+            wellness={wellness}
+            onWellnessChange={setWellness}
+            focusOutcome={focusOutcome}
+            onFocusOutcomeChange={setFocusOutcome}
             onNext={() => setStep(2)}
           />
         )}
@@ -256,6 +293,8 @@ export function CheckInFlow() {
             reviewData={data}
             manualAdditions={manualAdditions}
             analysis={analysis}
+            wellness={wellness}
+            focusOutcome={focusOutcome}
             onAnalysisComplete={handleAnalysisComplete}
             onNext={handleGoToPlanning}
           />
@@ -275,6 +314,9 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             plannedSessions={plannedSessions}
             syncToCalendar={syncToCalendar}
+            dryRun={dryRun}
+            wellness={wellness}
+            focusOutcome={focusOutcome}
             onConfirmed={handleConfirmed}
           />
         )}

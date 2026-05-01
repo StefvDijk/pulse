@@ -7,13 +7,78 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      ai_usage_log: {
+        Row: {
+          cache_creation_tokens: number | null
+          cache_read_tokens: number | null
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          cache_creation_tokens?: number | null
+          cache_read_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          cache_creation_tokens?: number | null
+          cache_read_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       body_composition_logs: {
         Row: {
           arm_right_cm: number | null
@@ -213,35 +278,52 @@ export type Database = {
       coaching_memory: {
         Row: {
           category: string
+          confidence: number
           created_at: string
           id: string
           key: string
+          last_confirmed_at: string
           source_date: string
+          superseded_by: string | null
           updated_at: string
           user_id: string
           value: string
         }
         Insert: {
           category: string
+          confidence?: number
           created_at?: string
           id?: string
           key: string
+          last_confirmed_at?: string
           source_date?: string
+          superseded_by?: string | null
           updated_at?: string
           user_id: string
           value: string
         }
         Update: {
           category?: string
+          confidence?: number
           created_at?: string
           id?: string
           key?: string
+          last_confirmed_at?: string
           source_date?: string
+          superseded_by?: string | null
           updated_at?: string
           user_id?: string
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coaching_memory_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "coaching_memory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_activity: {
         Row: {
@@ -1111,6 +1193,33 @@ export type Database = {
           },
         ]
       }
+      skip_reasons: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sleep_logs: {
         Row: {
           awake_minutes: number | null
@@ -1237,6 +1346,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_profile: {
+        Row: {
+          barometer_exercises: Json | null
+          basics: Json | null
+          body_composition_notes: string | null
+          gym_location: string | null
+          injuries: Json | null
+          nutrition_targets: Json | null
+          recurring_habits: Json | null
+          training_response: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barometer_exercises?: Json | null
+          basics?: Json | null
+          body_composition_notes?: string | null
+          gym_location?: string | null
+          injuries?: Json | null
+          nutrition_targets?: Json | null
+          recurring_habits?: Json | null
+          training_response?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barometer_exercises?: Json | null
+          basics?: Json | null
+          body_composition_notes?: string | null
+          gym_location?: string | null
+          injuries?: Json | null
+          nutrition_targets?: Json | null
+          recurring_habits?: Json | null
+          training_response?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -1442,6 +1590,9 @@ export type Database = {
           inbody_weight_kg: number | null
           manual_additions: Json | null
           next_week_plan: Json | null
+          notes_text: string | null
+          previous_focus_note: string | null
+          previous_focus_rating: string | null
           sessions_completed: number | null
           sessions_planned: number | null
           summary_text: string | null
@@ -1450,6 +1601,9 @@ export type Database = {
           week_end: string
           week_number: number
           week_start: string
+          wellness_energy: number | null
+          wellness_motivation: number | null
+          wellness_stress: number | null
         }
         Insert: {
           calendar_synced?: boolean | null
@@ -1464,6 +1618,9 @@ export type Database = {
           inbody_weight_kg?: number | null
           manual_additions?: Json | null
           next_week_plan?: Json | null
+          notes_text?: string | null
+          previous_focus_note?: string | null
+          previous_focus_rating?: string | null
           sessions_completed?: number | null
           sessions_planned?: number | null
           summary_text?: string | null
@@ -1472,6 +1629,9 @@ export type Database = {
           week_end: string
           week_number: number
           week_start: string
+          wellness_energy?: number | null
+          wellness_motivation?: number | null
+          wellness_stress?: number | null
         }
         Update: {
           calendar_synced?: boolean | null
@@ -1486,6 +1646,9 @@ export type Database = {
           inbody_weight_kg?: number | null
           manual_additions?: Json | null
           next_week_plan?: Json | null
+          notes_text?: string | null
+          previous_focus_note?: string | null
+          previous_focus_rating?: string | null
           sessions_completed?: number | null
           sessions_planned?: number | null
           summary_text?: string | null
@@ -1494,6 +1657,9 @@ export type Database = {
           week_end?: string
           week_number?: number
           week_start?: string
+          wellness_energy?: number | null
+          wellness_motivation?: number | null
+          wellness_stress?: number | null
         }
         Relationships: []
       }
@@ -1788,7 +1954,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
