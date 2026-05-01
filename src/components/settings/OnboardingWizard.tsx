@@ -40,7 +40,7 @@ interface GoalData {
   targetUnit: string
 }
 
-const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none'
+const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus-ring'
 
 export function OnboardingWizard() {
   const router = useRouter()
@@ -174,6 +174,7 @@ export function OnboardingWizard() {
                   <label className="text-xs font-medium text-text-tertiary">Gewicht (kg)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={profile.weightKg}
                     onChange={(e) => setProfile((p) => ({ ...p, weightKg: e.target.value }))}
                     placeholder="75"
@@ -186,6 +187,7 @@ export function OnboardingWizard() {
                   <label className="text-xs font-medium text-text-tertiary">Lengte (cm)</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={profile.heightCm}
                     onChange={(e) => setProfile((p) => ({ ...p, heightCm: e.target.value }))}
                     placeholder="175"
@@ -206,6 +208,7 @@ export function OnboardingWizard() {
                   <span className="text-sm text-text-primary">{label}</span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={sports[key]}
                     onChange={(e) => setSports((s) => ({ ...s, [key]: e.target.value }))}
                     min={0}
@@ -267,7 +270,7 @@ export function OnboardingWizard() {
                       <select
                         value={goal.category}
                         onChange={(e) => updateGoal(i, 'category', e.target.value)}
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       >
                         <option value="strength">Kracht</option>
                         <option value="running">Hardlopen</option>
@@ -277,19 +280,20 @@ export function OnboardingWizard() {
                       </select>
                       <input
                         type="number"
+                        inputMode="decimal"
                         value={goal.targetValue}
                         onChange={(e) => updateGoal(i, 'targetValue', e.target.value)}
                         placeholder="100"
                         min={0}
                         step="any"
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       />
                       <input
                         type="text"
                         value={goal.targetUnit}
                         onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
+                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       />
                     </div>
                   </div>

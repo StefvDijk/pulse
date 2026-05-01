@@ -171,10 +171,49 @@ Dense rij-buttons zouden visuele regressie geven (44px verbreekt grid/row layout
 ### Refactor-met-de-vlek
 ExplainSheet en MuscleDrilldownSheet hadden ad-hoc `useEffect`-gebaseerde Escape-handlers — nu door `useEscapeKey` vervangen voor consistentie. Geen gedragsverandering.
 
-### Niet aangeraakt
-- `Navigation` More-sheet had al `role="dialog" aria-modal` (en eigen body-overflow lock — staat in open-list voor groep D harmonisatie).
+### Niet aangeraakt (van groep C3)
+- `Navigation` More-sheet had al `role="dialog" aria-modal` (eigen body-overflow lock geharmoniseerd in groep D — zie hieronder).
 - `SchemaCalendar` `RescheduleMenu` is een light popup; technisch een menu, geen dialog. `role="menu"` + tabbable items hoort in groep 8 polish.
 - `InstallPrompt` had al `role="dialog"` + `aria-label`. Geen Escape — bewust (gebruiker moet expliciet later/installeren kiezen).
+
+### Verificatie
+- `npx tsc --noEmit` → exit 0.
+
+
+---
+
+## Group D — Forms UX + body-scroll-lock harmonisatie
+
+**Datum:** 2026-05-01 · **Commit:** (pending)
+
+### Globale focus-ring utility
+- `src/app/globals.css` — `.focus-ring` class met `:focus-visible`. 2px outline + 4px gloed op `--color-sport-gym-base`. Werkt alleen voor keyboard focus dankzij `:focus-visible`; tap users zien geen blijvende ring.
+
+### Inputs voorzien van focus-ring
+Toegevoegd aan: `settings/shared.tsx` INPUT_CLASSES, `OnboardingWizard` INPUT_CLASSES (incl. 3 sub-inputs in goal-rij), `goals/GoalForm` INPUT_CLASSES, `auth/login` (2 inputs), `auth/signup` (3 inputs), `ManualAddModal` (replace_all 7 inputs), `NutritionInput` textarea.
+
+### Auth forms — autoComplete / inputMode / autoCapitalize / enterKeyHint
+- `auth/login`: email (`autoComplete=email, inputMode=email, enterKeyHint=next, autoCapitalize=none, autoCorrect=off, spellCheck=false`), password (`autoComplete=current-password, enterKeyHint=go`)
+- `auth/signup`: name (`autoComplete=given-name, autoCapitalize=words, enterKeyHint=next`), email (zelfde patroon als login), password (`autoComplete=new-password, enterKeyHint=go`)
+
+### Numerieke inputs
+- `OnboardingWizard`: weight (`inputMode=decimal`), height (`numeric`), sport-counts (`numeric`), goal targetValue (`decimal`)
+
+### Chat-inputs
+- `ChatInput` textarea: `enterKeyHint="send"`
+- `NutritionInput` textarea: `enterKeyHint="send"` + focus-ring
+
+### Bug-fix uit C1 sweep
+- `OnboardingWizard` step-3 goal-sub-inputs (categorie-select, targetValue, targetUnit) hadden nog `text-xs` (12px) — gemist in C1. Nu `text-[16px]` + `focus-ring`.
+
+### Body-scroll-lock harmonisatie
+- `layout/Navigation.tsx` More-sheet: ad-hoc `useEffect` met `document.body.style.overflow` vervangen door `useBodyScrollLock(moreOpen)`. Inconsistente naïeve lock weg; alle 8 modals/sheets gebruiken nu één hook.
+
+### Niet gedaan (bewust, gelogd)
+- `htmlFor`↔`id` koppelingen voor velden buiten auth/onboarding: 50+ velden. Hoort bij groep 8 component-bijschaaf.
+- Inputs in CheckIn (EditReviewForm, PreviousFocusBlock, PlanChat, WeekReflection, WeekPlan time-pickers) krijgen geen `focus-ring` — hebben al `focus:border-[#0A84FF]` of `focus:ring-2`. Dubbele rings vermijden.
+- Settings/CoachingMemory rest: gebruiken al de geüpdatete shared INPUT_CLASSES → automatisch focus-ring.
+- `inputMode` op `<input type="time">`: niet nodig (iOS native picker).
 
 ### Verificatie
 - `npx tsc --noEmit` → exit 0.

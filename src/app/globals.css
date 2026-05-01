@@ -355,6 +355,15 @@ button, a, [role="button"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Visible keyboard-only focus ring for inputs/buttons that strip outline.
+ * Only renders for keyboard focus (`:focus-visible`), so mouse/touch users
+ * keep the clean look. */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-sport-gym-base);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 229, 199, 0.18);
+}
+
 /* Glass effect — spaarzaam gebruiken (tab bar, modals, chat overlay) */
 .glass {
   background: rgba(255, 255, 255, 0.72);
