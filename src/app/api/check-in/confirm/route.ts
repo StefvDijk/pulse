@@ -322,9 +322,13 @@ async function updateScheduledOverrides(
   const defaultSchedule = parseDefaultSchedule(schema.workout_schedule)
   const existingOverrides = (schema.scheduled_overrides ?? {}) as Record<string, string | null>
 
-  // Build a lookup: date → planned workout name
+  // Build a lookup: date → planned gym workout name. We only consider
+  // gym-type sessions for schema overrides — additional padel/run sessions
+  // on the same day live elsewhere (Calendar) and shouldnt overwrite the
+  // gym schedule.
   const plannedByDate = new Map<string, string>()
   for (const session of sessions) {
+    if (session.type !== 'gym') continue
     plannedByDate.set(session.date, session.workout)
   }
 
