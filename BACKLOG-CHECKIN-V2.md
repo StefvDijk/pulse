@@ -219,7 +219,9 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ## Sprint 4 — Ops & polish
 
 ### CHECKIN-12 · Confirm splitsen + idempotency
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 3 · **Parallel:** ⚠️ raakt veel
+**Status:** 🧪 review (gedeeltelijk) · **Branch:** `feature/CHECKIN-12-confirm-idempotency` · **Omvang:** M · **Fase:** 3 · **Parallel:** ⚠️ raakt veel
+**Scope versmald:** in plaats van 3 endpoints + sequentiële UI is de bestaande confirm-route nu transactioneel verbeterd: alle secundaire writes (`memory`/`calendar`/`overrides`) draaien in `Promise.allSettled` ipv fire-and-forget, per-stap status komt terug in de response, en bij failure blijft de UI op het scherm staan met de boodschap "Review opgeslagen, maar X mislukte" + safe-retry-knop. Alle writes zijn idempotent (upserts / by-date overrides) dus retry geeft geen duplicaten.
+**Deferred:** echt splitsen in `/confirm/review` + `/confirm/calendar` + `/confirm/overrides` met expliciete idempotency-key headers. Doe als follow-up wanneer een echte productie-failure dit eist.
 **Why:** Nu zit er 1 sync write + 4 fire-and-forget in één endpoint. Als calendar of overrides faalt, weet niemand het.
 **Files:** splits `confirm/route.ts`, refactor `ConfirmationCard.tsx`
 **Acceptatie:**
