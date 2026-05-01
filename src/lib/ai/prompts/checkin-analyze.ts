@@ -190,6 +190,26 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
 
   parts.push(buildDataBlock(reviewData))
 
+  // Schema-positie context
+  if (reviewData.schemaPosition) {
+    const sp = reviewData.schemaPosition
+    parts.push('### Schema-positie')
+    parts.push(`Actief schema: ${sp.title}${sp.weekNumber && sp.totalWeeks ? ` — week ${sp.weekNumber} van ${sp.totalWeeks}` : sp.weekNumber ? ` — week ${sp.weekNumber}` : ''}`)
+    parts.push('')
+  }
+
+  // Week-vs-previous comparison
+  if (reviewData.previousWeek) {
+    const pw = reviewData.previousWeek
+    if (pw.sessionsCompleted != null || pw.avgProteinG != null || pw.avgSleepMinutes != null) {
+      parts.push('### Vorige week (ter vergelijking)')
+      if (pw.sessionsCompleted != null) parts.push(`- Sessies: ${pw.sessionsCompleted}`)
+      if (pw.avgProteinG != null) parts.push(`- Eiwit/dag: ${Math.round(pw.avgProteinG)}g`)
+      if (pw.avgSleepMinutes != null) parts.push(`- Slaap: ${Math.floor(pw.avgSleepMinutes / 60)}u${Math.round(pw.avgSleepMinutes % 60)}m`)
+      parts.push('')
+    }
+  }
+
   // Vorige focus + outcome (continuïteit)
   if (reviewData.previousFocus) {
     parts.push('### Vorige week focus')
