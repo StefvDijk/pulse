@@ -80,6 +80,18 @@ export interface CheckInReviewData {
     avgProteinG: number | null
     avgSleepMinutes: number | null
     avgCalories: number | null
+    avgSteps: number | null
+    avgRestingHr: number | null
+    avgHrv: number | null
+    avgActiveCalories: number | null
+  } | null
+  vitals: {
+    days: Array<{ date: string; steps: number | null; activeCalories: number | null; restingHr: number | null; hrv: number | null }>
+    avgSteps: number | null
+    avgActiveCalories: number | null
+    avgRestingHr: number | null
+    avgHrv: number | null
+    daysWithSteps: number
   } | null
 }
 
@@ -280,6 +292,8 @@ export async function GET(request: Request) {
       prevAggResult,
       prevSleepResult,
       prevNutritionResult,
+      activityResult,
+      prevActivityResult,
     ] = await Promise.all([
       // Weekly aggregation for this week
       admin
@@ -389,6 +403,23 @@ export async function GET(request: Request) {
         .eq('user_id', user.id)
         .gte('date', prevWeekStartStr)
         .lt('date', weekStart),
+
+      // Daily activity (steps, RHR, HRV, active calories) for current week
+      admin
+        .from('daily_activity')
+        .select('date, steps, active_calories, resting_heart_rate, hrv_average')
+        .eq('user_id', user.id)
+        .gte('date', weekStart)
+        .lte('date', weekEnd)
+        .order('date', { ascending: true }),
+
+      // Same for previous week (for delta computation)
+      admin
+        .from('daily_activity')
+        .select('steps, active_calories, resting_heart_rate, hrv_average')
+        .eq('user_id', user.id)
+        .gte('date', prevWeekStartStr)
+        .lt('date', weekStart),
     ])
 
     // Check for critical errors
@@ -474,7 +505,30 @@ export async function GET(request: Request) {
         avgProteinG: avg((prevNutritionResult.data ?? []).map((d) => d.total_protein_g)),
         avgSleepMinutes: avg((prevSleepResult.data ?? []).map((d) => d.total_sleep_minutes)),
         avgCalories: avg((prevNutritionResult.data ?? []).map((d) => d.total_calories)),
+        avgSteps: avg((prevActivityResult.data ?? []).map((d) => d.steps)),
+        avgRestingHr: avg((prevActivityResult.data ?? []).map((d) => d.resting_heart_rate)),
+        avgHrv: avg((prevActivityResult.data ?? []).map((d) => d.hrv_average)),
+        avgActiveCalories: avg((prevActivityResult.data ?? []).map((d) => d.active_calories)),
       },
+      vitals: (() => {
+        const days = (activityResult.data ?? []).map((d) => ({
+          date: d.date,
+          steps: d.steps,
+          activeCalories: d.active_calories,
+          restingHr: d.resting_heart_rate,
+          hrv: d.hrv_average,
+        }))
+        if (days.length === 0) return null
+        const stepDays = days.filter((d) => d.steps != null && d.steps > 0)
+        return {
+          days,
+          avgSteps: avg(days.map((d) => d.steps)),
+          avgActiveCalories: avg(days.map((d) => d.activeCalories)),
+          avgRestingHr: avg(days.map((d) => d.restingHr)),
+          avgHrv: avg(days.map((d) => d.hrv)),
+          daysWithSteps: stepDays.length,
+        }
+      })(),
       targets: {
         weeklyTrainingTarget: settingsResult.data?.weekly_training_target ?? null,
         proteinTargetPerKg: settingsResult.data?.protein_target_per_kg ?? null,

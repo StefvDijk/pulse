@@ -17,6 +17,7 @@ import { WeekTier } from '@/components/check-in/WeekTier'
 import { WeekReflectionBlock, MIN_REFLECTION_LENGTH } from '@/components/check-in/WeekReflectionBlock'
 import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
 import { WeekContextHeader } from '@/components/check-in/WeekContextHeader'
+import { VitalsCard } from '@/components/check-in/VitalsCard'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -256,6 +257,9 @@ export function WeekReviewCard({
           </div>
         </div>
       </div>
+
+      {/* Vitalen uit Apple Health (steps, RHR, HRV, active calories) */}
+      <VitalsCard data={data} />
 
       {/* Highlights / PRs */}
       {data.highlights.personalRecords.length > 0 && (
