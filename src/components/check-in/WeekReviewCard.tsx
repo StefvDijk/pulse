@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import {
-  AlertTriangle,
   Dumbbell,
   Footprints,
   Moon,
@@ -14,7 +13,6 @@ import {
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
-import { GapItem } from '@/components/check-in/GapItem'
 import { WeekTier } from '@/components/check-in/WeekTier'
 import { WellnessBlock, type WellnessState } from '@/components/check-in/WellnessBlock'
 import { PreviousFocusBlock, type FocusOutcomeState } from '@/components/check-in/PreviousFocusBlock'
@@ -276,25 +274,6 @@ export function WeekReviewCard({
                 </div>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Detected gaps */}
-      {data.gaps.length > 0 && (
-        <div className="rounded-2xl bg-bg-surface border border-bg-border p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={16} className="text-[var(--color-status-warn)]" />
-            <h3 className="text-subhead font-semibold text-text-primary">Mogelijk gemist</h3>
-          </div>
-          <div className="flex flex-col gap-2">
-            {data.gaps.map((gap) => (
-              <GapItem
-                key={`${gap.date}-${gap.type}`}
-                gap={gap}
-                onForgotLog={() => setShowModal(true)}
-              />
-            ))}
           </div>
         </div>
       )}
