@@ -199,7 +199,8 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-11 · Slimmere gap-detectie
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 2 · **Parallel:** ✅ (na 03)
+**Status:** 🧪 review (gedeeltelijk) · **Branch:** `feature/CHECKIN-11-smart-gaps` · **Omvang:** M · **Fase:** 2 · **Parallel:** ✅ (na 03)
+**Deferred for follow-up:** "Was iets anders" detectie (vereist dat de review-route per gap-datum exposeert wat er wél is gelogd) + aggregatie van `skip_reasons` patronen in coaching_memory (cron of trigger).
 **Why:** Huidige logica matcht alleen op datum, niet op type. "Vergeten loggen" en "bewust geskipt" zijn fundamenteel verschillende signalen.
 **Files:** `src/app/api/check-in/review/route.ts`, `src/components/check-in/WeekReviewCard.tsx`, nieuwe migratie voor `skip_reasons`
 **Acceptatie:**
