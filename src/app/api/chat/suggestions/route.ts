@@ -4,6 +4,7 @@ import { generateText } from 'ai'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { logAiUsage } from '@/lib/ai/usage'
 
 const FIXED_SUGGESTION = 'Log wat ik heb gegeten'
 
@@ -149,11 +150,22 @@ export async function GET() {
 
     let dynamicSuggestions: string[] = []
     try {
-      const { text } = await generateText({
+      const startedAt = Date.now()
+      const { text, usage } = await generateText({
         model: anthropic(MEMORY_MODEL),
         system: SYSTEM_PROMPT,
         prompt: formatContext(ctx),
         temperature: 0.5,
+      })
+      logAiUsage({
+        userId: user.id,
+        feature: 'chat_suggestions',
+        model: MEMORY_MODEL,
+        usage: {
+          inputTokens: usage.inputTokens ?? null,
+          outputTokens: usage.outputTokens ?? null,
+        },
+        durationMs: Date.now() - startedAt,
       })
 
       const match = text.match(/\[[\s\S]*\]/)

@@ -44,6 +44,7 @@ const ConfirmRequestSchema = z.object({
   inbody_data: InBodyDataSchema.optional(),
   planned_sessions: z.array(PlannedSessionSchema).optional(),
   sync_to_calendar: z.boolean().optional().default(false),
+  dry_run: z.boolean().optional().default(false),
 })
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,23 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
     const input = parsed.data
+
+    // Dry-run: skip every write and return a fake review object so the UI
+    // can complete the flow without touching the DB or Google Calendar.
+    if (input.dry_run) {
+      return NextResponse.json(
+        {
+          id: 'dry-run',
+          user_id: user.id,
+          week_start: input.week_start,
+          week_end: input.week_end,
+          week_number: input.week_number,
+          summary_text: input.summary_text,
+          dry_run: true,
+        },
+        { status: 200 },
+      )
+    }
 
     // Build the review record
     const inbody = input.inbody_data

@@ -15,7 +15,11 @@ export async function GET() {
       )
     }
     const data = await computeReadiness(user.id)
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
+    })
   } catch (error) {
     console.error('Readiness API error:', error)
     return NextResponse.json(

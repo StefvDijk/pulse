@@ -141,7 +141,11 @@ export async function GET() {
       trend,
     }
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=600',
+      },
+    })
   } catch (error) {
     console.error('Workload route error:', error)
     return NextResponse.json(

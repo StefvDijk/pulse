@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ExplainTopicSchema } from '@/lib/explain/topics'
 import { getTopic } from '@/lib/explain/registry'
-import { streamChat, MODEL } from '@/lib/ai/client'
+import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
 import { EXPLAIN_SYSTEM_PROMPT } from '@/lib/ai/prompts/explain/system'
 import '@/lib/explain/topics/index'
 
@@ -37,8 +37,12 @@ export async function POST(
     const result = streamChat({
       system: EXPLAIN_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
-      model: MODEL,
+      // Haiku 4.5 — short explanatory bubbles (~350 tokens) don't need
+      // Sonnet's reasoning depth, and Haiku has lower TTFT so the bubble
+      // also feels snappier.
+      model: MEMORY_MODEL,
       maxOutputTokens: 350,
+      meta: { userId: user.id, feature: `explain:${parsed.data}` },
     })
 
     return result.toTextStreamResponse()

@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
+import { logAiUsage } from '@/lib/ai/usage'
 import type { SyncResult } from '@/lib/hevy/sync'
 import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
@@ -178,11 +179,22 @@ ${formatWeek(currentWeek, 'Deze week (lopend)')}
 ${prSection}${existingSection}`
 
     // 5. Generate analysis
-    const { text } = await generateText({
+    const startedAt = Date.now()
+    const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: ANALYST_SYSTEM,
       messages: [{ role: 'user', content: userContent }],
       maxOutputTokens: 512,
+    })
+    logAiUsage({
+      userId,
+      feature: 'sync_analyst',
+      model: MEMORY_MODEL,
+      usage: {
+        inputTokens: usage.inputTokens ?? null,
+        outputTokens: usage.outputTokens ?? null,
+      },
+      durationMs: Date.now() - startedAt,
     })
 
     // 6. Parse and store updates
