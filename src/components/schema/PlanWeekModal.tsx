@@ -103,9 +103,10 @@ export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

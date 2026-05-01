@@ -50,10 +50,10 @@ export function MiniChat() {
               </Link>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded p-0.5 text-text-tertiary hover:opacity-70"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-text-tertiary hover:opacity-70"
                 aria-label="Sluit chat"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
             </div>
           </div>

@@ -55,7 +55,7 @@ export function GoalsPage() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-white"
           style={{
             background: '#0A84FF',
             boxShadow: '0 4px 14px rgba(10,132,255,0.4)',

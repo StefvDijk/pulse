@@ -101,3 +101,50 @@ Alle text-input/textarea font-size naar 16px (`text-[16px]`). 16px is iOS's drem
 ### Verificatie
 - `npx tsc --noEmit` → exit 0.
 - Sanity grep: geen `<input|textarea>` met `text-(sm|xs|[13/14/15px])` meer in `src/`.
+
+---
+
+## Group C2 — Touch targets to 44pt (icon-only buttons)
+
+**Datum:** 2026-05-01 · **Commit:** (pending)
+
+### Strategie
+Geïsoleerde icon-only buttons bumpen van h-7/8/9 naar `h-11 w-11` (44px). Visuele bg-circle wordt 44 ipv 32 — matcht iOS-native close/send button conventie. Icon size waar nodig opgehoogd van 14/16 naar 18 voor balans.
+
+### Aangepaste buttons
+
+| File | Wat | Was | Wordt |
+|---|---|---|---|
+| `explain/ExplainSheet.tsx:64` | Sheet close X | `h-8 w-8`, X-16 | `h-11 w-11`, X-18 |
+| `check-in/ManualAddModal.tsx:286` | Modal close X (+ aria-label) | `h-8 w-8` | `h-11 w-11`, X-18 |
+| `schema/PlanWeekModal.tsx:106` | Modal close X (+ aria-label) | `h-8 w-8` | `h-11 w-11`, X-18 |
+| `schema/EditWeekModal.tsx:153` | Modal close X (+ aria-label) | `h-8 w-8` | `h-11 w-11`, X-18 |
+| `schema/DayDetailSheet.tsx:78` | Sheet close X (+ aria-label) | `h-7 w-7`, X-14 | `h-11 w-11`, X-18 |
+| `dashboard/MuscleDrilldownSheet.tsx:122` | Sheet close X | `h-8 w-8` | `h-11 w-11`, X-18 |
+| `chat/ChatInput.tsx:59` | Send button | `h-9 w-9` | `h-11 w-11` |
+| `check-in/PlanChat.tsx:174` | Send button | `h-8 w-8` | `h-11 w-11` |
+| `nutrition/NutritionInput.tsx:92` | Send button | `h-8 w-8` | `h-11 w-11` |
+| `nutrition/NutritionPage.tsx:81,89` | Day nav arrows (×2) | `h-9 w-9` | `h-11 w-11` |
+| `goals/GoalsPage.tsx:58` | "Doel toevoegen" + button | `h-9 w-9` | `h-11 w-11` |
+| `check-in/CheckInHistoryPage.tsx:170` | Back chevron (+ aria-label) | `h-8 w-8` | `h-11 w-11` |
+| `goals/GoalCard.tsx:136,143` | Voltooien + Verwijderen | `h-7 w-7` | `h-11 w-11` |
+| `layout/MiniChat.tsx` | Sluit-chat X | `rounded p-0.5` (~18px) | `h-11 w-11`, X-16 |
+
+15 isolated buttons gebumpt.
+
+### Niet aangeraakt (bewust)
+Dense rij-buttons zouden visuele regressie geven (44px verbreekt grid/row layout). Voor deze geldt: laat staan tot een wrap-pattern refactor (`<button class="-m-2 p-2"><span class="h-7 w-7">…`) in groep 8 of token-convergence-PR. Lijst:
+- `home/SyncButton.tsx:93` — info-i in sync-card row (h-6 w-6)
+- `check-in/CheckInFlow.tsx:77` — stepper dots (h-6 w-6)
+- `check-in/WeekPlanCard.tsx:317,324,355` — inline action-buttons in compact session cards
+- `check-in/CheckInHistoryPage.tsx:124` — pencil edit in history-row pill row (h-7 w-7)
+- `check-in/WeekReviewCard.tsx:301` — manual-addition remove X in dense list
+- `schema/WorkoutCard.tsx:45` — "ask coach" inline link
+- `dashboard/AdherenceTracker.tsx:57` — calendar-week dots
+- `dashboard/DashboardPage.tsx:161` — week-strip day dots
+- `settings/OnboardingWizard.tsx:126` — onboarding step pills
+
+11 dense items uitgesteld; toegevoegd aan `audit/00-summary.md` open-list.
+
+### Verificatie
+- `npx tsc --noEmit` → exit 0.

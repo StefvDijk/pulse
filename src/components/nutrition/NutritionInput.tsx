@@ -89,7 +89,7 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
           aria-label="Analyseer"
         >
           {isLoading ? (

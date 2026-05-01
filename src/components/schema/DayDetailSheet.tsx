@@ -75,9 +75,10 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
           >
-            <X size={14} />
+            <X size={18} />
           </button>
         </div>
 

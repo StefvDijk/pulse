@@ -61,10 +61,10 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
             aria-label="Sluiten"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

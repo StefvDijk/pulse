@@ -150,9 +150,10 @@ export function EditWeekModal({
           <button
             onClick={onClose}
             disabled={status === 'saving'}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
+            aria-label="Sluiten"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 

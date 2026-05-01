@@ -56,7 +56,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
       <button
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
         aria-label="Verstuur bericht"
       >
         {isLoading ? (

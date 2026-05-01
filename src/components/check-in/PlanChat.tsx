@@ -171,7 +171,7 @@ export function PlanChat({
               type="button"
               onClick={() => send(draft)}
               disabled={busy || !draft.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
