@@ -65,19 +65,25 @@ async function detectAndInsertPRs(
     const hasWeight = item.sets.some((s) => s.weight_kg != null && s.weight_kg > 0)
     if (!hasWeight) continue
 
-    // Find best working set (highest weight × reps, or highest weight if no reps)
-    let bestValue = 0
+    // Find max single-set weight (and reps in that set, for context).
+    // Tie-breaker: same weight → prefer the set with more reps.
+    let bestWeight = 0
+    let bestReps: number | null = null
     for (const set of item.sets) {
       if (set.set_type === 'warmup') continue
-      if (set.weight_kg == null) continue
+      if (set.weight_kg == null || set.weight_kg <= 0) continue
 
-      const value = set.reps != null ? set.weight_kg * set.reps : set.weight_kg
-      if (value > bestValue) {
-        bestValue = value
+      if (
+        set.weight_kg > bestWeight ||
+        (set.weight_kg === bestWeight && (set.reps ?? 0) > (bestReps ?? 0))
+      ) {
+        bestWeight = set.weight_kg
+        bestReps = set.reps ?? null
       }
     }
 
-    if (bestValue === 0) continue
+    if (bestWeight === 0) continue
+    const bestValue = bestWeight
 
     // Check existing PR for this exercise
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,6 +115,7 @@ async function detectAndInsertPRs(
       record_type: 'weight',
       record_category: 'strength',
       value: bestValue,
+      reps: bestReps,
       unit: 'kg',
       achieved_at: workoutStartedAt,
       workout_id: workoutId,

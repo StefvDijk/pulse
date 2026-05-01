@@ -123,7 +123,9 @@ function buildDataBlock(data: CheckInReviewData): string {
         ? ((pr as Record<string, unknown>).exercise_definitions as Record<string, string>).name
         : pr.record_category
       const prev = pr.previous_record != null ? ` (was: ${pr.previous_record}${pr.unit})` : ''
-      lines.push(`- ${exerciseName}: ${pr.value}${pr.unit} (${pr.record_type})${prev}`)
+      const reps = (pr as { reps?: number | null }).reps
+      const repsStr = pr.record_type === 'weight' && reps ? ` × ${reps}` : ''
+      lines.push(`- ${exerciseName}: ${pr.value}${pr.unit}${repsStr} (${pr.record_type})${prev}`)
     }
     lines.push('')
   }

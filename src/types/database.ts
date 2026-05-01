@@ -970,6 +970,7 @@ export type Database = {
           previous_record: number | null
           record_category: string
           record_type: string
+          reps: number | null
           run_id: string | null
           unit: string
           user_id: string
@@ -984,6 +985,7 @@ export type Database = {
           previous_record?: number | null
           record_category: string
           record_type: string
+          reps?: number | null
           run_id?: string | null
           unit: string
           user_id: string
@@ -998,6 +1000,7 @@ export type Database = {
           previous_record?: number | null
           record_category?: string
           record_type?: string
+          reps?: number | null
           run_id?: string | null
           unit?: string
           user_id?: string

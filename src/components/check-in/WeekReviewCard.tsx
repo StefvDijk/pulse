@@ -270,11 +270,12 @@ export function WeekReviewCard({
                 (pr as Record<string, unknown>).exercise_definitions != null
                   ? ((pr as Record<string, unknown>).exercise_definitions as { name: string }).name
                   : pr.record_type
+              const reps = (pr as { reps?: number | null }).reps
               return (
                 <div key={pr.id} className="flex items-center justify-between py-1">
                   <span className="text-sm text-text-primary">{exerciseName}</span>
-                  <span className="text-sm font-medium text-[var(--color-status-warn)]">
-                    {pr.value} {pr.unit}
+                  <span className="text-sm font-medium tabular-nums text-[var(--color-status-warn)]">
+                    {pr.value} {pr.unit}{reps ? ` × ${reps}` : ''}
                   </span>
                 </div>
               )
