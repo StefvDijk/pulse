@@ -16,6 +16,11 @@ export interface CheckInHistoryEntry {
   sessionsCompleted: number | null
   highlights: unknown[]
   completedAt: string | null
+  // Analytics-friendly fields (added for CHECKIN-14 history dashboard)
+  wellnessEnergy: number | null
+  wellnessMotivation: number | null
+  wellnessStress: number | null
+  previousFocusRating: 'gehaald' | 'deels' | 'niet' | null
 }
 
 // ---------------------------------------------------------------------------
@@ -46,7 +51,7 @@ export async function GET(request: Request) {
     const { data, error } = await admin
       .from('weekly_reviews')
       .select(
-        'id, week_number, week_start, week_end, summary_text, sessions_planned, sessions_completed, highlights, completed_at',
+        'id, week_number, week_start, week_end, summary_text, sessions_planned, sessions_completed, highlights, completed_at, wellness_energy, wellness_motivation, wellness_stress, previous_focus_rating',
       )
       .eq('user_id', user.id)
       .order('week_start', { ascending: false })
@@ -64,6 +69,10 @@ export async function GET(request: Request) {
       sessionsCompleted: row.sessions_completed,
       highlights: Array.isArray(row.highlights) ? row.highlights : [],
       completedAt: row.completed_at,
+      wellnessEnergy: row.wellness_energy,
+      wellnessMotivation: row.wellness_motivation,
+      wellnessStress: row.wellness_stress,
+      previousFocusRating: (row.previous_focus_rating as 'gehaald' | 'deels' | 'niet' | null) ?? null,
     }))
 
     return NextResponse.json(entries)

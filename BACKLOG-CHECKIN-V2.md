@@ -244,7 +244,8 @@ Sprint 4 — Ops & polish (~3-4 dagen)
 ---
 
 ### CHECKIN-14 · Outcome-tracking dashboard
-**Status:** 📋 todo · **Omvang:** M · **Fase:** 3 · **Parallel:** ✅
+**Status:** 🧪 review · **Branch:** `feature/CHECKIN-14-history-analytics` · **Omvang:** M · **Fase:** 3 · **Parallel:** ✅
+**Note:** ACWR over tijd (3e chart uit oorspronkelijke acceptatie) deferred — vereist een aparte aggregatie-endpoint die de wekelijke ACWR rekent. Focus + wellness charts geleverd.
 **Why:** Bewijs leveren dat de check-in wat oplevert + zelfreflectie ondersteunen.
 **Files:** nieuwe `src/components/check-in/HistoryAnalytics.tsx`, update `CheckInHistoryPage.tsx`
 **Acceptatie:**

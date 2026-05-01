@@ -5,6 +5,7 @@ import { ChevronLeft, ClipboardCheck, Calendar } from 'lucide-react'
 import { useCheckInHistory } from '@/hooks/useCheckInHistory'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
+import { HistoryAnalytics } from '@/components/check-in/HistoryAnalytics'
 
 // ---------------------------------------------------------------------------
 // Date formatting
@@ -176,7 +177,9 @@ export function CheckInHistoryPage() {
         {!isLoading && !error && entries.length === 0 && <EmptyState />}
 
         {!isLoading && !error && entries.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <>
+            <HistoryAnalytics entries={entries} />
+            <div className="flex flex-col gap-3">
             {entries.map((entry) => (
               <HistoryCard
                 key={entry.id}
@@ -190,7 +193,8 @@ export function CheckInHistoryPage() {
                 completedAt={entry.completedAt}
               />
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>
