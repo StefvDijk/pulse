@@ -530,7 +530,7 @@ async function buildProgressContext(userId: string): Promise<string[]> {
     supabase
       .from('personal_records')
       .select(
-        'record_type, value, unit, achieved_at, exercise_definitions(name)',
+        'record_type, value, unit, reps, achieved_at, exercise_definitions(name)',
       )
       .eq('user_id', userId)
       .order('achieved_at', { ascending: false })
@@ -628,7 +628,9 @@ async function buildProgressContext(userId: string): Promise<string[]> {
   if (prs && prs.length > 0) {
     const lines = prs.map((pr) => {
       const exName = (pr.exercise_definitions as { name: string } | null)?.name ?? pr.record_type
-      return `${exName}: ${pr.value} ${pr.unit} (${formatDate(pr.achieved_at)})`
+      const reps = (pr as { reps?: number | null }).reps
+      const repsStr = pr.record_type === 'weight' && reps ? ` × ${reps}` : ''
+      return `${exName}: ${pr.value} ${pr.unit}${repsStr} (${formatDate(pr.achieved_at)})`
     })
     sections.push(['--- PERSONAL RECORDS ---', ...lines].join('\n'))
   }
