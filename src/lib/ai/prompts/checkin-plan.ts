@@ -23,6 +23,12 @@ export interface PlanPromptParams {
   previousPlan?: unknown
 }
 
+export interface PlanRefineParams extends PlanPromptParams {
+  currentPlan: unknown  // The plan we're refining (sessions array)
+  chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>
+  userMessage: string
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -151,4 +157,84 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
   parts.push('Maak het weekplan als JSON.')
 
   return { system, userMessage: parts.join('\n') }
+}
+
+// ---------------------------------------------------------------------------
+// Refine builder — same hard rules, but instructs the AI to modify an
+// existing plan based on a (possibly multi-turn) chat with the user.
+// ---------------------------------------------------------------------------
+
+export function buildCheckInPlanRefinePrompt(params: PlanRefineParams): {
+  system: string
+  userMessage: string
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+} {
+  const { schema, conflicts, weekStart, weekEnd, currentPlan, chatHistory, userMessage } = params
+
+  const system = `Je bent Pulse Coach. Je past een bestaand weekplan voor Stef AAN op basis van zijn input.
+
+## Context
+- Het huidige plan is al gegenereerd (zie hieronder)
+- Stef stuurt nu een aanpassing of beperking ("alleen avonden", "race zaterdag", "kan maar 2 dagen sporten")
+- Jij berekent het beste haalbare nieuwe plan binnen die constraints
+- Behoud wat WEL kan blijven uit het huidige plan; verander alleen wat moet
+
+## Stijl
+- Nederlands, kort en concreet
+- Reasoning legt in 2-3 zinnen uit WAT je hebt aangepast en waarom
+- Geen 'ik begrijp dat...' fluff — geef gewoon het nieuwe plan met reden
+
+## Trainingsregels (zelfde als bij eerste planning)
+1. Padel is onregelmatig — plan alleen als Stef het expliciet aangeeft of agenda erom vraagt
+2. Hardlopen: streven naar ~1x/week, op rustdag of avond (18:00-19:00)
+3. Geen 2 zware beendagen direct na elkaar
+4. Geen Bulgarian Split Squats de dag na intervaltraining/hardlopen
+5. Gym bij voorkeur in de ochtend (06:30-07:30), zeker op kantoordagen
+6. Als Stef zegt "alleen avond beschikbaar": gym kan dan niet, hardlopen wel
+7. Als Stef zegt "alleen ochtend beschikbaar": plan gym, niet hardlopen
+8. Bij race / wedstrijd: week ervoor lichter trainen, focus op herstel
+9. Respecteer schema-volgorde maar prioriteer Stefs constraint
+10. Gym-locatie altijd "Train More, Piet Heinkade"
+
+## Output
+Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
+{
+  "sessions": [
+    {
+      "day": "monday",
+      "date": "YYYY-MM-DD",
+      "workout": "Naam",
+      "type": "gym" | "padel" | "run",
+      "time": "HH:MM",
+      "endTime": "HH:MM",
+      "location": "string of null",
+      "reason": "Korte reden waarom dit moment past"
+    }
+  ],
+  "reasoning": "Wat is er veranderd en waarom — 2-3 zinnen"
+}`
+
+  const contextParts: string[] = []
+  contextParts.push(`## Trainingsschema: ${schema.title} (week ${schema.currentWeek})`)
+  contextParts.push(formatSchedule(schema.workoutSchedule))
+  contextParts.push('')
+  contextParts.push(`## Agenda-beschikbaarheid (${weekStart} t/m ${weekEnd})`)
+  contextParts.push(formatConflicts(conflicts))
+  contextParts.push('')
+  contextParts.push('## Huidig plan (dit is wat we aanpassen)')
+  contextParts.push(JSON.stringify(currentPlan, null, 2))
+
+  // The first user message in the conversation primes the AI with the full
+  // context. Subsequent turns are appended as-is.
+  const primingMessage = contextParts.join('\n')
+
+  return {
+    system,
+    userMessage,
+    history: [
+      { role: 'user', content: primingMessage },
+      { role: 'assistant', content: 'Begrepen. Ik heb het huidige plan, je schema, en je agenda gezien. Wat wil je aanpassen?' },
+      ...chatHistory,
+    ],
+  }
 }
