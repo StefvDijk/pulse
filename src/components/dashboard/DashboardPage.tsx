@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { CoachOrb } from '@/components/shared/CoachOrb'
-import { useSchemaWeek, type SchemaWeekDay } from '@/hooks/useSchemaWeek'
+import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
+import { useSchemaWeek, type SchemaWeekDay, type ActivityToken } from '@/hooks/useSchemaWeek'
 import { useReadiness } from '@/hooks/useReadiness'
 import { useReadinessSummary } from '@/hooks/useReadinessSummary'
 import { useWorkload } from '@/hooks/useWorkload'
@@ -143,33 +144,84 @@ interface WeekStripProps {
   days: SchemaWeekDay[]
 }
 
+function isDoneToken(t: ActivityToken): boolean {
+  return t.state === 'done-as-planned' || t.state === 'done-swap' || t.state === 'done-extra'
+}
+
+function tokenSport(t: ActivityToken): Sport {
+  return t.type as Sport
+}
+
+function SportGlyph({ sport, size = 14, color }: { sport: Sport; size?: number; color: string }) {
+  const props = { size, strokeWidth: 2.4, color }
+  if (sport === 'run') return <Footprints {...props} />
+  if (sport === 'padel') return <CircleDot {...props} />
+  return <Dumbbell {...props} />
+}
+
+const PILL_SIZE = 26
+const PILL_GAP = 4
+
 function WeekStrip({ days }: WeekStripProps) {
-  const completed = days.filter((d) => d.status === 'completed').length
-  const planned = days.filter((d) => d.workout).length
+  const dayDoneTokens = days.map((d) =>
+    (d.tokens ?? [])
+      .filter(isDoneToken)
+      .slice()
+      .sort((a, b) => (a.actualStartedAt ?? '').localeCompare(b.actualStartedAt ?? '')),
+  )
+  const totalSessions = dayDoneTokens.reduce((sum, t) => sum + t.length, 0)
+  const maxStack = Math.max(1, ...dayDoneTokens.map((t) => t.length))
+  const stackHeight = maxStack * PILL_SIZE + (maxStack - 1) * PILL_GAP
+
   return (
     <Card className="p-[14px]">
       <div className="flex items-center justify-between">
         <div className="text-[11px] font-semibold uppercase tracking-[0.6px] text-text-tertiary">Deze week</div>
-        <div className="text-[11px] text-text-secondary">{completed} / {planned} voltooid</div>
+        <div className="text-[11px] text-text-secondary">
+          {totalSessions} {totalSessions === 1 ? 'sessie' : 'sessies'}
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-7 gap-1.5">
-        {days.map((d) => {
-          const sport = d.workout ? sportFor(d.workout.type) : null
-          const color = sport ? SPORT_BASE[sport] : 'rgba(255,255,255,0.10)'
+        {days.map((d, dayIdx) => {
           const isToday = d.status === 'today'
-          const done = d.status === 'completed'
+          const doneTokens = dayDoneTokens[dayIdx]
+          const done = doneTokens.length > 0
+
           return (
             <div key={d.date} className="flex flex-col items-center gap-1.5">
+              {/* Vertical stack — one pill per session, bottom-aligned so day labels line up */}
               <div
-                className="relative flex h-9 w-9 items-center justify-center rounded-full"
-                style={{
-                  background: done ? color : 'transparent',
-                  border: done ? 'none' : `1.5px ${sport ? 'solid' : 'dashed'} ${sport ? color : 'rgba(255,255,255,0.16)'}`,
-                  boxShadow: isToday ? `0 0 0 2px var(--color-bg-page), 0 0 0 3px ${sport ? color : '#fff'}` : undefined,
-                }}
+                className="flex flex-col items-center justify-end"
+                style={{ height: stackHeight, gap: PILL_GAP }}
               >
-                {done && (
-                  <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 7l3 3 5-6" stroke="#000" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                {done ? (
+                  doneTokens.map((t, i) => {
+                    const sport = tokenSport(t)
+                    return (
+                      <div
+                        key={`${d.date}-${i}`}
+                        className="flex items-center justify-center rounded-full"
+                        style={{
+                          width: PILL_SIZE,
+                          height: PILL_SIZE,
+                          background: SPORT_BASE[sport],
+                        }}
+                        aria-label={t.title}
+                      >
+                        <SportGlyph sport={sport} color="#0B0E14" size={12} />
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div
+                    className="rounded-full"
+                    style={{
+                      width: PILL_SIZE,
+                      height: PILL_SIZE,
+                      border: '1.5px dashed rgba(255,255,255,0.16)',
+                      boxShadow: isToday ? `0 0 0 2px var(--color-bg-page), 0 0 0 3px #fff` : undefined,
+                    }}
+                  />
                 )}
               </div>
               <div className={`text-[11px] ${isToday ? 'font-semibold text-text-primary' : 'font-medium text-text-tertiary'}`}>
