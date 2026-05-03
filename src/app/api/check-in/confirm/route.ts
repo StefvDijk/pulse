@@ -322,36 +322,38 @@ async function updateScheduledOverrides(
   const defaultSchedule = parseDefaultSchedule(schema.workout_schedule)
   const existingOverrides = (schema.scheduled_overrides ?? {}) as Record<string, string | null>
 
-  // Build a lookup: date → planned gym workout name. We only consider
-  // gym-type sessions for schema overrides — additional padel/run sessions
-  // on the same day live elsewhere (Calendar) and shouldnt overwrite the
-  // gym schedule.
+  // The check-in plans the *next* week relative to the week being reviewed.
+  const targetWeekStart = addDaysToKey(weekStart, 7)
+
+  // Build a lookup: date → planned workout label. Gym sessions use the
+  // workout name; run/padel use a fixed label so they show up on the schema.
+  const labelFor = (s: PlannedSession): string =>
+    s.type === 'gym' ? s.workout : s.type === 'run' ? 'Hardlopen' : 'Padel'
+
   const plannedByDate = new Map<string, string>()
   for (const session of sessions) {
-    if (session.type !== 'gym') continue
-    plannedByDate.set(session.date, session.workout)
+    // If multiple sessions on one day, gym wins (it owns the schema slot);
+    // otherwise the first non-gym wins.
+    const existing = plannedByDate.get(session.date)
+    if (existing && session.type !== 'gym') continue
+    plannedByDate.set(session.date, labelFor(session))
   }
 
-  // Iterate all 7 days of the week, computing overrides where needed
+  // Iterate all 7 days of the *target* week, computing overrides where needed
   const newOverrides: Record<string, string | null> = {}
   WEEK_DAYS.forEach((dayName, index) => {
-    const dateStr = addDaysToKey(weekStart, index)
+    const dateStr = addDaysToKey(targetWeekStart, index)
 
     const defaultWorkout = defaultSchedule.get(dayName)
     const plannedWorkout = plannedByDate.get(dateStr)
 
     if (plannedWorkout !== undefined) {
-      // There is a planned session on this day
       if (plannedWorkout !== defaultWorkout) {
-        // Differs from default → override
         newOverrides[dateStr] = plannedWorkout
       }
-      // Matches default → no override needed
     } else if (defaultWorkout !== undefined) {
-      // Default has a workout but nothing planned → force rest
       newOverrides[dateStr] = null
     }
-    // No default and no planned → nothing to do
   })
 
   // Merge: new overrides take precedence over existing
