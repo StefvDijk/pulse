@@ -36,13 +36,15 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
   const chartW = W - PAD_LEFT - PAD_RIGHT
   const chartH = H - PAD_TOP - PAD_BOTTOM
 
-  // Data bounds
+  // Data bounds — anchor on baseline so the "nul → nu" reis zichtbaar is
   const weights = points.map((p) => p.maxWeight)
+  const baseline = weights[0]
   const minW = Math.min(...weights)
   const maxW = Math.max(...weights)
   const range = maxW - minW || 1
-  const yMin = Math.max(0, minW - range * 0.15)
-  const yMax = maxW + range * 0.15
+  // yMin = whichever is lower: baseline or current min, with breathing room
+  const yMin = Math.max(0, Math.min(baseline, minW) - range * 0.2)
+  const yMax = maxW + range * 0.2
 
   // Scales
   const xScale = (i: number) => PAD_LEFT + (i / (points.length - 1)) * chartW
@@ -76,38 +78,59 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
   }
   xLabels.push({ i: points.length - 1, label: formatDate(points[points.length - 1].date) })
 
-  // Delta
+  // Delta — t.o.v. baseline (eerste sessie ooit)
   const firstWeight = points[0].maxWeight
   const lastWeight = points[points.length - 1].maxWeight
   const deltaKg = lastWeight - firstWeight
   const deltaPct = firstWeight > 0 ? ((deltaKg / firstWeight) * 100).toFixed(0) : '0'
 
+  // Weken sinds start
+  const msPerWeek = 1000 * 60 * 60 * 24 * 7
+  const startMs = new Date(points[0].date + 'T00:00:00Z').getTime()
+  const endMs = new Date(points[points.length - 1].date + 'T00:00:00Z').getTime()
+  const weeksSinceStart = Math.max(1, Math.round((endMs - startMs) / msPerWeek))
+
+  const baselineY = yScale(baseline)
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Delta badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-title2 font-bold tabular-nums text-text-primary">
-          {lastWeight}kg
-        </span>
-        {deltaKg !== 0 && (
-          <span
-            className={`rounded-full px-2 py-0.5 text-caption1 font-semibold ${
-              deltaKg > 0
-                ? 'bg-[var(--color-status-good)]/10 text-[var(--color-status-good)]'
-                : 'bg-[var(--color-status-bad)]/10 text-[var(--color-status-bad)]'
-            }`}
-          >
-            {deltaKg > 0 ? '+' : ''}{deltaKg}kg ({deltaKg > 0 ? '+' : ''}{deltaPct}%)
+      {/* Baseline → Nu anchor */}
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-caption1 text-text-tertiary">Start</span>
+          <span className="text-subhead font-semibold tabular-nums text-text-secondary">
+            {firstWeight}kg
           </span>
-        )}
-      </div>
+          <span className="text-caption2 text-text-tertiary">{formatDate(points[0].date)}</span>
+        </div>
 
-      {/* Best set summary */}
-      <p className="text-caption1 text-text-tertiary">
-        Beste set: {points[prIndex].maxWeight}kg × {points[prIndex].repsAtMax} reps
-        {' · '}
-        {formatDate(points[prIndex].date)}
-      </p>
+        <div className="flex flex-1 flex-col items-center">
+          {deltaKg !== 0 && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-caption1 font-semibold ${
+                deltaKg > 0
+                  ? 'bg-[var(--color-status-good)]/10 text-[var(--color-status-good)]'
+                  : 'bg-[var(--color-status-bad)]/10 text-[var(--color-status-bad)]'
+              }`}
+            >
+              {deltaKg > 0 ? '+' : ''}{deltaKg}kg ({deltaKg > 0 ? '+' : ''}{deltaPct}%)
+            </span>
+          )}
+          <span className="mt-1 text-caption2 text-text-tertiary">
+            in {weeksSinceStart} {weeksSinceStart === 1 ? 'week' : 'weken'}
+          </span>
+        </div>
+
+        <div className="flex flex-col items-end">
+          <span className="text-caption1 text-text-tertiary">Nu</span>
+          <span className="text-title2 font-bold tabular-nums text-text-primary">
+            {lastWeight}kg
+          </span>
+          <span className="text-caption2 text-text-tertiary">
+            PR {points[prIndex].maxWeight}×{points[prIndex].repsAtMax}
+          </span>
+        </div>
+      </div>
 
       {/* SVG Chart */}
       <svg
@@ -120,6 +143,18 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
             <stop offset="0%" stopColor="#0A84FF" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#0A84FF" stopOpacity="0" />
           </linearGradient>
+          <linearGradient id="gainGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-status-good)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--color-status-good)" stopOpacity="0.04" />
+          </linearGradient>
+          <clipPath id="aboveBaseline">
+            <rect
+              x={PAD_LEFT}
+              y={PAD_TOP}
+              width={chartW}
+              height={Math.max(0, baselineY - PAD_TOP)}
+            />
+          </clipPath>
         </defs>
 
         {/* Grid lines */}
@@ -147,6 +182,31 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
 
         {/* Fill area */}
         <path d={fillPath} fill="url(#chartGrad)" />
+
+        {/* Gain shading: tussen baseline en curve, alleen boven baseline */}
+        <path d={fillPath} fill="url(#gainGrad)" clipPath="url(#aboveBaseline)" />
+
+        {/* Baseline line — "waar je begon" */}
+        <line
+          x1={PAD_LEFT}
+          x2={W - PAD_RIGHT}
+          y1={baselineY}
+          y2={baselineY}
+          stroke="var(--color-text-tertiary)"
+          strokeWidth="1"
+          strokeDasharray="3 3"
+          opacity="0.6"
+        />
+        <text
+          x={W - PAD_RIGHT - 4}
+          y={baselineY - 4}
+          textAnchor="end"
+          className="fill-text-tertiary"
+          fontSize="9"
+          fontWeight="500"
+        >
+          start · {baseline}kg
+        </text>
 
         {/* Line */}
         <path

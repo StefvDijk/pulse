@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useProgressData } from '@/hooks/useProgressData'
 import { useExerciseList } from '@/hooks/useExerciseList'
 import { useExerciseProgress } from '@/hooks/useExerciseProgress'
+import { useBigLifts } from '@/hooks/useBigLifts'
 import { ExercisePicker } from './ExercisePicker'
 import { ProgressionChart } from './ProgressionChart'
+import { BigLiftsTable } from './BigLiftsTable'
 import { PRList } from './PRList'
 import { BodyComposition } from './BodyComposition'
 import { TonnageTrend } from './TonnageTrend'
@@ -34,9 +36,18 @@ function Card({
 
 export function ProgressPage() {
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
   const { data: progressData, isLoading: progressLoading, error: progressError, refresh } = useProgressData('4w')
   const { exercises, isLoading: exercisesLoading } = useExerciseList()
+  const { bigLifts } = useBigLifts()
   const { data: exerciseProgress, isLoading: chartLoading } = useExerciseProgress(selectedExercise)
+
+  const handleBigLiftSelect = (name: string) => {
+    setSelectedExercise(name)
+    requestAnimationFrame(() => {
+      chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   // Auto-select first exercise when list loads
   useEffect(() => {
@@ -93,29 +104,38 @@ export function ProgressPage() {
         />
       ) : (
         <>
+          {/* Big Lifts — auto top 5 most-trained (last 8w) with baseline → now */}
+          {bigLifts.length > 0 && (
+            <Card title="Top oefeningen" sub="Meest getraind · laatste 8 weken">
+              <BigLiftsTable bigLifts={bigLifts} onSelect={handleBigLiftSelect} />
+            </Card>
+          )}
+
           {/* Exercise Progression */}
-          <Card title="Gewichtsprogressie">
-            <div className="flex flex-col gap-4">
-              <ExercisePicker
-                exercises={exercises}
-                selected={selectedExercise}
-                onSelect={setSelectedExercise}
-              />
-              {chartLoading ? (
-                <div className="flex h-40 items-center justify-center">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-border border-t-text-primary" />
-                </div>
-              ) : exerciseProgress ? (
-                <ProgressionChart data={exerciseProgress} />
-              ) : (
-                <div className="flex h-40 items-center justify-center">
-                  <p className="text-sm text-text-tertiary">
-                    Selecteer een oefening om je progressie te zien
-                  </p>
-                </div>
-              )}
-            </div>
-          </Card>
+          <div ref={chartRef}>
+            <Card title="Gewichtsprogressie">
+              <div className="flex flex-col gap-4">
+                <ExercisePicker
+                  exercises={exercises}
+                  selected={selectedExercise}
+                  onSelect={setSelectedExercise}
+                />
+                {chartLoading ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-border border-t-text-primary" />
+                  </div>
+                ) : exerciseProgress ? (
+                  <ProgressionChart data={exerciseProgress} />
+                ) : (
+                  <div className="flex h-40 items-center justify-center">
+                    <p className="text-sm text-text-tertiary">
+                      Selecteer een oefening om je progressie te zien
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
 
           {/* Tonnage trend (UXR-090) — 8-week weekly tonnage with block markers */}
           <Card title="Tonnage · 8 weken">
