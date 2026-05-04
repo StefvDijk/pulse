@@ -130,6 +130,7 @@ export interface ParsedDailyActivity {
   steps: number | undefined
   activeCalories: number | undefined
   restingHeartRate: number | undefined
+  hrv: number | undefined
 }
 
 // ---------------------------------------------------------------------------

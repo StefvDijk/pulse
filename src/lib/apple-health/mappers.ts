@@ -122,6 +122,6 @@ export function mapDailyActivity(
     total_calories: null,
     active_minutes: null,
     stand_hours: null,
-    hrv_average: null,
+    hrv_average: parsed.hrv != null ? Math.round(parsed.hrv * 10) / 10 : null,
   }
 }

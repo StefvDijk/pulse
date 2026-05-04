@@ -185,7 +185,7 @@ export function parseActivitySummary(
 ): ParsedDailyActivity[] {
   const byDate = new Map<
     string,
-    { steps?: number; activeCalories?: number; restingHeartRate?: number }
+    { steps?: number; activeCalories?: number; restingHeartRate?: number; hrv?: number; hrvSamples?: number[] }
   >()
 
   for (const metric of payload.data.metrics) {
@@ -216,6 +216,15 @@ export function parseActivitySummary(
             byDate.set(date, { ...existing, restingHeartRate: point.Avg })
           }
           break
+        case 'heart_rate_variability': {
+          // HAE sends SDNN in ms; may be per-sample qty or daily Avg.
+          const value = point.Avg ?? point.qty
+          if (value !== undefined) {
+            const samples = [...(existing.hrvSamples ?? []), value]
+            byDate.set(date, { ...existing, hrvSamples: samples })
+          }
+          break
+        }
         default:
           if (!byDate.has(date)) {
             byDate.set(date, existing)
@@ -224,12 +233,18 @@ export function parseActivitySummary(
     }
   }
 
-  return Array.from(byDate.entries()).map(([date, data]) => ({
-    date,
-    steps: data.steps,
-    activeCalories: data.activeCalories,
-    restingHeartRate: data.restingHeartRate,
-  }))
+  return Array.from(byDate.entries()).map(([date, data]) => {
+    const hrv = data.hrvSamples && data.hrvSamples.length > 0
+      ? data.hrvSamples.reduce((sum, v) => sum + v, 0) / data.hrvSamples.length
+      : undefined
+    return {
+      date,
+      steps: data.steps,
+      activeCalories: data.activeCalories,
+      restingHeartRate: data.restingHeartRate,
+      hrv,
+    }
+  })
 }
 
 /**
