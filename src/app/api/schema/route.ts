@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { toJson } from '@/lib/schemas/db/json'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -334,7 +335,7 @@ export async function PATCH(request: Request) {
     const { error: updateError } = await admin
       .from('training_schemas')
       .update({
-        workout_schedule: parsed.data.workout_schedule as unknown as import('@/types/database').Json,
+        workout_schedule: toJson(parsed.data.workout_schedule),
       })
       .eq('id', schema.id)
 

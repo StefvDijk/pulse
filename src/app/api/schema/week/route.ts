@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  WorkoutWithExercisesSchema,
+  type WorkoutWithExercises,
+} from '@/lib/schemas/db/workout-with-exercises'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -33,25 +38,6 @@ interface ExerciseData {
   name: string
   exercise_order: number
   sets: SetData[]
-}
-
-interface WorkoutWithExercises {
-  id: string
-  title: string
-  started_at: string
-  duration_seconds: number | null
-  workout_exercises: Array<{
-    exercise_order: number
-    notes: string | null
-    exercise_definitions: { name: string; primary_muscle_group: string } | null
-    workout_sets: Array<{
-      set_order: number
-      weight_kg: number | null
-      reps: number | null
-      set_type: string | null
-      rpe: number | null
-    }>
-  }>
 }
 
 /* ── Constants ─────────────────────────────────────────────── */
@@ -241,7 +227,7 @@ export async function GET() {
     if (padelResult.error) throw padelResult.error
     if (runsResult.error) throw runsResult.error
 
-    const weekWorkouts = (workoutsResult.data ?? []) as unknown as WorkoutWithExercises[]
+    const weekWorkouts = z.array(WorkoutWithExercisesSchema).parse(workoutsResult.data ?? [])
 
     // 3. Map each day to its status and data
     const plannedTitles = new Set<string>()
@@ -403,7 +389,7 @@ export async function GET() {
             .maybeSingle()
 
           if (data) {
-            const typed = data as unknown as WorkoutWithExercises
+            const typed = WorkoutWithExercisesSchema.parse(data)
             lastPerfMap.set(title.toLowerCase(), {
               date: typed.started_at.slice(0, 10),
               exercises: extractExercises(typed),

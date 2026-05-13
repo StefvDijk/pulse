@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { toJson } from '@/lib/schemas/db/json'
 
 const RescheduleSchema = z.object({
   fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
 
     const { error: updateError } = await admin
       .from('training_schemas')
-      .update({ scheduled_overrides: updated as unknown as import('@/types/database').Json })
+      .update({ scheduled_overrides: toJson(updated) })
       .eq('id', schema.id)
 
     if (updateError) throw updateError

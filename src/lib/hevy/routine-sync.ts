@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getRoutines } from '@/lib/hevy/client'
 import type { HevyRoutine } from '@/lib/hevy/types'
+import { toJson } from '@/lib/schemas/db/json'
 
 // ---------------------------------------------------------------------------
 // Result type
@@ -22,7 +23,7 @@ function mapRoutineToRow(routine: HevyRoutine, userId: string) {
     title: routine.title,
     folder_id: routine.folder_id ?? null,
     updated_at_hevy: routine.updated_at,
-    exercises: routine.exercises as unknown as import('@/types/database').Json,
+    exercises: toJson(routine.exercises),
   }
 }
 

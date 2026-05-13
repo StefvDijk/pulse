@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ExerciseListItem } from '@/types/api'
+import {
+  ExerciseDefinitionJoinSchema,
+  WorkoutJoinSchema,
+} from '@/lib/schemas/db/exercise-definition-join'
+
+const ExercisesJoinRowSchema = z.object({
+  exercise_definitions: ExerciseDefinitionJoinSchema.nullable().optional(),
+  workouts: WorkoutJoinSchema.nullable().optional(),
+})
 
 export async function GET() {
   try {
@@ -30,16 +40,20 @@ export async function GET() {
 
     if (error) throw error
 
+    const parsedRows = z.array(ExercisesJoinRowSchema).parse(data ?? [])
+
     // Deduplicate by exercise name, keep most recent date
     // Filter out warmup-only entries
     const exerciseMap = new Map<string, { primaryMuscleGroup: string; lastUsed: string }>()
 
-    for (const row of data ?? []) {
-      const def = row.exercise_definitions as unknown as { name: string; primary_muscle_group: string }
+    for (const row of parsedRows) {
+      const def = row.exercise_definitions
+      if (!def) continue
       if (def.name.toLowerCase().includes('warm up')) continue
 
-      const workout = row.workouts as unknown as { started_at: string }
-      const date = workout.started_at.slice(0, 10)
+      const startedAt = row.workouts?.started_at
+      if (!startedAt) continue
+      const date = startedAt.slice(0, 10)
 
       const existing = exerciseMap.get(def.name)
       if (!existing || date > existing.lastUsed) {
