@@ -4,6 +4,8 @@ import { getCurrentUserId } from '@/lib/auth'
 import { OnboardingWizard } from './OnboardingWizard'
 
 export async function OnboardingCheck() {
+  let needsOnboarding = false
+
   try {
     // Skip on auth routes — wizard would otherwise overlay the login/signup page.
     const h = await headers()
@@ -19,12 +21,10 @@ export async function OnboardingCheck() {
       .eq('id', userId)
       .single()
 
-    if (!profile?.display_name?.trim()) {
-      return <OnboardingWizard />
-    }
+    needsOnboarding = !profile?.display_name?.trim()
   } catch {
-    // Don't block rendering on errors
+    // Don't block rendering on errors — leave needsOnboarding = false.
   }
 
-  return null
+  return needsOnboarding ? <OnboardingWizard /> : null
 }

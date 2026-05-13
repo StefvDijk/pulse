@@ -4,34 +4,73 @@ import { useState } from 'react'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-export function useSaveStatus(): [SaveStatus, (fn: () => Promise<void>) => void] {
-  const [status, setStatus] = useState<SaveStatus>('idle')
-
-  const save = (fn: () => Promise<void>) => {
-    setStatus('saving')
-    fn()
-      .then(() => {
-        setStatus('saved')
-        setTimeout(() => setStatus('idle'), 2000)
-      })
-      .catch(() => setStatus('error'))
-  }
-
-  return [status, save]
+export interface SaveState {
+  status: SaveStatus
+  errorMessage: string | null
 }
 
-export function SaveButton({ status, onClick }: { status: SaveStatus; onClick: () => void }) {
-  const label = status === 'saving' ? 'Opslaan…' : status === 'saved' ? 'Opgeslagen ✓' : 'Opslaan'
+export function useSaveStatus(): [SaveState, (fn: () => Promise<void>) => void] {
+  const [state, setState] = useState<SaveState>({ status: 'idle', errorMessage: null })
+
+  const save = (fn: () => Promise<void>) => {
+    setState({ status: 'saving', errorMessage: null })
+    fn()
+      .then(() => {
+        setState({ status: 'saved', errorMessage: null })
+        setTimeout(() => setState({ status: 'idle', errorMessage: null }), 2000)
+      })
+      .catch((err) => {
+        const message =
+          err instanceof Error && err.message ? err.message : 'Opslaan mislukt. Probeer opnieuw.'
+        setState({ status: 'error', errorMessage: message })
+      })
+  }
+
+  return [state, save]
+}
+
+interface SaveButtonProps {
+  state: SaveState
+  onClick: () => void
+}
+
+export function SaveButton({ state, onClick }: SaveButtonProps) {
+  const { status, errorMessage } = state
+
+  const label =
+    status === 'saving'
+      ? 'Opslaan…'
+      : status === 'saved'
+        ? 'Opgeslagen ✓'
+        : status === 'error'
+          ? 'Opnieuw proberen'
+          : 'Opslaan'
+
+  const buttonBg =
+    status === 'saved'
+      ? 'bg-[var(--color-status-good)] text-black'
+      : status === 'error'
+        ? 'bg-system-red text-white'
+        : 'bg-[#0A84FF] text-white'
+
   return (
-    <button
-      onClick={onClick}
-      disabled={status === 'saving'}
-      className={`rounded-lg px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-50 ${
-        status === 'saved' ? 'bg-[var(--color-status-good)] text-black' : 'bg-[#0A84FF] text-white'
-      }`}
-    >
-      {label}
-    </button>
+    <div className="flex flex-col items-end gap-1">
+      <button
+        onClick={onClick}
+        disabled={status === 'saving'}
+        className={`rounded-lg px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-50 ${buttonBg}`}
+      >
+        {label}
+      </button>
+      {status === 'error' && errorMessage && (
+        <p
+          role="alert"
+          className="max-w-[240px] text-right text-xs text-system-red"
+        >
+          {errorMessage}
+        </p>
+      )}
+    </div>
   )
 }
 

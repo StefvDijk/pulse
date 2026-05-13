@@ -1,5 +1,3 @@
-'use client'
-
 export interface ProteinTrackerProps {
   current: number
   target: number

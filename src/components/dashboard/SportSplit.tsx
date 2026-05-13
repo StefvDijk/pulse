@@ -1,5 +1,3 @@
-'use client'
-
 export interface SportSplitProps {
   gymMinutes: number
   runningMinutes: number

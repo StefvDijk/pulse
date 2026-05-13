@@ -1,5 +1,3 @@
-'use client'
-
 import Link from 'next/link'
 import { Trophy, Clock, Flame, Heart } from 'lucide-react'
 import { MiniMuscleHeatmap } from '@/components/dashboard/MiniMuscleHeatmap'

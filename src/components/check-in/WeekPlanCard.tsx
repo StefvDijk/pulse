@@ -388,6 +388,7 @@ export function WeekPlanCard({
   const hasFetched = useRef(false)
 
   const [sessions, setSessions] = useState<PlannedSession[]>([])
+  const [syncedPlan, setSyncedPlan] = useState(plan)
   const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [editingDate, setEditingDate] = useState<string | null>(null)
   const [addingDate, setAddingDate] = useState<string | null>(null)
@@ -403,12 +404,14 @@ export function WeekPlanCard({
     generate(weekStart, weekEnd)
   }, [generate, weekStart, weekEnd, plan])
 
-  // Sync local sessions from generated plan
-  useEffect(() => {
+  // React docs idiom: sync local sessions from generated plan during render,
+  // gated by plan-identity change so we don't trip the setState-in-effect rule.
+  if (plan !== syncedPlan) {
+    setSyncedPlan(plan)
     if (plan?.sessions) {
       setSessions(plan.sessions)
     }
-  }, [plan])
+  }
 
   // Build week dates array (inclusief).
   const weekDates = useMemo(() => {

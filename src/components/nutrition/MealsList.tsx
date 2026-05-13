@@ -2,6 +2,7 @@
 
 import { Trash2 } from 'lucide-react'
 import type { Database } from '@/types/database'
+import { formatTime } from '@/lib/formatters'
 
 type NutritionLogRow = Database['public']['Tables']['nutrition_logs']['Row']
 
@@ -15,11 +16,6 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   lunch: 'Lunch',
   dinner: 'Avondeten',
   snack: 'Snack',
-}
-
-function formatTime(dateStr: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
 }
 
 export function MealsList({ meals, onDelete }: MealsListProps) {

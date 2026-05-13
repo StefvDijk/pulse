@@ -6,7 +6,7 @@ import type { Database } from '@/types/database'
 
 type BodyCompRow = Database['public']['Tables']['body_composition_logs']['Row']
 
-export interface BodyCompEntry extends BodyCompRow {}
+export type BodyCompEntry = BodyCompRow
 
 export interface BodyCompDelta {
   weight_kg: number | null

@@ -1,5 +1,3 @@
-'use client'
-
 import type { Database } from '@/types/database'
 import { addDaysToKey, todayAmsterdam } from '@/lib/time/amsterdam'
 
