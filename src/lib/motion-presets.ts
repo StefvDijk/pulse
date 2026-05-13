@@ -79,3 +79,27 @@ export const buttonTap = {
   whileTap: { scale: 0.96 },
   transition: springInteractive,
 }
+
+/* ─── iOS 26 — Sheet, glass, page control ────────────────────────────────── */
+
+/** Sheet presentation: slide-up from bottom with subtle fade */
+export const sheetPresentation: Variants = {
+  initial: { y: '100%', opacity: 0.8 },
+  animate: { y: 0, opacity: 1, transition: springContent },
+  exit:    { y: '100%', opacity: 0.8, transition: springLayout },
+}
+
+/** Glass overlay: fade-in with backdrop-filter ramp.
+ *  Use sparingly — animating backdrop-filter is expensive.
+ */
+export const glassFade: Variants = {
+  initial: { opacity: 0, backdropFilter: 'blur(0px) saturate(100%)' },
+  animate: { opacity: 1, backdropFilter: 'blur(28px) saturate(180%)' },
+  exit:    { opacity: 0, backdropFilter: 'blur(0px) saturate(100%)' },
+}
+
+/** Page-control dot: active state is slightly larger and fully opaque */
+export const pageControl: Variants = {
+  inactive: { scale: 1, opacity: 0.46 },
+  active:   { scale: 1.15, opacity: 1, transition: springInteractive },
+}
