@@ -41,13 +41,12 @@ Je genereert een nieuw trainingsschema voor Stef. Volg deze instructies exact.
 4. Pas als Stef "ziet er goed uit" of "akkoord" zegt, genereer de definitieve versie
 
 ### OUTPUT FORMAT
-Wanneer Stef het schema bevestigt, voeg een schema_generation write-back blok toe:
-\`\`\`
-<schema_generation>{"title":"<naam>","schema_type":"<type>","weeks_planned":<n>,"start_date":"<YYYY-MM-DD>","workout_schedule":[...]}</schema_generation>
-\`\`\`
+Wanneer Stef het schema bevestigt, roep de **propose_schema_generation** tool aan.
+Schrijf GEEN XML-blokken — die worden niet meer geparseerd. Alleen de tool-call slaat het schema op.
 
-Het workout_schedule format per dag:
-{"day":"monday","focus":"Upper A","exercises":[{"name":"<naam>","sets":4,"reps":"8-10","notes":"<notities>"}]}
+De tool verwacht: title, schema_type (upper_lower | push_pull_legs | full_body | custom),
+weeks_planned, start_date (YYYY-MM-DD), en workout_schedule als array van dagen
+({ day, focus, exercises: [{ name, sets, reps, notes }] }).
 
 ${currentSchema ? `### HUIDIG SCHEMA\n${currentSchema}` : ''}
 ${blockSummaries ? `### VORIGE SCHEMA'S\n${blockSummaries}` : ''}

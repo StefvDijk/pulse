@@ -173,62 +173,24 @@ ${dynamicInjuries}
 ## ACTIEVE DOELEN
 ${dynamicGoals}`
 
-  const writeBackInstructions = `## Write-back instructies
+  const writeBackInstructions = `## Schrijfacties (tools)
 
-Wanneer je data wilt opslaan, voeg dan een gestructureerd blok VOOR je antwoord in. De app verwijdert dit blok automatisch en slaat de data op.
+Wanneer je data wilt opslaan of wijzigen, gebruik dan ALTIJD de daarvoor bestemde tool. Schrijf NOOIT XML-blokken in je antwoord — die worden niet meer geparseerd. Alleen de tool-call doet de actie.
 
-### Voedingslog opslaan
-Gebruik dit ALLEEN als de gebruiker iets heeft gegeten en dit wil loggen:
-\`\`\`
-<nutrition_log>{"input":"<beschrijving van de maaltijd>"}</nutrition_log>
-\`\`\`
+### log_nutrition
+Gebruik wanneer Stef heeft gegeten/gedronken en het wil loggen.
+Niet gebruiken bij vragen over voeding (gebruik get_nutrition_log of get_macro_targets).
 
-### Blessurerapport opslaan
-Gebruik dit als de gebruiker een blessure of pijnklacht meldt:
-\`\`\`
-<injury_log>{"body_location":"<lichaamsdeel, bijv. knie links>","severity":"<mild|moderate|severe>","description":"<korte beschrijving>"}</injury_log>
-\`\`\`
+### log_injury
+Gebruik wanneer Stef een nieuwe blessure of pijnklacht meldt die nog niet in de actieve blessures staat.
+Niet gebruiken voor algemene spierpijn na een zware sessie.
 
-### Trainingsschema genereren (nieuw schema)
-Gebruik dit ALLEEN wanneer de gebruiker EXPLICIET bevestigt dat hij een volledig nieuw schema wil ("ja maak maar", "doe maar", "ja graag"). NOOIT op basis van een vraag of een aanbod van jouw kant — de gebruiker moet ja zeggen.
+### propose_schema_generation
+Gebruik ALLEEN wanneer Stef EXPLICIET bevestigt dat hij een volledig nieuw schema wil ("ja maak maar", "doe maar", "ja graag"). NOOIT op basis van een vraag of een aanbod van jouw kant.
+Het huidige actieve schema wordt vervangen. Bij twijfel: gebruik propose_schema_update.
 
-Belangrijk: bij gebruik wordt het huidige actieve schema vervangen. Als je twijfelt, gebruik dan \`<schema_update>\` voor een partiële wijziging.
-
-\`\`\`
-<schema_generation>{"title":"<schemanaam>","schema_type":"<upper_lower|push_pull_legs|full_body|custom>","weeks_planned":<aantal>,"start_date":"<YYYY-MM-DD>","workout_schedule":[{"day":"monday","focus":"<focus>","duration_min":50,"exercises":[{"name":"<naam>","sets":3,"reps":"8-10","notes":""}]}]}</schema_generation>
-\`\`\`
-
-\`schema_type\` MOET een van: \`upper_lower\`, \`push_pull_legs\`, \`full_body\`, \`custom\`. Andere waardes worden afgewezen.
-
-### Schema aanpassen (partiële wijziging)
-Gebruik dit voor kleine aanpassingen aan het huidige schema (oefening wisselen, sets aanpassen, etc.). NIET voor een volledig nieuw schema.
-
-**Oefening vervangen:**
-\`\`\`
-<schema_update>{"action":"replace_exercise","day":"monday","old_exercise":"Cable Row","new_exercise":{"name":"Meadows Row","sets":3,"reps":"10-12","notes":""}}</schema_update>
-\`\`\`
-
-**Oefening toevoegen:**
-\`\`\`
-<schema_update>{"action":"add_exercise","day":"monday","new_exercise":{"name":"Hammer Curl","sets":3,"reps":"12","notes":""}}</schema_update>
-\`\`\`
-
-**Oefening verwijderen:**
-\`\`\`
-<schema_update>{"action":"remove_exercise","day":"monday","exercise_name":"Cable Row"}</schema_update>
-\`\`\`
-
-**Sets/reps aanpassen:**
-\`\`\`
-<schema_update>{"action":"modify_sets","day":"monday","exercise_name":"Bench Press","sets":5,"reps":"5"}</schema_update>
-\`\`\`
-
-**Dagen omwisselen:**
-\`\`\`
-<schema_update>{"action":"swap_days","day":"monday","swap_with_day":"wednesday"}</schema_update>
-\`\`\`
-
-Gebruik de oefening-namen exact zoals ze in het schema staan (Hevy-namen).`
+### propose_schema_update
+Gebruik voor partiële aanpassingen op het actieve schema (oefening vervangen/toevoegen/verwijderen, sets/reps wijzigen, dagen omwisselen). Gebruik oefening-namen exact zoals ze in het schema staan (Hevy-namen).`
 
   const customSection = customInstructions?.trim()
     ? `## CUSTOM INSTRUCTIES VAN GEBRUIKER

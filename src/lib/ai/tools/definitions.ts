@@ -5,6 +5,7 @@ import { getRunningHistory } from './handlers/running-tools'
 import { getHealthMetrics } from './handlers/health-tools'
 import { getNutritionLog, getMacroTargets } from './handlers/nutrition-tools'
 import { calculateProgressiveOverload, getRecoveryScore } from './handlers/analysis-tools'
+import { createWritebackToolsForUser } from './writebacks'
 
 // ---------------------------------------------------------------------------
 // All tools available to the Pulse AI coach.
@@ -135,6 +136,9 @@ Returns: lijst van matching oefeningen met spiergroepen en type.`,
       inputSchema: searchExercisesSchema,
       execute: async (input) => searchExercises(userId, input),
     }),
+
+    // [B3 + A11 + D4 — Sprint 3] Write-back tools. Zod-validated, no XML.
+    ...createWritebackToolsForUser(userId),
   }
 }
 
