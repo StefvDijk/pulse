@@ -1,9 +1,11 @@
 import { HTMLAttributes, forwardRef } from 'react'
 
 export type GlassPanelRadius = 'none' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
+export type GlassPanelKind = 'nav' | 'sheet' | 'menu'
 
 export interface GlassPanelProps extends HTMLAttributes<HTMLDivElement> {
   radius?: GlassPanelRadius
+  kind?: GlassPanelKind
 }
 
 const radiusClasses: Record<GlassPanelRadius, string> = {
@@ -15,15 +17,29 @@ const radiusClasses: Record<GlassPanelRadius, string> = {
   full: 'rounded-full',
 }
 
+const kindClasses: Record<GlassPanelKind, string> = {
+  nav:   'glass-nav',
+  sheet: 'glass-sheet',
+  menu:  'glass-menu',
+}
+
 /**
- * GlassPanel — backdrop-blur surface met Apple's "vibrancy" effect.
+ * GlassPanel — backdrop-blur surface using iOS 26 Liquid Glass recipes.
  *
- * Spaarzaam gebruiken: alleen voor tab bar, modals en chat overlay.
- * Niet op gewone cards.
+ * Three kinds:
+ * - `nav`   (default 72% opacity) — tab bar, sticky nav headers
+ * - `sheet` (default 85% opacity) — modals, sheets, popovers
+ * - `menu`  (default 92% opacity) — context menus, segmented-control indicators
+ *
+ * Defaults to `kind="sheet"`. NEVER use for content cards — those are flat
+ * `bg-bg-surface` with a hairline border (see `Card.tsx`).
  */
 export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
-  function GlassPanel({ radius = 'xl', className = '', children, ...props }, ref) {
-    const composed = ['glass', radiusClasses[radius], className]
+  function GlassPanel(
+    { kind = 'sheet', radius = 'xl', className = '', children, ...props },
+    ref,
+  ) {
+    const composed = [kindClasses[kind], radiusClasses[radius], className]
       .filter(Boolean)
       .join(' ')
 
