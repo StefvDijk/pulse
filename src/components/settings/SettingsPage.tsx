@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSettings } from '@/hooks/useSettings'
 import { createClient } from '@/lib/supabase/client'
@@ -54,6 +54,10 @@ export function SettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordStatus, savePassword] = useSaveStatus()
 
+  // Track the data identity we've already mirrored into local form state so
+  // we can re-sync exactly once per fetch (during render, per React docs).
+  const [syncedData, setSyncedData] = useState(data)
+
   async function handleChangePassword() {
     setPasswordError(null)
     if (newPassword.length < 8) {
@@ -74,8 +78,11 @@ export function SettingsPage() {
     setConfirmPassword('')
   }
 
-  useEffect(() => {
-    if (!data) return
+  // React docs idiom: hydrate form fields during render when the fetched
+  // settings object identity changes (mount + after refresh()). Avoids a
+  // useEffect(setX, [data]) cascade that triggers extra render cycles.
+  if (data && data !== syncedData) {
+    setSyncedData(data)
     setDisplayName(data.profile.display_name ?? '')
     setWeightKg(data.profile.weight_kg?.toString() ?? '')
     setHeightCm(data.profile.height_cm?.toString() ?? '')
@@ -87,7 +94,7 @@ export function SettingsPage() {
     setGymTarget(wt.gym?.toString() ?? '3')
     setRunTarget(wt.running?.toString() ?? '2')
     setPadelTarget(wt.padel?.toString() ?? '1')
-  }, [data])
+  }
 
   async function handleSaveProfile() {
     await fetch('/api/settings', {
