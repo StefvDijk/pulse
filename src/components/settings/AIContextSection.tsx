@@ -50,7 +50,7 @@ export function AIContextSection({ currentValue, onSaved }: AIContextSectionProp
         <span className="text-xs text-text-tertiary">
           {value.length}/{MAX_CHARS}
         </span>
-        <SaveButton status={status} onClick={() => save(handleSave)} />
+        <SaveButton state={status} onClick={() => save(handleSave)} />
       </div>
     </div>
   )
