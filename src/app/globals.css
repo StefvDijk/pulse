@@ -110,7 +110,7 @@
   --color-bg-surface: #1E2230;
   --color-bg-elevated: #272C3B;
   --color-bg-border: rgba(255, 255, 255, 0.08);
-  --color-bg-borderStrong: rgba(255, 255, 255, 0.12);
+  --color-bg-border-strong: rgba(255, 255, 255, 0.12);
   --color-bg-dim: rgba(0, 0, 0, 0.50);
 
   /* Glass surfaces — three opacity tiers, shared blur */
@@ -135,11 +135,11 @@
   --color-sport-run-glow:   rgba(255, 94, 58, 0.55);
   --color-sport-run-dark:   #5C1F11;
   --color-sport-padel-base: #FFB020;
-  --color-sport-padel-light:rgba(255, 176, 32, 0.18);
+  --color-sport-padel-light: rgba(255, 176, 32, 0.18);
   --color-sport-padel-glow: rgba(255, 176, 32, 0.50);
   --color-sport-padel-dark: #5C3D08;
   --color-sport-cycle-base: #9CFF4F;
-  --color-sport-cycle-light:rgba(156, 255, 79, 0.18);
+  --color-sport-cycle-light: rgba(156, 255, 79, 0.18);
   --color-sport-cycle-glow: rgba(156, 255, 79, 0.50);
   --color-sport-cycle-dark: #314E18;
 
@@ -284,19 +284,19 @@ body {
   background: var(--color-bg-glass-nav);
   backdrop-filter: blur(var(--blur-glass)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
-  border-bottom: 0.5px solid var(--color-bg-borderStrong);
+  border-bottom: 0.5px solid var(--color-bg-border-strong);
 }
 
 .glass-sheet {
   background: var(--color-bg-glass-sheet);
   backdrop-filter: blur(var(--blur-glass)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
-  border: 0.5px solid var(--color-bg-borderStrong);
+  border: 0.5px solid var(--color-bg-border-strong);
 }
 
 .glass-menu {
   background: var(--color-bg-glass-menu);
   backdrop-filter: blur(var(--blur-glass)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
-  border: 0.5px solid var(--color-bg-borderStrong);
+  border: 0.5px solid var(--color-bg-border-strong);
 }
