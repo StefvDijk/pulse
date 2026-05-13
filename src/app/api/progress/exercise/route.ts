@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ExerciseProgressPoint, ExerciseProgressResponse } from '@/types/api'
+import { WorkoutJoinSchema } from '@/lib/schemas/db/exercise-definition-join'
+
+const WorkoutExerciseRowSchema = z.object({
+  workout_id: z.string(),
+  workouts: WorkoutJoinSchema.nullable().optional(),
+  workout_sets: z.array(
+    z.object({
+      weight_kg: z.number().nullable(),
+      reps: z.number().nullable(),
+      set_type: z.string().nullable(),
+    }),
+  ),
+})
 
 /* ── Route handler ─────────────────────────────────────────── */
 
@@ -60,12 +74,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ exerciseName: exerciseDef.name, points: [] })
     }
 
+    const parsedExercises = z.array(WorkoutExerciseRowSchema).parse(workoutExercises)
+
     // Deduplicate workout_exercises by workout_id + exercise order
     // (Hevy sync can insert duplicates)
     const seen = new Set<string>()
-    const uniqueExercises = workoutExercises.filter((we) => {
-      const workout = we.workouts as unknown as { started_at: string }
-      const key = `${we.workout_id}:${workout.started_at}`
+    const uniqueExercises = parsedExercises.filter((we) => {
+      const startedAt = we.workouts?.started_at ?? ''
+      const key = `${we.workout_id}:${startedAt}`
       if (seen.has(key)) return false
       seen.add(key)
       return true
@@ -75,13 +91,10 @@ export async function GET(request: Request) {
     const dateMap = new Map<string, { maxWeight: number; repsAtMax: number; totalVolume: number }>()
 
     for (const we of uniqueExercises) {
-      const workout = we.workouts as unknown as { started_at: string; user_id: string }
+      const workout = we.workouts
+      if (!workout?.started_at) continue
       const date = workout.started_at.slice(0, 10)
-      const sets = (we.workout_sets ?? []) as Array<{
-        weight_kg: number | null
-        reps: number | null
-        set_type: string | null
-      }>
+      const sets = we.workout_sets ?? []
 
       let maxWeight = 0
       let repsAtMax = 0

@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
 import type { ReadinessData, ReadinessLevel } from '@/types/readiness'
-
-interface ScheduleSession {
-  day: string
-  focus: string
-}
-
-interface WeekBlock {
-  week: number
-  sessions: ScheduleSession[]
-}
+import { WeekBlockSchema, type WeekBlock, type ScheduleSession } from '@/lib/schemas/db/week-block'
 
 /** Get the lowercase English day name for a Date. */
 function getDayName(date: Date): string {
@@ -41,8 +33,9 @@ function extractSessions(schedule: Json): ScheduleSession[] {
 
   // Nested format: [{week, sessions: [...]}] — flatten all blocks
   if ('sessions' in first) {
-    return (schedule as unknown as WeekBlock[])
-      .flatMap((block) => Array.isArray(block.sessions) ? block.sessions : [])
+    const blocks = z.array(WeekBlockSchema).parse(schedule)
+    return blocks
+      .flatMap((block: WeekBlock) => Array.isArray(block.sessions) ? block.sessions : [])
       .filter(
         (s): s is ScheduleSession =>
           typeof s === 'object' && s !== null && 'day' in s && 'focus' in s,
