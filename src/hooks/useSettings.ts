@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { SettingsData } from '@/app/api/settings/route'
+import type { SettingsData } from '@/types/api'
 
 async function fetcher(url: string): Promise<SettingsData> {
   const res = await fetch(url)

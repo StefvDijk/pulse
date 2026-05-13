@@ -11,7 +11,7 @@ import {
   Plus,
   X,
 } from 'lucide-react'
-import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import type { CheckInReviewData } from '@/types/check-in'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
 import { formatDayMonthWithWeekday } from '@/lib/formatters'

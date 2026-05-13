@@ -13,7 +13,7 @@ import { MuscleDrilldownSheet } from './MuscleDrilldownSheet'
 import type {
   MuscleMapPadelSession,
   MuscleMapRun,
-} from '@/app/api/muscle-map/route'
+} from '@/types/api'
 
 /* ── Helpers ────────────────────────────────────────────────── */
 

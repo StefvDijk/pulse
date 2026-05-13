@@ -1,19 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Database } from '@/types/database'
-
-type WeeklyAggregationRow = Database['public']['Tables']['weekly_aggregations']['Row']
-type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
-type GoalRow = Database['public']['Tables']['goals']['Row']
-
-export type Period = '4w' | '3m' | '6m' | '1y'
-
-export interface ProgressData {
-  weeklyAggregations: WeeklyAggregationRow[]
-  personalRecords: PersonalRecordRow[]
-  goals: GoalRow[]
-}
+import type { Period, ProgressData } from '@/types/api'
 
 function periodToWeeks(period: Period): number {
   return { '4w': 4, '3m': 13, '6m': 26, '1y': 52 }[period]

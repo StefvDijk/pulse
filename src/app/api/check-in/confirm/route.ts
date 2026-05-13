@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createEvents, type CreateEventInput } from '@/lib/google/calendar'
 import { getValidTokens } from '@/lib/google/oauth'
 import type { Database, Json } from '@/types/database'
+import type { PlannedSession } from '@/types/check-in'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -172,17 +173,6 @@ export async function POST(request: Request) {
 // ---------------------------------------------------------------------------
 // Fire-and-forget: sync planned sessions to Google Calendar
 // ---------------------------------------------------------------------------
-
-interface PlannedSession {
-  day: string
-  date: string
-  workout: string
-  type: 'gym' | 'padel' | 'run'
-  time: string
-  endTime: string
-  location: string | null
-  reason: string
-}
 
 const SESSION_TITLE_MAP: Record<PlannedSession['type'], (session: PlannedSession) => string> = {
   gym: (s) => `\u{1F4AA} ${s.workout}`,

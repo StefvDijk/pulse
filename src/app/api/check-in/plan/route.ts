@@ -10,27 +10,7 @@ import type { WeekConflicts } from '@/lib/google/conflicts'
 import { createJsonCompletion } from '@/lib/ai/client'
 import { buildCheckInPlanPrompt } from '@/lib/ai/prompts/checkin-plan'
 import { getCurrentWeekStart } from '@/lib/dates/week'
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface PlannedSession {
-  day: string
-  date: string
-  workout: string
-  type: 'gym' | 'padel' | 'run'
-  time: string
-  endTime: string
-  location: string | null
-  reason: string
-}
-
-export interface WeekPlan {
-  sessions: PlannedSession[]
-  reasoning: string
-  conflicts: WeekConflicts
-}
+import type { PlannedSession, WeekPlan } from '@/types/check-in'
 
 // ---------------------------------------------------------------------------
 // Validation

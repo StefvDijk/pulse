@@ -3,19 +3,14 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
+import type { SettingsData } from '@/types/api'
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
 
 type SafeUserSettings = Omit<
   UserSettingsRow,
   'google_calendar_access_token' | 'google_calendar_refresh_token' | 'google_calendar_token_expiry'
 >
-
-export interface SettingsData {
-  profile: ProfileRow
-  settings: SafeUserSettings
-}
 
 const ProfileUpdateSchema = z.object({
   display_name: z.string().min(1).max(100).optional(),

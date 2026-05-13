@@ -1,6 +1,6 @@
 'use client'
 
-import type { Period } from '@/app/api/progress/route'
+import type { Period } from '@/types/api'
 
 export interface TimePeriodSelectorProps {
   value: Period

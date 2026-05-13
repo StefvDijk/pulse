@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { ProgressData, Period } from '@/app/api/progress/route'
+import type { ProgressData, Period } from '@/types/api'
 
 async function fetcher(url: string): Promise<ProgressData> {
   const res = await fetch(url)

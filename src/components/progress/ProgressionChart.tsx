@@ -1,6 +1,6 @@
 'use client'
 
-import type { ExerciseProgressResponse } from '@/app/api/progress/exercise/route'
+import type { ExerciseProgressResponse } from '@/types/api'
 import { formatDayMonth } from '@/lib/formatters'
 
 interface ProgressionChartProps {

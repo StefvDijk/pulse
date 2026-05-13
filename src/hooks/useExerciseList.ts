@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { ExerciseListItem } from '@/app/api/progress/exercises/route'
+import type { ExerciseListItem } from '@/types/api'
 
 interface ExerciseListResponse {
   exercises: ExerciseListItem[]

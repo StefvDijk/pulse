@@ -7,7 +7,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MODEL } from '@/lib/ai/client'
 import { buildCheckInAnalyzePrompt } from '@/lib/ai/prompts/checkin-analyze'
-import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import type { CheckInReviewData } from '@/types/check-in'
 
 // ---------------------------------------------------------------------------
 // Exported response type

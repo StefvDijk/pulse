@@ -6,7 +6,7 @@ import type {
   MuscleMapResponse,
   MuscleMapRun,
   MuscleMapWorkout,
-} from '@/app/api/muscle-map/route'
+} from '@/types/api'
 
 const AMS_TZ = 'Europe/Amsterdam'
 
