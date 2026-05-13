@@ -2,6 +2,7 @@
 
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 
 export interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -27,6 +28,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
           <div className="max-w-none">
             <Markdown
               remarkPlugins={[remarkGfm]}
+              rehypePlugins={[[rehypeSanitize, defaultSchema]]}
               components={{
                 // Style headings
                 h1: ({ children }) => (
