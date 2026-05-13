@@ -1,0 +1,107 @@
+From: Pulse Audit <audit@pulse.local>
+Subject: [PATCH] fix(chat): sanitize AI markdown to block XSS via prompt injection
+
+ChatMessage renders Claude's output with react-markdown but no
+rehype-sanitize. A malicious entry in a user's Hevy data (workout name,
+notes), Apple Health metadata, or any field the context-assembler feeds
+to Claude could prompt-inject a response containing raw HTML/JS. The
+markdown renderer would then execute it.
+
+Specifically, react-markdown by default disables raw HTML, BUT we use
+remarkGfm + remarkBreaks; ensuring rehypeSanitize sits in the pipeline
+hardens us against future plugin changes and explicit-html configs.
+
+Severity: P0 (Stored XSS reachable via prompt injection through ingested
+3rd-party data).
+
+This patch:
+- adds rehype-sanitize dep
+- plugs rehypeSanitize into the ChatMessage markdown pipeline with the
+  default GFM schema
+- adds a Vitest unit test covering common XSS payloads
+
+---
+ package.json                                |  1 +
+ src/components/chat/ChatMessage.tsx         |  6 +++++-
+ tests/chat-markdown-sanitize.test.tsx       | 36 +++++++++++++++++++++
+ 3 files changed, 42 insertions(+), 1 deletion(-)
+ create mode 100644 tests/chat-markdown-sanitize.test.tsx
+
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -28,6 +28,7 @@
+     "react-markdown": "^9.0.1",
+     "recharts": "^2.13.3",
+     "remark-gfm": "^4.0.0",
++    "rehype-sanitize": "^6.0.0",
+     "swr": "^2.2.5",
+     "zod": "^3.23.8"
+   },
+
+diff --git a/src/components/chat/ChatMessage.tsx b/src/components/chat/ChatMessage.tsx
+--- a/src/components/chat/ChatMessage.tsx
++++ b/src/components/chat/ChatMessage.tsx
+@@ -1,9 +1,11 @@
+ 'use client'
+
+ import ReactMarkdown from 'react-markdown'
+ import remarkGfm from 'remark-gfm'
++import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
+ import { CoachOrb } from '@/components/ui/CoachOrb'
+
+ type Props = {
+   role: 'user' | 'assistant'
+   content: string
+@@ -25,7 +27,9 @@ export function ChatMessage({ role, content }: Props) {
+       <div className="prose prose-invert max-w-none text-[15px] leading-relaxed">
+         <ReactMarkdown
+           remarkPlugins={[remarkGfm]}
++          // Block prompt-injection-driven XSS. The schema permits standard GFM
++          // formatting (bold, code, lists, tables, links) but strips raw HTML,
++          // <script>, on* handlers, javascript: URIs, etc.
++          rehypePlugins={[[rehypeSanitize, defaultSchema]]}
+         >
+           {content}
+         </ReactMarkdown>
+
+diff --git a/tests/chat-markdown-sanitize.test.tsx b/tests/chat-markdown-sanitize.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/tests/chat-markdown-sanitize.test.tsx
+@@ -0,0 +1,36 @@
++import { describe, expect, it } from 'vitest'
++import { render } from '@testing-library/react'
++import { ChatMessage } from '@/components/chat/ChatMessage'
++
++describe('ChatMessage XSS sanitization', () => {
++  it('strips <script> tags from prompt-injected output', () => {
++    const malicious = 'Hi! <script>window.__pwned = true</script>'
++    const { container } = render(<ChatMessage role="assistant" content={malicious} />)
++    expect(container.querySelector('script')).toBeNull()
++    expect((globalThis as Record<string, unknown>).__pwned).toBeUndefined()
++  })
++
++  it('strips on* event handlers from inline HTML', () => {
++    const malicious = '<img src="x" onerror="window.__pwned=true">'
++    const { container } = render(<ChatMessage role="assistant" content={malicious} />)
++    const img = container.querySelector('img')
++    if (img) expect(img.getAttribute('onerror')).toBeNull()
++    expect((globalThis as Record<string, unknown>).__pwned).toBeUndefined()
++  })
++
++  it('blocks javascript: URLs in links', () => {
++    const malicious = '[click](javascript:alert(1))'
++    const { container } = render(<ChatMessage role="assistant" content={malicious} />)
++    const a = container.querySelector('a')
++    if (a) expect(a.getAttribute('href')?.startsWith('javascript:')).toBeFalsy()
++  })
++
++  it('keeps safe markdown formatting intact', () => {
++    const safe = '**bold** and `code` and [link](https://example.com)'
++    const { container } = render(<ChatMessage role="assistant" content={safe} />)
++    expect(container.querySelector('strong')?.textContent).toBe('bold')
++    expect(container.querySelector('code')?.textContent).toBe('code')
++    expect(container.querySelector('a')?.getAttribute('href')).toBe('https://example.com')
++  })
++})

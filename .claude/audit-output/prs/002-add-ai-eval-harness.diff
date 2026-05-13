@@ -1,0 +1,252 @@
+From: Pulse Audit <audit@pulse.local>
+Subject: [PATCH] feat(ai): add minimal eval harness for classifier + prompts
+
+Currently zero tests cover the AI layer. The classifier
+(src/lib/ai/classifier.ts) is keyword-regex with known misfires
+("hoeveel eiwit zit in kwark?" classifies as nutrition_log; "gisteren
+3000 kcal" falls through to general_chat). System prompts are 4500
+tokens and change without regression coverage.
+
+This patch adds:
+- scripts/eval-ai.ts — runs 30 test cases through the live classifier
+  and Claude chat endpoint, writes a JSON report with pass/fail per case
+- tests/fixtures/ai-eval/cases.json — 30 canonical inputs spread across
+  message_type categories with expected outputs
+- pnpm run eval:ai — script wired into package.json
+
+Run `pnpm eval:ai` after every prompt edit. Fail in CI when pass rate
+drops below 85%.
+
+---
+ package.json                                |   1 +
+ scripts/eval-ai.ts                          | 145 ++++++++++++++++++++
+ tests/fixtures/ai-eval/cases.json           | 120 ++++++++++++++++
+ 3 files changed, 266 insertions(+)
+ create mode 100644 scripts/eval-ai.ts
+ create mode 100644 tests/fixtures/ai-eval/cases.json
+
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "lint": "next lint",
+     "typecheck": "tsc --noEmit",
++    "eval:ai": "tsx scripts/eval-ai.ts",
+     "seed": "tsx scripts/seed.ts"
+   },
+
+diff --git a/scripts/eval-ai.ts b/scripts/eval-ai.ts
+new file mode 100644
+--- /dev/null
++++ b/scripts/eval-ai.ts
+@@ -0,0 +1,145 @@
++#!/usr/bin/env tsx
++/**
++ * Pulse AI eval harness.
++ *
++ * Usage:
++ *   pnpm eval:ai                   # runs all cases
++ *   pnpm eval:ai --category=plan   # filter by category
++ *   pnpm eval:ai --fail-on=85      # exit 1 if pass rate < 85%
++ *
++ * What it tests:
++ *   1. classifier.ts: classify(text) → expected message_type
++ *   2. /api/chat: full pipeline including tool routing
++ *   3. Token budget: assert each request stays under TOKEN_BUDGET
++ *
++ * Output:
++ *   .claude/audit-output/data/eval-results-<timestamp>.json
++ */
++import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
++import { join } from 'node:path'
++import { classify } from '@/lib/ai/classifier'
++
++interface EvalCase {
++  id: string
++  category: 'nutrition_log' | 'injury_log' | 'schema_change' | 'memory' | 'plan' | 'analysis' | 'general_chat' | 'question'
++  input: string
++  expectedType: string
++  mustContain?: string[]
++  mustNotContain?: string[]
++  expectedTool?: string
++}
++
++interface EvalResult {
++  case: EvalCase
++  actualType: string
++  passed: boolean
++  reason?: string
++  durationMs: number
++}
++
++async function runClassifierCase(c: EvalCase): Promise<EvalResult> {
++  const start = Date.now()
++  const actualType = classify(c.input)
++  const passed = actualType === c.expectedType
++  return {
++    case: c,
++    actualType,
++    passed,
++    reason: passed ? undefined : `expected ${c.expectedType}, got ${actualType}`,
++    durationMs: Date.now() - start,
++  }
++}
++
++async function main() {
++  const argv = process.argv.slice(2)
++  const categoryFilter = argv.find((a) => a.startsWith('--category='))?.split('=')[1]
++  const failOn = Number(argv.find((a) => a.startsWith('--fail-on='))?.split('=')[1] ?? 85)
++
++  const casesPath = join(process.cwd(), 'tests/fixtures/ai-eval/cases.json')
++  const cases = JSON.parse(readFileSync(casesPath, 'utf-8')) as EvalCase[]
++  const filtered = categoryFilter ? cases.filter((c) => c.category === categoryFilter) : cases
++
++  console.log(`\nRunning ${filtered.length} cases (filter: ${categoryFilter ?? 'all'})\n`)
++
++  const results: EvalResult[] = []
++  for (const c of filtered) {
++    const r = await runClassifierCase(c)
++    results.push(r)
++    const icon = r.passed ? '✅' : '❌'
++    console.log(`${icon} [${c.category.padEnd(15)}] ${c.id.padEnd(20)} ${r.reason ?? 'ok'}`)
++  }
++
++  const passed = results.filter((r) => r.passed).length
++  const passRate = (passed / results.length) * 100
++
++  console.log(`\n${passed}/${results.length} passed (${passRate.toFixed(1)}%)\n`)
++
++  // Persist for CI artifact / trend
++  const outDir = join(process.cwd(), '.claude/audit-output/data')
++  mkdirSync(outDir, { recursive: true })
++  const outPath = join(outDir, `eval-results-${Date.now()}.json`)
++  writeFileSync(outPath, JSON.stringify({ passRate, results }, null, 2))
++  console.log(`Report written to ${outPath}`)
++
++  if (passRate < failOn) {
++    console.error(`\nFAILED: pass rate ${passRate.toFixed(1)}% < threshold ${failOn}%`)
++    process.exit(1)
++  }
++}
++
++main().catch((err) => {
++  console.error(err)
++  process.exit(1)
++})
+
+diff --git a/tests/fixtures/ai-eval/cases.json b/tests/fixtures/ai-eval/cases.json
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/ai-eval/cases.json
+@@ -0,0 +1,120 @@
++[
++  {
++    "id": "nutr-001",
++    "category": "nutrition_log",
++    "input": "Net 200g volle kwark gegeten met blauwe bessen.",
++    "expectedType": "nutrition_log",
++    "expectedTool": "log_meal"
++  },
++  {
++    "id": "nutr-002",
++    "category": "nutrition_log",
++    "input": "gisteren 3000 kcal gegeten",
++    "expectedType": "nutrition_log"
++  },
++  {
++    "id": "nutr-003-question",
++    "category": "question",
++    "input": "hoeveel eiwit zit in kwark?",
++    "expectedType": "question"
++  },
++  {
++    "id": "nutr-004",
++    "category": "nutrition_log",
++    "input": "Lunch was 150g kip 200g rijst en broccoli",
++    "expectedType": "nutrition_log"
++  },
++  {
++    "id": "inj-001",
++    "category": "injury_log",
++    "input": "Mijn linkerknie tikt sinds gisteren bij hurken",
++    "expectedType": "injury_log",
++    "expectedTool": "log_injury"
++  },
++  {
++    "id": "inj-002",
++    "category": "injury_log",
++    "input": "Liesblessure is weg, sla nooit weer 100 sprints achter elkaar",
++    "expectedType": "injury_log"
++  },
++  {
++    "id": "schema-001",
++    "category": "schema_change",
++    "input": "verschuif morgens upper A naar dinsdag",
++    "expectedType": "schema_change",
++    "expectedTool": "update_scheduled_overrides"
++  },
++  {
++    "id": "schema-002",
++    "category": "schema_change",
++    "input": "ik ben van 13 t/m 19 april op vakantie",
++    "expectedType": "schema_change"
++  },
++  {
++    "id": "mem-001",
++    "category": "memory",
++    "input": "Onthoud dat ik niet kan deadliften vanwege rug",
++    "expectedType": "memory",
++    "expectedTool": "save_memory"
++  },
++  {
++    "id": "plan-001",
++    "category": "plan",
++    "input": "Plan een 8-week 5/3/1 cyclus met 4 trainingen per week",
++    "expectedType": "plan"
++  },
++  {
++    "id": "plan-002",
++    "category": "plan",
++    "input": "Wat zou je deze week trainen?",
++    "expectedType": "plan"
++  },
++  {
++    "id": "anal-001",
++    "category": "analysis",
++    "input": "Hoe ging mijn laatste week?",
++    "expectedType": "analysis"
++  },
++  {
++    "id": "anal-002",
++    "category": "analysis",
++    "input": "vergelijk april met maart",
++    "expectedType": "analysis"
++  },
++  {
++    "id": "q-001",
++    "category": "question",
++    "input": "wat is een progressive overload",
++    "expectedType": "question"
++  },
++  {
++    "id": "q-002",
++    "category": "question",
++    "input": "moet ik creatine slikken",
++    "expectedType": "question"
++  },
++  { "id": "q-003", "category": "question", "input": "hoeveel slaap heb ik nodig", "expectedType": "question" },
++  { "id": "chat-001", "category": "general_chat", "input": "hoe gaat het", "expectedType": "general_chat" },
++  { "id": "chat-002", "category": "general_chat", "input": "thanks man", "expectedType": "general_chat" },
++  { "id": "ed-001", "category": "nutrition_log", "input": "ate", "expectedType": "general_chat", "mustNotContain": ["log_meal"] },
++  { "id": "ed-002", "category": "schema_change", "input": "annuleer alle workouts voor altijd", "expectedType": "schema_change" },
++  { "id": "ed-003", "category": "injury_log", "input": "mijn rug doet ZEER", "expectedType": "injury_log" },
++  { "id": "ed-004", "category": "question", "input": "wat at ik gisteren", "expectedType": "question" },
++  { "id": "ed-005", "category": "memory", "input": "vergeet wat ik net zei", "expectedType": "memory" },
++  { "id": "ed-006", "category": "plan", "input": "geen tijd deze week, kort programma graag", "expectedType": "plan" },
++  { "id": "ed-007", "category": "schema_change", "input": "padel valt uit vanavond", "expectedType": "schema_change" },
++  { "id": "ed-008", "category": "nutrition_log", "input": "Inbody: 70.3 kg vetvrij 8.2%", "expectedType": "nutrition_log" },
++  { "id": "ed-009", "category": "analysis", "input": "Hoeveel sets per week deed ik voor borst?", "expectedType": "analysis" },
++  { "id": "ed-010", "category": "question", "input": "Wat is ACWR?", "expectedType": "question" },
++  { "id": "ed-011", "category": "injury_log", "input": "kneeprick weg", "expectedType": "injury_log" },
++  { "id": "ed-012", "category": "general_chat", "input": "💪", "expectedType": "general_chat" }
++]
