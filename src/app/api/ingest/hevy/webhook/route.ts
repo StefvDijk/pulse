@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkout } from '@/lib/hevy/client'
 import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
@@ -31,7 +32,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
   const authHeader = request.headers.get('authorization') ?? ''
-  if (authHeader !== expectedToken) {
+  // Constant-time comparison: avoid timing side-channels that could let an
+  // attacker brute-force the secret one byte at a time.
+  const authBytes = Buffer.from(authHeader)
+  const expectedBytes = Buffer.from(expectedToken)
+  const authValid =
+    authBytes.length === expectedBytes.length &&
+    crypto.timingSafeEqual(authBytes, expectedBytes)
+  if (!authValid) {
     return NextResponse.json(
       { error: 'Unauthorized', code: 'INVALID_TOKEN' },
       { status: 401 },

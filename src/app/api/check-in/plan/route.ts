@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { listEvents } from '@/lib/google/calendar'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { getValidTokens } from '@/lib/google/oauth'
 import { analyzeConflicts } from '@/lib/google/conflicts'
 import type { WeekConflicts } from '@/lib/google/conflicts'
@@ -135,6 +136,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Unauthorized', code: 'AUTH_REQUIRED' },
         { status: 401 },
+      )
+    }
+
+    // Cap AI cost runaways (retry-without-backoff bugs, accidental loops).
+    const rl = checkRateLimit(`check-in:plan:${user.id}`, { limit: 30, windowMs: 60_000 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
       )
     }
 
