@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decayStaleMemories } from '@/lib/ai/memory-decay'
 import type { Database, Json } from '@/types/database'
 import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -260,6 +261,15 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
+    }
+
+    // Cap on review fetches to protect against accidental polling loops.
+    const rl = checkRateLimit(`check-in:review:${user.id}`, { limit: 60, windowMs: 60_000 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests', code: 'RATE_LIMITED' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetMs / 1000)) } },
+      )
     }
 
     const admin = createAdminClient()

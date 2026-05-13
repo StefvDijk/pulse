@@ -9,8 +9,15 @@ const SCOPES = [
 ]
 
 function getStateSecret(): string {
-  const secret = process.env.CRON_SECRET
-  if (!secret) throw new Error('CRON_SECRET is required for OAuth state signing')
+  // Prefer OAUTH_STATE_SECRET (dedicated). Fall back to CRON_SECRET for
+  // backwards compatibility on environments that haven't migrated yet.
+  // Keeping these split means a leak of one secret doesn't compromise the other.
+  const secret = process.env.OAUTH_STATE_SECRET ?? process.env.CRON_SECRET
+  if (!secret) {
+    throw new Error(
+      'OAUTH_STATE_SECRET (preferred) or CRON_SECRET is required for OAuth state signing',
+    )
+  }
   return secret
 }
 
