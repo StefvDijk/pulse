@@ -1,5 +1,3 @@
-'use client'
-
 export interface DayIndicatorProps {
   calories: number
   calorieTarget: number | null

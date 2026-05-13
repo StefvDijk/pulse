@@ -1,5 +1,3 @@
-'use client'
-
 // Maps primary_muscle_group values to a readable label + Tailwind bg color
 const MUSCLE_COLORS: Record<string, { label: string; bg: string; text: string }> = {
   chest:       { label: 'Borst',      bg: 'bg-red-500/20',     text: 'text-red-400' },
