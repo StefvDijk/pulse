@@ -1,3 +1,28 @@
+/* ─── Self-hosted SF Pro Display (Regular / Medium / Bold) ──────────────── */
+/* Note: Semibold weight omitted — source OTF was not available (italic only) */
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Bold.woff2') format('woff2');
+}
+
 @import "tailwindcss";
 
 /* Exclude markdown docs from Tailwind's class scanner. They contain literal
@@ -7,37 +32,6 @@
 @source not "../../research";
 @source not "../../design";
 @source not "../../*.md";
-
-/* ─── SF Pro Display — self-hosted ───────────────────────────────────────── */
-
-@font-face {
-  font-family: 'SF Pro Display';
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url('/fonts/sf-pro-display/SFPRODISPLAYREGULAR.OTF') format('opentype');
-}
-@font-face {
-  font-family: 'SF Pro Display';
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-  src: url('/fonts/sf-pro-display/SFPRODISPLAYMEDIUM.OTF') format('opentype');
-}
-@font-face {
-  font-family: 'SF Pro Display';
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-  src: url('/fonts/sf-pro-display/SFPRODISPLAYBOLD.OTF') format('opentype');
-}
-@font-face {
-  font-family: 'SF Pro Display';
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-  src: url('/fonts/sf-pro-display/SFPRODISPLAYBOLD.OTF') format('opentype');
-}
 
 /* ─── Dark mode variant — class-based (ready for future toggle) ──────────── */
 
@@ -52,7 +46,7 @@
    *  ─────────────────────────────────────────────────────────────────────── */
 
   /* Font stacks — SF Pro via -apple-system (geen externe webfont) */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Apple Type Scale */
@@ -152,6 +146,13 @@
   --color-bg-glass-strong:  rgba(255,255,255,0.08);
   --color-bg-border:        rgba(255,255,255,0.08);
   --color-bg-border-strong: rgba(255,255,255,0.12);
+  --color-bg-dim:           rgba(0,0,0,0.50);
+
+  /* iOS 26 Liquid Glass surfaces — three opacity tiers, shared blur */
+  --color-bg-glass-nav:   rgba(30, 34, 48, 0.72);
+  --color-bg-glass-sheet: rgba(30, 34, 48, 0.85);
+  --color-bg-glass-menu:  rgba(30, 34, 48, 0.92);
+  --blur-glass: 28px;
 
   /* Text */
   --color-text-primary:   #F5F5F7;
@@ -200,6 +201,41 @@
   --gradient-time-day:   radial-gradient(ellipse at 50% 0%, rgba(135, 206, 250, 0.10), transparent 65%);
   --gradient-time-dusk:  radial-gradient(ellipse at 50% 0%, rgba(217, 119, 87, 0.16), transparent 65%);
   --gradient-time-night: radial-gradient(ellipse at 50% 0%, rgba(94, 92, 230, 0.12), transparent 70%);
+
+  /* iOS 26 — Pulse v2 type scale (additive over Apple HIG above) */
+  --text-display-l: 64px;
+  --text-display-l--line-height: 64px;
+  --text-display-l--letter-spacing: -0.03125em;
+  --text-display-l--font-weight: 700;
+
+  --text-display-m: 34px;
+  --text-display-m--line-height: 38px;
+  --text-display-m--letter-spacing: -0.0235em;
+  --text-display-m--font-weight: 700;
+
+  --text-pulse-title: 28px;
+  --text-pulse-title--line-height: 32px;
+  --text-pulse-title--letter-spacing: -0.0214em;
+  --text-pulse-title--font-weight: 700;
+
+  --text-subtitle: 22px;
+  --text-subtitle--line-height: 26px;
+  --text-subtitle--letter-spacing: -0.0182em;
+  --text-subtitle--font-weight: 700;
+
+  --text-body-l: 17px;
+  --text-body-l--line-height: 22px;
+  --text-body-l--letter-spacing: -0.0118em;
+  --text-body-l--font-weight: 600;
+
+  --text-body-s: 13px;
+  --text-body-s--line-height: 18px;
+  --text-body-s--font-weight: 400;
+
+  --text-eyebrow: 10px;
+  --text-eyebrow--line-height: 12px;
+  --text-eyebrow--letter-spacing: 0.04em;
+  --text-eyebrow--font-weight: 600;
 
   /* Card radii (v2) */
   --radius-card-sm: 10px;
@@ -447,4 +483,27 @@ button, a, [role="button"] {
 }
 @utility pr-safe {
   padding-right: env(safe-area-inset-right);
+}
+
+/* iOS 26 Liquid Glass — three thickness/opacity tiers, all share blur 28px */
+
+.glass-nav {
+  background: var(--color-bg-glass-nav);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border-bottom: 0.5px solid var(--color-bg-border-strong);
+}
+
+.glass-sheet {
+  background: var(--color-bg-glass-sheet);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border: 0.5px solid var(--color-bg-border-strong);
+}
+
+.glass-menu {
+  background: var(--color-bg-glass-menu);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border: 0.5px solid var(--color-bg-border-strong);
 }
