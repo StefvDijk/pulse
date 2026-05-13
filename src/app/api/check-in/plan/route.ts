@@ -9,6 +9,7 @@ import { analyzeConflicts } from '@/lib/google/conflicts'
 import type { WeekConflicts } from '@/lib/google/conflicts'
 import { createJsonCompletion } from '@/lib/ai/client'
 import { buildCheckInPlanPrompt } from '@/lib/ai/prompts/checkin-plan'
+import { getCurrentWeekStart } from '@/lib/dates/week'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -159,6 +160,15 @@ export async function POST(request: Request) {
     }
 
     const { weekStart, weekEnd } = parsed.data
+
+    // Guard: weekStart must be strictly after the current week to prevent
+    // accidentally planning the review-week instead of the plan-week (C1 bug).
+    if (weekStart <= getCurrentWeekStart()) {
+      return NextResponse.json(
+        { error: 'weekStart must be a future week (next week or later)', code: 'INVALID_WEEK' },
+        { status: 400 },
+      )
+    }
 
     // 1. Load active training schema
     const admin = createAdminClient()

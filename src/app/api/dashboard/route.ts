@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentWeekStart, getWeekEnd } from '@/lib/dates/week'
 import type { Database } from '@/types/database'
 
 type DailyAggregationRow = Database['public']['Tables']['daily_aggregations']['Row']
@@ -11,15 +12,6 @@ export interface DashboardData {
   weeklyAggregation: WeeklyAggregationRow | null
   dailyAggregations: DailyAggregationRow[]
   activeSchema: TrainingSchemaRow | null
-}
-
-/** Returns the ISO Monday (YYYY-MM-DD) for a given date. */
-function getIsoWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setUTCDate(d.getUTCDate() + diff)
-  return d.toISOString().slice(0, 10)
 }
 
 export async function GET() {
@@ -41,13 +33,8 @@ export async function GET() {
     // the user's identity above.
     const admin = createAdminClient()
 
-    const today = new Date()
-    const weekStart = getIsoWeekStart(today)
-
-    // Build week date range (Mon–Sun)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
-    const weekEndStr = weekEnd.toISOString().slice(0, 10)
+    const weekStart = getCurrentWeekStart()
+    const weekEndStr = getWeekEnd(weekStart)
 
     const [weeklyResult, dailyResult, schemaResult] = await Promise.all([
       admin

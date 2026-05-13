@@ -1,5 +1,7 @@
 import { z } from 'zod'
-import { createJsonCompletion } from '@/lib/ai/client'
+import { generateObject } from 'ai'
+import { anthropic } from '@ai-sdk/anthropic'
+import { MODEL } from '@/lib/ai/client'
 import { NUTRITION_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts/nutrition-analysis'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -44,13 +46,14 @@ export async function analyzeNutrition(
   const { userId, input, date, mealType } = params
   const logDate = date ?? new Date().toISOString().slice(0, 10)
 
-  // Call Claude for macro analysis
-  const rawText = await createJsonCompletion({
+  // Call Claude for macro analysis — generateObject enforces the schema at
+  // the API level, eliminating the manual JSON.parse + Zod parse pattern.
+  const { object: analysis } = await generateObject({
+    model: anthropic(MODEL),
     system: NUTRITION_ANALYSIS_SYSTEM_PROMPT,
-    userMessage: input,
+    messages: [{ role: 'user', content: input }],
+    schema: NutritionAnalysisSchema,
   })
-
-  const analysis = NutritionAnalysisSchema.parse(JSON.parse(rawText))
   const finalMealType = mealType ?? analysis.meal_type
 
   // Save to DB using admin client
