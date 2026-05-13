@@ -33,10 +33,15 @@ interface ConnectionData {
 }
 
 interface GoalData {
+  id: string
   title: string
   category: string
   targetValue: string
   targetUnit: string
+}
+
+function emptyGoal(): GoalData {
+  return { id: crypto.randomUUID(), title: '', category: 'strength', targetValue: '', targetUnit: '' }
 }
 
 const INPUT_CLASSES = 'bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-3 py-2 text-sm outline-none'
@@ -49,22 +54,22 @@ export function OnboardingWizard() {
   const [profile, setProfile] = useState<ProfileData>({ displayName: '', weightKg: '', heightCm: '' })
   const [sports, setSports] = useState<SportData>({ gym: '3', running: '2', padel: '1' })
   const [connections, setConnections] = useState<ConnectionData>({ hevyKey: '', healthToken: '' })
-  const [goals, setGoals] = useState<GoalData[]>([{ title: '', category: 'strength', targetValue: '', targetUnit: '' }])
+  const [goals, setGoals] = useState<GoalData[]>(() => [emptyGoal()])
 
   const isFirst = step === 0
   const isLast = step === STEPS.length - 1
 
   function addGoal() {
     if (goals.length >= 3) return
-    setGoals((prev) => [...prev, { title: '', category: 'strength', targetValue: '', targetUnit: '' }])
+    setGoals((prev) => [...prev, emptyGoal()])
   }
 
-  function updateGoal(index: number, field: keyof GoalData, value: string) {
-    setGoals((prev) => prev.map((g, i) => (i === index ? { ...g, [field]: value } : g)))
+  function updateGoal(id: string, field: keyof GoalData, value: string) {
+    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)))
   }
 
-  function removeGoal(index: number) {
-    setGoals((prev) => prev.filter((_, i) => i !== index))
+  function removeGoal(id: string) {
+    setGoals((prev) => prev.filter((g) => g.id !== id))
   }
 
   async function handleFinish() {
@@ -240,25 +245,25 @@ export function OnboardingWizard() {
             <>
               <p className="text-xs text-label-tertiary">Voeg maximaal 3 doelen toe (optioneel)</p>
               {goals.map((goal, i) => (
-                <div key={i} className="rounded-lg p-3 bg-system-gray6 border border-separator">
+                <div key={goal.id} className="rounded-lg p-3 bg-system-gray6 border border-separator">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-medium text-label-tertiary">Doel {i + 1}</span>
                     {goals.length > 1 && (
-                      <button onClick={() => removeGoal(i)} className="text-xs text-system-red">Verwijder</button>
+                      <button onClick={() => removeGoal(goal.id)} className="text-xs text-system-red">Verwijder</button>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
                     <input
                       type="text"
                       value={goal.title}
-                      onChange={(e) => updateGoal(i, 'title', e.target.value)}
+                      onChange={(e) => updateGoal(goal.id, 'title', e.target.value)}
                       placeholder="Bijv. Bench press 100kg"
                       className={INPUT_CLASSES}
                     />
                     <div className="grid grid-cols-3 gap-2">
                       <select
                         value={goal.category}
-                        onChange={(e) => updateGoal(i, 'category', e.target.value)}
+                        onChange={(e) => updateGoal(goal.id, 'category', e.target.value)}
                         className="bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       >
                         <option value="strength">Kracht</option>
@@ -270,7 +275,7 @@ export function OnboardingWizard() {
                       <input
                         type="number"
                         value={goal.targetValue}
-                        onChange={(e) => updateGoal(i, 'targetValue', e.target.value)}
+                        onChange={(e) => updateGoal(goal.id, 'targetValue', e.target.value)}
                         placeholder="100"
                         min={0}
                         step="any"
@@ -279,7 +284,7 @@ export function OnboardingWizard() {
                       <input
                         type="text"
                         value={goal.targetUnit}
-                        onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
+                        onChange={(e) => updateGoal(goal.id, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
                         className="bg-system-gray6 border border-separator text-label-primary rounded-[10px] px-2 py-1.5 text-xs outline-none"
                       />

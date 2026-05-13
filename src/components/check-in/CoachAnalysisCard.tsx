@@ -155,7 +155,7 @@ export function CoachAnalysisCard({
         {/* Key insights */}
         <div className="flex flex-col gap-2 mb-4">
           {analysis.keyInsights.map((insight, i) => (
-            <div key={i} className="flex items-start gap-2">
+            <div key={`${i}-${insight.slice(0, 32)}`} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-system-blue" />
               <p className="text-sm text-label-primary">{insight}</p>
             </div>

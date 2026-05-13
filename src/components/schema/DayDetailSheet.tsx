@@ -82,7 +82,7 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
         {day.exercises && day.exercises.length > 0 ? (
           <div className="px-5 pb-5">
             {day.exercises.map((exercise, i) => (
-              <ExerciseRow key={i} exercise={exercise} />
+              <ExerciseRow key={`${i}-${exercise.name}`} exercise={exercise} />
             ))}
           </div>
         ) : (

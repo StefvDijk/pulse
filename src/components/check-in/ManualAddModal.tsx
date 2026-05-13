@@ -9,7 +9,7 @@ import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 // ---------------------------------------------------------------------------
 
 interface ManualAddModalProps {
-  onAdd: (addition: ManualAddition) => void
+  onAdd: (addition: Omit<ManualAddition, 'id'>) => void
   onClose: () => void
 }
 
@@ -29,7 +29,7 @@ const TYPE_OPTIONS: { type: AdditionType; label: string; icon: string }[] = [
 // Padel form
 // ---------------------------------------------------------------------------
 
-function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }) {
+function PadelForm({ onSubmit }: { onSubmit: (addition: Omit<ManualAddition, 'id'>) => void }) {
   const [duration, setDuration] = useState('')
   const [intensity, setIntensity] = useState<'light' | 'normal' | 'heavy'>('normal')
 
@@ -99,7 +99,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
 // InBody form
 // ---------------------------------------------------------------------------
 
-function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }) {
+function InBodyForm({ onSubmit }: { onSubmit: (addition: Omit<ManualAddition, 'id'>) => void }) {
   const [weight, setWeight] = useState('')
   const [muscleMass, setMuscleMass] = useState('')
   const [fatMass, setFatMass] = useState('')
@@ -217,7 +217,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
 // Note form
 // ---------------------------------------------------------------------------
 
-function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }) {
+function NoteForm({ onSubmit }: { onSubmit: (addition: Omit<ManualAddition, 'id'>) => void }) {
   const [text, setText] = useState('')
 
   function handleSubmit() {
