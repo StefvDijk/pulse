@@ -48,6 +48,10 @@ export const cardEnter: Variants = {
 
 /** Staggered list: gebruik met `staggerChildren` op parent */
 export const listContainer: Variants = {
+  // [E12] Empty initial as safety-net — without it, listContainer relied on
+  // every child to declare their own `initial` correctly. One mismatch and
+  // the whole stagger would visually break.
+  initial: {},
   animate: {
     transition: {
       staggerChildren: 0.04,
