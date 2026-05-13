@@ -11,7 +11,7 @@ type SupabaseAdminClient = ReturnType<typeof createAdminClient>
  * it to bypass session handling in single-user mode (see CLAUDE.md).
  */
 function patchAuthGetUser(client: SupabaseAdminClient, userId: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- single-user mode patches the auth client; see CLAUDE.md
+  // Single-user mode intentionally widens `auth` to patch getUser; see CLAUDE.md
   ;(client.auth as unknown as Record<string, unknown>).getUser = async () => ({
     data: { user: { id: userId } },
     error: null,

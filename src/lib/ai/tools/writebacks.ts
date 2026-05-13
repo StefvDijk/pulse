@@ -250,8 +250,6 @@ const WorkoutScheduleItemSchema = z.object({
   duration_min: z.number().optional(),
 })
 
-type WorkoutScheduleItem = z.infer<typeof WorkoutScheduleItemSchema>
-
 function formatSchemaUpdateDescription(u: SchemaUpdateInput): string {
   switch (u.action) {
     case 'replace_exercise':
