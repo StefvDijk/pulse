@@ -862,12 +862,14 @@ async function buildGeneralChatContext(userId: string): Promise<string[]> {
 
 async function loadCoachingMemory(userId: string): Promise<string | null> {
   const supabase = createAdminClient()
+  // [B5] Cap at 30 most-recent memories: prevents the memory table (which
+  // grows unbounded over months) from inflating every chat-request's context.
   const { data } = await supabase
     .from('coaching_memory')
     .select('category, key, value, source_date')
     .eq('user_id', userId)
-    .order('category')
     .order('updated_at', { ascending: false })
+    .limit(30)
 
   if (!data || data.length === 0) return null
 
