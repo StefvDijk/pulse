@@ -1,0 +1,450 @@
+{
+  "passRate": 100,
+  "results": [
+    {
+      "case": {
+        "id": "nutr-log-001",
+        "category": "nutrition_log",
+        "input": "Net 200g volle kwark gegeten met blauwe bessen.",
+        "expected": "nutrition_log"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "nutr-log-002",
+        "category": "nutrition_log",
+        "input": "Lunch was 150g kip 200g rijst en broccoli",
+        "expected": "nutrition_log"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-log-003",
+        "category": "nutrition_log",
+        "input": "ontbijt: havermout met yoghurt en banaan",
+        "expected": "nutrition_log"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-log-004",
+        "category": "nutrition_log",
+        "input": "smoothie met spinazie, banaan en eiwitpoeder gedronken",
+        "expected": "nutrition_log"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "nutr-log-005",
+        "category": "nutrition_log",
+        "input": "Vanavond at ik een groente curry met tofu",
+        "expected": "nutrition_log",
+        "note": "'groente' + 'tofu' carry the log signal"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-log-006",
+        "category": "nutrition_log",
+        "input": "Ik heb gegeten: 2 eieren, brood, kaas",
+        "expected": "nutrition_log"
+      },
+      "actual": "nutrition_log",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-q-001",
+        "category": "nutrition_question",
+        "input": "hoeveel eiwit zit in kwark?",
+        "expected": "nutrition_question",
+        "note": "B2: was nutrition_log pre-fix"
+      },
+      "actual": "nutrition_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-q-002",
+        "category": "nutrition_question",
+        "input": "wat is mijn dagelijkse caloriebehoefte?",
+        "expected": "nutrition_question",
+        "note": "B2: 'caloriebehoefte' needs prefix-match"
+      },
+      "actual": "nutrition_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-q-003",
+        "category": "nutrition_question",
+        "input": "moet ik meer koolhydraten eten?",
+        "expected": "nutrition_question",
+        "note": "B2: question form wins over food mention"
+      },
+      "actual": "nutrition_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "nutr-q-004",
+        "category": "nutrition_question",
+        "input": "ik wil mijn protein intake verhogen",
+        "expected": "nutrition_question",
+        "note": "B2: protein concept w/o food w/o ? still question"
+      },
+      "actual": "nutrition_question",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "inj-001",
+        "category": "injury_report",
+        "input": "Mijn linkerknie tikt sinds gisteren bij hurken",
+        "expected": "injury_report",
+        "note": "B2: 'linkerknie' compound needs substring"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "inj-002",
+        "category": "injury_report",
+        "input": "rugpijn na zwaar deadliften",
+        "expected": "injury_report",
+        "note": "B2: 'rugpijn' compound + deadlift"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "inj-003",
+        "category": "injury_report",
+        "input": "mijn schouder voelt geblesseerd",
+        "expected": "injury_report"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "inj-004",
+        "category": "injury_report",
+        "input": "kramp in mijn kuit tijdens hardlopen",
+        "expected": "injury_report"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "inj-005",
+        "category": "injury_report",
+        "input": "rechterelleboog doet pijn bij bench",
+        "expected": "injury_report"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "schema-001",
+        "category": "schema_request",
+        "input": "maak een nieuw schema voor 4x per week",
+        "expected": "schema_request"
+      },
+      "actual": "schema_request",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "schema-002",
+        "category": "schema_request",
+        "input": "kun je een trainingsprogramma genereren met focus op kracht?",
+        "expected": "schema_request"
+      },
+      "actual": "schema_request",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "schema-003",
+        "category": "schema_request",
+        "input": "ik wil een trainingsschema voor vakantie zonder gym",
+        "expected": "schema_request"
+      },
+      "actual": "schema_request",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "prog-001",
+        "category": "progress_question",
+        "input": "hoe gaat mijn bench progressie?",
+        "expected": "progress_question",
+        "note": "B2: 'gaat' had 'at' substring bug"
+      },
+      "actual": "progress_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "prog-002",
+        "category": "progress_question",
+        "input": "ben ik sterker geworden in squat?",
+        "expected": "progress_question"
+      },
+      "actual": "progress_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "prog-003",
+        "category": "progress_question",
+        "input": "wat is mijn huidige PR op deadlift?",
+        "expected": "progress_question"
+      },
+      "actual": "progress_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "prog-004",
+        "category": "progress_question",
+        "input": "rdl ging beter dan vorige keer",
+        "expected": "progress_question",
+        "note": "audit example — rdl now in PROGRESS_KEYWORDS"
+      },
+      "actual": "progress_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "weekly-001",
+        "category": "weekly_review",
+        "input": "hoe was mijn week",
+        "expected": "weekly_review"
+      },
+      "actual": "weekly_review",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "weekly-002",
+        "category": "weekly_review",
+        "input": "geef me een weekoverzicht",
+        "expected": "weekly_review"
+      },
+      "actual": "weekly_review",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "weekly-003",
+        "category": "weekly_review",
+        "input": "check-in voor zondag",
+        "expected": "weekly_review",
+        "note": "B2: 'dag'-in-'zondag' substring bug"
+      },
+      "actual": "weekly_review",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "weekly-004",
+        "category": "weekly_review",
+        "input": "evaluatie van vorige week",
+        "expected": "weekly_review"
+      },
+      "actual": "weekly_review",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "greet-001",
+        "category": "simple_greeting",
+        "input": "hoi",
+        "expected": "simple_greeting"
+      },
+      "actual": "simple_greeting",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "greet-002",
+        "category": "simple_greeting",
+        "input": "goedemorgen!",
+        "expected": "simple_greeting"
+      },
+      "actual": "simple_greeting",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "greet-003",
+        "category": "simple_greeting",
+        "input": "hey daar",
+        "expected": "simple_greeting"
+      },
+      "actual": "simple_greeting",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "chat-001",
+        "category": "general_chat",
+        "input": "thanks man",
+        "expected": "general_chat"
+      },
+      "actual": "general_chat",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "chat-002",
+        "category": "general_chat",
+        "input": "haha grappig",
+        "expected": "general_chat"
+      },
+      "actual": "general_chat",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-001",
+        "category": "edge",
+        "input": "pijn in mijn knie na het eten",
+        "expected": "injury_report",
+        "note": "injury keyword wins over nutrition"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-002",
+        "category": "edge",
+        "input": "hoeveel eiwit moet ik eten na een blessure?",
+        "expected": "injury_report",
+        "note": "injury keyword wins"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-003",
+        "category": "edge",
+        "input": "ik heb spierpijn",
+        "expected": "injury_report"
+      },
+      "actual": "injury_report",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-004",
+        "category": "edge",
+        "input": "hoi, hoe gaat het?",
+        "expected": "general_chat",
+        "note": "greeting with question mark = not simple_greeting"
+      },
+      "actual": "general_chat",
+      "passed": true,
+      "durationMs": 1
+    },
+    {
+      "case": {
+        "id": "edge-005",
+        "category": "edge",
+        "input": "🔥",
+        "expected": "general_chat",
+        "note": "emoji only"
+      },
+      "actual": "general_chat",
+      "passed": true,
+      "durationMs": 3
+    },
+    {
+      "case": {
+        "id": "edge-006",
+        "category": "edge",
+        "input": "wat at ik gisteren?",
+        "expected": "general_chat",
+        "note": "B2: 'wat' should not trigger 'at' anymore; nutrition Q would need 'eiwit'/'calorie' etc."
+      },
+      "actual": "general_chat",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-007",
+        "category": "edge",
+        "input": "vraag over progressie tabellen",
+        "expected": "progress_question"
+      },
+      "actual": "progress_question",
+      "passed": true,
+      "durationMs": 0
+    },
+    {
+      "case": {
+        "id": "edge-008",
+        "category": "edge",
+        "input": "dagelijkse stappen overzicht",
+        "expected": "weekly_review",
+        "note": "overzicht keyword"
+      },
+      "actual": "weekly_review",
+      "passed": true,
+      "durationMs": 0
+    }
+  ]
+}
