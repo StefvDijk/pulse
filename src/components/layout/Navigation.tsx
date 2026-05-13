@@ -43,7 +43,9 @@ export function Navigation() {
       <nav
         className={[
           'fixed bottom-0 left-0 right-0 z-50 lg:hidden',
-          'bg-white/72 dark:bg-[#1C1C1E]/72',
+          // [E11] dark-theme app has no <html class="dark">, so the dark:
+          // variant never matched. Lock to the dark glass background.
+          'bg-[#1C1C1E]/72',
           'backdrop-blur-xl backdrop-saturate-150',
           'border-t border-separator',
           'flex items-stretch justify-around',

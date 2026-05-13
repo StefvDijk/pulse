@@ -101,7 +101,7 @@ export function WorkloadPage() {
   const { data, isLoading, error } = useWorkload()
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-24 pt-6">
+    <div className="flex flex-col gap-5 px-4 pt-6">
       {/* Back nav — Apple HIG style */}
       <Link
         href="/"

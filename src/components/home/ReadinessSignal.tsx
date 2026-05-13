@@ -106,9 +106,15 @@ function buildMetricsParts(data: ReadinessData): MetricsParts {
 export function ReadinessSignal() {
   const { data, isLoading } = useReadiness()
 
-  // Show nothing while loading — appear smoothly once data arrives
+  // [E2] Render a sized placeholder during load so the rest of the
+  // homepage doesn't reflow when this card snaps into existence.
   if (isLoading || !data) {
-    return null
+    return (
+      <div
+        aria-hidden
+        className="h-[112px] animate-pulse rounded-2xl border border-separator bg-system-gray6/60"
+      />
+    )
   }
 
   const config = LEVEL_CONFIG[data.level]

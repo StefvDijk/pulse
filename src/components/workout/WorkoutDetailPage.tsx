@@ -169,7 +169,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
+      <div className="flex flex-col gap-4 px-4 pt-4">
         <SkeletonLine width="w-1/3" height="h-5" />
         <SkeletonCard className="flex flex-col gap-2">
           <SkeletonLine width="w-1/2" />
@@ -193,7 +193,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   if (error || !workout) {
     return (
-      <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
+      <div className="flex flex-col gap-4 px-4 pt-4">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm text-label-tertiary"
@@ -210,7 +210,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   )
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-24 pt-4">
+    <div className="flex flex-col gap-4 px-4 pt-4">
       {/* Back button */}
       <button
         onClick={() => router.back()}

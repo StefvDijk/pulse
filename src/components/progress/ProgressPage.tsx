@@ -39,7 +39,7 @@ export function ProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
+      <div className="flex flex-col gap-6 px-4 pt-6">
         <SkeletonLine width="w-1/4" height="h-7" />
         <SkeletonCard className="flex flex-col gap-3">
           <SkeletonLine width="w-1/3" />
@@ -60,7 +60,7 @@ export function ProgressPage() {
 
   if (progressError) {
     return (
-      <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
+      <div className="flex flex-col gap-6 px-4 pt-6">
         <h1 className="text-title1 font-bold tracking-tight text-label-primary">Progressie</h1>
         <ErrorAlert message="Kon data niet laden." onRetry={refresh} />
       </div>
@@ -70,7 +70,7 @@ export function ProgressPage() {
   const hasData = (progressData?.personalRecords.length ?? 0) > 0 || exercises.length > 0
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-24 pt-6">
+    <div className="flex flex-col gap-5 px-4 pt-6">
       <h1 className="text-title1 font-bold tracking-tight text-label-primary">Progressie</h1>
 
       {!hasData ? (

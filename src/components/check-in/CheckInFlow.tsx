@@ -178,10 +178,7 @@ export function CheckInFlow() {
     )
   }
 
-  // Already confirmed for this week
-  if (data.previousReview === null && confirmed) {
-    // Show success — will also match after confirm
-  }
+  // [E13] dropped a dead conditional here that did nothing.
 
   // Success screen
   if (confirmed) {

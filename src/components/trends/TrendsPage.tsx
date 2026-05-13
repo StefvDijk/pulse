@@ -34,7 +34,7 @@ export function TrendsPage() {
   ) ?? null
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
+    <div className="flex flex-col gap-6 px-4 pt-6">
       <h1 className="text-xl font-bold text-label-primary">Trends</h1>
 
       {error && <ErrorAlert message="Kon data niet laden." onRetry={refresh} />}

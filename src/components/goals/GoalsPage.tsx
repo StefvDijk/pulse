@@ -39,7 +39,7 @@ export function GoalsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-24 pt-6">
+    <div className="flex flex-col gap-6 px-4 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-label-primary">Doelen</h1>
