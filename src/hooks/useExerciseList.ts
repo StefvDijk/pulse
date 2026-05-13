@@ -18,6 +18,8 @@ export function useExerciseList() {
   const { data, error, isLoading } = useSWR<ExerciseListResponse>(
     '/api/progress/exercises',
     fetcher,
+    // [F6] Exercise list is essentially static; no need to refetch on tab focus.
+    { revalidateOnFocus: false },
   )
 
   return {

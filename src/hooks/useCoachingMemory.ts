@@ -26,6 +26,9 @@ export function useCoachingMemory() {
   const { data, error, isLoading, mutate } = useSWR<CoachingMemoryResponse>(
     '/api/coaching-memory',
     fetcher,
+    // [F6] Memory changes via chat side-effects or settings edits — tab-focus
+    // refetches don't add value. mutate() is called explicitly after writes.
+    { revalidateOnFocus: false },
   )
 
   async function updateMemory(id: string, value: string) {
