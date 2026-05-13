@@ -6,6 +6,7 @@ import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchem
 import { EditWeekModal } from './EditWeekModal'
 import { DayDetailSheet } from './DayDetailSheet'
 import { formatShortNumeric, formatDateRange } from '@/lib/formatters'
+import type { SportType } from '@/lib/constants'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
@@ -18,8 +19,6 @@ interface SchemaCalendarProps {
 }
 
 const DAY_HEADERS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'] as const
-
-type SportType = 'gym' | 'run' | 'padel' | 'unknown'
 
 function classifySport(focus: string | null): SportType {
   if (!focus) return 'unknown'
