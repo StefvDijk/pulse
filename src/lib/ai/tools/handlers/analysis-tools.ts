@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -12,10 +13,6 @@ function daysAgo(n: number): string {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() - n)
   return d.toISOString().slice(0, 10)
-}
-
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +84,7 @@ export async function calculateProgressiveOverload(
     }
 
     sessionData.push({
-      date: formatDate(workout.started_at),
+      date: formatDayMonthWithWeekday(workout.started_at),
       bestWeight,
       bestReps,
       totalVolume: Math.round(totalVolume),

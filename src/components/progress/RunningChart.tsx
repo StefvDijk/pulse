@@ -19,15 +19,12 @@ import {
   appleTooltipLabelStyle,
   appleTooltipStyle,
 } from '@/lib/chart-styles'
+import { formatDayMonth } from '@/lib/formatters'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
 export interface RunningChartProps {
   weeks: WeekRow[]
-}
-
-function formatWeek(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
 }
 
 export const RunningChart = memo(function RunningChart({ weeks }: RunningChartProps) {
@@ -36,7 +33,7 @@ export const RunningChart = memo(function RunningChart({ weeks }: RunningChartPr
     const sessions = w.running_sessions ?? 0
     const avgKm = sessions > 0 ? +(km / sessions).toFixed(1) : 0
     return {
-      week: formatWeek(w.week_start),
+      week: formatDayMonth(w.week_start),
       km: +km.toFixed(1),
       avgKm,
     }

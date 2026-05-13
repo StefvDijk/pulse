@@ -5,25 +5,14 @@ import { ChevronLeft, ClipboardCheck, Calendar } from 'lucide-react'
 import { useCheckInHistory } from '@/hooks/useCheckInHistory'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
+import { formatDateRange } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date formatting
 // ---------------------------------------------------------------------------
 
-function formatDateRange(weekStart: string, weekEnd: string): string {
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekEnd + 'T00:00:00Z')
-  const opts: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  }
-  return `${start.toLocaleDateString('nl-NL', opts)} – ${end.toLocaleDateString('nl-NL', opts)}`
-}
-
 function formatCompletedDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString('nl-NL', {
+  return new Date(iso).toLocaleDateString('nl-NL', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

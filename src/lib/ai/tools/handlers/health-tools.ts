@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -52,10 +53,6 @@ function periodToDates(period: string): { start: string; end: string } {
   }
 }
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
 // ---------------------------------------------------------------------------
 // get_health_metrics
 // ---------------------------------------------------------------------------
@@ -92,7 +89,7 @@ export async function getHealthMetrics(
             const hours = s.total_sleep_minutes ? (s.total_sleep_minutes / 60).toFixed(1) : '?'
             const deep = s.deep_sleep_minutes ? `${s.deep_sleep_minutes} min deep` : ''
             const eff = s.sleep_efficiency ? `${Number(s.sleep_efficiency).toFixed(0)}% efficiëntie` : ''
-            lines.push(`  ${formatDate(s.date)}: ${hours}u ${deep} ${eff}`.trim())
+            lines.push(`  ${formatDayMonthWithWeekday(s.date, { utc: true })}: ${hours}u ${deep} ${eff}`.trim())
             totalMinutes += s.total_sleep_minutes ?? 0
           }
           const avgHours = (totalMinutes / data.length / 60).toFixed(1)
@@ -121,7 +118,7 @@ export async function getHealthMetrics(
             const lines = ['Stappen:']
             let totalSteps = 0
             for (const d of data) {
-              lines.push(`  ${formatDate(d.date)}: ${d.steps?.toLocaleString('nl-NL') ?? '?'} stappen`)
+              lines.push(`  ${formatDayMonthWithWeekday(d.date, { utc: true })}: ${d.steps?.toLocaleString('nl-NL') ?? '?'} stappen`)
               totalSteps += d.steps ?? 0
             }
             lines.push(`  Gemiddeld: ${Math.round(totalSteps / data.length).toLocaleString('nl-NL')}/dag`)
@@ -130,7 +127,7 @@ export async function getHealthMetrics(
           if (input.metrics.includes('active_energy')) {
             const lines = ['Actieve energie:']
             for (const d of data) {
-              lines.push(`  ${formatDate(d.date)}: ${Math.round(Number(d.active_calories ?? 0))} kcal actief`)
+              lines.push(`  ${formatDayMonthWithWeekday(d.date, { utc: true })}: ${Math.round(Number(d.active_calories ?? 0))} kcal actief`)
             }
             sections.push(lines.join('\n'))
           }
@@ -157,7 +154,7 @@ export async function getHealthMetrics(
             const lines = ['Rusthart:']
             const values = data.filter((d) => d.resting_heart_rate != null)
             for (const d of values) {
-              lines.push(`  ${formatDate(d.date)}: ${d.resting_heart_rate} bpm`)
+              lines.push(`  ${formatDayMonthWithWeekday(d.date, { utc: true })}: ${d.resting_heart_rate} bpm`)
             }
             if (values.length > 0) {
               const avg = Math.round(values.reduce((s, d) => s + (d.resting_heart_rate ?? 0), 0) / values.length)
@@ -169,7 +166,7 @@ export async function getHealthMetrics(
             const lines = ['HRV:']
             const values = data.filter((d) => d.hrv_average != null)
             for (const d of values) {
-              lines.push(`  ${formatDate(d.date)}: ${Number(d.hrv_average).toFixed(0)} ms`)
+              lines.push(`  ${formatDayMonthWithWeekday(d.date, { utc: true })}: ${Number(d.hrv_average).toFixed(0)} ms`)
             }
             if (values.length > 0) {
               const avg = Math.round(values.reduce((s, d) => s + Number(d.hrv_average ?? 0), 0) / values.length)
@@ -198,7 +195,7 @@ export async function getHealthMetrics(
           }
           const lines = ['Gewicht:']
           for (const d of data) {
-            lines.push(`  ${formatDate(d.date)}: ${Number(d.weight_kg).toFixed(1)} kg`)
+            lines.push(`  ${formatDayMonthWithWeekday(d.date, { utc: true })}: ${Number(d.weight_kg).toFixed(1)} kg`)
           }
           if (data.length >= 2) {
             const first = Number(data[data.length - 1].weight_kg)

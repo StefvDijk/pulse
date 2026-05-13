@@ -14,6 +14,7 @@ import {
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import { ManualAddModal } from '@/components/check-in/ManualAddModal'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,11 +49,6 @@ function formatSleepHours(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return m > 0 ? `${h}u ${m}m` : `${h}u`
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +90,7 @@ export function WeekReviewCard({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-label-primary truncate">{w.title}</p>
                 <p className="text-xs text-label-tertiary">
-                  {formatDate(w.started_at)}
+                  {formatDayMonthWithWeekday(w.started_at)}
                   {w.duration_seconds != null && ` · ${formatDuration(w.duration_seconds)}`}
                 </p>
               </div>
@@ -112,7 +108,7 @@ export function WeekReviewCard({
                   {formatDistance(r.distance_meters)}
                 </p>
                 <p className="text-xs text-label-tertiary">
-                  {formatDate(r.started_at)}
+                  {formatDayMonthWithWeekday(r.started_at)}
                   {` · ${formatDuration(r.duration_seconds)}`}
                 </p>
               </div>
@@ -128,7 +124,7 @@ export function WeekReviewCard({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-label-primary">Padel</p>
                 <p className="text-xs text-label-tertiary">
-                  {formatDate(p.started_at)}
+                  {formatDayMonthWithWeekday(p.started_at)}
                   {` · ${formatDuration(p.duration_seconds)}`}
                   {p.intensity && ` · ${p.intensity}`}
                 </p>

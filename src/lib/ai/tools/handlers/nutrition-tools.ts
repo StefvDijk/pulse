@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -48,10 +49,6 @@ function periodToDates(period: string): { start: string; end: string } {
     default:
       return { start: end, end }
   }
-}
-
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +103,7 @@ export async function getNutritionLog(
     const calStatus = calTarget ? ` (target: ${calTarget})` : ''
     const protStatus = protTarget ? ` (target: ${protTarget}g)` : ''
 
-    lines.push(`${formatDate(s.date)}: ${cal} kcal${calStatus}, ${protein}g eiwit${protStatus}, ${carbs}g KH, ${fat}g vet`)
+    lines.push(`${formatDayMonthWithWeekday(s.date, { utc: true })}: ${cal} kcal${calStatus}, ${protein}g eiwit${protStatus}, ${carbs}g KH, ${fat}g vet`)
 
     if (input.include_meals && meals) {
       const dayMeals = meals.filter((m) => m.date === s.date)

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Dumbbell, Footprints, Trophy, Clock, Flame, Heart, MapPin, Gauge } from 'lucide-react'
 import { MuscleGroupDot } from './MuscleGroupDot'
 import type { ActivityItem } from '@/hooks/useActivityFeed'
+import { formatRelativeDate, formatTime } from '@/lib/formatters'
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -13,22 +14,6 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(m / 60)
   const rem = m % 60
   return rem > 0 ? `${h}u ${rem}m` : `${h}u`
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  if (diffDays === 0) return 'Vandaag'
-  if (diffDays === 1) return 'Gisteren'
-  if (diffDays < 7) {
-    return ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'][d.getDay()]
-  }
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatPace(secondsPerKm: number): string {
@@ -97,7 +82,7 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
               )}
             </div>
             <p className="text-xs text-label-tertiary">
-              {formatDate(activity.started_at)} · {formatTime(activity.started_at)}
+              {formatRelativeDate(activity.started_at)} · {formatTime(activity.started_at)}
             </p>
           </div>
         </div>

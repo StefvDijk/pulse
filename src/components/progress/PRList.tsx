@@ -1,6 +1,7 @@
 'use client'
 
 import type { Database } from '@/types/database'
+import { formatDayMonth } from '@/lib/formatters'
 
 type PRRow = Database['public']['Tables']['personal_records']['Row'] & {
   exercise_definitions?: { name: string } | null
@@ -8,13 +9,6 @@ type PRRow = Database['public']['Tables']['personal_records']['Row'] & {
 
 export interface PRListProps {
   records: PRRow[]
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('nl-NL', {
-    day: 'numeric',
-    month: 'short',
-  })
 }
 
 function isRecent(dateStr: string): boolean {
@@ -91,7 +85,7 @@ export function PRList({ records }: PRListProps) {
 
             {/* Date */}
             <p className="mt-1.5 text-[10px] text-label-tertiary">
-              {formatDate(pr.achieved_at)}
+              {formatDayMonth(pr.achieved_at)}
             </p>
           </div>
         )

@@ -6,22 +6,13 @@ import { useWorkoutDetail } from '@/hooks/useWorkoutDetail'
 import { ExerciseImage } from '@/components/shared/ExerciseImage'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import type { WorkoutExerciseDetail, WorkoutSet } from '@/app/api/workouts/[id]/route'
+import { formatFullDate, formatTime } from '@/lib/formatters'
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
 function formatDuration(s: number): string {
   const m = Math.round(s / 60)
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}u ${m % 60}m`
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('nl-NL', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
 }
 
 /* ── Set row ─────────────────────────────────────────────── */
@@ -223,7 +214,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       <div className="rounded-2xl bg-surface-primary border border-separator p-4">
         <h1 className="text-xl font-bold text-label-primary mb-1">{workout.title}</h1>
         <p className="text-sm text-label-tertiary mb-4">
-          {formatDate(workout.started_at)} · {formatTime(workout.started_at)}
+          {formatFullDate(workout.started_at)} · {formatTime(workout.started_at)}
         </p>
 
         {/* Stats grid */}

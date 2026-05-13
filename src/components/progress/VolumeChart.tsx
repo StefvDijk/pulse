@@ -21,15 +21,12 @@ import {
   appleTooltipStyle,
   sportColors,
 } from '@/lib/chart-styles'
+import { formatDayMonth } from '@/lib/formatters'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
 export interface VolumeChartProps {
   weeks: WeekRow[]
-}
-
-function formatWeek(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
 }
 
 const SPORT_LABELS: Record<string, string> = {
@@ -60,7 +57,7 @@ export const VolumeChart = memo(function VolumeChart({ weeks }: VolumeChartProps
     const padelMin = totalSessions > 0 ? Math.round((padel / totalSessions) * total) : 0
 
     return {
-      week: formatWeek(w.week_start),
+      week: formatDayMonth(w.week_start),
       gym: gymMin,
       run: runMin,
       padel: padelMin,

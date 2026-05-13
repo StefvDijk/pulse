@@ -11,21 +11,12 @@ import { MealsList } from './MealsList'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { NutritionSummaryData } from '@/app/api/nutrition/summary/route'
+import { formatDateLabel } from '@/lib/formatters'
 
 async function fetcher(url: string): Promise<NutritionSummaryData> {
   const res = await fetch(url)
   if (!res.ok) throw new Error('Laden mislukt')
   return res.json()
-}
-
-function formatDateLabel(dateStr: string): string {
-  const date = new Date(dateStr)
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-
-  if (dateStr === today) return 'Vandaag'
-  if (dateStr === yesterday) return 'Gisteren'
-  return date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
 }
 
 function offsetDate(dateStr: string, days: number): string {

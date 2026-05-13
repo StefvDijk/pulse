@@ -1,6 +1,7 @@
 'use client'
 
 import type { SchemaWeek } from '@/hooks/useSchema'
+import { formatDayMonth } from '@/lib/formatters'
 
 interface SchemaProgressProps {
   title: string
@@ -13,12 +14,6 @@ interface SchemaProgressProps {
   startDate: string
 }
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`
-}
-
 function getNextMondayLabel(startDate: string, currentWeek: number): string {
   const start = new Date(startDate + 'T00:00:00Z')
   const dayOfWeek = start.getUTCDay()
@@ -27,7 +22,7 @@ function getNextMondayLabel(startDate: string, currentWeek: number): string {
   firstMonday.setUTCDate(start.getUTCDate() + mondayOffset)
   const nextMonday = new Date(firstMonday)
   nextMonday.setUTCDate(firstMonday.getUTCDate() + currentWeek * 7)
-  return formatDate(nextMonday.toISOString().slice(0, 10))
+  return formatDayMonth(nextMonday.toISOString().slice(0, 10), { utc: true })
 }
 
 export function SchemaProgress({

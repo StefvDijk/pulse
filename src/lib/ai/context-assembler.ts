@@ -17,15 +17,11 @@
 export { classifyQuestion, type QuestionType } from './classifier'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonth } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Small utilities used by the loaders below
 // ---------------------------------------------------------------------------
-
-function formatDateShort(d: string): string {
-  const dt = new Date(d)
-  return dt.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-}
 
 function num(v: number | null | undefined, decimals = 0): string {
   if (v === null || v === undefined) return '—'
@@ -77,7 +73,7 @@ async function loadRecentPRs(userId: string): Promise<string | null> {
 
   const lines = data.map((pr) => {
     const name = (pr.exercise_definitions as { name: string } | null)?.name ?? 'Onbekend'
-    return `${formatDateShort(pr.achieved_at)}: ${name} — ${num(pr.value)}${pr.unit ?? ''}`
+    return `${formatDayMonth(pr.achieved_at)}: ${name} — ${num(pr.value)}${pr.unit ?? ''}`
   })
 
   return ['--- RECENTE PERSONAL RECORDS ---', ...lines].join('\n')
