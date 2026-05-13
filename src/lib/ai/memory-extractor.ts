@@ -98,12 +98,16 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
 
     // Extract JSON array — be lenient about surrounding whitespace/text
     const match = /\[[\s\S]*\]/.exec(text)
-    if (!match) return
+    if (!match) {
+      console.error('[memory-extractor] No JSON array in Haiku output; raw length:', text.length)
+      return
+    }
 
     let updates: MemoryUpdate[]
     try {
       updates = JSON.parse(match[0]) as MemoryUpdate[]
-    } catch {
+    } catch (parseErr) {
+      console.error('[memory-extractor] JSON.parse failed:', parseErr)
       return
     }
 
@@ -138,7 +142,8 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
       )
     }
   } catch (err) {
-    // Fire-and-forget: never let memory extraction crash the chat response
-    console.error('[memory-extractor] Error:', err)
+    // Fire-and-forget: never let memory extraction crash the chat response.
+    // [B10] Logged with extractor tag so it's greppable in Vercel logs.
+    console.error('[memory-extractor] Extraction failed:', err)
   }
 }

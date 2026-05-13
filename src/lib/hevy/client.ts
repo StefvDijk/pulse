@@ -15,11 +15,13 @@ const PAGE_SIZE = 10
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function hevyFetch<T>(
+// [D13] No generic: callers MUST parse the unknown return with Zod, so
+// removing T prevents "false-safety" casts like hevyFetch<HevyWorkout>(...).
+async function hevyFetch(
   apiKey: string,
   path: string,
   params?: Record<string, string>,
-): Promise<T> {
+): Promise<unknown> {
   const url = new URL(`${BASE_URL}${path}`)
 
   if (params) {
@@ -50,7 +52,7 @@ async function hevyFetch<T>(
     throw new Error(`Hevy API: Unexpected error (${response.status})`)
   }
 
-  return response.json() as Promise<T>
+  return response.json() as Promise<unknown>
 }
 
 // ---------------------------------------------------------------------------
@@ -71,12 +73,12 @@ export async function getWorkouts(
     params.since = since.toISOString()
   }
 
-  const raw = await hevyFetch<unknown>(apiKey, '/v1/workouts', params)
+  const raw = await hevyFetch(apiKey, '/v1/workouts', params)
   return HevyWorkoutsResponseSchema.parse(raw)
 }
 
 export async function getWorkout(apiKey: string, id: string): Promise<HevyWorkout> {
-  const raw = await hevyFetch<unknown>(apiKey, `/v1/workouts/${id}`)
+  const raw = await hevyFetch(apiKey, `/v1/workouts/${id}`)
 
   // Single workout endpoint may return the workout directly or wrapped
   // Try wrapped shape first, fall back to direct
@@ -95,7 +97,7 @@ export async function getExerciseTemplates(apiKey: string): Promise<HevyExercise
   let pageCount = 1
 
   while (page <= pageCount) {
-    const raw = await hevyFetch<unknown>(apiKey, '/v1/exercise_templates', {
+    const raw = await hevyFetch(apiKey, '/v1/exercise_templates', {
       page: String(page),
       pageSize: '100',
     })
@@ -115,7 +117,7 @@ export async function getRoutines(apiKey: string): Promise<HevyRoutine[]> {
   let pageCount = 1
 
   while (page <= pageCount) {
-    const raw = await hevyFetch<unknown>(apiKey, '/v1/routines', {
+    const raw = await hevyFetch(apiKey, '/v1/routines', {
       page: String(page),
       pageSize: '10',
     })

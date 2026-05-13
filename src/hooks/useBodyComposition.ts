@@ -13,6 +13,8 @@ export function useBodyComposition(limit = 50) {
   const { data, error, isLoading, mutate } = useSWR<BodyCompEntry[]>(
     `/api/body-composition?limit=${limit}`,
     fetcher,
+    // [F6] Body composition entries are added at most weekly; tab-focus refetches waste data.
+    { revalidateOnFocus: false },
   )
 
   return {

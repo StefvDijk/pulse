@@ -333,15 +333,24 @@ export async function POST(request: Request) {
           const { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate } =
             extractWritebacks(fullResponse)
 
-          // Save assistant message (clean text)
-          const usage = await result.usage
+          // Save assistant message (clean text).
+          // [B9] usage fetch must not block the DB save: if Anthropic returns
+          // unexpected shape, log it but still persist the message so the
+          // user's turn isn't lost.
+          let outputTokens = 0
+          try {
+            const usage = await result.usage
+            outputTokens = usage.outputTokens ?? 0
+          } catch (usageErr) {
+            console.error('[chat] result.usage failed (fallback 0):', usageErr)
+          }
           await admin.from('chat_messages').insert({
             user_id: user.id,
             session_id: sessionId,
             role: 'assistant',
             content: cleanText,
             message_type: questionType,
-            tokens_used: usage.outputTokens ?? 0,
+            tokens_used: outputTokens,
           })
 
           // Update session

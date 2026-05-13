@@ -91,12 +91,35 @@ export async function GET(
       throw workoutError
     }
 
-    // Find PRs achieved in this workout (for badge display)
-    const { data: prs } = await admin
+    // [F4] PRs query and previous-workout query both depend on the first
+    // query's workout row but not on each other. Run them in parallel.
+    const prsPromise = admin
       .from('personal_records')
       .select('exercise_definition_id')
       .eq('user_id', user.id)
       .eq('workout_id', id)
+
+    const prevWorkoutPromise = admin
+      .from('workouts')
+      .select(
+        `id, started_at,
+         workout_exercises(
+           exercise_order,
+           exercise_definitions(name),
+           workout_sets(set_order, set_type, weight_kg, reps, rpe, distance_meters, duration_seconds)
+         )`,
+      )
+      .eq('user_id', user.id)
+      .ilike('title', workout.title)
+      .lt('started_at', workout.started_at)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const [{ data: prs }, { data: prevWorkout }] = await Promise.all([
+      prsPromise,
+      prevWorkoutPromise,
+    ])
 
     const prExerciseIds = new Set((prs ?? []).map((p) => p.exercise_definition_id))
 
@@ -131,24 +154,7 @@ export async function GET(
         is_pr: prExerciseIds.has(we.exercise_definition_id),
       }))
 
-    // Fetch previous session with same title (for comparison)
-    const { data: prevWorkout } = await admin
-      .from('workouts')
-      .select(
-        `id, started_at,
-         workout_exercises(
-           exercise_order,
-           exercise_definitions(name),
-           workout_sets(set_order, set_type, weight_kg, reps, rpe, distance_meters, duration_seconds)
-         )`,
-      )
-      .eq('user_id', user.id)
-      .ilike('title', workout.title)
-      .lt('started_at', workout.started_at)
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
+    // (Previous workout was fetched in parallel with PRs above — see [F4].)
     const previous = prevWorkout
       ? {
           id: prevWorkout.id,

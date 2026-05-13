@@ -3,7 +3,7 @@
 // <MiniMuscleHeatmap> use these — the only thing that differs between the two
 // is the wrapping interactivity. Keep render math + DB↔SVG mapping here.
 
-import { DECORATIVE_SLUGS, type BodyMuscle } from '@/components/muscles/bodyMapData'
+import { DECORATIVE_SLUGS, type BodyMuscle } from '@/lib/body-map/data'
 
 /**
  * Which SVG body slugs should light up for a given DB muscle group.

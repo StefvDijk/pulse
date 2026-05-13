@@ -143,9 +143,9 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   const errors: string[] = []
   let synced = 0
 
-  // 1. Get API key (env var takes precedence over DB) + last sync timestamp
-  const envApiKey = process.env.HEVY_API_KEY ?? null
-
+  // [G5] Get API key from user_settings only. We dropped the env-var fallback
+  // so that the per-user key is the single source of truth (a stray
+  // HEVY_API_KEY in env was a footgun: it would override every user's key).
   const { data: settings, error: settingsError } = await admin
     .from('user_settings')
     .select('hevy_api_key, last_hevy_sync_at')
@@ -156,10 +156,10 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     throw new Error(`Failed to fetch user settings: ${settingsError.message}`)
   }
 
-  const apiKey = envApiKey ?? settings?.hevy_api_key ?? null
+  const apiKey = settings?.hevy_api_key ?? null
 
   if (!apiKey) {
-    throw new Error('No Hevy API key configured — set HEVY_API_KEY in .env.local or via Settings')
+    throw new Error('No Hevy API key configured — configure via Settings page')
   }
 
   const since = settings?.last_hevy_sync_at ? new Date(settings.last_hevy_sync_at) : undefined
