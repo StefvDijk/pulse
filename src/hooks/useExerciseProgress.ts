@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { ExerciseProgressResponse } from '@/app/api/progress/exercise/route'
+import type { ExerciseProgressResponse } from '@/types/api'
 
 async function fetcher(url: string): Promise<ExerciseProgressResponse> {
   const res = await fetch(url)

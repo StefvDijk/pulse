@@ -13,6 +13,7 @@ import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
 import { getNextWeekRange } from '@/lib/dates/week'
+import { formatDateRange } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -104,17 +105,6 @@ function StepIndicator({ current }: { current: StepNumber }) {
       })}
     </div>
   )
-}
-
-// ---------------------------------------------------------------------------
-// Date range formatter
-// ---------------------------------------------------------------------------
-
-function formatDateRange(weekStart: string, weekEnd: string): string {
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekEnd + 'T00:00:00Z')
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
-  return `${start.toLocaleDateString('nl-NL', opts)} – ${end.toLocaleDateString('nl-NL', opts)}`
 }
 
 // ---------------------------------------------------------------------------

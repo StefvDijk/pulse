@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -59,10 +60,6 @@ function periodToDates(period: string): { start: string; end: string } {
   }
 }
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
 function formatPace(secondsPerKm: number): string {
   const mins = Math.floor(secondsPerKm / 60)
   const secs = Math.round(secondsPerKm % 60)
@@ -96,7 +93,7 @@ export async function getWorkoutHistory(
     const lines: string[] = [`${workouts.length} workouts gevonden (${start} t/m ${end}):\n`]
 
     for (const w of workouts) {
-      const date = formatDate(w.started_at)
+      const date = formatDayMonthWithWeekday(w.started_at)
       const mins = w.duration_seconds ? Math.round(w.duration_seconds / 60) : '?'
       const vol = w.total_volume_kg ? `${Math.round(Number(w.total_volume_kg))} kg volume` : ''
 
@@ -133,7 +130,7 @@ export async function getWorkoutHistory(
   const lines: string[] = [`${workouts.length} workouts gevonden (${start} t/m ${end}):\n`]
 
   for (const w of workouts) {
-    const date = formatDate(w.started_at)
+    const date = formatDayMonthWithWeekday(w.started_at)
     const mins = w.duration_seconds ? Math.round(w.duration_seconds / 60) : '?'
     const vol = w.total_volume_kg ? `${Math.round(Number(w.total_volume_kg))} kg volume` : ''
     const exCount = w.exercise_count ? `${w.exercise_count} oefeningen` : ''
@@ -227,7 +224,7 @@ export async function getExerciseStats(
     }
 
     sessions.push({
-      date: formatDate(workout.started_at),
+      date: formatDayMonthWithWeekday(workout.started_at),
       bestSet: `${bestReps}x@${bestWeight}kg`,
       volume: Math.round(totalVolume),
     })
@@ -255,7 +252,7 @@ export async function getExerciseStats(
   if (prs && prs.length > 0) {
     lines.push('\nPersonal Records:')
     for (const pr of prs) {
-      lines.push(`  ${pr.record_type}: ${pr.value} ${pr.unit} (${formatDate(pr.achieved_at)})`)
+      lines.push(`  ${pr.record_type}: ${pr.value} ${pr.unit} (${formatDayMonthWithWeekday(pr.achieved_at)})`)
     }
   }
 
@@ -353,7 +350,7 @@ export async function getOtherActivities(
   const lines: string[] = [`${data.length} activiteiten gevonden (${start} t/m ${end}):\n`]
 
   for (const s of data) {
-    const date = formatDate(s.started_at)
+    const date = formatDayMonthWithWeekday(s.started_at)
     const mins = s.duration_seconds ? Math.round(s.duration_seconds / 60) : '?'
     const hr = s.avg_heart_rate ? `, ${s.avg_heart_rate} bpm` : ''
     const kcal = s.calories_burned ? `, ${Math.round(Number(s.calories_burned))} kcal` : ''

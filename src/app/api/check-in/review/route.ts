@@ -9,6 +9,7 @@ import {
   getWeekEnd,
 } from '@/lib/dates/week'
 import { checkRateLimit } from '@/lib/rate-limit'
+import type { CheckInReviewData, DetectedGap } from '@/types/check-in'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -24,59 +25,6 @@ type SleepLogRow = Database['public']['Tables']['sleep_logs']['Row']
 type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
 type WeeklyReviewRow = Database['public']['Tables']['weekly_reviews']['Row']
 type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
-
-// ---------------------------------------------------------------------------
-// Gap detection types
-// ---------------------------------------------------------------------------
-
-export interface DetectedGap {
-  date: string        // ISO date
-  dayName: string     // "maandag", "donderdag", etc.
-  expected: string    // "Upper A", "Padel", etc.
-  type: 'gym' | 'padel' | 'run'
-}
-
-// ---------------------------------------------------------------------------
-// Exported response type
-// ---------------------------------------------------------------------------
-
-export interface CheckInReviewData {
-  week: {
-    weekStart: string
-    weekEnd: string
-    weekNumber: number
-    year: number
-  }
-  aggregation: WeeklyAggregationRow | null
-  sessions: {
-    planned: number | null
-    completed: number | null
-    adherencePercentage: number | null
-  }
-  workouts: WorkoutRow[]
-  runs: RunRow[]
-  padelSessions: PadelSessionRow[]
-  otherActivities: WorkoutSessionRow[]
-  nutrition: {
-    days: NutritionRow[]
-    avgCalories: number | null
-    avgProteinG: number | null
-  }
-  sleep: {
-    days: SleepLogRow[]
-    avgTotalMinutes: number | null
-    avgDeepMinutes: number | null
-  }
-  highlights: {
-    personalRecords: PersonalRecordRow[]
-  }
-  previousReview: WeeklyReviewRow | null
-  targets: {
-    weeklyTrainingTarget: Json | null
-    proteinTargetPerKg: number | null
-  }
-  gaps: DetectedGap[]
-}
 
 // ---------------------------------------------------------------------------
 // Helpers

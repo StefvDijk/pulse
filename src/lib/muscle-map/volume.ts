@@ -9,7 +9,7 @@
  * (which also needs to list the exercises that touched a given muscle).
  */
 
-import type { MuscleMapExercise, MuscleMapWorkout } from '@/app/api/muscle-map/route'
+import type { MuscleMapExercise, MuscleMapWorkout } from '@/types/api'
 
 export type MuscleVolume = Record<string, number>
 

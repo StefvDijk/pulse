@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown } from 'lucide-react'
-import type { ExerciseListItem } from '@/app/api/progress/exercises/route'
+import type { ExerciseListItem } from '@/types/api'
 
 interface ExercisePickerProps {
   exercises: ExerciseListItem[]

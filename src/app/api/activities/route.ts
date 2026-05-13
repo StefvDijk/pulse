@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Sport } from '@/lib/constants'
 
 /* ── Types ────────────────────────────────────────────────── */
 
 export interface ActivityItem {
   id: string
-  type: 'gym' | 'run' | 'padel'
+  type: Sport
   title: string
   started_at: string
   duration_seconds: number | null

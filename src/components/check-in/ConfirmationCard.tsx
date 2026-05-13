@@ -9,7 +9,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
-import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import type { CheckInReviewData } from '@/types/check-in'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
 import type { PlannedSession } from '@/hooks/useWeekPlan'

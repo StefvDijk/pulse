@@ -3,12 +3,11 @@
 import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
 import type { SchemaWeekDay } from '@/hooks/useSchemaWeek'
 import { Card } from '@/components/ui'
+import type { SportType } from '@/lib/constants'
 
 interface WeekAtAGlanceProps {
   days: SchemaWeekDay[]
 }
-
-type SportType = 'gym' | 'run' | 'padel' | 'unknown'
 
 function classifySport(title: string | undefined): SportType {
   if (!title) return 'unknown'

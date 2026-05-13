@@ -1,20 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-/* ── Types ─────────────────────────────────────────────────── */
-
-interface ExerciseProgressPoint {
-  date: string
-  maxWeight: number
-  repsAtMax: number
-  totalVolume: number
-}
-
-export interface ExerciseProgressResponse {
-  exerciseName: string
-  points: ExerciseProgressPoint[]
-}
+import type { ExerciseProgressPoint, ExerciseProgressResponse } from '@/types/api'
 
 /* ── Route handler ─────────────────────────────────────────── */
 

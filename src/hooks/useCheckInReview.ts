@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import type { CheckInReviewData } from '@/types/check-in'
 
 async function fetcher(url: string): Promise<CheckInReviewData> {
   const res = await fetch(url)

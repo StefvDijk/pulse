@@ -1,14 +1,10 @@
 'use client'
 
-import type { ExerciseProgressResponse } from '@/app/api/progress/exercise/route'
+import type { ExerciseProgressResponse } from '@/types/api'
+import { formatDayMonth } from '@/lib/formatters'
 
 interface ProgressionChartProps {
   data: ExerciseProgressResponse
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
 }
 
 export function ProgressionChart({ data }: ProgressionChartProps) {
@@ -68,13 +64,13 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
 
   // X-axis labels (first, middle, last)
   const xLabels: Array<{ i: number; label: string }> = [
-    { i: 0, label: formatDate(points[0].date) },
+    { i: 0, label: formatDayMonth(points[0].date, { utc: true }) },
   ]
   if (points.length > 2) {
     const mid = Math.floor(points.length / 2)
-    xLabels.push({ i: mid, label: formatDate(points[mid].date) })
+    xLabels.push({ i: mid, label: formatDayMonth(points[mid].date, { utc: true }) })
   }
-  xLabels.push({ i: points.length - 1, label: formatDate(points[points.length - 1].date) })
+  xLabels.push({ i: points.length - 1, label: formatDayMonth(points[points.length - 1].date, { utc: true }) })
 
   // Delta
   const firstWeight = points[0].maxWeight
@@ -106,7 +102,7 @@ export function ProgressionChart({ data }: ProgressionChartProps) {
       <p className="text-caption1 text-label-tertiary">
         Beste set: {points[prIndex].maxWeight}kg × {points[prIndex].repsAtMax} reps
         {' · '}
-        {formatDate(points[prIndex].date)}
+        {formatDayMonth(points[prIndex].date, { utc: true })}
       </p>
 
       {/* SVG Chart */}

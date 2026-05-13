@@ -5,6 +5,8 @@ import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, More
 import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { EditWeekModal } from './EditWeekModal'
 import { DayDetailSheet } from './DayDetailSheet'
+import { formatShortNumeric, formatDateRange } from '@/lib/formatters'
+import type { SportType } from '@/lib/constants'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
@@ -17,8 +19,6 @@ interface SchemaCalendarProps {
 }
 
 const DAY_HEADERS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'] as const
-
-type SportType = 'gym' | 'run' | 'padel' | 'unknown'
 
 function classifySport(focus: string | null): SportType {
   if (!focus) return 'unknown'
@@ -65,17 +65,6 @@ function sportTextClass(sport: SportType): string {
   }
 }
 
-function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`
-}
-
-function formatDateRange(days: SchemaDay[]): string {
-  const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  const first = new Date(days[0].date + 'T00:00:00Z')
-  const last = new Date(days[6].date + 'T00:00:00Z')
-  return `${first.getUTCDate()} ${months[first.getUTCMonth()]} – ${last.getUTCDate()} ${months[last.getUTCMonth()]}`
-}
 
 /* ── Reschedule Menu ─────────────────────────────────────── */
 
@@ -112,7 +101,7 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
               <span className="text-sm text-label-primary">
                 {DAY_HEADERS[new Date(target.date + 'T00:00:00Z').getUTCDay() === 0 ? 6 : new Date(target.date + 'T00:00:00Z').getUTCDay() - 1]}
               </span>
-              <span className="text-xs text-label-tertiary">{formatDateShort(target.date)}</span>
+              <span className="text-xs text-label-tertiary">{formatShortNumeric(target.date)}</span>
               {target.workoutFocus && (
                 <span className="ml-auto text-xs text-label-tertiary">
                   ({target.workoutFocus})
@@ -247,7 +236,7 @@ export function SchemaCalendar({
             )}
           </h3>
           <p className="text-[11px] text-label-tertiary mt-0.5">
-            {formatDateRange(week.days)}
+            {formatDateRange(week.days[0].date, week.days[6].date, { utc: true })}
             {' · '}
             {week.sessionsCompleted}/{week.sessionsPlanned} sessies
           </p>

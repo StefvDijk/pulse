@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDayMonthWithWeekday } from '@/lib/formatters'
 
 // ---------------------------------------------------------------------------
 // Date helpers (shared logic — keep DRY with workout-tools)
@@ -50,10 +51,6 @@ function periodToDates(period: string): { start: string; end: string } {
   }
 }
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
 function formatPace(secondsPerKm: number): string {
   const mins = Math.floor(secondsPerKm / 60)
   const secs = Math.round(secondsPerKm % 60)
@@ -95,7 +92,7 @@ export async function getRunningHistory(
   const lines: string[] = [`${runs.length} runs gevonden (${start} t/m ${end}):\n`]
 
   for (const r of runs) {
-    const date = formatDate(r.started_at)
+    const date = formatDayMonthWithWeekday(r.started_at)
     const km = r.distance_meters ? (Number(r.distance_meters) / 1000).toFixed(1) : '?'
     const mins = r.duration_seconds ? Math.round(r.duration_seconds / 60) : '?'
     const pace = r.avg_pace_seconds_per_km ? formatPace(r.avg_pace_seconds_per_km) : '?'

@@ -282,7 +282,7 @@ async function executeProposeSchemaUpdate(
       return { ok: false, error: `Dag '${update.day}' niet gevonden in schema.` }
     }
 
-    let updatedSchedule = schedule.map((item, i) => {
+    const updatedSchedule = schedule.map((item, i) => {
       if (i !== dayIndex) return item
       const exercises = [...(item.exercises ?? [])]
 

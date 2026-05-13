@@ -1,59 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-/* ── Response shape ────────────────────────────────────────── */
-
-export interface MuscleMapExercise {
-  name: string
-  primary_muscle_group: string
-  secondary_muscle_groups: string[]
-  /** Count of sets in this exercise that are NOT warmups. */
-  normal_set_count: number
-}
-
-export interface MuscleMapWorkout {
-  id: string
-  title: string
-  started_at: string
-  exercises: MuscleMapExercise[]
-}
-
-export interface MuscleMapRun {
-  id: string
-  started_at: string
-  duration_seconds: number
-  distance_meters: number
-  avg_heart_rate: number | null
-  run_type: string | null
-}
-
-export interface MuscleMapPadelSession {
-  id: string
-  started_at: string
-  duration_seconds: number
-  avg_heart_rate: number | null
-  intensity: string | null
-  session_type: string | null
-}
-
-export interface MuscleMapDailyActivity {
-  /** YYYY-MM-DD */
-  date: string
-  steps: number | null
-  active_minutes: number | null
-}
-
-export interface MuscleMapResponse {
-  workouts: MuscleMapWorkout[]
-  runs: MuscleMapRun[]
-  padelSessions: MuscleMapPadelSession[]
-  dailyActivity: MuscleMapDailyActivity[]
-  /** ISO timestamp (inclusive) — start of the lookback window in UTC. */
-  since: string
-  /** ISO timestamp (exclusive) — end of the window (now). */
-  until: string
-}
+import type {
+  MuscleMapExercise,
+  MuscleMapWorkout,
+  MuscleMapRun,
+  MuscleMapPadelSession,
+  MuscleMapDailyActivity,
+  MuscleMapResponse,
+} from '@/types/api'
 
 /**
  * Lookback window is generous (14 days) so the client can safely pick either

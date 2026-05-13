@@ -1,26 +1,7 @@
 import { useState, useCallback } from 'react'
-import type { WeekConflicts } from '@/lib/google/conflicts'
+import type { PlannedSession, WeekPlan } from '@/types/check-in'
 
-// ---------------------------------------------------------------------------
-// Types (mirrors API response)
-// ---------------------------------------------------------------------------
-
-export interface PlannedSession {
-  day: string
-  date: string
-  workout: string
-  type: 'gym' | 'padel' | 'run'
-  time: string
-  endTime: string
-  location: string | null
-  reason: string
-}
-
-export interface WeekPlan {
-  sessions: PlannedSession[]
-  reasoning: string
-  conflicts: WeekConflicts
-}
+export type { PlannedSession, WeekPlan }
 
 // ---------------------------------------------------------------------------
 // Hook

@@ -18,6 +18,7 @@ import {
   appleTooltipLabelStyle,
   appleTooltipStyle,
 } from '@/lib/chart-styles'
+import { formatDayMonth } from '@/lib/formatters'
 
 type WeekRow = Database['public']['Tables']['weekly_aggregations']['Row']
 
@@ -34,10 +35,6 @@ const PATTERNS = [
   { key: 'hinge', label: 'Hinge', color: appleChartColors.green },
 ] as const
 
-function formatWeek(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
-}
-
 export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChartProps) {
   if (weeks.length === 0) {
     return <EmptyState message="Geen trainingsdata beschikbaar" />
@@ -46,7 +43,7 @@ export const StrengthChart = memo(function StrengthChart({ weeks }: StrengthChar
   const chartData: Array<Record<string, string | number>> = weeks.map((w) => {
     const vol = (w.weekly_movement_volume ?? {}) as Record<string, number>
     return {
-      week: formatWeek(w.week_start),
+      week: formatDayMonth(w.week_start),
       ...Object.fromEntries(PATTERNS.map((p) => [p.key, vol[p.key] ?? 0])),
     }
   })

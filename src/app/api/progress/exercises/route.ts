@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-export interface ExerciseListItem {
-  name: string
-  primaryMuscleGroup: string
-  lastUsed: string
-}
+import type { ExerciseListItem } from '@/types/api'
 
 export async function GET() {
   try {
