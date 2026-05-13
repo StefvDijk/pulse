@@ -2,13 +2,82 @@
 
 import { useState } from 'react'
 import { X, Calendar, Check, Loader2 } from 'lucide-react'
-import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
+import { useSchemaWeek, type SchemaWeekDay, type ExerciseData } from '@/hooks/useSchemaWeek'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface PlanWeekModalProps {
+  onClose: () => void
+}
+
+interface PlanWeekModalContentProps {
   days: SchemaWeekDay[]
   onClose: () => void
+}
+
+/**
+ * Outer wrapper: fetches the current schema week only when the modal is open.
+ * Previously this data was eagerly fetched on /schema page load — see [D7].
+ */
+export function PlanWeekModal({ onClose }: PlanWeekModalProps) {
+  useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
+
+  const { data, error, isLoading } = useSchemaWeek()
+
+  if (isLoading) {
+    return (
+      <ModalShell onClose={onClose}>
+        <div className="flex flex-col items-center gap-3 px-5 py-10">
+          <Loader2 size={28} className="animate-spin text-system-blue" />
+          <p className="text-sm text-label-secondary">Weekgegevens laden…</p>
+        </div>
+      </ModalShell>
+    )
+  }
+
+  if (error || !data || data.days.length === 0) {
+    return (
+      <ModalShell onClose={onClose}>
+        <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+          <p className="text-sm font-medium text-label-primary">Geen week om te plannen</p>
+          <p className="text-xs text-label-tertiary">
+            Maak eerst een schema of plan een week aan via de Coach.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-2 rounded-xl bg-system-blue px-6 py-2.5 text-sm font-medium text-white"
+          >
+            Sluiten
+          </button>
+        </div>
+      </ModalShell>
+    )
+  }
+
+  return <PlanWeekModalContent days={data.days} onClose={onClose} />
+}
+
+function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-surface-primary shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-end px-5 pt-5">
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray6"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
 }
 
 interface WorkoutEntry {
@@ -29,9 +98,7 @@ function formatExerciseList(exercises: ExerciseData[]): string {
     .join('\n')
 }
 
-export function PlanWeekModal({ days, onClose }: PlanWeekModalProps) {
-  useBodyScrollLock(true)
-  useEscapeKey(true, onClose)
+function PlanWeekModalContent({ days, onClose }: PlanWeekModalContentProps) {
   const workoutDays = days.filter((d) => d.status !== 'rest' && d.workout)
 
   const [entries, setEntries] = useState<WorkoutEntry[]>(
