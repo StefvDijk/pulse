@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { mutate as globalMutate } from 'swr'
 import { useSchema } from '@/hooks/useSchema'
 import { useSettings } from '@/hooks/useSettings'
 import { SchemaProgress } from './SchemaProgress'
@@ -12,8 +13,12 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ClipboardList } from 'lucide-react'
 import type { SchemaScheduleItem } from '@/hooks/useSchema'
-import type { SchemaWeekDay } from '@/hooks/useSchemaWeek'
-import { useSchemaWeek } from '@/hooks/useSchemaWeek'
+
+// [D7] Revalidates the /api/schema/week SWR cache for any subscriber
+// (home cards, schema week view, PlanWeekModal when open).
+function refreshSchemaWeek() {
+  globalMutate('/api/schema/week')
+}
 
 function SchemaPageSkeleton() {
   return (
@@ -40,7 +45,6 @@ function SchemaPageSkeleton() {
 
 export function SchemaPageContent() {
   const { data, error, isLoading, mutate } = useSchema()
-  const { data: weekData, refresh: refreshWeek } = useSchemaWeek()
   const { data: settings } = useSettings()
   const [calendarModalOpen, setCalendarModalOpen] = useState(false)
 
@@ -78,7 +82,7 @@ export function SchemaPageContent() {
     }
 
     mutate()
-    refreshWeek()
+    refreshSchemaWeek()
   }
 
   async function handleReschedule(fromDate: string, toDate: string, workoutFocus: string) {
@@ -94,11 +98,8 @@ export function SchemaPageContent() {
     }
 
     mutate()
-    refreshWeek()
+    refreshSchemaWeek()
   }
-
-  // Build PlanWeekModal-compatible days from current week data
-  const modalDays: SchemaWeekDay[] = weekData?.days ?? []
 
   return (
     <div className="flex flex-col gap-4">
@@ -132,16 +133,13 @@ export function SchemaPageContent() {
         onPushToCalendar={() => setCalendarModalOpen(true)}
         onSchemaChanged={() => {
           mutate()
-          refreshWeek()
+          refreshSchemaWeek()
         }}
       />
 
-      {/* Google Calendar modal (reused from existing) */}
-      {calendarModalOpen && modalDays.length > 0 && (
-        <PlanWeekModal
-          days={modalDays}
-          onClose={() => setCalendarModalOpen(false)}
-        />
+      {/* Google Calendar modal — fetches its own week data on mount [D7] */}
+      {calendarModalOpen && (
+        <PlanWeekModal onClose={() => setCalendarModalOpen(false)} />
       )}
     </div>
   )

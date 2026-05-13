@@ -121,7 +121,7 @@ export function SchemaWeekView() {
       </div>
 
       {modalOpen && (
-        <PlanWeekModal days={data.days} onClose={() => setModalOpen(false)} />
+        <PlanWeekModal onClose={() => setModalOpen(false)} />
       )}
     </>
   )
