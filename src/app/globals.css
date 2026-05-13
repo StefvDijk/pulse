@@ -1,3 +1,28 @@
+/* ─── Self-hosted SF Pro Display (Regular / Medium / Bold) ──────────────── */
+/* Note: Semibold weight omitted — source OTF was not available (italic only) */
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/sf-pro-display/SF-Pro-Display-Bold.woff2') format('woff2');
+}
+
 @import "tailwindcss";
 
 /* ─── Dark mode variant — class-based (ready for future toggle) ──────────── */
@@ -13,7 +38,7 @@
    *  ─────────────────────────────────────────────────────────────────────── */
 
   /* Font stacks — SF Pro via -apple-system (geen externe webfont) */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Apple Type Scale */
@@ -98,6 +123,99 @@
   --shadow-apple-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-apple-lg: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
   --shadow-apple-float: 0 16px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+
+  /* ───────────────────────────────────────────────────────────────────────
+   *  iOS 26 — Pulse v2 token extensions
+   *  Additive over the Apple HIG defaults above. Used by the iOS 26
+   *  restyle (see docs/superpowers/specs/2026-05-13-ios26-restyle-design.md).
+   *  ─────────────────────────────────────────────────────────────────────── */
+
+  /* Pulse v2 backgrounds — softer dark, slightly lifted */
+  --color-bg-page: #15171F;
+  --color-bg-surface: #1E2230;
+  --color-bg-elevated: #272C3B;
+  --color-bg-border: rgba(255, 255, 255, 0.08);
+  --color-bg-border-strong: rgba(255, 255, 255, 0.12);
+  --color-bg-dim: rgba(0, 0, 0, 0.50);
+
+  /* Glass surfaces — three opacity tiers, shared blur */
+  --color-bg-glass-nav:   rgba(30, 34, 48, 0.72);
+  --color-bg-glass-sheet: rgba(30, 34, 48, 0.85);
+  --color-bg-glass-menu:  rgba(30, 34, 48, 0.92);
+  --blur-glass: 28px;
+
+  /* Text — Pulse v2 opacity ladder */
+  --color-text-primary:   #F5F5F7;
+  --color-text-secondary: rgba(245, 245, 247, 0.66);
+  --color-text-tertiary:  rgba(245, 245, 247, 0.46);
+  --color-text-muted:     rgba(245, 245, 247, 0.26);
+
+  /* Sport accents */
+  --color-sport-gym-base:   #00E5C7;
+  --color-sport-gym-light:  rgba(0, 229, 199, 0.18);
+  --color-sport-gym-glow:   rgba(0, 229, 199, 0.50);
+  --color-sport-gym-dark:   #0A4F45;
+  --color-sport-run-base:   #FF5E3A;
+  --color-sport-run-light:  rgba(255, 94, 58, 0.18);
+  --color-sport-run-glow:   rgba(255, 94, 58, 0.55);
+  --color-sport-run-dark:   #5C1F11;
+  --color-sport-padel-base: #FFB020;
+  --color-sport-padel-light: rgba(255, 176, 32, 0.18);
+  --color-sport-padel-glow: rgba(255, 176, 32, 0.50);
+  --color-sport-padel-dark: #5C3D08;
+  --color-sport-cycle-base: #9CFF4F;
+  --color-sport-cycle-light: rgba(156, 255, 79, 0.18);
+  --color-sport-cycle-glow: rgba(156, 255, 79, 0.50);
+  --color-sport-cycle-dark: #314E18;
+
+  /* Status */
+  --color-status-good: #22D67A;
+  --color-status-warn: #FFB020;
+  --color-status-bad:  #FF4D6D;
+
+  /* Brand — Anthropic coral, used for CoachOrb */
+  --color-brand-claude: #D97757;
+
+  /* Pulse v2 type scale (iOS 26-aligned) — additive */
+  --text-display-l: 64px;
+  --text-display-l--line-height: 64px;
+  --text-display-l--letter-spacing: -0.03125em;
+  --text-display-l--font-weight: 700;
+
+  --text-display-m: 34px;
+  --text-display-m--line-height: 38px;
+  --text-display-m--letter-spacing: -0.0235em;
+  --text-display-m--font-weight: 700;
+
+  --text-pulse-title: 28px;
+  --text-pulse-title--line-height: 32px;
+  --text-pulse-title--letter-spacing: -0.0214em;
+  --text-pulse-title--font-weight: 700;
+
+  --text-subtitle: 22px;
+  --text-subtitle--line-height: 26px;
+  --text-subtitle--letter-spacing: -0.0182em;
+  --text-subtitle--font-weight: 700;
+
+  --text-body-l: 17px;
+  --text-body-l--line-height: 22px;
+  --text-body-l--letter-spacing: -0.0118em;
+  --text-body-l--font-weight: 600;
+
+  --text-body-s: 13px;
+  --text-body-s--line-height: 18px;
+  --text-body-s--font-weight: 400;
+
+  --text-eyebrow: 10px;
+  --text-eyebrow--line-height: 12px;
+  --text-eyebrow--letter-spacing: 0.04em;
+  --text-eyebrow--font-weight: 600;
+
+  /* Pulse v2 radius scale */
+  --radius-card-sm: 10px;
+  --radius-card-md: 16px;
+  --radius-card-lg: 22px;
+  --radius-card-xl: 28px;
 }
 
 /* ─── Apple HIG Dark Mode Overrides ──────────────────────────────────────── */
@@ -183,4 +301,27 @@ body {
 .dark .glass {
   background: rgba(28, 28, 30, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* iOS 26 Liquid Glass — three thickness/opacity tiers, all share blur 28px */
+
+.glass-nav {
+  background: var(--color-bg-glass-nav);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border-bottom: 0.5px solid var(--color-bg-border-strong);
+}
+
+.glass-sheet {
+  background: var(--color-bg-glass-sheet);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border: 0.5px solid var(--color-bg-border-strong);
+}
+
+.glass-menu {
+  background: var(--color-bg-glass-menu);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border: 0.5px solid var(--color-bg-border-strong);
 }
