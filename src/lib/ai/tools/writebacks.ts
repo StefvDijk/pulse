@@ -234,12 +234,23 @@ async function executeProposeSchemaGeneration(
   }
 }
 
-interface WorkoutScheduleItem {
-  day: string
-  focus: string
-  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
-  duration_min?: number
-}
+const WorkoutScheduleItemSchema = z.object({
+  day: z.string(),
+  focus: z.string(),
+  exercises: z
+    .array(
+      z.object({
+        name: z.string(),
+        sets: z.number().optional(),
+        reps: z.string().optional(),
+        notes: z.string().optional(),
+      }),
+    )
+    .optional(),
+  duration_min: z.number().optional(),
+})
+
+type WorkoutScheduleItem = z.infer<typeof WorkoutScheduleItemSchema>
 
 function formatSchemaUpdateDescription(u: SchemaUpdateInput): string {
   switch (u.action) {
@@ -273,9 +284,9 @@ async function executeProposeSchemaUpdate(
       return { ok: false, error: 'Geen actief schema gevonden om aan te passen.' }
     }
 
-    const schedule = (Array.isArray(schema.workout_schedule)
-      ? schema.workout_schedule
-      : []) as unknown as WorkoutScheduleItem[]
+    const schedule = z
+      .array(WorkoutScheduleItemSchema)
+      .parse(Array.isArray(schema.workout_schedule) ? schema.workout_schedule : [])
 
     const dayIndex = schedule.findIndex((s) => s.day.toLowerCase() === update.day.toLowerCase())
     if (dayIndex === -1 && update.action !== 'add_exercise') {
