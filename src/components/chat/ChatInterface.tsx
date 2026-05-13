@@ -28,9 +28,37 @@ export interface ChatInterfaceProps {
   initialMessage?: string
 }
 
+// [SDK#2] Human-readable labels for the in-flight tool indicator.
+const TOOL_LABELS: Record<string, string> = {
+  get_workout_history: 'Workouts ophalen…',
+  get_exercise_stats: 'Oefening-stats ophalen…',
+  get_running_history: 'Runs ophalen…',
+  get_health_metrics: 'Gezondheidsmetrics ophalen…',
+  get_nutrition_log: 'Voedingslog ophalen…',
+  get_macro_targets: 'Macro-targets ophalen…',
+  get_body_composition: 'Body-comp ophalen…',
+  get_active_schema: 'Schema ophalen…',
+  get_injury_history: 'Blessure-historie ophalen…',
+  get_weekly_aggregations: 'Week-aggregaties ophalen…',
+  search_exercises: 'Oefeningen zoeken…',
+  compare_periods: 'Periodes vergelijken…',
+  calculate_progressive_overload: 'Progressive overload berekenen…',
+  get_recovery_score: 'Recovery score berekenen…',
+  log_nutrition: 'Maaltijd loggen…',
+  log_injury: 'Blessure loggen…',
+  propose_schema_generation: 'Nieuw schema aanmaken…',
+  propose_schema_update: 'Schema aanpassen…',
+}
+function toolLabel(name: string): string {
+  return TOOL_LABELS[name] ?? `Tool: ${name}…`
+}
+
 export function ChatInterface({ sessionId: initialSessionId, compact = false, initialMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
+  // [SDK#2] activeTool surfaces "fetching workout history…" labels while
+  // a tool call is running. Cleared once tool-result arrives.
+  const [activeTool, setActiveTool] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
   const [showSuggestions, setShowSuggestions] = useState(true)
@@ -121,14 +149,24 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
             const payload = line.slice(6)
             if (payload === '[DONE]') break
             try {
-              const text = JSON.parse(payload) as string
-              accumulated += text
-              setStreamingContent(accumulated)
+              const parsed = JSON.parse(payload) as
+                | string
+                | { type: 'tool_call' | 'tool_result' | 'tool_error'; toolName: string }
+              if (typeof parsed === 'string') {
+                accumulated += parsed
+                setStreamingContent(accumulated)
+              } else if (parsed.type === 'tool_call') {
+                setActiveTool(parsed.toolName)
+              } else if (parsed.type === 'tool_result' || parsed.type === 'tool_error') {
+                setActiveTool(null)
+              }
             } catch {
               // skip malformed
             }
           }
         }
+        // Clear any leftover tool indicator (defensive — should already be null).
+        setActiveTool(null)
 
         if (accumulated) {
           const assistantMsg: Message = {
@@ -200,6 +238,14 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         {/* Streaming message */}
         {streamingContent && (
           <ChatMessage role="assistant" content={streamingContent} isStreaming />
+        )}
+
+        {/* [SDK#2] Active-tool indicator: shows what the agent is fetching */}
+        {activeTool && !streamingContent && (
+          <div className="flex items-center gap-2 text-caption1 text-label-tertiary px-2 py-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-system-blue animate-pulse" />
+            <span>{toolLabel(activeTool)}</span>
+          </div>
         )}
 
         <div ref={bottomRef} />

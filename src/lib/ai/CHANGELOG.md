@@ -2,6 +2,35 @@
 
 Tracks meaningful changes to `src/lib/ai/*` and AI-related routes. Append at top.
 
+## 2026-05-13 — Sprint 3.5: SDK gaps fill [SDK#1-#4]
+
+Audit findings from `02-ai-system.md` that weren't promoted to discrete
+FIXES-ALLES.md fix-IDs (my omission while consolidating). Picked up now:
+
+- **SDK#1 — Prompt caching**: `streamChat()` now passes
+  `providerOptions.anthropic.cacheControl: { type: 'ephemeral', ttl: '5m' }`
+  by default. The ~4500-token system prompt gets cached for 5 min, so a
+  follow-up request in the same session reads it ~10× cheaper/faster.
+  Disabled for simple-greeting calls (Haiku + tiny prompt, no benefit).
+- **SDK#2 — Tool events to UI**: chat/route.ts switched from
+  `result.textStream` to `result.fullStream`. Forwards \`tool_call\` and
+  \`tool_result\` events as JSON-object payloads alongside text deltas.
+  ChatInterface.tsx now shows a live "Workouts ophalen…" indicator while
+  a tool runs (toolLabel map + activeTool state).
+- **SDK#3 — onStepFinish logging**: streamChat gained an optional
+  onStepFinish callback. chat/route.ts logs each step's tools +
+  finish-reason with `[chat:step]` prefix — greppable in Vercel logs.
+- **SDK#4 — Full token usage**: result.usage now captured in full
+  (inputTokens + outputTokens + cachedInputTokens + reasoningTokens +
+  totalTokens). Logged with `[chat:usage]` prefix per chat-turn. DB
+  storage of the extra columns deferred (needs migration).
+
+**Deferred (low single-user impact):**
+- SDK#5 (cache compressor summary in DB) — pre-empts ~500-1500 ms
+  delay on long sessions. Defer until a long session actually friction-points.
+- SDK#6 (retry on Anthropic 5xx / rate-limit) — accept transient
+  failures for now; one user, one chat at a time.
+
 ## 2026-05-13 — Sprint 3 PR4: context refactor
 
 - **B4**: context-assembler.ts shrunk 990 → 108 lines. Removed `assembleContext`

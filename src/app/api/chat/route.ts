@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
+import { streamChat, MEMORY_MODEL, MODEL } from '@/lib/ai/client'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
@@ -166,6 +166,18 @@ export async function POST(request: Request) {
         { role: 'user', content: message },
       ],
       tools,
+      // [SDK#1] Prompt-caching is on by default in streamChat; skip for simple
+      // greetings (Haiku, small prompt — caching overhead not worth it).
+      cache: !isSimple,
+      // [SDK#3] onStepFinish logs each agentic step's tool calls + duration.
+      onStepFinish: (step) => {
+        const toolNames = step.toolCalls?.map((t) => t.toolName) ?? []
+        if (toolNames.length > 0) {
+          console.log(
+            `[chat:step] tools=${toolNames.join(',')} finish=${step.finishReason}`,
+          )
+        }
+      },
       ...(isSimple ? { model: MEMORY_MODEL } : {}),
     })
 
@@ -175,22 +187,77 @@ export async function POST(request: Request) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of result.textStream) {
-            fullResponse += chunk
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+          // [SDK#2] Stream over fullStream so we can also forward tool-call
+          // and tool-result events to the client (UI can show "ophalen van
+          // workouts..." while a tool runs). Backwards-compatible: text
+          // deltas stay as JSON-stringified strings; tool events are JSON
+          // objects with a `type` field. Clients that only handle strings
+          // skip them harmlessly.
+          for await (const part of result.fullStream) {
+            switch (part.type) {
+              case 'text-delta':
+                fullResponse += part.text
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(part.text)}\n\n`))
+                break
+              case 'tool-call':
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'tool_call',
+                      toolName: part.toolName,
+                      toolCallId: part.toolCallId,
+                    })}\n\n`,
+                  ),
+                )
+                break
+              case 'tool-result':
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'tool_result',
+                      toolName: part.toolName,
+                      toolCallId: part.toolCallId,
+                    })}\n\n`,
+                  ),
+                )
+                break
+              case 'tool-error':
+                console.error('[chat:tool-error]', part.toolName, part.error)
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: 'tool_error',
+                      toolName: part.toolName,
+                      toolCallId: part.toolCallId,
+                    })}\n\n`,
+                  ),
+                )
+                break
+              // text-start/text-end, reasoning, source, file, finish*, raw — ignore.
+            }
           }
 
           // [B3] Write-backs handled by tools inline; no XML to strip.
           const cleanText = fullResponse
 
-          // Save assistant message (clean text).
-          // [B9] usage fetch must not block the DB save: if Anthropic returns
-          // unexpected shape, log it but still persist the message so the
-          // user's turn isn't lost.
+          // [SDK#4] Capture the full Anthropic usage shape, not just output
+          // tokens. inputTokens + cachedInputTokens reveal cache hit-rate
+          // (good: cachedInputTokens > 0 means caching is working).
           let outputTokens = 0
           try {
             const usage = await result.usage
             outputTokens = usage.outputTokens ?? 0
+            console.log(
+              '[chat:usage]',
+              JSON.stringify({
+                model: isSimple ? MEMORY_MODEL : MODEL,
+                inputTokens: usage.inputTokens ?? 0,
+                outputTokens: usage.outputTokens ?? 0,
+                cachedInputTokens: usage.cachedInputTokens ?? 0,
+                reasoningTokens: usage.reasoningTokens ?? 0,
+                totalTokens: usage.totalTokens ?? 0,
+              }),
+            )
           } catch (usageErr) {
             console.error('[chat] result.usage failed (fallback 0):', usageErr)
           }
