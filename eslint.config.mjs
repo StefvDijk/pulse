@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Nested Next build artifacts (e.g. design-handoff project under pulse/)
+    "**/.next/**",
+    // Local-only user data dirs (not part of the app source)
+    "files/**",
+    "files lichaam/**",
+    // Nested `pulse/` dir holds design-handoff + docs + reference copies of src,
+    // none of which is the canonical build source for this app.
+    "pulse/**",
   ]),
 ]);
 
