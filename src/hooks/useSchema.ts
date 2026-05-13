@@ -78,7 +78,9 @@ export function useSchema() {
   const { data, error, isLoading, mutate } = useSWR<SchemaData>(
     '/api/schema',
     fetcher,
-    { refreshInterval: 60_000 },
+    // [F5] Schema rarely changes — only after a manual edit or check-in confirm.
+    // Polling every minute was burn-no-data; revalidateOnFocus also off.
+    { refreshInterval: 0, revalidateOnFocus: false },
   )
 
   return {

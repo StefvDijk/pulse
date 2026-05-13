@@ -1,3 +1,5 @@
+// [F1] server-only ensures this 194 MB lib is never bundled into client JS.
+import 'server-only'
 import { google } from 'googleapis'
 import { createOAuthClient, getValidTokens } from './oauth'
 
