@@ -18,7 +18,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
-import type { Json } from '@/types/database'
+import { toJson } from '@/lib/schemas/db/json'
 
 // ---------------------------------------------------------------------------
 // Tool 1: log_nutrition
@@ -193,7 +193,7 @@ async function executeProposeSchemaGeneration(
         schema_type: payload.schema_type,
         weeks_planned: payload.weeks_planned,
         start_date: payload.start_date,
-        workout_schedule: payload.workout_schedule as unknown as Json,
+        workout_schedule: toJson(payload.workout_schedule),
         is_active: false,
         ai_generated: true,
       })
@@ -344,7 +344,7 @@ async function executeProposeSchemaUpdate(
 
     const { error: updateError } = await admin
       .from('training_schemas')
-      .update({ workout_schedule: updatedSchedule as unknown as Json })
+      .update({ workout_schedule: toJson(updatedSchedule) })
       .eq('id', schema.id)
 
     if (updateError) {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Json } from '@/types/database'
+import { toJson } from '@/lib/schemas/db/json'
 
 /* ── Schema ──────────────────────────────────────────────── */
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     const { error: updateError } = await admin
       .from('training_schemas')
-      .update({ scheduled_overrides: merged as unknown as Json })
+      .update({ scheduled_overrides: toJson(merged) })
       .eq('id', schema.id)
 
     if (updateError) throw updateError
