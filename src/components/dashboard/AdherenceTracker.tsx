@@ -1,5 +1,3 @@
-'use client'
-
 import type { Database } from '@/types/database'
 
 type DailyAggregationRow = Database['public']['Tables']['daily_aggregations']['Row']

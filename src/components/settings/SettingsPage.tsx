@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSettings } from '@/hooks/useSettings'
 import { createClient } from '@/lib/supabase/client'
@@ -52,6 +52,10 @@ export function SettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordStatus, savePassword] = useSaveStatus()
 
+  // Track the data identity we've already mirrored into local form state so
+  // we can re-sync exactly once per fetch (during render, per React docs).
+  const [syncedData, setSyncedData] = useState(data)
+
   async function handleChangePassword() {
     setPasswordError(null)
     if (newPassword.length < 8) {
@@ -72,8 +76,11 @@ export function SettingsPage() {
     setConfirmPassword('')
   }
 
-  useEffect(() => {
-    if (!data) return
+  // React docs idiom: hydrate form fields during render when the fetched
+  // settings object identity changes (mount + after refresh()). Avoids a
+  // useEffect(setX, [data]) cascade that triggers extra render cycles.
+  if (data && data !== syncedData) {
+    setSyncedData(data)
     setDisplayName(data.profile.display_name ?? '')
     setWeightKg(data.profile.weight_kg?.toString() ?? '')
     setHeightCm(data.profile.height_cm?.toString() ?? '')
@@ -85,53 +92,53 @@ export function SettingsPage() {
     setGymTarget(wt.gym?.toString() ?? '3')
     setRunTarget(wt.running?.toString() ?? '2')
     setPadelTarget(wt.padel?.toString() ?? '1')
-  }, [data])
+  }
 
-  async function handleSaveProfile() {
-    await fetch('/api/settings', {
+  async function patchSettings(payload: Record<string, unknown>): Promise<void> {
+    const res = await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profile: {
-          display_name: displayName,
-          weight_kg: weightKg ? Number(weightKg) : null,
-          height_cm: heightCm ? Number(heightCm) : null,
-          dietary_preference: dietaryPref || null,
-        },
-      }),
-    }).then((r) => { if (!r.ok) throw new Error() })
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null
+      throw new Error(body?.error ?? `Server-fout (${res.status})`)
+    }
+  }
+
+  async function handleSaveProfile() {
+    await patchSettings({
+      profile: {
+        display_name: displayName,
+        weight_kg: weightKg ? Number(weightKg) : null,
+        height_cm: heightCm ? Number(heightCm) : null,
+        dietary_preference: dietaryPref || null,
+      },
+    })
     refresh()
   }
 
   async function handleSaveConnections() {
-    await fetch('/api/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        settings: {
-          hevy_api_key: hevyKey || null,
-          health_auto_export_token: healthToken || null,
-        },
-      }),
-    }).then((r) => { if (!r.ok) throw new Error() })
+    await patchSettings({
+      settings: {
+        hevy_api_key: hevyKey || null,
+        health_auto_export_token: healthToken || null,
+      },
+    })
     refresh()
   }
 
   async function handleSaveGoals() {
-    await fetch('/api/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        settings: {
-          protein_target_per_kg: proteinPerKg ? Number(proteinPerKg) : null,
-          weekly_training_target: {
-            gym: Number(gymTarget) || 0,
-            running: Number(runTarget) || 0,
-            padel: Number(padelTarget) || 0,
-          },
+    await patchSettings({
+      settings: {
+        protein_target_per_kg: proteinPerKg ? Number(proteinPerKg) : null,
+        weekly_training_target: {
+          gym: Number(gymTarget) || 0,
+          running: Number(runTarget) || 0,
+          padel: Number(padelTarget) || 0,
         },
-      }),
-    }).then((r) => { if (!r.ok) throw new Error() })
+      },
+    })
     refresh()
   }
 
@@ -209,7 +216,7 @@ export function SettingsPage() {
             </select>
           </Field>
           <div className="flex justify-end">
-            <SaveButton status={profileStatus} onClick={() => saveProfile(handleSaveProfile)} />
+            <SaveButton state={profileStatus} onClick={() => saveProfile(handleSaveProfile)} />
           </div>
         </div>
       </div>
@@ -243,7 +250,7 @@ export function SettingsPage() {
             </div>
           </Field>
           <div className="flex justify-end">
-            <SaveButton status={connectStatus} onClick={() => saveConnections(handleSaveConnections)} />
+            <SaveButton state={connectStatus} onClick={() => saveConnections(handleSaveConnections)} />
           </div>
         </div>
       </div>
@@ -350,7 +357,7 @@ export function SettingsPage() {
             </div>
           </div>
           <div className="flex justify-end">
-            <SaveButton status={goalsStatus} onClick={() => saveGoals(handleSaveGoals)} />
+            <SaveButton state={goalsStatus} onClick={() => saveGoals(handleSaveGoals)} />
           </div>
         </div>
       </div>
@@ -383,7 +390,7 @@ export function SettingsPage() {
           )}
           <div className="flex justify-end">
             <SaveButton
-              status={passwordStatus}
+              state={passwordStatus}
               onClick={() => savePassword(handleChangePassword)}
             />
           </div>

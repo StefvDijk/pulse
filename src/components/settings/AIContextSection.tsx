@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSaveStatus, SaveButton, SectionHeader, INPUT_CLASSES } from './shared'
 
 interface AIContextSectionProps {
@@ -12,11 +12,15 @@ const MAX_CHARS = 2000
 
 export function AIContextSection({ currentValue, onSaved }: AIContextSectionProps) {
   const [value, setValue] = useState(currentValue ?? '')
+  const [syncedCurrentValue, setSyncedCurrentValue] = useState(currentValue)
   const [status, save] = useSaveStatus()
 
-  useEffect(() => {
+  // React docs idiom: adjust state during render when a tracked prop changes.
+  // Replaces a useEffect(setValue) sync pattern that triggered cascading renders.
+  if (currentValue !== syncedCurrentValue) {
+    setSyncedCurrentValue(currentValue)
     setValue(currentValue ?? '')
-  }, [currentValue])
+  }
 
   async function handleSave() {
     await fetch('/api/settings', {
@@ -46,7 +50,7 @@ export function AIContextSection({ currentValue, onSaved }: AIContextSectionProp
         <span className="text-xs text-label-tertiary">
           {value.length}/{MAX_CHARS}
         </span>
-        <SaveButton status={status} onClick={() => save(handleSave)} />
+        <SaveButton state={status} onClick={() => save(handleSave)} />
       </div>
     </div>
   )

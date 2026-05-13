@@ -1,5 +1,3 @@
-'use client'
-
 import Link from 'next/link'
 import { Dumbbell, Footprints, Trophy, Clock, Flame, Heart, MapPin, Gauge } from 'lucide-react'
 import { MuscleGroupDot } from './MuscleGroupDot'

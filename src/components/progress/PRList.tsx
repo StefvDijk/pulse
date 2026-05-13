@@ -1,5 +1,3 @@
-'use client'
-
 import type { Database } from '@/types/database'
 import { formatDayMonth } from '@/lib/formatters'
 

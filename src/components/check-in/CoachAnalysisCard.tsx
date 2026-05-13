@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import useSWRMutation from 'swr/mutation'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { CheckInReviewData } from '@/types/check-in'
@@ -20,6 +21,31 @@ interface CoachAnalysisCardProps {
 }
 
 // ---------------------------------------------------------------------------
+// Fetcher
+// ---------------------------------------------------------------------------
+
+interface AnalyzePayload {
+  reviewData: CheckInReviewData
+  manualAdditions: Array<{ type: ManualAddition['type']; data: Record<string, unknown> }>
+}
+
+async function postAnalyze(
+  url: string,
+  { arg }: { arg: AnalyzePayload },
+): Promise<AnalyzeResponse> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(arg),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? 'Analyse mislukt')
+  }
+  return res.json() as Promise<AnalyzeResponse>
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -30,88 +56,42 @@ export function CoachAnalysisCard({
   onAnalysisComplete,
   onNext,
 }: CoachAnalysisCardProps) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const hasFetched = useRef(false)
+  const { trigger, error: swrError, isMutating } = useSWRMutation(
+    '/api/check-in/analyze',
+    postAnalyze,
+  )
 
+  const errorMessage = swrError instanceof Error ? swrError.message : null
+
+  const payload = useMemo<AnalyzePayload>(
+    () => ({
+      reviewData,
+      manualAdditions: manualAdditions.map((a) => ({ type: a.type, data: a.data })),
+    }),
+    [reviewData, manualAdditions],
+  )
+
+  const fire = useCallback(() => {
+    trigger(payload)
+      .then((result) => {
+        if (result) onAnalysisComplete(result)
+      })
+      .catch(() => {
+        // Error is captured by SWR's `error` field — surfaced via errorMessage.
+      })
+  }, [trigger, payload, onAnalysisComplete])
+
+  // Auto-trigger once when the component first renders without an analysis.
+  // We intentionally do not depend on `fire` here — its identity changes when
+  // payload changes, which would cause a re-trigger on every reviewData mutation.
+  const hasStarted = useRef(false)
   useEffect(() => {
-    if (analysis || hasFetched.current) return
-    hasFetched.current = true
+    if (analysis || hasStarted.current) return
+    hasStarted.current = true
+    fire()
+  }, [analysis, fire])
 
-    async function fetchAnalysis() {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const res = await fetch('/api/check-in/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reviewData,
-            manualAdditions: manualAdditions.map((a) => ({
-              type: a.type,
-              data: a.data,
-            })),
-          }),
-        })
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => null)
-          throw new Error(body?.error ?? 'Analyse mislukt')
-        }
-
-        const result: AnalyzeResponse = await res.json()
-        onAnalysisComplete(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Analyse mislukt')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchAnalysis()
-  }, [analysis, reviewData, manualAdditions, onAnalysisComplete])
-
-  function handleRetry() {
-    hasFetched.current = false
-    setError(null)
-    setLoading(false)
-    // Re-trigger by clearing and resetting
-    hasFetched.current = false
-    // Force re-run by toggling loading
-    setLoading(true)
-    setError(null)
-
-    fetch('/api/check-in/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reviewData,
-        manualAdditions: manualAdditions.map((a) => ({
-          type: a.type,
-          data: a.data,
-        })),
-      }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => null)
-          throw new Error(body?.error ?? 'Analyse mislukt')
-        }
-        return res.json()
-      })
-      .then((result: AnalyzeResponse) => {
-        onAnalysisComplete(result)
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Analyse mislukt')
-        setLoading(false)
-      })
-  }
-
-  // Loading state
-  if (loading) {
+  if (isMutating) {
     return (
       <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex flex-col items-center gap-3 py-8">
@@ -125,44 +105,37 @@ export function CoachAnalysisCard({
     )
   }
 
-  // Error state
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="flex flex-col gap-3">
-        <ErrorAlert message={error} onRetry={handleRetry} />
+        <ErrorAlert message={errorMessage} onRetry={fire} />
       </div>
     )
   }
 
-  // No analysis yet (shouldn't happen, but guard)
   if (!analysis) return null
 
-  // Success state
   return (
     <div className="flex flex-col gap-3">
-      {/* Analysis card */}
       <div className="rounded-2xl bg-surface-primary border border-separator p-5">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={16} className="text-system-blue" />
           <h3 className="text-subhead font-semibold text-label-primary">Coach analyse</h3>
         </div>
 
-        {/* Summary */}
         <p className="text-sm text-label-secondary leading-relaxed mb-4">
           {analysis.summary}
         </p>
 
-        {/* Key insights */}
         <div className="flex flex-col gap-2 mb-4">
           {analysis.keyInsights.map((insight, i) => (
-            <div key={i} className="flex items-start gap-2">
+            <div key={`${i}-${insight.slice(0, 32)}`} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-system-blue" />
               <p className="text-sm text-label-primary">{insight}</p>
             </div>
           ))}
         </div>
 
-        {/* Focus next week */}
         <div className="rounded-xl bg-system-blue/10 border border-system-blue/10 p-4">
           <p className="text-xs font-medium text-system-blue mb-1">Focus volgende week</p>
           <p className="text-sm text-system-blue leading-relaxed">
@@ -171,7 +144,6 @@ export function CoachAnalysisCard({
         </div>
       </div>
 
-      {/* Continue button */}
       <button
         onClick={onNext}
         className="rounded-xl bg-system-blue px-5 py-2.5 text-sm font-medium text-white"

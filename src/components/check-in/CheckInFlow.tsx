@@ -20,6 +20,7 @@ import { formatDateRange } from '@/lib/formatters'
 // ---------------------------------------------------------------------------
 
 export interface ManualAddition {
+  id: string
   type: 'padel' | 'inbody' | 'note'
   data: Record<string, unknown>
   label: string
@@ -121,12 +122,12 @@ export function CheckInFlow() {
   const [syncToCalendar, setSyncToCalendar] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
-  const handleAddManual = useCallback((addition: ManualAddition) => {
-    setManualAdditions((prev) => [...prev, addition])
+  const handleAddManual = useCallback((addition: Omit<ManualAddition, 'id'>) => {
+    setManualAdditions((prev) => [...prev, { ...addition, id: crypto.randomUUID() }])
   }, [])
 
-  const handleRemoveManual = useCallback((index: number) => {
-    setManualAdditions((prev) => prev.filter((_, i) => i !== index))
+  const handleRemoveManual = useCallback((id: string) => {
+    setManualAdditions((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
   const handleAnalysisComplete = useCallback((result: AnalyzeResponse) => {

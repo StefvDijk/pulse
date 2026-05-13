@@ -1,5 +1,3 @@
-'use client'
-
 import { Dumbbell, CheckCircle2, Moon, TrendingUp } from 'lucide-react'
 import type { SchemaWeekDay, ExerciseData } from '@/hooks/useSchemaWeek'
 import { Card } from '@/components/ui'

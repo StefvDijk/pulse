@@ -23,8 +23,8 @@ import { formatDayMonthWithWeekday } from '@/lib/formatters'
 interface WeekReviewCardProps {
   data: CheckInReviewData
   manualAdditions: ManualAddition[]
-  onAddManual: (addition: ManualAddition) => void
-  onRemoveManual: (index: number) => void
+  onAddManual: (addition: Omit<ManualAddition, 'id'>) => void
+  onRemoveManual: (id: string) => void
   onNext: () => void
 }
 
@@ -248,11 +248,11 @@ export function WeekReviewCard({
         <div className="rounded-2xl bg-surface-primary border border-separator p-5">
           <h3 className="text-subhead font-semibold text-label-primary mb-3">Handmatig toegevoegd</h3>
           <div className="flex flex-col gap-2">
-            {manualAdditions.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-1">
+            {manualAdditions.map((item) => (
+              <div key={item.id} className="flex items-center justify-between py-1">
                 <span className="text-sm text-label-primary">{item.label}</span>
                 <button
-                  onClick={() => onRemoveManual(i)}
+                  onClick={() => onRemoveManual(item.id)}
                   className="flex h-6 w-6 items-center justify-center rounded-full bg-system-gray6 text-label-tertiary hover:bg-system-gray5"
                 >
                   <X size={12} />
