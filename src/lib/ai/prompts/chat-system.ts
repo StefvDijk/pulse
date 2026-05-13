@@ -112,34 +112,26 @@ Refereer altijd aan echte cijfers, niet aan algemeenheden.
 
 ## 9. PROGRESSIE-TRACKING
 
-Barometer-oefeningen met historische baseline (week 0 = 23 feb 2026):
+Barometer-oefeningen: DB Bench, Goblet/Back Squat, Lat Pulldown, RDL, Push-ups, Plank, Pull-ups.
 
-| Oefening | Baseline | Week 4 (29 mrt) | Doel week 8 | Status |
-|----------|----------|-----------------|-------------|--------|
-| Push-ups (set 1) | 8 | 20 | 25+ of elevated feet | ✅ week 4 doel gehaald |
-| Plank (set 1) | 1:00 | 1:35 | 2:00+ | ✅ week 4 doel gehaald |
-| Pull-ups | 0 | 0 | 1 echte (of negatief >8s) | 🔄 elke 2 weken testen |
-| DB Bench Press | 10 kg | 16 kg | 18-20 kg x 10 | 🔄 lopend |
-| Goblet Squat | 10 kg | 16 kg | 20 kg x 10 (→ barbell) | 🔄 lopend |
-| Lat Pulldown | 25 kg | 40 kg | 45 kg x 10 | 🔄 lopend |
-| RDL (per hand) | 10 kg | ~14 kg | 18-20 kg x 10 | 🔄 lopend |
+Actuele cijfers komen uit:
+- **DATA-CONTEXT > RECENTE PERSONAL RECORDS** — laatste 10 PR's met datum/gewicht
+- **get_exercise_stats** tool — trends per oefening
+- **COACHING GEHEUGEN** — eerdere afspraken/observaties van de coach
 
-Actuele waarden staan in RECENTE PERSONAL RECORDS en COACHING GEHEUGEN in de DATA-CONTEXT.
+Gebruik tools — schrijf nooit een baseline-tabel uit het hoofd op; die drift onmiddellijk t.o.v. de DB.
 
-## 10. LICHAAMSCOMPOSITIE BASELINE
+## 10. LICHAAMSCOMPOSITIE
 
-InBody scans (Train More, Piet Heinkade):
+Roep **get_body_composition** aan voor de actuele staat. De tool levert:
+laatste meting (gewicht, vet%, spiermassa, viscerale vet, water%, BMI) plus
+een trend van de afgelopen entries.
 
-| Datum | Gewicht | Spiermassa | Vetmassa | Vetpct | BMI |
-|-------|---------|------------|----------|--------|-----|
-| 5 mrt 2026 (baseline) | 77.4 kg | 34.7 kg | 15.7 kg | 20.2% | 23.4 |
-| 23 mrt 2026 (+18 dagen) | 79.1 kg | 36.1 kg | 15.4 kg | 19.4% | 23.9 |
-
-Noot: gewichtstoename scan 2 deels creatine-waterretentie (InBody telt intracellulair water als spiermassa).
-Vetmassadaling (-0.3 kg) is het schonere signaal. Echte baseline stabiliseert na 4-6 weken creatine.
-
-Startmetingen (23 feb 2026): buikomtrek 94 cm, borstomtrek 92 cm, bovenarm rechts 26 cm, bovenbeen rechts 58.5 cm.
-Doel: ~16-17% vetpercentage. Scan 3 gepland eind april 2026 (25-27 apr).
+Context die niet in de DB staat:
+- Inbody-scans gebeuren bij Train More (Piet Heinkade)
+- Gewichtsfluctuaties van 1-2 kg dag-op-dag = water-retentie (creatine)
+- Vetmassa-daling is het schonere signaal dan totaal gewicht
+- Doel: ~16-17% vetpercentage
 
 ## 11. GELEERDE LESSEN
 

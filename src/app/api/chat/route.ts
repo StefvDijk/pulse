@@ -4,6 +4,7 @@ import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
+import { compressHistory } from '@/lib/ai/history-compressor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectSkills } from '@/lib/ai/skills/router'
@@ -117,17 +118,19 @@ export async function POST(request: Request) {
       sessionId = newSession.id
     }
 
-    // Fetch last 20 messages for context
+    // [B8] Fetch up to 40 messages and let the compressor decide whether
+    // to summarize the oldest. For sessions ≤16 turns this is verbatim.
     const { data: history } = await admin
       .from('chat_messages')
       .select('role, content')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(40)
 
-    const historyMessages = (history ?? [])
+    const rawHistory = (history ?? [])
       .reverse()
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+    const historyMessages = await compressHistory(rawHistory)
 
     // Save user message
     await admin.from('chat_messages').insert({

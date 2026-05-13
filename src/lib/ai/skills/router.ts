@@ -43,7 +43,7 @@ export function selectSkills(questionType: QuestionType, message: string): strin
       skills.push(buildSchemaPrompt({}))
       break
     case 'weekly_review':
-      skills.push(buildWeeklySummaryPrompt({}))
+      skills.push(buildWeeklySummaryPrompt())
       skills.push(buildWorkoutAnalysisSkill())
       break
     case 'progress_question':
