@@ -162,9 +162,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const parsedBodyComposition = parseBodyComposition(payload)
 
   console.log(`apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`)
-  if (parsedBodyComposition.length > 0) {
-    console.log('apple-health ingest: bodyComp entries:', JSON.stringify(parsedBodyComposition.slice(0, 5)))
-  }
 
   const errors: string[] = []
 
@@ -538,11 +535,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       gymCorrelations,
     },
     errors,
-    debug: {
-      metricNames: payload.data.metrics.map((m) => m.name),
-      bodyCompParsed: parsedBodyComposition.length,
-      bodyWeightParsed: parsedBodyWeight.length,
-    },
   })
   } catch (error) {
     console.error('[POST /api/ingest/apple-health] Unhandled error:', error)
