@@ -5,6 +5,12 @@ import { getRunningHistory } from './handlers/running-tools'
 import { getHealthMetrics } from './handlers/health-tools'
 import { getNutritionLog, getMacroTargets } from './handlers/nutrition-tools'
 import { calculateProgressiveOverload, getRecoveryScore } from './handlers/analysis-tools'
+import {
+  getBodyComposition,
+  getActiveSchema,
+  getInjuryHistory,
+  getWeeklyAggregations,
+} from './handlers/profile-tools'
 
 // ---------------------------------------------------------------------------
 // All tools available to the Pulse AI coach.
@@ -134,6 +140,46 @@ Returns: score 1-10, breakdown per factor, en advies (train hard / train licht /
 Returns: lijst van matching oefeningen met spiergroepen en type.`,
       inputSchema: searchExercisesSchema,
       execute: async (input) => searchExercises(userId, input),
+    }),
+
+    // [B7 — Sprint 3] Profile read tools.
+    get_body_composition: tool({
+      description: `Haal de laatste Inbody/Apple-Health body composition op + trend van de afgelopen entries.
+Gebruik bij vragen als "hoe gaat mijn vetpercentage?", "weeg ik nog", of "spiermassa progressie".
+Returns: laatste meting (gewicht, vet%, spiermassa, viscerale vet, water%, BMI) en trend.`,
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(60).default(12).describe('Aantal recente entries voor de trend (default 12).'),
+      }),
+      execute: async (input) => getBodyComposition(userId, input),
+    }),
+
+    get_active_schema: tool({
+      description: `Haal het huidig ACTIEVE trainingsschema op.
+Gebruik bij vragen over de huidige training-week, schema-inhoud, of bij twijfel of een oefening in het schema staat.
+Returns: titel, type, weken-planned, workout_schedule (per dag), en eventuele scheduled_overrides van check-in.`,
+      inputSchema: z.object({}),
+      execute: async () => getActiveSchema(userId),
+    }),
+
+    get_injury_history: tool({
+      description: `Haal de blessure-historie op (actieve + optioneel afgesloten).
+Gebruik bij elk schema-advies, en wanneer Stef terugkomt op een eerdere klacht.
+Returns: lijst van injury_logs met locatie, severity, beschrijving, status.`,
+      inputSchema: z.object({
+        include_resolved: z.boolean().default(false).describe('Of afgesloten blessures meegeleverd moeten worden.'),
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+      execute: async (input) => getInjuryHistory(userId, input),
+    }),
+
+    get_weekly_aggregations: tool({
+      description: `Haal week-aggregaties op (workouts, volume, hardloop km, slaap, voeding, rusthart).
+Gebruik bij weekly-review vragen of trend-analyses ("hoe doe ik vs vorige weken?").
+Returns: array van weken (recentste eerst) met de belangrijkste metrics.`,
+      inputSchema: z.object({
+        weeks_back: z.number().int().min(1).max(52).default(8),
+      }),
+      execute: async (input) => getWeeklyAggregations(userId, input),
     }),
   }
 }
