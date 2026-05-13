@@ -24,6 +24,10 @@ interface ConfirmationCardProps {
   manualAdditions: ManualAddition[]
   plannedSessions: PlannedSession[] | null
   syncToCalendar: boolean
+  /** Monday of the week the user just planned (review-week + 7 days). */
+  planWeekStart: string
+  /** Sunday of the plan week. */
+  planWeekEnd: string
   onConfirmed: () => void
 }
 
@@ -54,6 +58,8 @@ export function ConfirmationCard({
   manualAdditions,
   plannedSessions,
   syncToCalendar,
+  planWeekStart,
+  planWeekEnd,
   onConfirmed,
 }: ConfirmationCardProps) {
   const [saving, setSaving] = useState(false)
@@ -76,6 +82,8 @@ export function ConfirmationCard({
         week_start: reviewData.week.weekStart,
         week_end: reviewData.week.weekEnd,
         week_number: reviewData.week.weekNumber,
+        plan_week_start: planWeekStart,
+        plan_week_end: planWeekEnd,
         summary_text: analysis.summary,
         key_insights: analysis.keyInsights,
         focus_next_week: analysis.focusNextWeek,

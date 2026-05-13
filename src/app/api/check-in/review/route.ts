@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database, Json } from '@/types/database'
+import {
+  addDays,
+  getCurrentWeekStart,
+  getISOWeekNumber,
+  getWeekEnd,
+} from '@/lib/dates/week'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -72,32 +78,6 @@ export interface CheckInReviewData {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Get the Monday (ISO week start) for a given date */
-function getWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  // Shift Sunday (0) to 7 so Monday=1 is always the start
-  const diff = (day === 0 ? 6 : day - 1)
-  d.setUTCDate(d.getUTCDate() - diff)
-  return d.toISOString().slice(0, 10)
-}
-
-function getWeekEnd(weekStart: string): string {
-  const d = new Date(weekStart + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + 6)
-  return d.toISOString().slice(0, 10)
-}
-
-function getISOWeekNumber(dateStr: string): { weekNumber: number; year: number } {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  // Set to nearest Thursday (ISO week date)
-  d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7))
-  const year = d.getUTCFullYear()
-  const jan4 = new Date(Date.UTC(year, 0, 4))
-  const weekNumber = 1 + Math.round(((d.getTime() - jan4.getTime()) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7)
-  return { weekNumber, year }
-}
 
 function avg(values: (number | null)[]): number | null {
   const valid = values.filter((v): v is number => v !== null)
@@ -270,14 +250,12 @@ export async function GET(request: Request) {
     // Determine week range
     const { searchParams } = new URL(request.url)
     const weekStartParam = searchParams.get('week_start')
-    const weekStart = weekStartParam ?? getWeekStart(new Date())
+    const weekStart = weekStartParam ?? getCurrentWeekStart()
     const weekEnd = getWeekEnd(weekStart)
     const { weekNumber, year } = getISOWeekNumber(weekStart)
 
     // Previous week for fetching previous review
-    const prevWeekStart = new Date(weekStart + 'T00:00:00Z')
-    prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7)
-    const prevWeekStartStr = prevWeekStart.toISOString().slice(0, 10)
+    const prevWeekStartStr = addDays(weekStart, -7)
 
     // Parallel queries
     const [

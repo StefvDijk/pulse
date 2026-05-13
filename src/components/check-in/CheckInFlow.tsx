@@ -12,6 +12,7 @@ import { WeekPlanCard } from '@/components/check-in/WeekPlanCard'
 import { ConfirmationCard } from '@/components/check-in/ConfirmationCard'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { PlannedSession } from '@/hooks/useWeekPlan'
+import { getNextWeekRange } from '@/lib/dates/week'
 
 // ---------------------------------------------------------------------------
 // Manual addition type used across the flow
@@ -211,6 +212,10 @@ export function CheckInFlow() {
     )
   }
 
+  // The week being PLANNED is the week AFTER the one being reviewed.
+  // (data.week is the just-finished week; plans go onto next week.)
+  const planWeek = getNextWeekRange(data.week.weekStart)
+
   return (
     <div className="mx-auto max-w-lg pb-8">
       {/* Header */}
@@ -267,8 +272,8 @@ export function CheckInFlow() {
           <WeekPlanCard
             reviewData={data}
             onNext={handlePlanComplete}
-            weekStart={data.week.weekStart}
-            weekEnd={data.week.weekEnd}
+            weekStart={planWeek.weekStart}
+            weekEnd={planWeek.weekEnd}
           />
         )}
         {step === 4 && analysis && (
@@ -278,6 +283,8 @@ export function CheckInFlow() {
             manualAdditions={manualAdditions}
             plannedSessions={plannedSessions}
             syncToCalendar={syncToCalendar}
+            planWeekStart={planWeek.weekStart}
+            planWeekEnd={planWeek.weekEnd}
             onConfirmed={handleConfirmed}
           />
         )}

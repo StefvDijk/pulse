@@ -30,9 +30,15 @@ const PlannedSessionSchema = z.object({
 })
 
 const ConfirmRequestSchema = z.object({
+  // The week being REVIEWED (just-completed). Stored on weekly_reviews.
   week_start: z.string().date(),
   week_end: z.string().date(),
   week_number: z.number().int().min(1).max(53),
+  // The week being PLANNED (review_week + 7 days). Used as anchor for
+  // training_schemas.scheduled_overrides so planned_sessions dates land
+  // on the correct future week.
+  plan_week_start: z.string().date(),
+  plan_week_end: z.string().date(),
   summary_text: z.string().min(1).max(2000),
   key_insights: z.array(z.string()).min(1).max(10),
   focus_next_week: z.string().min(1).max(500),
@@ -143,9 +149,11 @@ export async function POST(request: Request) {
         })
     }
 
-    // Update scheduled overrides on training schema (fire-and-forget)
+    // Update scheduled overrides on training schema (fire-and-forget).
+    // Anchor on plan_week_start: planned_sessions' dates belong to the
+    // week AFTER the one being reviewed, so the iteration anchor must match.
     if (input.planned_sessions?.length) {
-      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.week_start)
+      updateScheduledOverrides(admin, user.id, input.planned_sessions, input.plan_week_start)
         .catch((overrideError) => {
           console.error('Scheduled override update failed (non-fatal):', overrideError)
         })
