@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useProgressData } from '@/hooks/useProgressData'
 import { useExerciseList } from '@/hooks/useExerciseList'
 import { useExerciseProgress } from '@/hooks/useExerciseProgress'
@@ -31,14 +31,9 @@ export function ProgressPage() {
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
   const { data: progressData, isLoading: progressLoading, error: progressError, refresh } = useProgressData('4w')
   const { exercises, isLoading: exercisesLoading } = useExerciseList()
-  const { data: exerciseProgress, isLoading: chartLoading } = useExerciseProgress(selectedExercise)
-
-  // Auto-select first exercise when list loads
-  useEffect(() => {
-    if (!selectedExercise && exercises.length > 0) {
-      setSelectedExercise(exercises[0].name)
-    }
-  }, [exercises, selectedExercise])
+  // [D15] Derive instead of useEffect+setState — avoids one render-then-state cycle.
+  const activeExercise = selectedExercise ?? exercises[0]?.name ?? null
+  const { data: exerciseProgress, isLoading: chartLoading } = useExerciseProgress(activeExercise)
 
   const isLoading = progressLoading || exercisesLoading
 
@@ -90,7 +85,7 @@ export function ProgressPage() {
             <div className="flex flex-col gap-4">
               <ExercisePicker
                 exercises={exercises}
-                selected={selectedExercise}
+                selected={activeExercise}
                 onSelect={setSelectedExercise}
               />
               {chartLoading ? (

@@ -10,7 +10,7 @@ import {
   OUTLINE_BACK,
   OUTLINE_FRONT,
   type BodyMuscle,
-} from '@/components/muscles/bodyMapData'
+} from '@/lib/body-map/data'
 import { getMuscleLabel } from '@/components/home/MuscleGroupDot'
 
 /* ── Props ──────────────────────────────────────────────────── */
