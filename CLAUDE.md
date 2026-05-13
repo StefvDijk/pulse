@@ -208,11 +208,73 @@ Stop en vraag Stef om input wanneer:
 - **Timezone:** Alle tijden in UTC opslaan. Converteer naar Europe/Amsterdam in de frontend.
 - **Apple Health duplicaten:** Health Auto Export kan dezelfde data meerdere keren sturen. Dedupliceer op `apple_health_id`.
 
+## Design System (canonical)
+
+**Single source of truth:** `pulse/design/design_handoff_pulse_v2/`
+
+- **Tokens (runtime):** `pulse/design/design_handoff_pulse_v2/tokens.js` — `bg.*`, `text.*`, `sport.*`, `status.*`, `gradients.*`, `radius.*`, `font`. Translate to Tailwind via the extension documented in the handoff README.
+- **Visual patterns (per screen):**
+  - Home: `pulse/design/design_handoff_pulse_v2/screens/Home.jsx`
+  - Schema, Progress, Coach, Nutrition: `screens/Other.jsx`
+  - Workload, Goals, Trends, Check-in, Settings, WorkoutDetail: `screens/More.jsx`
+- **Spec & rules:** `pulse/design/design_handoff_pulse_v2/README.md`
+
+**Theme:** dark-only. Background `#15171F`. Font: SF Pro Display. Card pattern: `bg.surface (#1E2230)` + `0.5px solid bg.border` + `radius.lg (22)`, no drop shadow. Sport accents: gym `#00E5C7`, run `#FF5E3A`, padel `#FFB020`, cycle `#9CFF4F`. Coach indicator: `CoachOrb` (Anthropic coral `#D97757`).
+
+**Do NOT consult:**
+- `PULSE-DESIGN-SYSTEM.md` (deprecated — Mineral light theme, contradicts v2)
+- Any inline `#FFFFFF` / `#F5F3EF` / `Inter` references in older `PLAN-*.md` files
+
+When in doubt, open `pulse/design/design_handoff_pulse_v2/screens/*.jsx` and mirror the inline styles in Tailwind utility classes against the extended config.
+
 ## Huidige Prioriteit
 
 De data-pipeline, AI-laag, en UX redesign zijn af. Openstaand werk:
 
 - **Homescreen verbeteringen:** Zie `PLAN-HOMESCREEN-REDESIGN.md` (cleanup, readiness signal, coach nudge)
 - **Weekly check-in v1.1:** Zie `PLAN-WEEKLY-CHECKIN.md` (Google Calendar write, week plan proposals, interactive adjustments)
-- **Design systeem:** Zie `PULSE-DESIGN-SYSTEM.md` voor UI standaarden
+- **Design systeem:** Zie de "Design System (canonical)" sectie hierboven en `pulse/design/design_handoff_pulse_v2/`
 - **Product spec:** Zie `PRD.md` voor de volledige productspecificatie
+
+## Audit-modus (afgerond)
+- 9 audit-rapporten in `.claude/audit-output/` — bronwaarheid, read-only
+- 67 fixes geconsolideerd in `.claude/audit-output/FIXES-ALLES.md`
+- 3 PR-diffs klaar in `.claude/audit-output/prs/`
+- 3 fixes geschrapt op user-verzoek: G1 (Sentry), G3 (Supabase Pro), A4 (Vault encryption) — single-user accepteert die risico's
+
+## Fix-modus (sprint X actief)
+
+Wanneer een `/goal` actief is dat verwijst naar `.claude/skills/fix-sprint-N/SKILL.md`:
+
+1. Lees ALTIJD eerst de sprint-skill en `.claude/audit-output/00-MASTER-REPORT.md` + `FIXES-ALLES.md`.
+2. Per fix: maak een feature branch `fix/<fix-id>-<korte-naam>` van `audit-fixes-2026-05`.
+3. Commit-convention: `fix(<scope>): <korte beschrijving> [<FIX-ID>]`
+   - Voorbeelden: `fix(chat): sanitize markdown to prevent XSS [A1]`, `fix(check-in): plan komende week ipv huidige [C1]`
+4. PRs target `audit-fixes-2026-05`, niet main. Main wordt geüpdate na sprint-review.
+5. ELKE fix moet voldoen aan: typecheck pass, lint pass, en (indien testable) een nieuwe test.
+6. Migration-files MOGEN NIET worden gewijzigd; alleen NIEUWE migraties aanmaken.
+7. Bij twijfel of breaking change: STOP, schrijf naar `.claude/audit-output/decisions/<fix-id>.md`, vraag de gebruiker.
+
+### Parallel work
+
+- Gebruik `Agent` tool om onafhankelijke fixes parallel te delegeren naar subagents.
+- Onafhankelijk = raakt geen gedeelde files. Check met `git diff --name-only` per branch.
+- Wanneer 2+ fixes hetzelfde bestand raken: serieel in 1 branch + 1 PR.
+
+### Beschikbare subagents (fix-modus)
+
+- `fix-implementer` — generieke XS/S fixes
+- `ai-refactorer` — alles in `src/lib/ai/` en chat/check-in routes
+- `security-engineer` — A5 (server.ts splitsen), A11, RLS
+- `db-migrator` — migraties (F3, G4)
+- `test-author` — unit/E2E/RLS tests + eval-cases
+- `pr-author` — PR-bodies aan einde van sprint
+- `verifier` — typecheck/lint/test/eval-snapshot zonder oordeel
+
+### Verboden
+
+- `git push` naar remote zonder expliciete user-bevestiging
+- Wijzigen van bestaande migraties (alleen nieuwe SQL files in supabase/migrations/)
+- Wijzigen van `.claude/audit-output/PULSE-AUDIT-BUNDLE.md` of `PULSE-FIX-BUNDLE.md` (read-only)
+- Force-push, rebase op gedeelde branches, of squash zonder review
+- Deps installeren die niet expliciet in een fix-spec staan

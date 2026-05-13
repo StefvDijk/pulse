@@ -1,0 +1,79 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm test:e2e*)",
+      "Bash(pnpm build*)",
+      "Bash(pnpm install*)",
+      "Bash(pnpm update*)",
+      "Bash(pnpm audit*)",
+      "Bash(pnpm add*)",
+      "Bash(pnpm remove*)",
+      "Bash(pnpm eval:ai*)",
+      "Bash(pnpm dev*)",
+      "Bash(git checkout*)",
+      "Bash(git commit*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git worktree*)",
+      "Bash(git apply*)",
+      "Bash(git revert*)",
+      "Bash(git stash*)",
+      "Bash(git add*)",
+      "Bash(supabase db diff*)",
+      "Bash(supabase migration new*)",
+      "Bash(supabase gen types*)",
+      "Bash(supabase db push*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(supabase db reset*)",
+      "Bash(pnpm publish*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // \"\"'); if echo \"$CMD\" | grep -qE 'git push|git reset --hard|rm -rf|supabase db reset'; then echo 'BLOCKED: gevaarlijk commando' >&2; exit 2; fi; exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); case \"$FILE\" in *.claude/audit-output/PULSE-AUDIT-BUNDLE*|*.claude/audit-output/PULSE-FIX-BUNDLE*) echo 'BLOCKED: bundle-docs zijn read-only' >&2; exit 2 ;; */supabase/migrations/2026010*|*/supabase/migrations/2026020*|*/supabase/migrations/2026030*|*/supabase/migrations/2026040*) echo 'BLOCKED: wijzigen bestaande migratie verboden. Maak een nieuwe via: supabase migration new <naam>' >&2; exit 2 ;; *) exit 0 ;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); case \"$FILE\" in *.ts|*.tsx) (cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null && pnpm typecheck 2>&1 | tail -5) || true ;; *) exit 0 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
