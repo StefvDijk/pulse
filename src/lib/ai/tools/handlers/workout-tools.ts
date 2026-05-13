@@ -328,6 +328,43 @@ export async function comparePeriods(
 }
 
 // ---------------------------------------------------------------------------
+// get_other_activities
+// ---------------------------------------------------------------------------
+
+export async function getOtherActivities(
+  userId: string,
+  input: { period: string },
+): Promise<string> {
+  const { start, end } = periodToDates(input.period)
+  const admin = createAdminClient()
+
+  const { data, error } = await admin
+    .from('workout_sessions')
+    .select('started_at, workout_type, workout_name, duration_seconds, avg_heart_rate, calories_burned')
+    .eq('user_id', userId)
+    .gte('started_at', `${start}T00:00:00`)
+    .lte('started_at', `${end}T23:59:59`)
+    .order('started_at', { ascending: false })
+    .limit(50)
+
+  if (error) return `Fout bij ophalen activiteiten: ${error.message}`
+  if (!data || data.length === 0) return `Geen andere activiteiten gevonden in periode ${start} t/m ${end}.`
+
+  const lines: string[] = [`${data.length} activiteiten gevonden (${start} t/m ${end}):\n`]
+
+  for (const s of data) {
+    const date = formatDate(s.started_at)
+    const mins = s.duration_seconds ? Math.round(s.duration_seconds / 60) : '?'
+    const hr = s.avg_heart_rate ? `, ${s.avg_heart_rate} bpm` : ''
+    const kcal = s.calories_burned ? `, ${Math.round(Number(s.calories_burned))} kcal` : ''
+    const name = s.workout_name ?? s.workout_type
+    lines.push(`- ${date}: ${name} (${mins} min${hr}${kcal})`)
+  }
+
+  return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------
 // search_exercises
 // ---------------------------------------------------------------------------
 

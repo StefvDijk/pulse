@@ -5,6 +5,7 @@ export interface TrainingLoadParams {
   totalRunningKm: number
   avgPaceSecondsPerKm: number
   padelMinutes: number
+  otherMinutes?: number
 }
 
 export type WorkloadStatus = 'low' | 'optimal' | 'warning' | 'danger'
@@ -15,6 +16,7 @@ export type WorkloadStatus = 'low' | 'optimal' | 'warning' | 'danger'
  * Gym:     (total_tonnage_kg / 1000) * (gym_minutes / 60) * 10
  * Running: total_km * (60 / avg_pace_min_per_km) * 2  — faster = more load
  * Padel:   (padel_minutes / 60) * 8
+ * Other:   (other_minutes / 60) * 6  — moderate estimate for unknown activity types
  */
 export function calculateTrainingLoadScore(params: TrainingLoadParams): number {
   const {
@@ -24,6 +26,7 @@ export function calculateTrainingLoadScore(params: TrainingLoadParams): number {
     totalRunningKm,
     avgPaceSecondsPerKm,
     padelMinutes,
+    otherMinutes = 0,
   } = params
 
   const gymLoad = (totalTonnageKg / 1000) * (gymMinutes / 60) * 10
@@ -33,8 +36,9 @@ export function calculateTrainingLoadScore(params: TrainingLoadParams): number {
     avgPaceMinPerKm > 0 ? totalRunningKm * (60 / avgPaceMinPerKm) * 2 : 0
 
   const padelLoad = (padelMinutes / 60) * 8
+  const otherLoad = (otherMinutes / 60) * 6
 
-  return gymLoad + runningLoad + padelLoad
+  return gymLoad + runningLoad + padelLoad + otherLoad
 }
 
 /**

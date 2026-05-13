@@ -44,6 +44,7 @@ const TOOL_LABELS: Record<string, string> = {
   compare_periods: 'Periodes vergelijken…',
   calculate_progressive_overload: 'Progressive overload berekenen…',
   get_recovery_score: 'Recovery score berekenen…',
+  get_other_activities: 'Activiteiten ophalen…',
   log_nutrition: 'Maaltijd loggen…',
   log_injury: 'Blessure loggen…',
   propose_schema_generation: 'Nieuw schema aanmaken…',

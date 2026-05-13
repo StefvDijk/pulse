@@ -391,6 +391,7 @@ export type Database = {
           is_rest_day: boolean | null
           movement_pattern_volume: Json | null
           muscle_load: Json | null
+          other_minutes: number
           padel_minutes: number | null
           resting_heart_rate: number | null
           running_minutes: number | null
@@ -412,6 +413,7 @@ export type Database = {
           is_rest_day?: boolean | null
           movement_pattern_volume?: Json | null
           muscle_load?: Json | null
+          other_minutes?: number
           padel_minutes?: number | null
           resting_heart_rate?: number | null
           running_minutes?: number | null
@@ -433,6 +435,7 @@ export type Database = {
           is_rest_day?: boolean | null
           movement_pattern_volume?: Json | null
           muscle_load?: Json | null
+          other_minutes?: number
           padel_minutes?: number | null
           resting_heart_rate?: number | null
           running_minutes?: number | null
@@ -1465,6 +1468,7 @@ export type Database = {
           created_at: string | null
           gym_sessions: number | null
           id: string
+          other_sessions: number
           padel_sessions: number | null
           planned_sessions: number | null
           running_sessions: number | null
@@ -1495,6 +1499,7 @@ export type Database = {
           created_at?: string | null
           gym_sessions?: number | null
           id?: string
+          other_sessions?: number
           padel_sessions?: number | null
           planned_sessions?: number | null
           running_sessions?: number | null
@@ -1525,6 +1530,7 @@ export type Database = {
           created_at?: string | null
           gym_sessions?: number | null
           id?: string
+          other_sessions?: number
           padel_sessions?: number | null
           planned_sessions?: number | null
           running_sessions?: number | null
@@ -1707,6 +1713,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workout_sessions: {
+        Row: {
+          apple_health_id: string | null
+          avg_heart_rate: number | null
+          calories_burned: number | null
+          created_at: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          max_heart_rate: number | null
+          source: string
+          started_at: string
+          user_id: string
+          workout_name: string | null
+          workout_type: string
+        }
+        Insert: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          source?: string
+          started_at: string
+          user_id: string
+          workout_name?: string | null
+          workout_type?: string
+        }
+        Update: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          source?: string
+          started_at?: string
+          user_id?: string
+          workout_name?: string | null
+          workout_type?: string
+        }
+        Relationships: []
       }
       workout_sets: {
         Row: {

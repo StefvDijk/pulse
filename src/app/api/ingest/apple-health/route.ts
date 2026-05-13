@@ -3,9 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { parseSleepData, parseBodyWeight, parseBodyComposition, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
-import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
+import { mapRun, mapPadelSession, mapDailyActivity, mapWorkoutSession } from '@/lib/apple-health/mappers'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { getCurrentWeekStart } from '@/lib/dates/week'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import type { Database } from '@/types/database'
 
@@ -279,6 +280,54 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
+  // 5.5 Upsert other workout sessions (cycling, swimming, hiking, HIIT, yoga, etc.)
+  // ------------------------------------------------------------------
+  let otherProcessed = 0
+
+  if (parsedOther.length > 0) {
+    const sessionInserts = parsedOther.map((w) => mapWorkoutSession(w, userId))
+
+    const withId = sessionInserts.filter((s) => s.apple_health_id)
+    const withoutId = sessionInserts.filter((s) => !s.apple_health_id)
+
+    if (withId.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('workout_sessions')
+        .upsert(withId, { onConflict: 'user_id,apple_health_id', ignoreDuplicates: false })
+
+      if (upsertError) {
+        console.error('apple-health ingest: workout_sessions upsert error', upsertError)
+        errors.push(`Workout sessions upsert failed: ${upsertError.message}`)
+      } else {
+        otherProcessed += withId.length
+      }
+    }
+
+    if (withoutId.length > 0) {
+      // Dedup by started_at: skip if an identical start time already exists
+      const startTimes = withoutId.map((s) => s.started_at).filter(Boolean) as string[]
+      const { data: existing } = await supabase
+        .from('workout_sessions')
+        .select('started_at')
+        .eq('user_id', userId)
+        .in('started_at', startTimes)
+
+      const existingStarts = new Set((existing ?? []).map((s) => s.started_at))
+      const toInsert = withoutId.filter((s) => !existingStarts.has(s.started_at ?? ''))
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('workout_sessions').insert(toInsert)
+        if (insertError) {
+          console.error('apple-health ingest: workout_sessions insert error', insertError)
+          errors.push(`Workout sessions insert failed: ${insertError.message}`)
+        } else {
+          otherProcessed += toInsert.length
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
   // 6. Upsert daily activity
   // ------------------------------------------------------------------
   let activityProcessed = 0
@@ -491,17 +540,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   // ------------------------------------------------------------------
   // 12. Re-aggregate today + current week so dashboard stats are fresh
   // ------------------------------------------------------------------
-  const totalDataIngested = runsProcessed + padelProcessed + activityProcessed
+  const totalDataIngested = runsProcessed + padelProcessed + otherProcessed + activityProcessed
   if (totalDataIngested > 0) {
     try {
       const todayStr = new Date().toISOString().slice(0, 10)
       await computeDailyAggregation(userId, todayStr)
 
-      const now = new Date()
-      const day = now.getUTCDay()
-      const offset = day === 0 ? -6 : 1 - day
-      const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
-      await computeWeeklyAggregation(userId, monday.toISOString().slice(0, 10))
+      await computeWeeklyAggregation(userId, getCurrentWeekStart())
     } catch (aggError) {
       console.error('apple-health ingest: re-aggregation failed', aggError)
       errors.push(`Re-aggregation: ${aggError instanceof Error ? aggError.message : String(aggError)}`)
@@ -515,7 +560,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     analyzeAfterSync({
       userId,
       syncSource: 'apple_health',
-      haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
+      haeResult: { runs: runsProcessed, padel: padelProcessed, other: otherProcessed, activity: activityProcessed },
     }).catch((err: unknown) => {
       console.error('[ingest/apple-health] analyzeAfterSync failed:', err)
     })
@@ -528,6 +573,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     processed: {
       runs: runsProcessed,
       padel: padelProcessed,
+      other: otherProcessed,
       activity: activityProcessed,
       sleep: sleepProcessed,
       bodyWeight: bodyWeightProcessed,

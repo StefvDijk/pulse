@@ -54,6 +54,7 @@ export async function computeWeeklyAggregation(
   const gymSessions = rows.filter((r) => (r.gym_minutes ?? 0) > 0).length
   const runningSessions = rows.filter((r) => (r.running_minutes ?? 0) > 0).length
   const padelSessions = rows.filter((r) => (r.padel_minutes ?? 0) > 0).length
+  const otherSessions = rows.filter((r) => (r.other_minutes ?? 0) > 0).length
   const totalSessions = rows.filter((r) => !(r.is_rest_day ?? true)).length
 
   // Merge weekly muscle load (sum raw contributions — use max-normalize approach)
@@ -144,6 +145,7 @@ export async function computeWeeklyAggregation(
       gym_sessions: gymSessions,
       running_sessions: runningSessions,
       padel_sessions: padelSessions,
+      other_sessions: otherSessions,
       total_sessions: totalSessions,
       weekly_muscle_load: Object.keys(weeklyMuscleLoad).length > 0 ? weeklyMuscleLoad : null,
       weekly_movement_volume:

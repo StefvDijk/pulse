@@ -102,7 +102,7 @@ export type RawHealthPayload = z.infer<typeof RawHealthPayloadSchema>
 // Parsed / normalised types
 // ---------------------------------------------------------------------------
 
-export type WorkoutCategory = 'running' | 'padel' | 'other'
+export type WorkoutCategory = 'running' | 'padel' | 'cycling' | 'swimming' | 'hiking' | 'hiit' | 'yoga' | 'other'
 
 export interface ParsedWorkout {
   appleHealthId: string | undefined
@@ -167,6 +167,11 @@ const PADEL_NAMES = new Set([
 
 const RUNNING_KEYWORDS = ['hardlopen', 'rennen', 'running', 'run', 'loopband', 'treadmill', 'joggen']
 const PADEL_KEYWORDS = ['padel', 'tennis', 'squash', 'racket', 'badminton']
+const CYCLING_KEYWORDS = ['cycling', 'biking', 'bike ride', 'fietsen', 'wielrennen', 'mtb', 'spinning', 'spin class']
+const SWIMMING_KEYWORDS = ['swimming', 'swim', 'zwemmen', 'open water swim', 'pool swim']
+const HIKING_KEYWORDS = ['hiking', 'hike', 'wandelen', 'wandeling', 'trekking', 'bergwandelen']
+const HIIT_KEYWORDS = ['hiit', 'high intensity', 'interval training', 'crossfit', 'bootcamp', 'circuit']
+const YOGA_KEYWORDS = ['yoga', 'pilates', 'stretching', 'flexibility', 'mindfulness']
 
 /**
  * Categorise a workout based on its Apple Health name.
@@ -179,6 +184,11 @@ export function categorizeWorkout(name: string): WorkoutCategory {
   if (PADEL_NAMES.has(lower)) return 'padel'
   if (RUNNING_KEYWORDS.some((kw) => lower.includes(kw))) return 'running'
   if (PADEL_KEYWORDS.some((kw) => lower.includes(kw))) return 'padel'
+  if (CYCLING_KEYWORDS.some((kw) => lower.includes(kw))) return 'cycling'
+  if (SWIMMING_KEYWORDS.some((kw) => lower.includes(kw))) return 'swimming'
+  if (HIKING_KEYWORDS.some((kw) => lower.includes(kw))) return 'hiking'
+  if (HIIT_KEYWORDS.some((kw) => lower.includes(kw))) return 'hiit'
+  if (YOGA_KEYWORDS.some((kw) => lower.includes(kw))) return 'yoga'
   return 'other'
 }
 

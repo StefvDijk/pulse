@@ -81,6 +81,18 @@ export async function computeDailyAggregation(
     throw new Error(`Failed to fetch padel sessions for ${date}: ${padelError.message}`)
   }
 
+  // 3b. Fetch other workout sessions (cycling, swimming, hiking, HIIT, yoga, etc.)
+  const { data: otherSessions, error: otherError } = await admin
+    .from('workout_sessions')
+    .select('duration_seconds')
+    .eq('user_id', userId)
+    .gte('started_at', `${date}T00:00:00Z`)
+    .lt('started_at', `${date}T23:59:59Z`)
+
+  if (otherError) {
+    throw new Error(`Failed to fetch other workout sessions for ${date}: ${otherError.message}`)
+  }
+
   // 4. Fetch daily_activity (resting HR, HRV)
   const { data: dailyActivity, error: activityError } = await admin
     .from('daily_activity')
@@ -103,6 +115,10 @@ export async function computeDailyAggregation(
   }, 0)
 
   const padelMinutes = (padelSessions ?? []).reduce((sum, s) => {
+    return sum + Math.round((s.duration_seconds ?? 0) / 60)
+  }, 0)
+
+  const otherMinutes = (otherSessions ?? []).reduce((sum, s) => {
     return sum + Math.round((s.duration_seconds ?? 0) / 60)
   }, 0)
 
@@ -180,9 +196,10 @@ export async function computeDailyAggregation(
     totalRunningKm,
     avgPaceSecondsPerKm,
     padelMinutes,
+    otherMinutes,
   })
 
-  const totalTrainingMinutes = gymMinutes + runningMinutes + padelMinutes
+  const totalTrainingMinutes = gymMinutes + runningMinutes + padelMinutes + otherMinutes
   const isRestDay = totalTrainingMinutes === 0
 
   // 12. Upsert into daily_aggregations
@@ -193,6 +210,7 @@ export async function computeDailyAggregation(
       gym_minutes: gymMinutes,
       running_minutes: runningMinutes,
       padel_minutes: padelMinutes,
+      other_minutes: otherMinutes,
       total_training_minutes: totalTrainingMinutes,
       total_tonnage_kg: totalTonnageKg,
       total_running_km: totalRunningKm,

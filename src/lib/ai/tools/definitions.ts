@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { tool } from 'ai'
-import { getWorkoutHistory, getExerciseStats, searchExercises, comparePeriods } from './handlers/workout-tools'
+import { getWorkoutHistory, getExerciseStats, searchExercises, comparePeriods, getOtherActivities } from './handlers/workout-tools'
 import { getRunningHistory } from './handlers/running-tools'
 import { getHealthMetrics } from './handlers/health-tools'
 import { getNutritionLog, getMacroTargets } from './handlers/nutrition-tools'
@@ -141,6 +141,16 @@ Returns: score 1-10, breakdown per factor, en advies (train hard / train licht /
 Returns: lijst van matching oefeningen met spiergroepen en type.`,
       inputSchema: searchExercisesSchema,
       execute: async (input) => searchExercises(userId, input),
+    }),
+
+    get_other_activities: tool({
+      description: `Haal andere activiteiten op (fietsen, zwemmen, wandelen, HIIT, yoga, etc.) — alles wat geen gym, run of padel is.
+Gebruik bij vragen als "hoe actief was ik?", "heb ik ook andere sport gedaan?", of als Stef vraagt over een specifieke activiteit buiten gym/run/padel.
+Returns: lijst van activiteiten met datum, type, duur, HR en calorieën.`,
+      inputSchema: z.object({
+        period: z.enum(['today', 'this_week', 'last_week', 'this_month', 'last_month', 'last_3_months', 'all_time']).default('this_month'),
+      }),
+      execute: async (input) => getOtherActivities(userId, input),
     }),
 
     // [B7 — Sprint 3] Profile read tools. The system prompt's profile

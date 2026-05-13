@@ -18,6 +18,7 @@ type WeeklyAggregationRow = Database['public']['Tables']['weekly_aggregations'][
 type WorkoutRow = Database['public']['Tables']['workouts']['Row']
 type RunRow = Database['public']['Tables']['runs']['Row']
 type PadelSessionRow = Database['public']['Tables']['padel_sessions']['Row']
+type WorkoutSessionRow = Database['public']['Tables']['workout_sessions']['Row']
 type NutritionRow = Database['public']['Tables']['daily_nutrition_summary']['Row']
 type SleepLogRow = Database['public']['Tables']['sleep_logs']['Row']
 type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
@@ -55,6 +56,7 @@ export interface CheckInReviewData {
   workouts: WorkoutRow[]
   runs: RunRow[]
   padelSessions: PadelSessionRow[]
+  otherActivities: WorkoutSessionRow[]
   nutrition: {
     days: NutritionRow[]
     avgCalories: number | null
@@ -273,6 +275,7 @@ export async function GET(request: Request) {
       workoutsResult,
       runsResult,
       padelResult,
+      otherActivitiesResult,
       nutritionResult,
       sleepResult,
       prsResult,
@@ -309,6 +312,15 @@ export async function GET(request: Request) {
       // Padel sessions in this week
       admin
         .from('padel_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('started_at', weekStart + 'T00:00:00Z')
+        .lte('started_at', weekEnd + 'T23:59:59Z')
+        .order('started_at', { ascending: true }),
+
+      // Other workout sessions in this week (cycling, swimming, hiking, HIIT, yoga, etc.)
+      admin
+        .from('workout_sessions')
         .select('*')
         .eq('user_id', user.id)
         .gte('started_at', weekStart + 'T00:00:00Z')
@@ -371,6 +383,7 @@ export async function GET(request: Request) {
     if (workoutsResult.error) throw workoutsResult.error
     if (runsResult.error) throw runsResult.error
     if (padelResult.error) throw padelResult.error
+    if (otherActivitiesResult.error) throw otherActivitiesResult.error
     if (nutritionResult.error) throw nutritionResult.error
     if (sleepResult.error) throw sleepResult.error
     if (prsResult.error) throw prsResult.error
@@ -413,6 +426,7 @@ export async function GET(request: Request) {
       workouts: workoutsData,
       runs: runsData,
       padelSessions: padelData,
+      otherActivities: otherActivitiesResult.data ?? [],
       nutrition: {
         days: nutritionDays,
         avgCalories: avg(nutritionDays.map(d => d.total_calories)),

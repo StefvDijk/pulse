@@ -72,7 +72,7 @@ interface AnalysisInput {
   userId: string
   syncSource: 'hevy' | 'apple_health'
   syncResult?: SyncResult
-  haeResult?: { runs: number; padel: number; activity: number }
+  haeResult?: { runs: number; padel: number; other: number; activity: number }
 }
 
 // ---------------------------------------------------------------------------
