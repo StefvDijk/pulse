@@ -3,6 +3,8 @@ import { getCurrentUserId } from '@/lib/auth'
 import { OnboardingWizard } from './OnboardingWizard'
 
 export async function OnboardingCheck() {
+  let needsOnboarding = false
+
   try {
     const userId = getCurrentUserId()
     const supabase = createAdminClient()
@@ -13,12 +15,10 @@ export async function OnboardingCheck() {
       .eq('id', userId)
       .single()
 
-    if (!profile?.display_name?.trim()) {
-      return <OnboardingWizard />
-    }
+    needsOnboarding = !profile?.display_name?.trim()
   } catch {
-    // Don't block rendering on errors
+    // Don't block rendering on errors — leave needsOnboarding = false.
   }
 
-  return null
+  return needsOnboarding ? <OnboardingWizard /> : null
 }
