@@ -50,7 +50,7 @@ export function SaveButton({ state, onClick }: SaveButtonProps) {
     status === 'saved'
       ? 'bg-[var(--color-status-good)] text-black'
       : status === 'error'
-        ? 'bg-system-red text-white'
+        ? 'bg-status-bad text-white'
         : 'bg-[#0A84FF] text-white'
 
   return (
@@ -65,7 +65,7 @@ export function SaveButton({ state, onClick }: SaveButtonProps) {
       {status === 'error' && errorMessage && (
         <p
           role="alert"
-          className="max-w-[240px] text-right text-xs text-system-red"
+          className="max-w-[240px] text-right text-xs text-status-bad"
         >
           {errorMessage}
         </p>
