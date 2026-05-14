@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import type { ManualAddition } from '@/components/check-in/CheckInFlow'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { Sheet } from '@/components/ui/Sheet'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -263,64 +261,37 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
 
 export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
   const [selectedType, setSelectedType] = useState<AdditionType | null>(null)
-  useBodyScrollLock(true)
-  useEscapeKey(true, onClose)
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Toevoegen aan check-in"
+    <Sheet
+      open={true}
+      onClose={onClose}
+      detents={['large']}
+      title={selectedType ? 'Toevoegen' : 'Wat wil je toevoegen?'}
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto pb-safe">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <h2 className="text-base font-semibold text-text-primary">
-              {selectedType ? 'Toevoegen' : 'Wat wil je toevoegen?'}
-            </h2>
+      <div className="px-5 pb-5">
+        {!selectedType ? (
+          /* Type selection */
+          <div className="flex flex-col gap-2">
+            {TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.type}
+                onClick={() => setSelectedType(opt.type)}
+                className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-white/[0.06]"
+              >
+                <span className="text-xl">{opt.icon}</span>
+                <span className="text-sm font-medium text-text-primary">{opt.label}</span>
+              </button>
+            ))}
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Sluiten"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06]"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="px-5 pb-5">
-          {!selectedType ? (
-            /* Type selection */
-            <div className="flex flex-col gap-2">
-              {TYPE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.type}
-                  onClick={() => setSelectedType(opt.type)}
-                  className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-white/[0.06]"
-                >
-                  <span className="text-xl">{opt.icon}</span>
-                  <span className="text-sm font-medium text-text-primary">{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          ) : selectedType === 'padel' ? (
-            <PadelForm onSubmit={onAdd} />
-          ) : selectedType === 'inbody' ? (
-            <InBodyForm onSubmit={onAdd} />
-          ) : (
-            <NoteForm onSubmit={onAdd} />
-          )}
-        </div>
+        ) : selectedType === 'padel' ? (
+          <PadelForm onSubmit={onAdd} />
+        ) : selectedType === 'inbody' ? (
+          <InBodyForm onSubmit={onAdd} />
+        ) : (
+          <NoteForm onSubmit={onAdd} />
+        )}
       </div>
-    </div>
+    </Sheet>
   )
 }

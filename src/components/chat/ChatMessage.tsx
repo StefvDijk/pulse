@@ -69,27 +69,39 @@ const REMARK_PLUGINS = [remarkGfm]
 function ChatMessageImpl({ role, content, isStreaming }: ChatMessageProps) {
   const isUser = role === 'user'
 
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[85%] px-4 py-2.5 text-subhead ${
-          isUser
-            ? 'bg-[#0A84FF] text-white rounded-2xl rounded-br-md'
-            : 'bg-white/[0.06] text-text-primary rounded-2xl rounded-bl-md'
-        }`}
-      >
-        {isUser ? (
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div
+          className="max-w-[80%] bg-bg-elevated text-text-primary text-subhead px-4 py-2.5"
+          style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) 6px var(--radius-card-md)' }}
+        >
           <p className="whitespace-pre-wrap">{content}</p>
-        ) : (
-          <div className="max-w-none">
-            <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
-              {content}
-            </Markdown>
-            {isStreaming && (
-              <CoachOrb size={12} state="streaming" className="ml-1.5 align-middle" />
-            )}
-          </div>
-        )}
+        </div>
+      </div>
+    )
+  }
+
+  // Assistant bubble — CoachOrb avatar on the left
+  return (
+    <div className="flex items-end gap-2">
+      <CoachOrb size={20} state={isStreaming ? 'streaming' : 'idle'} className="mb-0.5 shrink-0 self-end" />
+      <div
+        className="max-w-[85%] bg-gradient-coach text-text-primary text-subhead px-4 py-2.5 border-[0.5px] border-white/[0.08]"
+        style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) var(--radius-card-md) 6px' }}
+      >
+        <div className="max-w-none">
+          <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+            {content}
+          </Markdown>
+          {isStreaming && content.length === 0 && (
+            <span className="inline-flex gap-1 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:300ms]" />
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

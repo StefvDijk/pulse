@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, RotateCcw } from 'lucide-react'
+import { Loader2, RotateCcw } from 'lucide-react'
 import type { SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { Sheet } from '@/components/ui/Sheet'
 
 interface EditWeekModalProps {
   weekNumber: number
@@ -46,7 +45,6 @@ export function EditWeekModal({
   onClose,
   onSaved,
 }: EditWeekModalProps) {
-  useBodyScrollLock(true)
   const [drafts, setDrafts] = useState<DayDraft[]>(() =>
     days.map((d) => ({
       date: d.date,
@@ -59,8 +57,6 @@ export function EditWeekModal({
 
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-  useEscapeKey(true, () => { if (status !== 'saving') onClose() })
 
   function updateDraft(date: string, focus: string) {
     setDrafts((prev) =>
@@ -131,114 +127,90 @@ export function EditWeekModal({
   )
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Week ${weekNumber} aanpassen`}
+    <Sheet
+      open={true}
+      onClose={() => { if (status !== 'saving') onClose() }}
+      detents={['large']}
+      title={`Week ${weekNumber} aanpassen`}
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={status === 'saving' ? undefined : onClose}
-      />
+      {/* Sub-header hint */}
+      <p className="px-5 pb-3 text-xs text-text-tertiary -mt-1">
+        Pas per dag aan of laat leeg voor rust
+      </p>
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg-surface shadow-2xl max-h-[90dvh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <h2 className="text-base font-semibold text-text-primary">
-              Week {weekNumber} aanpassen
-            </h2>
-            <p className="text-xs text-text-tertiary mt-0.5">
-              Pas per dag aan of laat leeg voor rust
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={status === 'saving'}
-            aria-label="Sluiten"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.06] disabled:opacity-50"
-          >
-            <X size={18} />
-          </button>
-        </div>
+      {/* Day list */}
+      <div className="flex flex-col gap-2 px-5 pb-3">
+        {drafts.map((draft) => {
+          const templateFocus = templateFocusFor(draft.dayName, templateSchedule)
+          const dateNum = new Date(draft.date + 'T00:00:00Z').getUTCDate()
+          const showResetButton = draft.focus !== templateFocus
 
-        {/* Day list */}
-        <div className="flex flex-col gap-2 px-5 pb-3">
-          {drafts.map((draft) => {
-            const templateFocus = templateFocusFor(draft.dayName, templateSchedule)
-            const dateNum = new Date(draft.date + 'T00:00:00Z').getUTCDate()
-            const showResetButton = draft.focus !== templateFocus
-
-            return (
-              <div
-                key={draft.date}
-                className={`rounded-xl border p-3 transition-colors ${
-                  draft.dirty ? 'border-[#0A84FF] bg-[#0A84FF]/5' : 'border-bg-border'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <span className="text-sm font-medium text-text-primary">
-                      {DAY_LABELS[draft.dayName] ?? draft.dayName}
-                    </span>
-                    <span className="ml-1.5 text-xs text-text-tertiary tabular-nums">
-                      {dateNum}
-                    </span>
-                  </div>
-                  {showResetButton && (
-                    <button
-                      onClick={() => resetToTemplate(draft.date, draft.dayName)}
-                      className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-secondary"
-                      title={`Terug naar template (${templateFocus || 'rust'})`}
-                    >
-                      <RotateCcw size={11} />
-                      Reset
-                    </button>
-                  )}
+          return (
+            <div
+              key={draft.date}
+              className={`rounded-xl border p-3 transition-colors ${
+                draft.dirty ? 'border-[#0A84FF] bg-[#0A84FF]/5' : 'border-bg-border'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-sm font-medium text-text-primary">
+                    {DAY_LABELS[draft.dayName] ?? draft.dayName}
+                  </span>
+                  <span className="ml-1.5 text-xs text-text-tertiary tabular-nums">
+                    {dateNum}
+                  </span>
                 </div>
-
-                <input
-                  type="text"
-                  value={draft.focus}
-                  onChange={(e) => updateDraft(draft.date, e.target.value)}
-                  placeholder="Rustdag"
-                  list={`suggestions-${draft.date}`}
-                  className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
-                />
-                <datalist id={`suggestions-${draft.date}`}>
-                  {suggestions.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
+                {showResetButton && (
+                  <button
+                    onClick={() => resetToTemplate(draft.date, draft.dayName)}
+                    className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-secondary"
+                    title={`Terug naar template (${templateFocus || 'rust'})`}
+                  >
+                    <RotateCcw size={11} />
+                    Reset
+                  </button>
+                )}
               </div>
-            )
-          })}
-        </div>
 
-        {errorMsg && (
-          <div className="mx-5 mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
-            {errorMsg}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-bg-surface px-5 py-4 pb-safe-16">
-          <span className="text-sm text-text-tertiary">
-            {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
-          </span>
-          <button
-            onClick={handleSave}
-            disabled={status === 'saving' || dirtyCount === 0}
-            className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {status === 'saving' && <Loader2 size={16} className="animate-spin" />}
-            Opslaan
-          </button>
-        </div>
+              <input
+                type="text"
+                value={draft.focus}
+                onChange={(e) => updateDraft(draft.date, e.target.value)}
+                placeholder="Rustdag"
+                list={`suggestions-${draft.date}`}
+                className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
+              />
+              <datalist id={`suggestions-${draft.date}`}>
+                {suggestions.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+          )
+        })}
       </div>
-    </div>
+
+      {errorMsg && (
+        <div className="mx-5 mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-bg-border bg-glass-sheet px-5 py-4 pb-safe-16">
+        <span className="text-sm text-text-tertiary">
+          {dirtyCount === 0 ? 'Geen wijzigingen' : `${dirtyCount} wijziging${dirtyCount === 1 ? '' : 'en'}`}
+        </span>
+        <button
+          onClick={handleSave}
+          disabled={status === 'saving' || dirtyCount === 0}
+          className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {status === 'saving' && <Loader2 size={16} className="animate-spin" />}
+          Opslaan
+        </button>
+      </div>
+    </Sheet>
   )
 }

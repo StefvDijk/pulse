@@ -2,7 +2,6 @@
 
 import { Trash2 } from 'lucide-react'
 import type { Database } from '@/types/database'
-import { formatTime } from '@/lib/formatters'
 
 type NutritionLogRow = Database['public']['Tables']['nutrition_logs']['Row']
 
@@ -18,47 +17,64 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   snack: 'Snack',
 }
 
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function MealsList({ meals, onDelete }: MealsListProps) {
   if (meals.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-text-tertiary">
+      <p className="py-4 text-center text-[13px] text-text-tertiary">
         Nog geen maaltijden vandaag
       </p>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {meals.map((meal) => (
+    <div className="flex flex-col">
+      {meals.map((meal, index) => (
         <div
           key={meal.id}
-          className="flex items-start justify-between gap-3 rounded-lg bg-white/[0.06] p-3"
+          className="flex items-center gap-3 px-4 py-3.5"
+          style={
+            index > 0
+              ? { borderTop: '0.5px solid var(--color-bg-border)' }
+              : undefined
+          }
         >
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-xs text-text-tertiary">
-                {MEAL_TYPE_LABELS[meal.meal_type ?? ''] ?? meal.meal_type ?? '—'}
-              </span>
-              {meal.created_at && (
-                <span className="text-xs text-text-tertiary">
-                  {formatTime(meal.created_at)}
-                </span>
-              )}
-            </div>
-            <p className="truncate text-sm text-text-primary">
-              {meal.raw_input}
-            </p>
-            <p className="mt-1 text-xs text-text-tertiary">
-              {meal.estimated_calories ?? 0} kcal · {meal.estimated_protein_g ?? 0}g eiwit · {meal.estimated_carbs_g ?? 0}g koolh · {meal.estimated_fat_g ?? 0}g vet
-            </p>
+          {/* Time column */}
+          <div className="w-9 shrink-0 text-[11px] text-text-tertiary tabular-nums font-medium">
+            {formatTime(meal.created_at)}
           </div>
 
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-semibold text-text-primary truncate">
+              {MEAL_TYPE_LABELS[meal.meal_type ?? ''] ?? meal.meal_type ?? '—'}
+            </div>
+            <div className="mt-0.5 text-[12px] text-text-secondary truncate">
+              {meal.raw_input}
+            </div>
+          </div>
+
+          {/* Kcal + protein */}
+          <div className="shrink-0 text-right">
+            <div className="text-[13px] font-bold tabular-nums text-text-primary">
+              {meal.estimated_calories ?? 0}
+            </div>
+            <div className="text-[10px] font-semibold" style={{ color: '#00E5C7' }}>
+              {meal.estimated_protein_g ?? 0}g eiwit
+            </div>
+          </div>
+
+          {/* Delete */}
           <button
             onClick={() => onDelete(meal.id)}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-text-tertiary transition-opacity hover:text-[var(--color-status-bad)] hover:opacity-70"
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-text-tertiary active:opacity-60"
             aria-label="Verwijder maaltijd"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
           </button>
         </div>
       ))}

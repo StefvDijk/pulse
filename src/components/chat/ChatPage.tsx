@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChatInterface } from './ChatInterface'
 import { CoachOrb } from '@/components/shared/CoachOrb'
+import { Button } from '@/components/ui'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -17,31 +18,38 @@ export function ChatPage({ initialMessage }: ChatPageProps) {
 
   return (
     <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
-      {/* Header */}
-      <div
-        className="flex shrink-0 items-center justify-between border-b-[0.5px] border-bg-border px-4 pt-[60px] pb-3"
-        style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.10), transparent)' }}
+      {/* Header — NavBar with CoachOrb leading slot */}
+      {/* Coach header — custom wrapper keeps the purple-tint gradient while
+          using NavBar's glass-nav backdrop and sticky positioning */}
+      <header
+        className="sticky top-0 z-30 glass-nav border-b-[0.5px] border-bg-border pt-safe pl-safe pr-safe"
+        style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.14) 0%, var(--color-bg-glass-nav) 100%)' }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex h-14 items-center gap-3 px-4">
+          {/* Leading: CoachOrb + text */}
           <CoachOrb size={40} />
-          <div>
-            <div className="text-[18px] font-bold tracking-[-0.3px] text-text-primary">Pulse Coach</div>
-            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: '#22D67A' }}>
+          <div className="flex-1 min-w-0">
+            <div className="text-[18px] font-bold leading-[22px] tracking-[-0.3px] text-text-primary">
+              Pulse Coach
+            </div>
+            <div className="flex items-center gap-1.5 text-body-s text-status-good">
               <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: '#22D67A', boxShadow: '0 0 8px #22D67A' }}
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-good"
+                style={{ boxShadow: '0 0 8px var(--color-status-good)' }}
               />
               Beschikbaar · kent al je data
             </div>
           </div>
+          {/* Trailing: new session */}
+          <Button
+            variant="glass"
+            size="sm"
+            onClick={handleNewSession}
+          >
+            Nieuwe sessie
+          </Button>
         </div>
-        <button
-          onClick={handleNewSession}
-          className="rounded-full border-[0.5px] border-bg-border bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium text-text-secondary active:opacity-60"
-        >
-          Nieuwe sessie
-        </button>
-      </div>
+      </header>
 
       <div className="min-h-0 flex-1">
         <ChatInterface key={sessionKey} initialMessage={initialMessage} />

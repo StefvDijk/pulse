@@ -44,25 +44,25 @@ function SportIcon({ sport, size = 9, className }: { sport: SportType; size?: nu
 
 function sportColorClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-[var(--color-status-warn)]'
-    case 'padel': return 'bg-[var(--color-status-warn)]'
-    default: return 'bg-[#0A84FF]'
+    case 'run': return 'bg-[var(--color-sport-run-base)]'
+    case 'padel': return 'bg-[var(--color-sport-padel-base)]'
+    default: return 'bg-[var(--color-sport-gym-base)]'
   }
 }
 
 function sportLightClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'bg-[var(--color-status-warn)]/10'
-    case 'padel': return 'bg-[var(--color-status-warn)]/10'
-    default: return 'bg-[#0A84FF]/10'
+    case 'run': return 'bg-[var(--color-sport-run-light)]'
+    case 'padel': return 'bg-[var(--color-sport-padel-light)]'
+    default: return 'bg-[var(--color-sport-gym-light)]'
   }
 }
 
 function sportTextClass(sport: SportType): string {
   switch (sport) {
-    case 'run': return 'text-[var(--color-status-warn)]'
-    case 'padel': return 'text-[var(--color-status-warn)]'
-    default: return 'text-[#0A84FF]'
+    case 'run': return 'text-[var(--color-sport-run-base)]'
+    case 'padel': return 'text-[var(--color-sport-padel-base)]'
+    default: return 'text-[var(--color-sport-gym-base)]'
   }
 }
 
@@ -246,7 +246,7 @@ export function SchemaCalendar({
   }
 
   return (
-    <div className="rounded-2xl border border-bg-border bg-bg-surface overflow-hidden">
+    <div className="rounded-[22px] border-[0.5px] border-bg-border bg-bg-surface overflow-hidden">
       {/* Week selector header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-bg-border">
         <button
@@ -258,10 +258,10 @@ export function SchemaCalendar({
         </button>
 
         <div className="text-center">
-          <h3 className="text-sm font-semibold text-text-primary">
+          <h3 className="text-[14px] font-semibold text-text-primary">
             Week {selectedWeek}
             {selectedWeek === currentWeek && (
-              <span className="ml-1.5 text-[10px] font-normal text-[#0A84FF]">(huidige)</span>
+              <span className="ml-1.5 text-[10px] font-normal text-[var(--color-sport-gym-base)]">(huidige)</span>
             )}
           </h3>
           <p className="text-[11px] text-text-tertiary mt-0.5">
@@ -297,7 +297,7 @@ export function SchemaCalendar({
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-px bg-border-light/50 p-2">
+      <div className="grid grid-cols-7 gap-px p-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
         {week.days.map((day) => (
           <DayCell
             key={day.date}
@@ -315,13 +315,15 @@ export function SchemaCalendar({
           <button
             key={w.weekNumber}
             onClick={() => setSelectedWeek(w.weekNumber)}
-            className={`h-2 rounded-full transition-all ${
-              w.weekNumber === selectedWeek
-                ? 'w-4 bg-[#0A84FF]'
+            className="h-2 rounded-full transition-all"
+            style={{
+              width: w.weekNumber === selectedWeek ? 16 : 8,
+              background: w.weekNumber === selectedWeek
+                ? 'var(--color-sport-gym-base)'
                 : w.isComplete
-                  ? 'w-2 bg-[#0A84FF]/40'
-                  : 'w-2 bg-white/[0.06]'
-            }`}
+                  ? 'rgba(0,229,199,0.40)'
+                  : 'rgba(255,255,255,0.06)',
+            }}
           />
         ))}
       </div>
@@ -331,7 +333,8 @@ export function SchemaCalendar({
         <div className="border-t border-bg-border px-4 py-3">
           <button
             onClick={onPushToCalendar}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A84FF] px-4 py-2.5 text-sm font-medium text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-2.5 text-[14px] font-semibold text-black"
+            style={{ background: 'var(--color-sport-gym-base)' }}
           >
             <Calendar size={14} />
             Week {selectedWeek} inplannen in agenda

@@ -2,6 +2,7 @@
 
 import useSWR from 'swr'
 import { dayIndexAmsterdam } from '@/lib/time/amsterdam'
+import { Button } from '@/components/ui'
 
 interface SuggestionsResponse {
   suggestions: string[]
@@ -56,15 +57,17 @@ export function ChatSuggestions({ onSelect, visible }: ChatSuggestionsProps) {
   const suggestions = data?.suggestions ?? getDayBasedFallback()
 
   return (
-    <div className="flex flex-wrap gap-2 px-1 pb-2">
+    <div className="flex gap-2 overflow-x-auto px-1 pb-2 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
       {suggestions.map((s) => (
-        <button
+        <Button
           key={s}
+          variant="glass"
+          size="sm"
+          className="shrink-0"
           onClick={() => onSelect(s)}
-          className="min-h-[44px] rounded-full bg-[#0A84FF]/10 px-4 py-1.5 text-caption1 font-semibold text-[#0A84FF] transition-all duration-150 active:scale-95 hover:bg-[#0A84FF]/15"
         >
           {s}
-        </button>
+        </Button>
       ))}
     </div>
   )

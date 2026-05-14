@@ -6,12 +6,14 @@ import { useSettings } from '@/hooks/useSettings'
 import { createClient } from '@/lib/supabase/client'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
-import { useSaveStatus, SaveButton, SectionHeader, Field, StatusDot, INPUT_CLASSES } from './shared'
+import { useSaveStatus, SaveButton, Field, StatusDot, INPUT_CLASSES } from './shared'
 import { AIContextSection } from './AIContextSection'
 import { CoachToneSection, type CoachTone } from './CoachToneSection'
 import { CoachingMemoryEditor } from './CoachingMemoryEditor'
 import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
+import { ProfileHeader } from './v2/ProfileHeader'
+import { FormSection } from './v2/FormSection'
 
 export function SettingsPage() {
   const { data, isLoading, error, refresh } = useSettings()
@@ -169,28 +171,15 @@ export function SettingsPage() {
     <div className="flex flex-col gap-4 px-4 pb-24 pt-[60px]">
       <h1 className="text-[34px] font-bold tracking-[-0.8px] text-text-primary">Instellingen</h1>
 
-      {/* Profile header */}
-      <div
-        className="flex items-center gap-3.5 rounded-[18px] border-[0.5px] border-bg-border-strong p-[18px]"
-        style={{ background: 'linear-gradient(135deg, rgba(0,229,199,0.10), rgba(124,58,237,0.10))' }}
-      >
-        <div
-          className="flex h-[60px] w-[60px] items-center justify-center rounded-full text-[24px] font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #00E5C7, #7C3AED)' }}
-        >
-          {(displayName || 'S').charAt(0).toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[17px] font-semibold text-text-primary">{displayName || 'Pulse user'}</div>
-          <div className="text-[12px] text-text-tertiary">
-            {[heightCm && `${heightCm} cm`, weightKg && `${weightKg} kg`].filter(Boolean).join(' · ') || 'Bewerk profiel hieronder'}
-          </div>
-        </div>
-      </div>
+      {/* Profile header — v2 gradient card */}
+      <ProfileHeader
+        displayName={displayName}
+        weightKg={weightKg}
+        heightCm={heightCm}
+      />
 
-      {/* Profile section */}
-      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
-        <SectionHeader title="Profiel" />
+      {/* Profile form */}
+      <FormSection title="Profiel">
         <div className="flex flex-col gap-4">
           <Field label="Naam">
             <input
@@ -240,11 +229,10 @@ export function SettingsPage() {
             <SaveButton state={profileStatus} onClick={() => saveProfile(handleSaveProfile)} />
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      {/* Connections section */}
-      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
-        <SectionHeader title="Koppelingen" />
+      {/* Connections form */}
+      <FormSection title="Koppelingen">
         <div className="flex flex-col gap-4">
           <Field label="Hevy API key">
             <div className="flex items-center gap-2">
@@ -274,19 +262,17 @@ export function SettingsPage() {
             <SaveButton state={connectStatus} onClick={() => saveConnections(handleSaveConnections)} />
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      {/* Google Calendar section */}
-      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
-        <SectionHeader title="Google Agenda" />
-
+      {/* Google Calendar */}
+      <FormSection title="Google Agenda">
         {calendarStatus === 'connected' && (
-          <div className="mb-3 rounded-lg bg-[var(--color-status-good)]/10 px-3 py-2 text-sm text-[var(--color-status-good)]">
+          <div className="mb-3 rounded-[10px] bg-status-good/10 px-3 py-2 text-sm text-status-good">
             Google Agenda gekoppeld ✓
           </div>
         )}
         {calendarStatus === 'error' && (
-          <div className="mb-3 rounded-lg bg-[var(--color-status-bad)]/10 px-3 py-2 text-sm text-[var(--color-status-bad)]">
+          <div className="mb-3 rounded-[10px] bg-status-bad/10 px-3 py-2 text-sm text-status-bad">
             Koppeling mislukt — probeer opnieuw.
           </div>
         )}
@@ -305,7 +291,7 @@ export function SettingsPage() {
             <button
               onClick={handleDisconnectCalendar}
               disabled={disconnecting}
-              className="rounded-lg border border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+              className="rounded-[10px] border-[0.5px] border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors active:opacity-60 disabled:opacity-50"
             >
               {disconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
             </button>
@@ -318,17 +304,16 @@ export function SettingsPage() {
             </div>
             <a
               href="/api/calendar/auth"
-              className="rounded-lg bg-[#0A84FF] px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
+              className="rounded-[10px] bg-[#0A84FF] px-3 py-1.5 text-sm font-medium text-white transition-opacity active:opacity-80"
             >
               Koppel Google Agenda
             </a>
           </div>
         )}
-      </div>
+      </FormSection>
 
-      {/* Training goals section */}
-      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
-        <SectionHeader title="Trainingsdoelen" />
+      {/* Training goals */}
+      <FormSection title="Trainingsdoelen">
         <div className="flex flex-col gap-4">
           <Field label="Proteïne doel (g/kg lichaamsgewicht)">
             <input
@@ -381,11 +366,10 @@ export function SettingsPage() {
             <SaveButton state={goalsStatus} onClick={() => saveGoals(handleSaveGoals)} />
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      {/* Account section */}
-      <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[16px_18px]">
-        <SectionHeader title="Wachtwoord wijzigen" />
+      {/* Account — password change */}
+      <FormSection title="Wachtwoord wijzigen">
         <div className="flex flex-col gap-4">
           <Field label="Nieuw wachtwoord">
             <input
@@ -407,7 +391,7 @@ export function SettingsPage() {
             />
           </Field>
           {passwordError && (
-            <p className="text-sm text-[var(--color-status-bad)]">{passwordError}</p>
+            <p className="text-sm text-status-bad">{passwordError}</p>
           )}
           <div className="flex justify-end">
             <SaveButton
@@ -416,10 +400,12 @@ export function SettingsPage() {
             />
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      {/* AI Coach section */}
-      <h2 className="mt-4 text-lg font-semibold text-text-primary">AI Coach</h2>
+      {/* AI Coach section label */}
+      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.5px] text-text-tertiary px-1">
+        AI Coach
+      </p>
 
       <CoachToneSection
         currentValue={(data?.settings.coach_tone ?? null) as CoachTone | null}

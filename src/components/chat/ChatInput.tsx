@@ -37,9 +37,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   }
 
   return (
-    <div
-      className="flex items-end gap-2 rounded-3xl bg-white/[0.06] px-4 py-2 min-h-[44px]"
-    >
+    <div className="flex items-end gap-2 rounded-card-lg bg-bg-surface border-[0.5px] border-bg-border px-4 py-2 min-h-[44px]">
       <textarea
         ref={textareaRef}
         value={value}
@@ -57,13 +55,17 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
       <button
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+        style={{
+          background: 'linear-gradient(135deg, #00E5C7, #7C3AED)',
+          boxShadow: value.trim() && !isLoading ? '0 4px 16px -4px rgba(0,229,199,0.4)' : 'none',
+        }}
         aria-label="Verstuur bericht"
       >
         {isLoading ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
         ) : (
-          <Send size={16} color="white" strokeWidth={2} />
+          <Send size={15} color="white" strokeWidth={2.5} />
         )}
       </button>
     </div>
