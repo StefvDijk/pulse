@@ -2,9 +2,10 @@
 
 import { useRef, useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { springInteractive } from '@/lib/motion-presets'
 
 export interface AlertAction {
   label: string
@@ -21,15 +22,15 @@ export interface AlertProps {
   secondaryAction?: AlertAction
 }
 
-const backdropVariants = {
+const backdropVariants: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
 }
 
-const dialogVariants = {
+const dialogVariants: Variants = {
   initial: { opacity: 0, scale: 0.92 },
-  animate: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 28 } },
+  animate: { opacity: 1, scale: 1, transition: { ...springInteractive } },
   exit: { opacity: 0, scale: 0.92, transition: { duration: 0.15 } },
 }
 
