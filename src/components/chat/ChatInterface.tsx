@@ -352,8 +352,10 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         <div ref={bottomRef} />
       </div>
 
-      {/* Retry + Suggestions + input */}
-      <div className={compact ? 'p-2' : 'p-3'}>
+      {/* Glass input bar — sticky bottom, safe-area aware */}
+      <div className={`glass-nav border-t-0 border-b-0 ${compact ? 'px-2 pt-2 pb-safe-12' : 'px-4 pt-3 pb-safe-16'}`}
+        style={{ borderTop: '0.5px solid var(--color-bg-border-strong)' }}
+      >
         {lastFailedMessage && !isLoading && (
           <div className="flex justify-center pb-2">
             <button
@@ -362,7 +364,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
                 setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
                 handleSend(lastFailedMessage)
               }}
-              className="rounded-full bg-[#0A84FF]/10 px-4 py-1.5 text-caption1 font-semibold text-[#0A84FF] transition-all duration-150 active:scale-95 hover:bg-[#0A84FF]/15"
+              className="rounded-full bg-white/[0.08] border-[0.5px] border-white/[0.14] px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-all duration-150 active:scale-95"
             >
               Opnieuw proberen
             </button>
