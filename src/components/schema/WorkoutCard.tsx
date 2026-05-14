@@ -66,22 +66,30 @@ function SportIcon({ type, size = 14 }: { type: ActivityType; size?: number }) {
 function sportBgClass(type: ActivityType): string {
   switch (type) {
     case 'gym':
-      return 'bg-[#0A84FF] text-white'
+      return 'text-black'
     case 'run':
-      return 'bg-[var(--color-status-warn)] text-white'
+      return 'text-black'
     case 'padel':
-      return 'bg-[var(--color-status-warn)] text-white'
+      return 'text-black'
+  }
+}
+
+function sportBgColor(type: ActivityType): string {
+  switch (type) {
+    case 'gym': return 'var(--color-sport-gym-base)'
+    case 'run': return 'var(--color-sport-run-base)'
+    case 'padel': return 'var(--color-sport-padel-base)'
   }
 }
 
 function sportTextClass(type: ActivityType): string {
   switch (type) {
     case 'gym':
-      return 'text-[#0A84FF]'
+      return 'text-[var(--color-sport-gym-base)]'
     case 'run':
-      return 'text-[var(--color-status-warn)]'
+      return 'text-[var(--color-sport-run-base)]'
     case 'padel':
-      return 'text-[var(--color-status-warn)]'
+      return 'text-[var(--color-sport-padel-base)]'
   }
 }
 
@@ -121,11 +129,16 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
   const subtitle = tokenSubtitle(token)
   const duration = durationLabel(token)
 
+  const sportColor = sportBgColor(token.type)
+
   return (
     <div
-      className={`rounded-2xl border bg-bg-surface overflow-hidden transition-colors ${
-        isToday ? 'border-text-primary' : 'border-bg-border'
-      }`}
+      className="rounded-[18px] overflow-hidden transition-colors border-[0.5px]"
+      style={{
+        background: 'var(--color-bg-surface)',
+        borderColor: isToday ? sportColor : 'var(--color-bg-border)',
+        boxShadow: isToday ? `0 0 12px ${sportColor}22` : undefined,
+      }}
     >
       <button
         onClick={() => setExpanded((prev) => !prev)}
@@ -139,9 +152,16 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
             isDone
               ? sportBgClass(token.type)
               : isToday
-                ? 'bg-text-primary text-white'
+                ? 'text-white'
                 : `border-2 border-bg-border bg-transparent ${sportTextClass(token.type)}`
           }`}
+          style={
+            isDone
+              ? { background: sportColor }
+              : isToday
+                ? { background: sportColor }
+                : undefined
+          }
         >
           {isDone ? <Check size={16} strokeWidth={3} /> : <SportIcon type={token.type} />}
           {/* "+"-badge voor ongeplande extra activiteiten. */}

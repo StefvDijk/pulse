@@ -8,30 +8,37 @@ import { SchemaProgress } from './SchemaProgress'
 import { SchemaOverview } from './SchemaOverview'
 import { SchemaCalendar } from './SchemaCalendar'
 import { PlanWeekModal } from './PlanWeekModal'
+import { SchemaBlockHeader, SchemaCoachNudge } from './v2'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ClipboardList } from 'lucide-react'
 import type { SchemaScheduleItem } from '@/hooks/useSchema'
 
-// [D7] Revalidates the /api/schema/week SWR cache for any subscriber
+// Revalidates the /api/schema/week SWR cache for any subscriber
 // (home cards, schema week view, PlanWeekModal when open).
 function refreshSchemaWeek() {
   globalMutate('/api/schema/week')
 }
 
+function getIsoWeekNumber(dateStr: string): number {
+  const date = new Date(dateStr + 'T00:00:00Z')
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+}
+
 function SchemaPageSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      <SkeletonCard className="flex flex-col gap-2">
-        <SkeletonLine width="w-2/3" />
-        <SkeletonLine width="w-1/3" height="h-3" />
-        <div className="flex gap-1 mt-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex-1 h-2 rounded-full bg-white/[0.06]" />
-          ))}
-        </div>
-      </SkeletonCard>
+    <div className="flex flex-col gap-4 px-4 pt-[64px] pb-24">
+      <div className="flex flex-col gap-2">
+        <div className="h-3 w-24 rounded-full bg-white/[0.06]" />
+        <div className="h-8 w-2/3 rounded-xl bg-white/[0.06]" />
+        <div className="h-3 w-1/3 rounded-full bg-white/[0.06]" />
+        <div className="mt-1 h-1.5 rounded-full bg-white/[0.06]" />
+      </div>
       <SkeletonCard className="flex flex-col gap-2">
         <SkeletonLine width="w-1/3" />
         <SkeletonLine width="w-1/2" height="h-3" />
@@ -101,50 +108,69 @@ export function SchemaPageContent() {
     refreshSchemaWeek()
   }
 
+  // Derive ISO week number from the current week's first day
+  const currentWeekData = data.weeks[data.currentWeek - 1]
+  const weekLabel = currentWeekData?.days[0]?.date
+    ? `Week ${getIsoWeekNumber(currentWeekData.days[0].date)}`
+    : `Week ${data.currentWeek}`
+
+  const isLastWeek = data.currentWeek >= data.totalWeeks
+  const nudgeMessage = isLastWeek
+    ? 'Schema klaar! Plan het volgende blok via de Coach.'
+    : `Schema klaar volgende week. Plan blok ${data.currentWeek + 1} via de Coach.`
+
   return (
-    <div className="flex flex-col gap-3 px-4 pb-24 pt-[60px]">
-      <div className="pt-1">
-        <div className="text-[13px] font-medium text-text-tertiary">Schema</div>
-        <h1 className="text-[28px] font-bold leading-[1.1] tracking-[-0.6px] text-text-primary">
-          {data.title}
-        </h1>
+    <div className="flex flex-col pb-24">
+      {/* v2 header — title, week label, block progress bar */}
+      <SchemaBlockHeader
+        title={data.title}
+        weekLabel={weekLabel}
+        weekOfBlock={data.currentWeek}
+        totalWeeks={data.totalWeeks}
+        sessionsCompleted={data.totalSessionsCompleted}
+        sessionsPlanned={data.totalSessionsPlanned}
+      />
+
+      <div className="flex flex-col gap-3 px-4">
+        {/* Block-level progress segments */}
+        <SchemaProgress
+          title={data.title}
+          totalWeeks={data.totalWeeks}
+          currentWeek={data.currentWeek}
+          completedWeeks={data.completedWeeks}
+          totalSessionsPlanned={data.totalSessionsPlanned}
+          totalSessionsCompleted={data.totalSessionsCompleted}
+          weeks={data.weeks}
+          startDate={data.startDate}
+        />
+
+        {/* Schema overview (collapsible workout template list) */}
+        <SchemaOverview
+          title={data.title}
+          schemaType={data.schemaType}
+          schedule={data.schedule}
+          onSave={handleSaveSchedule}
+        />
+
+        {/* Calendar / Agenda */}
+        <SchemaCalendar
+          weeks={data.weeks}
+          currentWeek={data.currentWeek}
+          calendarConnected={calendarConnected}
+          templateSchedule={data.schedule}
+          onReschedule={handleReschedule}
+          onPushToCalendar={() => setCalendarModalOpen(true)}
+          onSchemaChanged={() => {
+            mutate()
+            refreshSchemaWeek()
+          }}
+        />
+
+        {/* Coach nudge card */}
+        <SchemaCoachNudge message={nudgeMessage} />
       </div>
 
-      {/* Progress indicator */}
-      <SchemaProgress
-        title={data.title}
-        totalWeeks={data.totalWeeks}
-        currentWeek={data.currentWeek}
-        completedWeeks={data.completedWeeks}
-        totalSessionsPlanned={data.totalSessionsPlanned}
-        totalSessionsCompleted={data.totalSessionsCompleted}
-        weeks={data.weeks}
-        startDate={data.startDate}
-      />
-
-      {/* Schema overview (collapsible) */}
-      <SchemaOverview
-        title={data.title}
-        schemaType={data.schemaType}
-        schedule={data.schedule}
-        onSave={handleSaveSchedule}
-      />
-
-      {/* Calendar / Agenda */}
-      <SchemaCalendar
-        weeks={data.weeks}
-        currentWeek={data.currentWeek}
-        calendarConnected={calendarConnected}
-        templateSchedule={data.schedule}
-        onReschedule={handleReschedule}
-        onPushToCalendar={() => setCalendarModalOpen(true)}
-        onSchemaChanged={() => {
-          mutate()
-          refreshSchemaWeek()
-        }}
-      />
-
-      {/* Google Calendar modal — fetches its own week data on mount [D7] */}
+      {/* Google Calendar modal — fetches its own week data on mount */}
       {calendarModalOpen && (
         <PlanWeekModal onClose={() => setCalendarModalOpen(false)} />
       )}
