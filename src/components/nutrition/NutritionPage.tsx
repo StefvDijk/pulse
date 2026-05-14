@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import useSWR from 'swr'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { NutritionInput } from './NutritionInput'
-import { MacroSummary } from './MacroSummary'
-import { ProteinTracker } from './ProteinTracker'
-import { DayIndicator } from './DayIndicator'
-import { MealsList } from './MealsList'
+import { NaturalLogCard, NutritionHeader, MacroCard, MealsCard } from './v2'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { NutritionSummaryData } from '@/app/api/nutrition/summary/route'
@@ -19,13 +14,18 @@ async function fetcher(url: string): Promise<NutritionSummaryData> {
   return res.json()
 }
 
-function formatDateLabel(dateStr: string): string {
+function formatPageTitle(dateStr: string): string {
+  // Simple on-track title — will be data-driven in a later iteration
+  return 'Op koers'
+}
+
+function formatEyebrow(dateStr: string): string {
   const today = todayAmsterdam()
   const yesterday = daysAgoAmsterdam(1)
 
-  if (dateStr === today) return 'Vandaag'
-  if (dateStr === yesterday) return 'Gisteren'
-  return new Date(dateStr).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
+  if (dateStr === today) return 'Voeding · vandaag'
+  if (dateStr === yesterday) return 'Voeding · gisteren'
+  return `Voeding · ${new Date(dateStr).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })}`
 }
 
 function offsetDate(dateStr: string, days: number): string {
@@ -70,73 +70,42 @@ export function NutritionPage() {
   const totalFiber = summary?.total_fiber_g ?? 0
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-24 pt-[60px]">
-      <div className="pt-1">
-        <div className="text-[13px] text-text-tertiary">Voeding · {formatDateLabel(selectedDate).toLowerCase()}</div>
-        <div className="mt-1 flex items-center justify-between">
-          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-text-primary">Op koers</h1>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setSelectedDate((d) => offsetDate(d, -1))}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary active:opacity-60"
-              aria-label="Vorige dag"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={() => setSelectedDate((d) => offsetDate(d, 1))}
-              disabled={selectedDate >= today}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-secondary disabled:opacity-20 active:opacity-60"
-              aria-label="Volgende dag"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+    <div className="flex flex-col pb-24">
+      {/* v2 page header with date navigation */}
+      <NutritionHeader
+        eyebrow={formatEyebrow(selectedDate)}
+        title={formatPageTitle(selectedDate)}
+        onPrev={() => setSelectedDate((d) => offsetDate(d, -1))}
+        onNext={() => setSelectedDate((d) => offsetDate(d, 1))}
+        nextDisabled={selectedDate >= today}
+      />
+
+      <div className="flex flex-col gap-3 px-4">
+        {/* v2 AI input with CoachOrb eyebrow */}
+        <NaturalLogCard onSuccess={handleSuccess} date={selectedDate} />
+
+        {error && <ErrorAlert message="Kan voedingsdata niet laden." onRetry={() => mutate()} />}
+
+        {isLoading && <NutritionSkeleton />}
+
+        {!isLoading && (
+          <>
+            {/* Macro donut + protein tracker + calorie footer */}
+            <MacroCard
+              calories={totalCalories}
+              protein_g={totalProtein}
+              carbs_g={totalCarbs}
+              fat_g={totalFat}
+              fiber_g={totalFiber}
+              calorieTarget={calorieTarget}
+              proteinTarget={proteinTarget}
+            />
+
+            {/* Meals list with v2 time-first row layout */}
+            <MealsCard meals={meals} onDelete={handleDelete} />
+          </>
+        )}
       </div>
-
-      {/* Input */}
-      <NutritionInput onSuccess={handleSuccess} date={selectedDate} />
-
-      {error && <ErrorAlert message="Kan voedingsdata niet laden." onRetry={() => mutate()} />}
-
-      {isLoading && <NutritionSkeleton />}
-
-      {!isLoading && (
-        <>
-          {/* Day status */}
-          <DayIndicator
-            calories={totalCalories}
-            calorieTarget={calorieTarget}
-            protein={totalProtein}
-            proteinTarget={proteinTarget}
-          />
-
-          {/* Macro summary + protein tracker */}
-          {totalCalories > 0 && (
-            <div className="flex flex-col gap-4 bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[18px]">
-              <MacroSummary
-                calories={totalCalories}
-                protein_g={totalProtein}
-                carbs_g={totalCarbs}
-                fat_g={totalFat}
-                fiber_g={totalFiber}
-              />
-              {proteinTarget && (
-                <ProteinTracker current={totalProtein} target={proteinTarget} />
-              )}
-            </div>
-          )}
-
-          {/* Meals list */}
-          <div className="bg-bg-surface border-[0.5px] border-bg-border rounded-[18px] p-[18px]">
-            <h2 className="mb-3 text-[17px] font-semibold text-text-primary">
-              Maaltijden
-            </h2>
-            <MealsList meals={meals} onDelete={handleDelete} />
-          </div>
-        </>
-      )}
     </div>
   )
 }
@@ -152,7 +121,9 @@ function NutritionSkeleton() {
       </SkeletonCard>
       <SkeletonCard className="flex flex-col gap-2">
         <SkeletonLine width="w-1/4" />
-        {[1,2,3].map(i => <SkeletonRect key={i} height="h-10" />)}
+        {[1, 2, 3].map((i) => (
+          <SkeletonRect key={i} height="h-10" />
+        ))}
       </SkeletonCard>
     </div>
   )

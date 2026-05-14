@@ -75,7 +75,13 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
   return (
     <div className="flex flex-col gap-2">
       {/* Input */}
-      <div className="flex items-end gap-2 bg-bg-surface border border-bg-border rounded-[14px] p-3">
+      <div
+        className="flex items-end gap-2 rounded-[14px] p-3"
+        style={{
+          background: 'rgba(0,0,0,0.30)',
+          border: '0.5px solid rgba(255,255,255,0.10)',
+        }}
+      >
         <textarea
           ref={textareaRef}
           value={value}
@@ -85,18 +91,19 @@ export function NutritionInput({ onSuccess, date }: NutritionInputProps) {
           rows={2}
           disabled={isLoading}
           enterKeyHint="send"
-          className="flex-1 resize-none bg-transparent text-[16px] text-text-primary outline-none placeholder:opacity-40 focus-ring"
+          className="flex-1 resize-none bg-transparent text-[14px] text-text-primary outline-none placeholder:text-text-tertiary focus-ring"
         />
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || isLoading}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#0A84FF] transition-opacity disabled:opacity-30"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-opacity disabled:opacity-30"
+          style={{ background: 'var(--color-sport-gym-base)' }}
           aria-label="Analyseer"
         >
           {isLoading ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
-            <Send size={14} color="white" />
+            <Send size={14} color="#000" />
           )}
         </button>
       </div>
