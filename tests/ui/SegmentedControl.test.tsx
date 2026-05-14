@@ -63,9 +63,9 @@ describe('SegmentedControl', () => {
       { value: 'today', label: 'Vandaag' },
       { value: 'yesterday', label: 'Gisteren' },
     ]
-    const onChange = vi.fn<[Period], void>()
+    const onChange = vi.fn<(v: Period) => void>()
     const { getByText } = render(
-      <SegmentedControl options={opts} value="today" onChange={onChange} />,
+      <SegmentedControl<Period> options={opts} value="today" onChange={onChange} />,
     )
     fireEvent.click(getByText('Gisteren'))
     expect(onChange).toHaveBeenCalledWith('yesterday')
