@@ -7,9 +7,10 @@ import { Button } from '@/components/ui'
 
 interface ChatPageProps {
   initialMessage?: string
+  seededAssistant?: string
 }
 
-export function ChatPage({ initialMessage }: ChatPageProps) {
+export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
   const [sessionKey, setSessionKey] = useState(0)
 
   function handleNewSession() {
@@ -52,7 +53,11 @@ export function ChatPage({ initialMessage }: ChatPageProps) {
       </header>
 
       <div className="min-h-0 flex-1">
-        <ChatInterface key={sessionKey} initialMessage={initialMessage} />
+        <ChatInterface
+          key={sessionKey}
+          initialMessage={initialMessage}
+          seededAssistant={seededAssistant}
+        />
       </div>
     </div>
   )

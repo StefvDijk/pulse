@@ -183,12 +183,23 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
             </span>
             <span className="text-xs text-text-tertiary shrink-0">{day.dayLabel}</span>
           </div>
-          {(subtitle || duration) && (
-            <p className="text-xs text-text-tertiary mt-0.5">
-              {subtitle}
-              {subtitle && duration ? ' · ' : ''}
-              {duration}
+          {/* Peek: laat in collapsed staat de eerste 3 oefeningen zien zodat
+              je hele week in één glimp leesbaar is zonder elke kaart te tappen.
+              Valt terug op subtitle (run-afstand, etc.) voor niet-gym tokens. */}
+          {!expanded && exercises.length > 0 ? (
+            <p className="text-xs text-text-tertiary mt-0.5 truncate">
+              {exercises.slice(0, 3).map((e) => e.name).join(', ')}
+              {exercises.length > 3 ? ` +${exercises.length - 3} meer` : ''}
+              {duration ? ` · ${duration}` : ''}
             </p>
+          ) : (
+            (subtitle || duration) && (
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {subtitle}
+                {subtitle && duration ? ' · ' : ''}
+                {duration}
+              </p>
+            )
           )}
         </div>
 

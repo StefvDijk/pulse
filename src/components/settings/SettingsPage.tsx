@@ -14,11 +14,13 @@ import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
 import { ProfileHeader } from './v2/ProfileHeader'
 import { FormSection } from './v2/FormSection'
+import { SyncButton } from '@/components/home/SyncButton'
 
 export function SettingsPage() {
   const { data, isLoading, error, refresh } = useSettings()
   const searchParams = useSearchParams()
   const calendarStatus = searchParams.get('calendar') // 'connected' | 'error' | null
+  const stravaStatus = searchParams.get('strava') // 'connected' | 'error' | 'missing_scope' | null
 
   // Google Calendar disconnect
   const [disconnecting, setDisconnecting] = useState(false)
@@ -29,6 +31,46 @@ export function SettingsPage() {
       .catch(() => null)
     refresh()
     setDisconnecting(false)
+  }
+
+  // Strava disconnect + manual sync
+  const [stravaDisconnecting, setStravaDisconnecting] = useState(false)
+  const [stravaSyncing, setStravaSyncing] = useState(false)
+  const [stravaSyncMessage, setStravaSyncMessage] = useState<string | null>(null)
+
+  async function handleDisconnectStrava() {
+    setStravaDisconnecting(true)
+    await fetch('/api/strava/disconnect', { method: 'POST' }).catch(() => null)
+    refresh()
+    setStravaDisconnecting(false)
+  }
+
+  async function handleStravaSync() {
+    setStravaSyncing(true)
+    setStravaSyncMessage(null)
+    try {
+      const res = await fetch('/api/strava/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 30 }),
+      })
+      const body = (await res.json().catch(() => ({}))) as {
+        fetched?: number
+        synced?: number
+        error?: string
+      }
+      if (!res.ok) {
+        setStravaSyncMessage(body.error ?? 'Sync mislukt')
+      } else {
+        setStravaSyncMessage(`${body.synced ?? 0} activiteit(en) opgehaald`)
+      }
+    } catch (err) {
+      console.error('[strava sync]', err)
+      setStravaSyncMessage('Sync mislukt')
+    } finally {
+      setStravaSyncing(false)
+      setTimeout(() => setStravaSyncMessage(null), 4000)
+    }
   }
 
   // Profile state
@@ -264,6 +306,11 @@ export function SettingsPage() {
         </div>
       </FormSection>
 
+      {/* Manual sync trigger — Hevy + aggregaties */}
+      <FormSection title="Synchronisatie">
+        <SyncButton />
+      </FormSection>
+
       {/* Google Calendar */}
       <FormSection title="Google Agenda">
         {calendarStatus === 'connected' && (
@@ -307,6 +354,73 @@ export function SettingsPage() {
               className="rounded-[10px] bg-[#0A84FF] px-3 py-1.5 text-sm font-medium text-white transition-opacity active:opacity-80"
             >
               Koppel Google Agenda
+            </a>
+          </div>
+        )}
+      </FormSection>
+
+      {/* Strava */}
+      <FormSection title="Strava">
+        {stravaStatus === 'connected' && (
+          <div className="mb-3 rounded-[10px] bg-status-good/10 px-3 py-2 text-sm text-status-good">
+            Strava gekoppeld ✓
+          </div>
+        )}
+        {stravaStatus === 'error' && (
+          <div className="mb-3 rounded-[10px] bg-status-bad/10 px-3 py-2 text-sm text-status-bad">
+            Koppeling mislukt — probeer opnieuw.
+          </div>
+        )}
+        {stravaStatus === 'missing_scope' && (
+          <div className="mb-3 rounded-[10px] bg-status-warn/10 px-3 py-2 text-sm text-status-warn">
+            Geef Pulse toestemming om alle activiteiten te lezen (vink &ldquo;Bekijk gegevens over privé-activiteiten&rdquo; aan).
+          </div>
+        )}
+
+        {data?.settings.strava_athlete_id ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <StatusDot active />
+                <div>
+                  <p className="text-sm font-medium text-text-primary">Verbonden</p>
+                  {data.settings.strava_athlete_name && (
+                    <p className="text-xs text-text-tertiary">{data.settings.strava_athlete_name}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleDisconnectStrava}
+                disabled={stravaDisconnecting}
+                className="rounded-[10px] border-[0.5px] border-bg-border px-3 py-1.5 text-sm text-text-secondary transition-colors active:opacity-60 disabled:opacity-50"
+              >
+                {stravaDisconnecting ? 'Ontkoppelen…' : 'Ontkoppel'}
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleStravaSync}
+                disabled={stravaSyncing}
+                className="rounded-[10px] bg-[#0A84FF]/10 px-3 py-1.5 text-sm font-medium text-[#0A84FF] transition-opacity active:opacity-80 disabled:opacity-50"
+              >
+                {stravaSyncing ? 'Syncen…' : 'Sync laatste 30 dagen'}
+              </button>
+              {stravaSyncMessage && (
+                <span className="text-xs text-text-tertiary">{stravaSyncMessage}</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StatusDot active={false} />
+              <p className="text-sm text-text-secondary">Niet gekoppeld</p>
+            </div>
+            <a
+              href="/api/strava/oauth/start"
+              className="rounded-[10px] bg-[#FC4C02] px-3 py-1.5 text-sm font-medium text-white transition-opacity active:opacity-80"
+            >
+              Koppel Strava
             </a>
           </div>
         )}

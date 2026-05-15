@@ -20,6 +20,10 @@ export const maxDuration = 60
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
+  /** Optional assistant message persisted as the opening turn of a new session.
+   *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
+   *  first AI message in the thread, then the user's reply continues from there. */
+  seed_assistant: z.string().min(1).max(4000).optional(),
 })
 
 // ── Error classification ──────────────────────────────────────────────────────
@@ -182,7 +186,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const { message, session_id } = parsed.data
+    const { message, session_id, seed_assistant } = parsed.data
+    // Seed is only persisted on a brand-new session — once the session has any
+    // history it's a no-op so a stale client can't inject a fake AI turn.
+    const isNewSession = !session_id
+    const seedToPersist = isNewSession ? seed_assistant : undefined
 
     // Classify and assemble thin context (tools fill the rest on-demand)
     const questionType = classifyQuestion(message)
@@ -226,6 +234,22 @@ export async function POST(request: Request) {
 
           // 2. Run history fetch + 5 context queries fully in parallel.
           //    Save user message fire-and-forget — doesn't block stream.
+          //    For seeded threads: persist the assistant seed first so the
+          //    thread reads correctly on reload (assistant turn before user).
+          if (seedToPersist) {
+            admin
+              .from('chat_messages')
+              .insert({
+                user_id: user.id,
+                session_id: sessionId,
+                role: 'assistant',
+                content: seedToPersist,
+                message_type: 'coach_nudge',
+              })
+              .then((r) => {
+                if (r.error) console.error('seed-assistant insert failed:', r.error)
+              })
+          }
           admin
             .from('chat_messages')
             .insert({
@@ -316,9 +340,20 @@ export async function POST(request: Request) {
           const isSimple = questionType === 'simple_greeting'
           const tools = isSimple ? undefined : createToolsForUser(user.id)
 
+          // For a freshly seeded thread the parallel history fetch races the
+          // seed insert above — we can't rely on it picking up the seed turn.
+          // Inline it so Claude sees the same conversation the user does.
+          const conversation = seedToPersist
+            ? [
+                { role: 'assistant' as const, content: seedToPersist },
+                ...historyMessages,
+                { role: 'user' as const, content: message },
+              ]
+            : [...historyMessages, { role: 'user' as const, content: message }]
+
           const result = streamChat({
             system: systemWithContext,
-            messages: [...historyMessages, { role: 'user', content: message }],
+            messages: conversation,
             tools,
             ...(isSimple ? { model: MEMORY_MODEL } : {}),
             meta: { userId: user.id, feature: isSimple ? 'chat_greeting' : 'chat' },

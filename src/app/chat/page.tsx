@@ -1,14 +1,22 @@
 import { ChatPage } from '@/components/chat/ChatPage'
 
 interface Props {
-  searchParams: Promise<{ context?: string; name?: string; workout?: string }>
+  searchParams: Promise<{
+    context?: string
+    name?: string
+    workout?: string
+    seed?: string
+  }>
 }
 
 export default async function ChatRoute({ searchParams }: Props) {
   const params = await searchParams
   let initialMessage: string | undefined
+  let seededAssistant: string | undefined
 
-  if (params.context === 'exercise' && params.name) {
+  if (params.seed) {
+    seededAssistant = params.seed
+  } else if (params.context === 'exercise' && params.name) {
     const exercise = decodeURIComponent(params.name)
     const workout = params.workout ? decodeURIComponent(params.workout) : null
     initialMessage = workout
@@ -16,5 +24,5 @@ export default async function ChatRoute({ searchParams }: Props) {
       : `Ik wil meer weten over ${exercise}. Wat zijn de belangrijkste techniektips en hoe bouw ik progressie op?`
   }
 
-  return <ChatPage initialMessage={initialMessage} />
+  return <ChatPage initialMessage={initialMessage} seededAssistant={seededAssistant} />
 }

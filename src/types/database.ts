@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -454,6 +459,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_checkins: {
+        Row: {
+          created_at: string
+          date: string
+          feeling: number
+          id: string
+          note: string | null
+          sleep_quality: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          feeling: number
+          id?: string
+          note?: string | null
+          sleep_quality: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          feeling?: number
+          id?: string
+          note?: string | null
+          sleep_quality?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       daily_nutrition_summary: {
         Row: {
@@ -1091,6 +1129,7 @@ export type Database = {
           run_type: string | null
           source: string
           started_at: string
+          strava_activity_id: number | null
           user_id: string
         }
         Insert: {
@@ -1109,6 +1148,7 @@ export type Database = {
           run_type?: string | null
           source?: string
           started_at: string
+          strava_activity_id?: number | null
           user_id: string
         }
         Update: {
@@ -1127,6 +1167,7 @@ export type Database = {
           run_type?: string | null
           source?: string
           started_at?: string
+          strava_activity_id?: number | null
           user_id?: string
         }
         Relationships: [
@@ -1282,6 +1323,105 @@ export type Database = {
           },
         ]
       }
+      strava_activities: {
+        Row: {
+          activity_type: string
+          athlete_id: number
+          average_cadence: number | null
+          average_heartrate: number | null
+          average_speed_mps: number | null
+          calories: number | null
+          created_at: string
+          detailed_polyline: string | null
+          details_fetched_at: string | null
+          distance_meters: number | null
+          elapsed_time_seconds: number | null
+          end_lat: number | null
+          end_lng: number | null
+          fetched_at: string
+          id: string
+          max_heartrate: number | null
+          max_speed_mps: number | null
+          moving_time_seconds: number | null
+          name: string
+          raw_payload: Json
+          sport_type: string | null
+          start_date: string
+          start_date_local: string | null
+          start_lat: number | null
+          start_lng: number | null
+          strava_activity_id: number
+          summary_polyline: string | null
+          timezone: string | null
+          total_elevation_gain_meters: number | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          athlete_id: number
+          average_cadence?: number | null
+          average_heartrate?: number | null
+          average_speed_mps?: number | null
+          calories?: number | null
+          created_at?: string
+          detailed_polyline?: string | null
+          details_fetched_at?: string | null
+          distance_meters?: number | null
+          elapsed_time_seconds?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          fetched_at?: string
+          id?: string
+          max_heartrate?: number | null
+          max_speed_mps?: number | null
+          moving_time_seconds?: number | null
+          name: string
+          raw_payload: Json
+          sport_type?: string | null
+          start_date: string
+          start_date_local?: string | null
+          start_lat?: number | null
+          start_lng?: number | null
+          strava_activity_id: number
+          summary_polyline?: string | null
+          timezone?: string | null
+          total_elevation_gain_meters?: number | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          athlete_id?: number
+          average_cadence?: number | null
+          average_heartrate?: number | null
+          average_speed_mps?: number | null
+          calories?: number | null
+          created_at?: string
+          detailed_polyline?: string | null
+          details_fetched_at?: string | null
+          distance_meters?: number | null
+          elapsed_time_seconds?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          fetched_at?: string
+          id?: string
+          max_heartrate?: number | null
+          max_speed_mps?: number | null
+          moving_time_seconds?: number | null
+          name?: string
+          raw_payload?: Json
+          sport_type?: string | null
+          start_date?: string
+          start_date_local?: string | null
+          start_lat?: number | null
+          start_lng?: number | null
+          strava_activity_id?: number
+          summary_polyline?: string | null
+          timezone?: string | null
+          total_elevation_gain_meters?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       training_schemas: {
         Row: {
           ai_generated: boolean | null
@@ -1404,6 +1544,11 @@ export type Database = {
           last_hevy_sync_at: string | null
           preferred_unit_system: string | null
           protein_target_per_kg: number | null
+          strava_access_token: string | null
+          strava_athlete_id: number | null
+          strava_athlete_name: string | null
+          strava_refresh_token: string | null
+          strava_token_expiry: string | null
           updated_at: string | null
           user_id: string
           weekly_training_target: Json | null
@@ -1422,6 +1567,11 @@ export type Database = {
           last_hevy_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
+          strava_access_token?: string | null
+          strava_athlete_id?: number | null
+          strava_athlete_name?: string | null
+          strava_refresh_token?: string | null
+          strava_token_expiry?: string | null
           updated_at?: string | null
           user_id: string
           weekly_training_target?: Json | null
@@ -1440,6 +1590,11 @@ export type Database = {
           last_hevy_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
+          strava_access_token?: string | null
+          strava_athlete_id?: number | null
+          strava_athlete_name?: string | null
+          strava_refresh_token?: string | null
+          strava_token_expiry?: string | null
           updated_at?: string | null
           user_id?: string
           weekly_training_target?: Json | null
@@ -1968,4 +2123,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

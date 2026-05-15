@@ -6,16 +6,16 @@ import { useSchemaWeek } from '@/hooks/useSchemaWeek'
 import { useReadiness } from '@/hooks/useReadiness'
 import { useReadinessSummary } from '@/hooks/useReadinessSummary'
 import { useWorkload } from '@/hooks/useWorkload'
+import { useCoachSignal } from '@/hooks/useCoachSignal'
 import { Card, ZoneBar } from '@/components/ui/v2'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
+import { QuickCheckInBadge } from '@/components/home/QuickCheckInBadge'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
-import { SyncButton } from '@/components/home/SyncButton'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
-import { TodayHero } from '@/components/dashboard/v2/TodayHero'
 import { WeekGlance } from '@/components/dashboard/v2/WeekGlance'
-import { CoachInsightCard } from '@/components/dashboard/v2/CoachInsightCard'
+import { CoachCard } from '@/components/dashboard/v2/CoachCard'
 import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
@@ -44,18 +44,6 @@ function weekNumber(d = new Date()): number {
     target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7)
   }
   return 1 + Math.ceil((firstThursday - target.valueOf()) / (7 * 24 * 3600 * 1000))
-}
-
-// ── Sport detection ──────────────────────────────────────────────────────────
-
-type Sport = 'gym' | 'run' | 'padel' | 'cycle'
-
-function sportFor(type: string | null | undefined): Sport {
-  const t = (type ?? '').toLowerCase()
-  if (t.includes('run') || t.includes('hardlop')) return 'run'
-  if (t.includes('padel')) return 'padel'
-  if (t.includes('cycle') || t.includes('fiets')) return 'cycle'
-  return 'gym'
 }
 
 // ── Readiness helpers ────────────────────────────────────────────────────────
@@ -106,7 +94,6 @@ function HomeSkeleton() {
 export function DashboardPage() {
   const {
     data: schemaWeek,
-    today,
     error: schemaError,
     isLoading: schemaLoading,
     refresh: refreshSchema,
@@ -114,6 +101,7 @@ export function DashboardPage() {
   const { data: readiness } = useReadiness()
   const { data: summary } = useReadinessSummary()
   const { data: workload } = useWorkload()
+  const { signal: coachSignal } = useCoachSignal()
 
   if (schemaLoading) return <HomeSkeleton />
   if (schemaError) {
@@ -124,12 +112,8 @@ export function DashboardPage() {
     )
   }
 
-  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-  const todayDay = today ?? schemaWeek?.days?.find((d) => d.date === todayStr) ?? null
-
   const score = readinessScore(readiness?.level)
   const { label: readinessLbl, tone } = readinessLabel(readiness?.level)
-  const sport = sportFor(todayDay?.workout?.type)
   const ratio = workload?.ratio ?? readiness?.acwr ?? null
   const ratioPct = ratio !== null ? Math.max(0, Math.min(1, ratio / 2.0)) : 0.5
 
@@ -159,7 +143,12 @@ export function DashboardPage() {
         </Link>
       </motion.div>
 
-      {/* ── Check-in nudge (weekend/monday only) ──────────────── */}
+      {/* ── Daily quick check-in (30 sec) ─────────────────────── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <QuickCheckInBadge />
+      </motion.div>
+
+      {/* ── Weekly check-in nudge (weekend/monday only) ───────── */}
       <motion.div variants={listItem} transition={springContent}>
         <CheckInBadge />
       </motion.div>
@@ -210,10 +199,12 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-      {/* ── Today workout hero ────────────────────────────────── */}
-      <motion.div variants={listItem} transition={springContent}>
-        <TodayHero day={todayDay} sport={sport} />
-      </motion.div>
+      {/* ── Coach card (only when there's something to say) ─── */}
+      {coachSignal && (
+        <motion.div variants={listItem} transition={springContent}>
+          <CoachCard signalId={coachSignal.signalId} text={coachSignal.text} />
+        </motion.div>
+      )}
 
       {/* ── Week glance strip ─────────────────────────────────── */}
       {schemaWeek && (
@@ -237,15 +228,6 @@ export function DashboardPage() {
         <MuscleMapCard />
       </motion.div>
 
-      {/* ── Coach insight card ────────────────────────────────── */}
-      <motion.div variants={listItem} transition={springContent}>
-        <CoachInsightCard insight={summary?.sentence} />
-      </motion.div>
-
-      {/* ── Sync utility ──────────────────────────────────────── */}
-      <motion.div variants={listItem} transition={springContent}>
-        <SyncButton />
-      </motion.div>
     </motion.div>
   )
 }

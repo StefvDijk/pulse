@@ -26,11 +26,20 @@ export interface ChatInterfaceProps {
   sessionId?: string
   compact?: boolean
   initialMessage?: string
+  /** Optional assistant message prepended to a fresh conversation. Used by the
+   *  homescreen CoachCard so the nudge appears as the first AI message and the
+   *  user's first reply continues that thread. Persisted server-side on send. */
+  seededAssistant?: string
 }
 
 const NEAR_BOTTOM_PX = 120
 
-export function ChatInterface({ sessionId: initialSessionId, compact = false, initialMessage }: ChatInterfaceProps) {
+export function ChatInterface({
+  sessionId: initialSessionId,
+  compact = false,
+  initialMessage,
+  seededAssistant,
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
   const [isThinking, setIsThinking] = useState(false)
@@ -65,14 +74,22 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       .then((r) => r.json() as Promise<ChatHistoryResponse>)
       .then((data) => {
         if (data.session_id) setSessionId(data.session_id)
-        setMessages(
-          (data.messages ?? []).map((m) => ({
-            id: m.id,
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          })),
-        )
-        if (data.messages && data.messages.length > 0) {
+        const loaded = (data.messages ?? []).map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+        // Seed a fresh thread with the coach nudge as the first AI message.
+        // Skipped when history already exists so we don't duplicate after reload.
+        if (loaded.length === 0 && seededAssistant) {
+          loaded.push({
+            id: 'seed-assistant',
+            role: 'assistant',
+            content: seededAssistant,
+          })
+        }
+        setMessages(loaded)
+        if (loaded.length > 0) {
           setShowSuggestions(false)
         }
       })
@@ -80,7 +97,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         console.error('[ChatInterface] Failed to load history:', err)
       })
       .finally(() => setIsInitializing(false))
-  }, [sessionId])
+  }, [sessionId, seededAssistant])
 
   // Smooth scroll only when a new message arrives — not on every streamed token.
   useEffect(() => {
@@ -170,10 +187,18 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
       lastTickRef.current = 0
 
       try {
+        // Seed is only relevant on the first turn of a fresh seeded thread.
+        // After the server persists it the session has it in history naturally.
+        const seedForRequest = !sessionId && seededAssistant ? seededAssistant : undefined
+
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, session_id: sessionId }),
+          body: JSON.stringify({
+            message,
+            session_id: sessionId,
+            ...(seedForRequest ? { seed_assistant: seedForRequest } : {}),
+          }),
         })
 
         if (!res.ok) {
@@ -292,7 +317,7 @@ export function ChatInterface({ sessionId: initialSessionId, compact = false, in
         setIsLoading(false)
       }
     },
-    [isLoading, sessionId, startSmoothReveal],
+    [isLoading, sessionId, seededAssistant, startSmoothReveal],
   )
 
   // Auto-send initialMessage once history has loaded and there are no existing messages

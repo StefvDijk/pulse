@@ -18,7 +18,7 @@ Laatste commit: `515fae0 — feat: UXR-130 — goal cards talk to PRs (sparkline
 **Status:** 23/23 sprint-stories ✅ done. Open: alleen "Later"-stories (UXR-200, UXR-210, UXR-220).
 
 **Open eindjes voor de volgende sessie:**
-1. UXR-130 acceptance "Wekelijks coach-bericht in chat: Je zit nog Xkg af van doel Y" — niet geïmplementeerd. Het journal/lessons-systeem dekt dit nu indirect, maar een dedicated goal-progress-bericht in chat is nog open.
+1. ~~UXR-130 acceptance "Wekelijks coach-bericht in chat: Je zit nog Xkg af van doel Y"~~ ✅ DONE 2026-05-15 — geïmplementeerd als wekelijkse goal-progress trigger in `useCoachSignal` (maandag, gap >5% van target). Verschijnt op homescreen CoachCard met tap-to-chat.
 2. `package.json` (`next` bumped lokaal naar `^16.2.4`) + `package-lock.json` (per ongeluk aangemaakt) → opruimen met `rm package-lock.json && git checkout package.json && corepack pnpm install`.
 3. Aanbevolen: `pnpm backfill:baselines --days=60` zodat UXR-150 tags op `/` direct gevuld zijn.
 
@@ -472,13 +472,36 @@ Tot stappen 1-3 gedaan zijn:
 
 # Later (niet nu prioriteit)
 
-## UXR-200 — Schema-overview met inline peek
+## UXR-200 — Schema-overview met inline peek ✅
 
-**Tier:** 2.6 · **Size:** S
+**Tier:** 2.6 · **Size:** S · **Status:** DONE 2026-05-15
 
-## UXR-210 — Quick check-in bottom-sheet
+**File:** `src/components/schema/WorkoutCard.tsx` — collapsed staat toont nu `eerste 3 oefeningen, +N meer · X min`. Bestaande inline-expand-on-tap blijft. Geen modal toegevoegd; volledige edit gaat via "Mijn Schema" template-editor.
 
-**Tier:** 3.5 · **Size:** M
+**Acceptatie:**
+- [x] Peek toont eerste 3 oefeningen + "+N meer" bij meer dan 3
+- [x] Niet-gym tokens (run/padel) tonen nog steeds hun bestaande subtitle (afstand etc.)
+- [x] Tap = inline expand zoals voorheen (geen modal)
+
+## UXR-210 — Quick check-in bottom-sheet ✅
+
+**Tier:** 3.5 · **Size:** M · **Status:** DONE 2026-05-15
+
+**Files toegevoegd:**
+- `supabase/migrations/20260515000001_daily_checkins.sql` — nieuwe tabel (uniek op user_id+date, upsert ondersteund)
+- `src/app/api/check-in/quick/route.ts` — POST (upsert) + GET (today's status)
+- `src/components/home/QuickCheckInSheet.tsx` — bottom-sheet met twee 1-5 scale-rijen + optionele note
+- `src/components/home/QuickCheckInBadge.tsx` — homescreen trigger, toont "Ingecheckt vandaag" status
+
+**Acceptatie:**
+- [x] Tap op badge opent sheet
+- [x] Twee sliders (1-5) + optionele tekst
+- [x] Opslag in `daily_checkins`
+- [x] Update mogelijk (latest write wins via upsert)
+- [x] Badge toont status "Ingecheckt vandaag · Voelen X/5 · Slaap Y/5"
+- [ ] AI verwerkt 's avonds in coaching_memory — uitgesteld (out of scope v1)
+
+**Open in Supabase:** migratie nog niet toegepast op productie. Lokaal: `supabase start && supabase db push`. Types in `src/types/database.ts` zijn tijdelijk handmatig gepatched — `supabase gen types` regenereert ze later met dezelfde shape.
 
 ## UXR-220 — Run kaart als hero (Strava-pattern)
 
