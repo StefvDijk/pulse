@@ -27,8 +27,22 @@ interface ProposalShape {
   }>
 }
 
+function isValidProposal(p: unknown): p is ProposalShape {
+  if (!p || typeof p !== 'object') return false
+  const o = p as Record<string, unknown>
+  if (typeof o.title !== 'string' || typeof o.schema_type !== 'string') return false
+  if (typeof o.start_date !== 'string' || typeof o.weeks_planned !== 'number') return false
+  if (!Array.isArray(o.workout_schedule) || o.workout_schedule.length === 0) return false
+  return o.workout_schedule.every((w) => {
+    if (!w || typeof w !== 'object') return false
+    const wo = w as Record<string, unknown>
+    return typeof wo.day === 'string' && typeof wo.focus === 'string'
+  })
+}
+
 export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal, onBack, onNext }: Props) {
   const proposal = form.aiSchemaProposal as ProposalShape | null
+  const proposalValid = isValidProposal(proposal)
 
   function toggleGoal(g: BlockReviewData['goals'][number]) {
     const exists = form.selectedGoals.find((x) => x.id === g.id)
@@ -58,6 +72,7 @@ export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal,
       stepTotal={stepTotal}
       onBack={onBack}
       onNext={onNext}
+      nextDisabled={!!proposal && !proposalValid}
     >
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
@@ -94,6 +109,11 @@ export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal,
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
           Schema-voorstel
         </h3>
+        {proposal != null && !proposalValid && (
+          <div className="mb-3 text-[13px] text-status-warning">
+            AI-voorstel is niet geldig — ga terug en herlaad de analyse, of bevestig zonder nieuw schema.
+          </div>
+        )}
         {!proposal ? (
           <div className="text-[13px] text-status-warning">
             Geen schema-voorstel ontvangen — je kunt later via de coach een schema vragen.
