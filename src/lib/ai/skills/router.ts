@@ -5,6 +5,29 @@ import { buildWorkoutAnalysisSkill } from './workout-analysis'
 import { buildRecoverySleepSkill } from './recovery-sleep'
 import { buildGoalSettingSkill } from './goal-setting'
 
+export interface SkillContextHints {
+  currentSchemaBlock?: string
+  blockSummariesBlock?: string
+  progressionBlock?: string
+  injuriesBlock?: string
+  goalsBlock?: string
+}
+
+export function extractContextHints(thinContext: string): SkillContextHints {
+  function section(label: string): string | undefined {
+    const re = new RegExp(`--- ${label} ---([\\s\\S]*?)(?=\\n--- |$)`)
+    const match = thinContext.match(re)
+    return match?.[1].trim() || undefined
+  }
+  return {
+    currentSchemaBlock: section('HUIDIG SCHEMA'),
+    blockSummariesBlock: section("VORIGE SCHEMA'S"),
+    progressionBlock: section('OEFENING PROGRESSIE'),
+    injuriesBlock: section('ACTIEVE BLESSURES'),
+    goalsBlock: section('ACTIEVE DOELEN'),
+  }
+}
+
 const RECOVERY_KEYWORDS = [
   'herstel', 'recovery', 'rust', 'moe', 'vermoeid', 'slaap', 'slapen',
   'hrv', 'hartslag', 'resting heart rate', 'moet ik trainen',
@@ -34,13 +57,25 @@ function hasKeyword(message: string, keywords: readonly string[]): boolean {
  * Select relevant skill prompts based on question type and message content.
  * Returns an array of prompt strings to append to the system prompt.
  */
-export function selectSkills(questionType: QuestionType, message: string): string[] {
+export function selectSkills(
+  questionType: QuestionType,
+  message: string,
+  ctx: SkillContextHints = {},
+): string[] {
   const skills: string[] = []
 
   // Question-type driven skills (always match)
   switch (questionType) {
     case 'schema_request':
-      skills.push(buildSchemaPrompt({}))
+      skills.push(
+        buildSchemaPrompt({
+          currentSchema: ctx.currentSchemaBlock,
+          blockSummaries: ctx.blockSummariesBlock,
+          progression: ctx.progressionBlock,
+          injuries: ctx.injuriesBlock,
+          goals: ctx.goalsBlock,
+        }),
+      )
       break
     case 'weekly_review':
       skills.push(buildWeeklySummaryPrompt({}))

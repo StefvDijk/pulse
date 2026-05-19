@@ -8,7 +8,7 @@ import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
-import { selectSkills } from '@/lib/ai/skills/router'
+import { selectSkills, extractContextHints } from '@/lib/ai/skills/router'
 import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
@@ -332,7 +332,7 @@ export async function POST(request: Request) {
               profileBlock: renderProfileBlock(profile),
             }) + thinContext
 
-          const skills = selectSkills(questionType, message)
+          const skills = selectSkills(questionType, message, extractContextHints(thinContext))
           if (skills.length > 0) {
             systemWithContext += '\n\n' + skills.join('\n\n')
           }
