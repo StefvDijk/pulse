@@ -159,24 +159,7 @@ export async function POST(request: Request) {
       })
     }
 
-    // 4) Write summary row for old schema; mark end_date + inactive
-    await admin.from('schema_block_summaries').insert({
-      user_id: user.id,
-      schema_id,
-      summary: `Block review afgesloten — ${aggregate.totals.completedSessions}/${aggregate.totals.plannedSessions} sessies (${aggregate.totals.adherencePct ?? '?'}%). Eindstatus: ${end_reason}.`,
-      exercises_used: Array.from(new Set(aggregate.exerciseProgressions.map((e) => e.exerciseName))).slice(0, 50),
-      adherence_percentage: aggregate.totals.adherencePct,
-      total_sessions_planned: aggregate.totals.plannedSessions,
-      total_sessions_completed: aggregate.totals.completedSessions,
-      end_reason,
-    })
-
-    await admin
-      .from('training_schemas')
-      .update({ end_date: aggregate.schema.endDate, is_active: false })
-      .eq('id', schema_id)
-
-    // 5) Insert new schema (active=false), deactivate any leftovers, activate new
+    // 4) Insert new schema first (is_active=false). If this fails, old schema stays active.
     let newSchemaId: string | null = null
     if (new_schema) {
       const { data: inserted, error: insertErr } = await admin
@@ -195,15 +178,36 @@ export async function POST(request: Request) {
         .select('id')
         .single()
       if (insertErr || !inserted) throw insertErr ?? new Error('new schema insert failed')
+      newSchemaId = inserted.id
+    }
 
+    // 5) Write summary row for old schema (non-fatal)
+    const { error: summaryErr } = await admin.from('schema_block_summaries').insert({
+      user_id: user.id,
+      schema_id,
+      summary: `Block review afgesloten — ${aggregate.totals.completedSessions}/${aggregate.totals.plannedSessions} sessies (${aggregate.totals.adherencePct ?? '?'}%). Eindstatus: ${end_reason}.`,
+      exercises_used: Array.from(new Set(aggregate.exerciseProgressions.map((e) => e.exerciseName))).slice(0, 50),
+      adherence_percentage: aggregate.totals.adherencePct,
+      total_sessions_planned: aggregate.totals.plannedSessions,
+      total_sessions_completed: aggregate.totals.completedSessions,
+      end_reason,
+    })
+    if (summaryErr) console.error('schema_block_summaries insert failed (non-fatal):', summaryErr)
+
+    // 6) Deactivate old schema, deactivate any leftover actives, activate new schema
+    await admin
+      .from('training_schemas')
+      .update({ end_date: aggregate.schema.endDate, is_active: false })
+      .eq('id', schema_id)
+
+    if (newSchemaId) {
       await admin
         .from('training_schemas')
         .update({ is_active: false })
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .neq('id', inserted.id)
-      await admin.from('training_schemas').update({ is_active: true }).eq('id', inserted.id)
-      newSchemaId = inserted.id
+        .neq('id', newSchemaId)
+      await admin.from('training_schemas').update({ is_active: true }).eq('id', newSchemaId)
     }
 
     // 6) Update block_review with next_schema_id + goal ids
