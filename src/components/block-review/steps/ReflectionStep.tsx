@@ -8,6 +8,8 @@ interface Props {
   data: BlockReviewData
   value: ReflectionState
   onChange: (next: ReflectionState) => void
+  endReason: 'completed' | 'switched' | 'injury' | 'goal_reached' | 'time_up'
+  onEndReasonChange: (next: 'completed' | 'switched' | 'injury' | 'goal_reached' | 'time_up') => void
   stepIndex: number
   stepTotal: number
   onBack?: () => void
@@ -21,7 +23,7 @@ const RATING_LABEL: Record<NonNullable<TemplateRating['rating']>, string> = {
   meh: '😕 Minder',
 }
 
-export function ReflectionStep({ data, value, onChange, stepIndex, stepTotal, onBack, onNext }: Props) {
+export function ReflectionStep({ data, value, onChange, endReason, onEndReasonChange, stepIndex, stepTotal, onBack, onNext }: Props) {
   const exerciseNames = data.exerciseProgressions.map((e) => e.exerciseName)
 
   function setTemplateRating(idx: number, partial: Partial<TemplateRating>) {
@@ -50,6 +52,30 @@ export function ReflectionStep({ data, value, onChange, stepIndex, stepTotal, on
       onNext={onNext}
       nextDisabled={!canNext}
     >
+      <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-2">Hoe sluit je dit blok af?</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            ['completed', 'Voltooid'],
+            ['switched', 'Switch'],
+            ['injury', 'Blessure'],
+            ['goal_reached', 'Doel gehaald'],
+            ['time_up', 'Tijd op'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onEndReasonChange(value)}
+              className={`px-3 py-1.5 rounded-full border text-[12px] ${
+                endReason === value ? 'border-text-primary text-text-primary' : 'border-bg-border text-text-secondary'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4 flex flex-col gap-4">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">Per workout</h3>
         {value.templateRatings.map((t, idx) => (

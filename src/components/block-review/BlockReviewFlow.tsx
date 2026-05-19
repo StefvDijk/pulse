@@ -61,6 +61,8 @@ export function BlockReviewFlow() {
     setForm({ ...state, aiAnalysis: analysis, aiSchemaProposal: proposal })
   const setGoals = (next: BlockReviewFormState['selectedGoals']) =>
     setForm({ ...state, selectedGoals: next })
+  const setEndReason = (next: BlockReviewFormState['endReason']) =>
+    setForm({ ...state, endReason: next })
 
   const step = STEPS[stepIdx]
   const go = (delta: number) =>
@@ -74,7 +76,7 @@ export function BlockReviewFlow() {
     case 'body':
       return <BodyStep data={data} newInBody={state.newInBody} onChange={setNewInBody} {...common} onNext={() => go(1)} />
     case 'reflection':
-      return <ReflectionStep data={data} value={state.reflection} onChange={setReflection} {...common} onNext={() => go(1)} />
+      return <ReflectionStep data={data} value={state.reflection} onChange={setReflection} endReason={state.endReason} onEndReasonChange={setEndReason} {...common} onNext={() => go(1)} />
     case 'analysis':
       return <AnalysisStep data={data} form={state} onAnalysed={setAi} {...common} onNext={() => go(1)} />
     case 'next-block':
