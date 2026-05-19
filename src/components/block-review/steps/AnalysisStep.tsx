@@ -37,13 +37,16 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
   useEffect(() => {
     if (ranRef.current) return
     ranRef.current = true
+    const controller = new AbortController()
     let cancelled = false
+
     async function run() {
       try {
         const res = await fetch('/api/block-review/analyse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ schema_id: data.schema.id, reflection: form.reflection }),
+          signal: controller.signal,
         })
         if (!res.ok || !res.body) {
           throw new Error('Analyse mislukt')
@@ -64,12 +67,14 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
           onAnalysed(clean, proposal)
         }
       } catch (err) {
-        if (!cancelled) setError((err as Error).message)
+        if (cancelled || (err as Error).name === 'AbortError') return
+        setError((err as Error).message)
       }
     }
     run()
     return () => {
       cancelled = true
+      controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
