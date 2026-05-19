@@ -167,7 +167,14 @@ export function SchemaPageContent() {
         />
 
         {/* Coach nudge card */}
-        <SchemaCoachNudge message={nudgeMessage} />
+        <SchemaCoachNudge
+          message={nudgeMessage}
+          seed={
+            isLastWeek
+              ? `Mijn blok "${data.title}" loopt af (week ${data.currentWeek}/${data.totalWeeks}, ${data.totalSessionsCompleted}/${data.totalSessionsPlanned} sessies gedaan). Reflecteer kort op de afgelopen 8 weken en help me het volgende blok plannen.`
+              : undefined
+          }
+        />
       </div>
 
       {/* Google Calendar modal — fetches its own week data on mount */}
