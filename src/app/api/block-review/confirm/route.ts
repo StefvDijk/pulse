@@ -96,6 +96,16 @@ export async function POST(request: Request) {
       selected_goal_ids,
     } = parsed.data
 
+    const { data: owned } = await admin
+      .from('training_schemas')
+      .select('id')
+      .eq('id', schema_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!owned) {
+      return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
+    }
+
     // 1) Aggregate snapshot for the snapshot fields
     const aggregate = await aggregateBlockData(admin, user.id, schema_id)
 

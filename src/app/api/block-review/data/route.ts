@@ -23,6 +23,16 @@ export async function GET(request: Request) {
         .maybeSingle()
       if (!active) return NextResponse.json({ error: 'No active schema', code: 'NO_SCHEMA' }, { status: 404 })
       schemaId = active.id
+    } else {
+      const { data: owned } = await admin
+        .from('training_schemas')
+        .select('id')
+        .eq('id', schemaId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (!owned) {
+        return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
+      }
     }
 
     const data = await aggregateBlockData(admin, user.id, schemaId)
