@@ -168,12 +168,8 @@ export function SchemaPageContent() {
 
         {/* Coach nudge card */}
         <SchemaCoachNudge
-          message={nudgeMessage}
-          seed={
-            isLastWeek
-              ? `Mijn blok "${data.title}" loopt af (week ${data.currentWeek}/${data.totalWeeks}, ${data.totalSessionsCompleted}/${data.totalSessionsPlanned} sessies gedaan). Reflecteer kort op de afgelopen 8 weken en help me het volgende blok plannen.`
-              : undefined
-          }
+          message={isLastWeek ? 'Blok klaar — start Block Review' : nudgeMessage}
+          href={isLastWeek ? '/block-review' : undefined}
         />
       </div>
 
