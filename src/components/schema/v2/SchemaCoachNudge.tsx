@@ -7,13 +7,17 @@ import { CoachOrb } from '@/components/shared/CoachOrb'
  */
 export interface SchemaCoachNudgeProps {
   message: string
+  /** Optional seed text — when present, appended to /chat as ?seed=... */
+  seed?: string
+  /** Override target. If unset, computed from `seed`. */
   href?: string
 }
 
-export function SchemaCoachNudge({ message, href = '/chat' }: SchemaCoachNudgeProps) {
+export function SchemaCoachNudge({ message, seed, href }: SchemaCoachNudgeProps) {
+  const target = href ?? (seed ? `/chat?seed=${encodeURIComponent(seed)}` : '/chat')
   return (
     <Link
-      href={href}
+      href={target}
       className="flex items-center gap-2.5 p-3.5 rounded-[18px] active:opacity-60 transition-opacity"
       style={{
         background: 'linear-gradient(135deg, rgba(255,94,58,0.12), rgba(255,45,135,0.10))',

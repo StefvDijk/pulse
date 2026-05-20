@@ -167,7 +167,10 @@ export function SchemaPageContent() {
         />
 
         {/* Coach nudge card */}
-        <SchemaCoachNudge message={nudgeMessage} />
+        <SchemaCoachNudge
+          message={isLastWeek ? 'Blok klaar — start Block Review' : nudgeMessage}
+          href={isLastWeek ? '/block-review' : undefined}
+        />
       </div>
 
       {/* Google Calendar modal — fetches its own week data on mount */}

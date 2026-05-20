@@ -191,6 +191,100 @@ export type Database = {
           },
         ]
       }
+      block_reviews: {
+        Row: {
+          id: string
+          user_id: string
+          schema_id: string
+          period_start: string
+          period_end: string
+          status: string
+          end_reason: string
+          template_ratings: Json
+          keep_exercises: string[]
+          drop_exercises: string[]
+          biggest_win: string | null
+          biggest_miss: string | null
+          injury_updates: Json
+          performance_snapshot: Json
+          body_snapshot: Json
+          ai_analysis: string | null
+          ai_schema_proposal: Json | null
+          next_schema_id: string | null
+          new_goal_ids: string[]
+          created_at: string | null
+          confirmed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          schema_id: string
+          period_start: string
+          period_end: string
+          status?: string
+          end_reason: string
+          template_ratings?: Json
+          keep_exercises?: string[]
+          drop_exercises?: string[]
+          biggest_win?: string | null
+          biggest_miss?: string | null
+          injury_updates?: Json
+          performance_snapshot?: Json
+          body_snapshot?: Json
+          ai_analysis?: string | null
+          ai_schema_proposal?: Json | null
+          next_schema_id?: string | null
+          new_goal_ids?: string[]
+          created_at?: string | null
+          confirmed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          schema_id?: string
+          period_start?: string
+          period_end?: string
+          status?: string
+          end_reason?: string
+          template_ratings?: Json
+          keep_exercises?: string[]
+          drop_exercises?: string[]
+          biggest_win?: string | null
+          biggest_miss?: string | null
+          injury_updates?: Json
+          performance_snapshot?: Json
+          body_snapshot?: Json
+          ai_analysis?: string | null
+          ai_schema_proposal?: Json | null
+          next_schema_id?: string | null
+          new_goal_ids?: string[]
+          created_at?: string | null
+          confirmed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "block_reviews_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "training_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "block_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "block_reviews_next_schema_id_fkey"
+            columns: ["next_schema_id"]
+            isOneToOne: false
+            referencedRelation: "training_schemas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
