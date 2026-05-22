@@ -101,14 +101,14 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
     }
   }
 
-  // First turn: fire on mount
+  // First turn: fire on mount.
+  // We intentionally do NOT abort in cleanup — React Strict Mode double-invokes
+  // effects in dev and would kill our own in-flight fetch. The `ranRef` guard
+  // prevents the second invocation from starting a duplicate request.
   useEffect(() => {
     if (ranRef.current) return
     ranRef.current = true
     sendTurn([])
-    return () => {
-      abortRef.current?.abort()
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -147,12 +147,38 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
         {streaming && (
           <MessageBubble role="assistant" content={stripNuVragen(streaming)} streaming />
         )}
-        {busy && !streaming && (
-          <div className="text-[12px] text-text-tertiary px-1">Coach denkt na…</div>
+        {(busy || (messages.length === 0 && !error)) && !streaming && (
+          <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CoachOrb size={18} />
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
+              <span className="text-[10px] text-text-tertiary ml-1">···</span>
+            </div>
+            <div className="text-[13px] text-text-tertiary">
+              {messages.length === 0
+                ? 'Aan het analyseren — kan 10-30 seconden duren bij de eerste beurt.'
+                : 'Coach denkt na…'}
+            </div>
+          </div>
         )}
       </div>
 
-      {error && <div className="text-status-danger text-[13px]">{error}</div>}
+      {error && (
+        <div className="rounded-card-lg bg-status-danger/10 border border-status-danger/40 p-3 flex flex-col gap-2">
+          <div className="text-status-danger text-[13px]">{error}</div>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null)
+              ranRef.current = false
+              sendTurn(messages)
+            }}
+            className="self-start px-3 py-1.5 rounded-full text-[12px] border border-bg-border text-text-primary"
+          >
+            Opnieuw proberen
+          </button>
+        </div>
+      )}
 
       {done && proposalText && (
         <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
