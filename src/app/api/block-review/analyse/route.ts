@@ -13,6 +13,8 @@ const BLOCK_REVIEW_MODEL = 'claude-opus-4-7' as const
 
 const ReqSchema = z.object({
   schema_id: z.string().uuid().optional(),
+  phase: z.enum(['questions', 'proposal']).default('questions'),
+  qa: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
   reflection: z.object({
     templateRatings: z.array(
       z.object({
@@ -73,7 +75,8 @@ export async function POST(request: Request) {
         selectedGoals: [],
         endReason: 'completed',
       },
-      phase: 'questions',
+      phase: parsed.data.phase,
+      qa: parsed.data.qa,
     })
 
     const startedAt = Date.now()
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
         const u = await result.usage
         logAiUsage({
           userId: user.id,
-          feature: 'block-review-analyse',
+          feature: `block-review-analyse-${parsed.data.phase}`,
           model: BLOCK_REVIEW_MODEL,
           usage: {
             inputTokens: u.inputTokens ?? null,
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
       } catch (err) {
         logAiUsage({
           userId: user.id,
-          feature: 'block-review-analyse',
+          feature: `block-review-analyse-${parsed.data.phase}`,
           model: BLOCK_REVIEW_MODEL,
           durationMs: Date.now() - startedAt,
           status: 'error',
