@@ -73,6 +73,7 @@ export async function POST(request: Request) {
         selectedGoals: [],
         endReason: 'completed',
       },
+      phase: 'questions',
     })
 
     const startedAt = Date.now()
