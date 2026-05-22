@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
+import { streamChat } from '@/lib/ai/client'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import { buildBlockReviewPrompt } from '@/lib/ai/prompts/block-review'
-import { logAiUsage } from '@/lib/ai/usage'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 // Sonnet 4.6 for the conversational turns — fast enough for back-and-forth
@@ -74,7 +72,7 @@ export async function POST(request: Request) {
 
     const data = await aggregateBlockData(admin, user.id, schemaId)
 
-    const prompt = buildBlockReviewPrompt({
+    const { system, user: userPrompt } = buildBlockReviewPrompt({
       data,
       form: {
         reflection: parsed.data.reflection,
@@ -89,44 +87,71 @@ export async function POST(request: Request) {
       conversation: parsed.data.conversation,
     })
 
-    const startedAt = Date.now()
     const turnNumber = parsed.data.conversation.length + 1
     console.log(
-      `[block-review-analyse] start turn ${turnNumber} · model=${BLOCK_REVIEW_MODEL} · promptChars=${prompt.length} · schemaId=${schemaId}`,
+      `[block-review-analyse] start turn ${turnNumber} · model=${BLOCK_REVIEW_MODEL} · sysChars=${system.length} · userChars=${userPrompt.length} · schemaId=${schemaId}`,
     )
-    const result = streamText({
-      model: anthropic(BLOCK_REVIEW_MODEL),
-      messages: [{ role: 'user', content: prompt }],
+
+    const result = streamChat({
+      system,
+      messages: [{ role: 'user', content: userPrompt }],
+      model: BLOCK_REVIEW_MODEL,
       maxOutputTokens: 4096,
+      meta: { userId: user.id, feature: `block-review-analyse-turn-${turnNumber}` },
     })
 
-    void (async () => {
-      try {
-        const u = await result.usage
-        logAiUsage({
-          userId: user.id,
-          feature: `block-review-analyse-turn-${parsed.data.conversation.length + 1}`,
-          model: BLOCK_REVIEW_MODEL,
-          usage: {
-            inputTokens: u.inputTokens ?? null,
-            outputTokens: u.outputTokens ?? null,
-            cacheReadTokens: (u as { cachedInputTokens?: number }).cachedInputTokens ?? null,
-          },
-          durationMs: Date.now() - startedAt,
-        })
-      } catch (err) {
-        logAiUsage({
-          userId: user.id,
-          feature: `block-review-analyse-turn-${parsed.data.conversation.length + 1}`,
-          model: BLOCK_REVIEW_MODEL,
-          durationMs: Date.now() - startedAt,
-          status: 'error',
-          errorCode: (err as { name?: string })?.name ?? 'STREAM_ERROR',
-        })
-      }
-    })()
+    // Marker fallback: tee the stream so we can inspect the full output before
+    // closing. If the model emits neither `[NU VRAGEN]` nor `<block_proposal>`,
+    // we append `[NU VRAGEN]` so the UI doesn't deadlock waiting for a marker.
+    const encoder = new TextEncoder()
+    const fallbackStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        let acc = ''
+        try {
+          for await (const chunk of result.textStream) {
+            acc += chunk
+            controller.enqueue(encoder.encode(chunk))
+          }
+          const hasMarker = /\[NU VRAGEN\]/i.test(acc)
+          const hasProposal = /<block_proposal>/i.test(acc)
+          if (!hasMarker && !hasProposal && acc.trim().length > 0) {
+            const tail = '\n\n[NU VRAGEN]'
+            controller.enqueue(encoder.encode(tail))
+            console.warn(
+              `[block-review-analyse] no marker emitted on turn ${turnNumber}; appended [NU VRAGEN] fallback`,
+            )
+          } else if (acc.trim().length === 0) {
+            // Empty output — surface as fallback question so UI stays alive
+            const tail = 'Geef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]'
+            controller.enqueue(encoder.encode(tail))
+            console.warn(
+              `[block-review-analyse] empty stream on turn ${turnNumber}; emitted fallback question`,
+            )
+          }
+        } catch (err) {
+          console.error('[block-review-analyse] stream error:', err)
+          if (acc.trim().length > 0) {
+            // We have partial output — preserve it + append marker so the UI
+            // doesn't deadlock and the user can continue the conversation.
+            const tail = '\n\n[NU VRAGEN]'
+            try {
+              controller.enqueue(encoder.encode(tail))
+              controller.close()
+            } catch {
+              // Controller may already be in error state — fall through.
+            }
+            return
+          }
+          controller.error(err)
+          return
+        }
+        controller.close()
+      },
+    })
 
-    return result.toTextStreamResponse()
+    return new Response(fallbackStream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
   } catch (err) {
     console.error('Block review analyse error:', err)
     return NextResponse.json({ error: 'Failed to analyse', code: 'INTERNAL_ERROR' }, { status: 500 })
