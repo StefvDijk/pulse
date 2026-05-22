@@ -9,7 +9,10 @@ import { buildBlockReviewPrompt } from '@/lib/ai/prompts/block-review'
 import { logAiUsage } from '@/lib/ai/usage'
 import { checkRateLimit } from '@/lib/rate-limit'
 
-const BLOCK_REVIEW_MODEL = 'claude-opus-4-7' as const
+// Sonnet 4.6 for the conversational turns — fast enough for back-and-forth
+// (5-10s TTFB) while staying expert-level with the deep coach prompt.
+// Opus is overkill for the dialogue and adds 30-60s latency that kills UX.
+const BLOCK_REVIEW_MODEL = 'claude-sonnet-4-6' as const
 
 const ReqSchema = z.object({
   schema_id: z.string().uuid().optional(),
@@ -85,6 +88,10 @@ export async function POST(request: Request) {
     })
 
     const startedAt = Date.now()
+    const turnNumber = parsed.data.conversation.length + 1
+    console.log(
+      `[block-review-analyse] start turn ${turnNumber} · model=${BLOCK_REVIEW_MODEL} · promptChars=${prompt.length} · schemaId=${schemaId}`,
+    )
     const result = streamText({
       model: anthropic(BLOCK_REVIEW_MODEL),
       messages: [{ role: 'user', content: prompt }],
