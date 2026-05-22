@@ -1,5 +1,6 @@
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState } from '@/components/block-review/types'
+import { buildCoachPersona, buildKnowledgeBase } from '@/lib/ai/coach-core'
 
 export interface BlockReviewMessage {
   role: 'user' | 'assistant'
@@ -135,7 +136,17 @@ ${settingsLine || '  (defaults)'}
 `
 }
 
-export function buildBlockReviewPrompt({ data, form, conversation }: BuildBlockReviewPromptParams): string {
+export interface BlockReviewPrompt {
+  system: string
+  user: string
+}
+
+export function buildBlockReviewPrompt({
+  data,
+  form,
+  conversation,
+}: BuildBlockReviewPromptParams): BlockReviewPrompt {
+  // -- per-call dynamic content (varies per turn) -----------------------------
   const ratings = form.reflection.templateRatings
     .map((t) => `- ${t.focus}: ${t.rating ?? '—'}${t.note ? ` ("${t.note}")` : ''}`)
     .join('\n')
@@ -157,42 +168,6 @@ export function buildBlockReviewPrompt({ data, form, conversation }: BuildBlockR
   const goals = data.goals
     .map((g) => `- ${g.title}${g.targetValue ? ` (target ${g.targetValue}${g.targetUnit ?? ''})` : ''}`)
     .join('\n')
-
-  const roleSection = `# ROL
-
-Je bent Stefs senior personal trainer met diepe en geverifieerde expertise in:
-- **Periodisatie**: linear, daily/weekly undulating, block, conjugate, hybride. Weet wanneer welk model past (beginner→linear, intermediate→DUP, advanced→block/conjugate).
-- **Hypertrofie-science**: mechanical tension primary driver. Volume-landmarks per spiergroep (MV / MEV / MAV / MRV) volgens Schoenfeld / Israetel meta-analyses. Exercise rotation om staleness te voorkomen. Frequency 2× per spiergroep per week is meestal optimaal.
-- **Powerlifting / kracht**: e1RM-gebaseerde progressie (Epley/Brzycki), specificiteit, intensiteit-clusters (60-70-80-90% van 1RM), deload-timing (3-5 weken voor intermediates).
-- **Rep-ranges per doel**:
-  - Kracht primair: 1-5 reps @ 85-95% 1RM / RPE 7-9, rust 3-5 min compound
-  - Hypertrofie compound: 5-8 reps @ 75-85% / RPE 7-9, rust 2-3 min
-  - Hypertrofie isolatie: 8-15 reps @ 60-75% / RPE 7-10, rust 60-90s
-  - Endurance: 15-25 reps @ 50-65% / RPE 6-8, rust 30-60s
-  - Power: 1-5 reps @ 50-70% explosief, rust 2-5 min volledig
-- **Tempo**: 3-1-1-0 standaard hypertrofie compound, 2-0-x-0 voor kracht, 4-0-1-0 voor accentuated eccentric. Schrijf alleen voor waar zinvol.
-- **Progressive overload protocols**:
-  - Double progression: voltooi rep-bovengrens met goede vorm, +2.5kg next session
-  - RPE-autoregulatie: target RPE, gewicht aanpassen op gevoel
-  - %1RM-cycling: vaste percentages per week op een 4-6 weken cyclus
-  - Beginners (Stef qualifies, 3mnd): double progression of linear is voldoende, autoregulatie pas later
-- **Recovery & frequency**: 48u tussen zelfde spiergroep voor hypertrofie. 72u na zware compound (squat/deadlift). Slaap < 7u → volume 10-20% verlagen of intensiteit ipv.
-- **Voeding**:
-  - Eiwit 1.6-2.2 g/kg LBM bij krachttraining-fase. Bij gelijktijdig bulken/cutten target 2.2g/kg.
-  - Caloriebalans: lean recomp (kleine surplus 5-10%, hoge eiwit, krachttraining 4×/wk) voor 3-12 maanden trainenden.
-  - Peri-workout: 20-40g eiwit + koolhydraten ~1-2u voor sessie, 20-40g eiwit binnen 2u erna.
-  - Hydratatie 35ml/kg + 500-1000ml extra per intensieve uur.
-- **Hardlopen + krachttraining combineren**:
-  - ACWR (acute:chronic workload ratio) houden tussen 0.8-1.3 om blessure-risico te beperken.
-  - Polarisatie: 80% easy / 20% hard (Z2 vs Z4-5). Niet alles in tempo-zone.
-  - Interferentie-effect: krachttraining op dag X, easy run kan zelfde dag (≥6u apart), zware run NIET dezelfde dag als zware legday.
-  - Krachtbehoud bij verhoogde run-load: keep heavy compounds, drop accessory volume eerst.
-- **Blessure-management & RTP-principes**:
-  - Pijn-schaal: 0-3 acceptabel, 4-6 reduceer volume, 7+ stop.
-  - Load management trumps technique cues bij re-flare.
-  - Asymmetrieën: unilateral work voor de zwakke kant +1 set, niet -1 op de sterke.
-
-Je werkt voor Stef. Hij is data-driven en wil concrete, cijfermatige feedback. Geen platitudes. Geen "luister naar je lichaam" zonder concrete actie. Antwoord in het Nederlands. Direct, geen aarzeling. Onderbouw keuzes met cijfers uit zijn data of evidence-based principes.`
 
   const journeyBlock = buildJourneyBlock(data)
 
@@ -242,6 +217,16 @@ ${form.reflection.biggestWin || '(niet ingevuld)'}
 ## Grootste tegenvaller
 ${form.reflection.biggestMiss || '(niet ingevuld)'}`
 
+  const transcript =
+    conversation.length === 0
+      ? '\n\n# DIT IS DE EERSTE BEURT (nog geen gesprek)\n\nReageer nu volgens de WERKWIJZE.'
+      : '\n\n# GESPREK TOT NU TOE\n\n' +
+        conversation
+          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
+          .join('\n\n') +
+        '\n\nReageer nu volgens de WERKWIJZE op basis van Stefs laatste antwoord.'
+
+  // -- per-block static context (constant during this wizard session) --------
   const blessureSection = `# BLESSURE-CONSTRAINTS (ALTIJD RESPECTEREN)
 
 Lees Stefs profiel-blessures + actieve blessures hierboven. Bovendien deze structurele regels:
@@ -260,7 +245,9 @@ Lees Stefs profiel-blessures + actieve blessures hierboven. Bovendien deze struc
 - Default: 4 sessies per week (ma-do), vrijdag hardlopen — tenzij Stef in het gesprek iets anders aangeeft
 - Roteer ten minste 30% van de oefeningen vs vorig blok (anti-staleness, leer-stimulus)
 - Deload elke 3-4 weken (verlaag volume 40-50%, of intensiteit, niet beide)
-- Voor elke oefening: VERPLICHT \`sets\`, \`reps\` (range), \`rest_seconds\`, \`rpe\`, \`notes\`. Optioneel \`tempo\`.`
+- Voor elke oefening: VERPLICHT \`sets\`, \`reps\` (range), \`rest_seconds\`, \`rpe\`, \`notes\`. Optioneel \`tempo\`.
+- start_date = eerstvolgende maandag NA de \`endDate\` uit het DIT BLOK gedeelte
+- exercises moeten echte herkenbare namen zijn die Hevy kent`
 
   const werkwijzeSection = `# WERKWIJZE — DE DIALOOG
 
@@ -275,29 +262,17 @@ Je hebt twee opties elke beurt:
 
 **Optie B: Lever het schema** zodra je genoeg weet.
 - Geen vragen meer.
-- Begin met CONCLUSIE + LOGICA (zie hieronder), eindig met het \`<block_proposal>\` blok.
+- Begin met CONCLUSIE + LOGICA, eindig met het \`<block_proposal>\` blok.
 - Output GEEN \`[NU VRAGEN]\` in deze beurt.
 
 **Hoe je beslist:** ga voor Optie A zolang er nog ONBEKENDE keuzes zijn waar het schema-ontwerp van afhangt. Ga voor Optie B zodra je elke kritische keuze kunt invullen met onderbouwing.
 
-Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + ANALYSE-VAN-DIT-BLOK voordat je vragen stelt of het schema levert. Dit is je eerste contact, toon je begrijpt waar Stef staat.
-
-Latere beurten: ga direct in op Stefs antwoord. Geen herhaling van eerdere analyse.
+Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + ANALYSE-VAN-DIT-BLOK voordat je vragen stelt of het schema levert. Latere beurten: ga direct in op Stefs antwoord.
 
 ## Wanneer je het schema levert (Optie B), gebruik deze structuur
 
-1. **CONCLUSIE** (3-5 zinnen): vat samen wat je gelaagde input nu betekent voor de aanpak. Maak de keuzes expliciet.
-
-2. **DE LOGICA** (5-8 bullets): leg het ontwerp uit:
-   - Periodisatie-model (linear / DUP / block / hybride) en waarom
-   - Rep-range per primaire oefening, gekoppeld aan doel
-   - Rusttijden per movement pattern
-   - Progressive overload protocol (double-progression / RPE / %1RM)
-   - Frequency + spier-volume (sets/spiergroep/week + MEV/MAV/MRV referentie)
-   - Deload-timing (week N)
-   - Recovery-overwegingen (slaap, run-load, blessure)
-   - Voedings-aanpak in deze fase
-
+1. **CONCLUSIE** (3-5 zinnen): vat samen wat je gelaagde input nu betekent voor de aanpak.
+2. **DE LOGICA** (5-8 bullets): leg het ontwerp uit — periodisatie-model, rep-range, rusttijden, progressive overload protocol, frequency + spier-volume (sets/spiergroep/week + MEV/MAV/MRV referentie), deload-timing, recovery-overwegingen, voedings-aanpak.
 3. **SCHEMA-VOORSTEL** als laatste blok, exact dit format:
 
 \`\`\`
@@ -329,22 +304,18 @@ Latere beurten: ga direct in op Stefs antwoord. Geen herhaling van eerdere analy
 </block_proposal>
 \`\`\`
 
-Belangrijk voor het schema-voorstel:
-- start_date = eerstvolgende maandag NA ${data.schema.endDate}
-- exercises moeten echte herkenbare namen zijn die Hevy kent
-- VUL VERPLICHT IN per oefening: \`sets\`, \`reps\`, \`rest_seconds\`, \`rpe\`, \`notes\`
-- \`tempo\` alleen waar relevant (compound hypertrofie-werk)
-- Respecteer ALLE blessure-constraints
-- Output GEEN andere XML/JSON-blokken`
+Output GEEN andere XML/JSON-blokken. Geen sycophancy. Geen lange intro's.`
 
-  const transcript =
-    conversation.length === 0
-      ? '\n\n# DIT IS DE EERSTE BEURT (nog geen gesprek)\n\nReageer nu volgens de WERKWIJZE.'
-      : '\n\n# GESPREK TOT NU TOE\n\n' +
-        conversation
-          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
-          .join('\n\n') +
-        '\n\nReageer nu volgens de WERKWIJZE op basis van Stefs laatste antwoord.'
+  // -- compose system + user --------------------------------------------------
+  const system = [
+    buildCoachPersona(),
+    buildKnowledgeBase(),
+    blessureSection,
+    schemaEisenSection,
+    werkwijzeSection,
+  ].join('\n\n')
 
-  return `${roleSection}\n\n${journeyBlock}\n\n${ditBlokSection}\n\n${reflectieSection}\n\n${blessureSection}\n\n${schemaEisenSection}\n\n${werkwijzeSection}${transcript}`
+  const user = [journeyBlock, ditBlokSection, reflectieSection].join('\n\n') + transcript
+
+  return { system, user }
 }
