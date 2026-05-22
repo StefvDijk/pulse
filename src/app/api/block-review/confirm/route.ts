@@ -53,6 +53,9 @@ const ConfirmSchema = z.object({
                 name: z.string(),
                 sets: z.number().optional(),
                 reps: z.string().optional(),
+                rest_seconds: z.number().int().nonnegative().optional(),
+                rpe: z.union([z.string(), z.number()]).optional(),
+                tempo: z.string().optional(),
                 notes: z.string().optional(),
               }),
             )
