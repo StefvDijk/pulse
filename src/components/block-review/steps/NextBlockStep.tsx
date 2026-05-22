@@ -1,13 +1,16 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState, NextBlockGoalDraft } from '../types'
+import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft } from '../types'
 
 interface Props {
   data: BlockReviewData
   form: BlockReviewFormState
   onGoalsChange: (next: NextBlockGoalDraft[]) => void
+  onConversationChange: (next: BlockReviewMessage[]) => void
+  onProposalUpdated: (analysis: string, proposal: unknown) => void
   stepIndex: number
   stepTotal: number
   onBack?: () => void
@@ -40,9 +43,47 @@ function isValidProposal(p: unknown): p is ProposalShape {
   })
 }
 
-export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal, onBack, onNext }: Props) {
+function stripProposalAndMarker(text: string): string {
+  return text
+    .replace(/<block_proposal>[\s\S]*?<\/block_proposal>/gi, '')
+    .replace(/\[NU VRAGEN\]\s*$/i, '')
+    .trim()
+}
+
+export function NextBlockStep({
+  data,
+  form,
+  onGoalsChange,
+  onConversationChange,
+  onProposalUpdated,
+  stepIndex,
+  stepTotal,
+  onBack,
+  onNext,
+}: Props) {
   const proposal = form.aiSchemaProposal as ProposalShape | null
   const proposalValid = isValidProposal(proposal)
+
+  const [input, setInput] = useState('')
+  const [streaming, setStreaming] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Track which messages were already present when this step mounted.
+  // Only messages added after that baseline are shown as refinement exchanges.
+  const baselineLenRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (baselineLenRef.current === null) {
+      baselineLenRef.current = form.conversation.length
+    }
+  // Run once on mount — intentionally no deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const recentRefinements =
+    baselineLenRef.current !== null
+      ? form.conversation.slice(baselineLenRef.current)
+      : []
 
   function toggleGoal(g: BlockReviewData['goals'][number]) {
     const exists = form.selectedGoals.find((x) => x.id === g.id)
@@ -61,6 +102,63 @@ export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal,
           isNew: false,
         },
       ])
+    }
+  }
+
+  async function sendRefinement() {
+    const text = input.trim()
+    if (!text || busy) return
+    setBusy(true)
+    setError(null)
+    setStreaming('')
+    const userMessage: BlockReviewMessage = { role: 'user', content: text }
+    const newHistory = [...form.conversation, userMessage]
+    onConversationChange(newHistory)
+    setInput('')
+    try {
+      const res = await fetch('/api/block-review/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schema_id: data.schema.id,
+          reflection: form.reflection,
+          conversation: newHistory,
+        }),
+      })
+      if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let acc = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        acc += decoder.decode(value)
+        setStreaming(acc)
+      }
+      const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
+      let parsed: unknown = null
+      if (match) {
+        try {
+          parsed = JSON.parse(match[1].trim())
+        } catch {
+          parsed = null
+        }
+      }
+      const clean = match ? acc.replace(match[0], '').trim() : acc
+      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
+      const finalHistory = [...newHistory, assistantMessage]
+      onConversationChange(finalHistory)
+      setStreaming('')
+      if (parsed !== null) {
+        const transcript = finalHistory
+          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
+          .join('\n\n')
+        onProposalUpdated(transcript, parsed)
+      }
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -106,8 +204,13 @@ export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal,
       </section>
 
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3 flex items-center gap-2">
           Schema-voorstel
+          {form.schemaProposalVersion > 1 && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] bg-white/10 text-text-secondary normal-case font-normal tracking-normal">
+              v{form.schemaProposalVersion}
+            </span>
+          )}
         </h3>
         {proposal != null && !proposalValid && (
           <div className="mb-3 text-[13px] text-status-warning">
@@ -150,6 +253,61 @@ export function NextBlockStep({ data, form, onGoalsChange, stepIndex, stepTotal,
           </div>
         )}
       </section>
+
+      {proposal && (
+        <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4 flex flex-col gap-3">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+            Verfijn dit schema
+          </h3>
+          <p className="text-[12px] text-text-secondary">
+            Wil je iets aanpassen? Zeg het. De coach herziet het voorstel.
+          </p>
+
+          {recentRefinements.length > 0 && (
+            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto">
+              {recentRefinements.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-[12.5px] leading-[1.5] whitespace-pre-wrap rounded-md p-2.5 ${
+                    m.role === 'user'
+                      ? 'bg-white/[0.04] border border-white/[0.08] self-end max-w-[85%]'
+                      : 'bg-bg-base border border-bg-border'
+                  }`}
+                >
+                  {m.role === 'assistant' ? stripProposalAndMarker(m.content) : m.content}
+                </div>
+              ))}
+              {streaming && (
+                <div className="text-[12.5px] leading-[1.5] whitespace-pre-wrap rounded-md p-2.5 bg-bg-base border border-bg-border">
+                  {stripProposalAndMarker(streaming)}
+                  <span className="text-text-tertiary ml-1">···</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="text-status-danger text-[12px]">{error}</div>
+          )}
+
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            rows={2}
+            placeholder="Bijv. 'Vervang Lat Pulldown met Pull-ups' of 'minder volume op donderdag'…"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            disabled={busy}
+          />
+          <button
+            type="button"
+            onClick={sendRefinement}
+            disabled={!input.trim() || busy}
+            className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
+          >
+            {busy ? 'Coach denkt na…' : 'Verstuur'}
+          </button>
+        </section>
+      )}
     </StepShell>
   )
 }

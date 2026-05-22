@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState, StepId } from './types'
+import type { BlockReviewFormState, BlockReviewMessage, StepId } from './types'
 import { PerformanceStep } from './steps/PerformanceStep'
 import { BodyStep } from './steps/BodyStep'
 import { ReflectionStep } from './steps/ReflectionStep'
@@ -32,8 +32,10 @@ function emptyForm(data: BlockReviewData): BlockReviewFormState {
       injuryUpdates: {},
     },
     newInBody: null,
+    conversation: [],
     aiAnalysis: '',
     aiSchemaProposal: null,
+    schemaProposalVersion: 0,
     selectedGoals: [],
     endReason: 'completed',
   }
@@ -58,8 +60,15 @@ export function BlockReviewFlow() {
     setForm({ ...state, reflection: next })
   const setNewInBody = (next: BlockReviewFormState['newInBody']) =>
     setForm({ ...state, newInBody: next })
-  const setAi = (analysis: string, proposal: unknown) =>
-    setForm({ ...state, aiAnalysis: analysis, aiSchemaProposal: proposal })
+  const setConversation = (next: BlockReviewMessage[]) =>
+    setForm({ ...state, conversation: next })
+  const setProposal = (analysis: string, proposal: unknown) =>
+    setForm({
+      ...state,
+      aiAnalysis: analysis,
+      aiSchemaProposal: proposal,
+      schemaProposalVersion: state.schemaProposalVersion + 1,
+    })
   const setGoals = (next: BlockReviewFormState['selectedGoals']) =>
     setForm({ ...state, selectedGoals: next })
   const setEndReason = (next: BlockReviewFormState['endReason']) =>
@@ -80,9 +89,29 @@ export function BlockReviewFlow() {
       case 'reflection':
         return <ReflectionStep data={data} value={state.reflection} onChange={setReflection} endReason={state.endReason} onEndReasonChange={setEndReason} {...common} onNext={() => go(1)} />
       case 'analysis':
-        return <AnalysisStep data={data} form={state} onAnalysed={setAi} {...common} onNext={() => go(1)} />
+        return (
+          <AnalysisStep
+            data={data}
+            reflection={state.reflection}
+            conversation={state.conversation}
+            onConversationChange={setConversation}
+            onAnalysed={setProposal}
+            {...common}
+            onNext={() => go(1)}
+          />
+        )
       case 'next-block':
-        return <NextBlockStep data={data} form={state} onGoalsChange={setGoals} {...common} onNext={() => go(1)} />
+        return (
+          <NextBlockStep
+            data={data}
+            form={state}
+            onGoalsChange={setGoals}
+            onConversationChange={setConversation}
+            onProposalUpdated={setProposal}
+            {...common}
+            onNext={() => go(1)}
+          />
+        )
       case 'confirm':
         return <ConfirmStep data={data} form={state} dryRun={dryRun} {...common} />
     }

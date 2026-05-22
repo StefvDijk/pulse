@@ -4,21 +4,20 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState } from '../types'
+import type { BlockReviewFormState, BlockReviewMessage } from '../types'
+
+type ConvMessage = BlockReviewMessage
 
 interface Props {
   data: BlockReviewData
-  form: BlockReviewFormState
+  reflection: BlockReviewFormState['reflection']
+  conversation: BlockReviewMessage[]
+  onConversationChange: (next: BlockReviewMessage[]) => void
   onAnalysed: (analysis: string, proposal: unknown) => void
   stepIndex: number
   stepTotal: number
   onBack?: () => void
   onNext: () => void
-}
-
-interface ConvMessage {
-  role: 'user' | 'assistant'
-  content: string
 }
 
 function extractProposal(text: string): { clean: string; proposal: unknown | null } {
@@ -41,8 +40,17 @@ function awaitsAnswer(text: string): boolean {
   return /\[NU VRAGEN\]/i.test(text)
 }
 
-export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onBack, onNext }: Props) {
-  const [messages, setMessages] = useState<ConvMessage[]>([])
+export function AnalysisStep({
+  data,
+  reflection,
+  conversation,
+  onConversationChange,
+  onAnalysed,
+  stepIndex,
+  stepTotal,
+  onBack,
+  onNext,
+}: Props) {
   const [streaming, setStreaming] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,7 +73,7 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schema_id: data.schema.id,
-          reflection: form.reflection,
+          reflection,
           conversation: history,
         }),
         signal: controller.signal,
@@ -82,7 +90,7 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
       }
       const { clean, proposal: parsed } = extractProposal(acc)
       const assistantMessage: ConvMessage = { role: 'assistant', content: clean }
-      setMessages([...history, assistantMessage])
+      onConversationChange([...history, assistantMessage])
       setStreaming('')
       if (parsed) {
         // Final turn — propagate to form
@@ -101,32 +109,35 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
     }
   }
 
-  // First turn: fire on mount.
+  // First turn: fire on mount only if conversation is empty (guard against
+  // returning from step 5 with existing messages).
   // We intentionally do NOT abort in cleanup — React Strict Mode double-invokes
   // effects in dev and would kill our own in-flight fetch. The `ranRef` guard
   // prevents the second invocation from starting a duplicate request.
   useEffect(() => {
     if (ranRef.current) return
     ranRef.current = true
-    sendTurn([])
+    if (conversation.length === 0) {
+      sendTurn([])
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Scroll to bottom on new content
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, streaming])
+  }, [conversation, streaming])
 
   async function handleSend() {
     const text = input.trim()
     if (!text || busy) return
-    const newHistory: ConvMessage[] = [...messages, { role: 'user', content: text }]
-    setMessages(newHistory)
+    const newHistory: ConvMessage[] = [...conversation, { role: 'user', content: text }]
+    onConversationChange(newHistory)
     setInput('')
     await sendTurn(newHistory)
   }
 
-  const lastAssistant = messages[messages.length - 1]?.role === 'assistant' ? messages[messages.length - 1] : null
+  const lastAssistant = conversation[conversation.length - 1]?.role === 'assistant' ? conversation[conversation.length - 1] : null
   const waitingForAnswer = lastAssistant ? awaitsAnswer(lastAssistant.content) : false
   const done = proposal !== null
 
@@ -141,13 +152,13 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
       nextLabel="Naar volgend blok"
     >
       <div ref={scrollRef} className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
-        {messages.map((m, i) => (
+        {conversation.map((m, i) => (
           <MessageBubble key={i} role={m.role} content={m.role === 'assistant' ? stripNuVragen(m.content) : m.content} />
         ))}
         {streaming && (
           <MessageBubble role="assistant" content={stripNuVragen(streaming)} streaming />
         )}
-        {(busy || (messages.length === 0 && !error)) && !streaming && (
+        {(busy || (conversation.length === 0 && !error)) && !streaming && (
           <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
             <div className="flex items-center gap-2 mb-2">
               <CoachOrb size={18} />
@@ -155,7 +166,7 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
               <span className="text-[10px] text-text-tertiary ml-1">···</span>
             </div>
             <div className="text-[13px] text-text-tertiary">
-              {messages.length === 0
+              {conversation.length === 0
                 ? 'Aan het analyseren — kan 10-30 seconden duren bij de eerste beurt.'
                 : 'Coach denkt na…'}
             </div>
@@ -171,7 +182,7 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
             onClick={() => {
               setError(null)
               ranRef.current = false
-              sendTurn(messages)
+              sendTurn(conversation)
             }}
             className="self-start px-3 py-1.5 rounded-full text-[12px] border border-bg-border text-text-primary"
           >
@@ -187,7 +198,7 @@ export function AnalysisStep({ data, form, onAnalysed, stepIndex, stepTotal, onB
         </div>
       )}
 
-      {!done && !busy && (waitingForAnswer || messages.length > 0) && (
+      {!done && !busy && (waitingForAnswer || conversation.length > 0) && (
         <div className="rounded-card-lg bg-bg-surface border border-bg-border p-3 flex flex-col gap-2">
           <textarea
             value={input}
