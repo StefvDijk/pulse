@@ -9,16 +9,16 @@ import type { BlockReviewFormState } from '../types'
 interface Props {
   data: BlockReviewData
   form: BlockReviewFormState
+  dryRun: boolean
   stepIndex: number
   stepTotal: number
   onBack?: () => void
 }
 
-export function ConfirmStep({ data, form, stepIndex, stepTotal, onBack }: Props) {
+export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }: Props) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dryRun, setDryRun] = useState(false)
 
   async function submit() {
     setSubmitting(true)
@@ -53,6 +53,12 @@ export function ConfirmStep({ data, form, stepIndex, stepTotal, onBack }: Props)
 
   return (
     <StepShell title="Bevestigen" stepIndex={stepIndex} stepTotal={stepTotal} onBack={onBack}>
+      {dryRun && (
+        <div className="rounded-card-lg bg-status-warning/10 border border-status-warning/40 p-3 text-[13px] text-status-warning">
+          🧪 Test mode actief — bij bevestigen wordt niets opgeslagen. Schakel uit met de knop rechtsonder om écht te bevestigen.
+        </div>
+      )}
+
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4 text-[13px] text-text-secondary">
         <p className="text-text-primary">Klaar om af te sluiten:</p>
         <ul className="mt-2 list-disc list-inside space-y-0.5">
@@ -64,11 +70,6 @@ export function ConfirmStep({ data, form, stepIndex, stepTotal, onBack }: Props)
           {form.reflection.biggestMiss && <li>Miss opslaan in coach-geheugen</li>}
         </ul>
       </section>
-
-      <label className="flex items-center gap-2 text-[12px] text-text-tertiary">
-        <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
-        Test mode (niets opslaan)
-      </label>
 
       {error && <div className="text-status-danger text-[13px]">{error}</div>}
 
