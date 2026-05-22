@@ -104,6 +104,7 @@ interface WritebackResult {
   injuryLog?: InjuryLogData
   schemaGeneration?: SchemaGenerationData
   schemaUpdate?: SchemaUpdateData
+  citedMemories?: string[]   // first-8-char prefixes emitted by the coach
 }
 
 function extractWritebacks(text: string): WritebackResult {
@@ -153,7 +154,17 @@ function extractWritebacks(text: string): WritebackResult {
     cleanText = cleanText.replace(schemaUpdateMatch[0], '').trim()
   }
 
-  return { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate }
+  let citedMemories: string[] | undefined
+  const citedMatch = /<cited_memories>([\s\S]*?)<\/cited_memories>/i.exec(text)
+  if (citedMatch) {
+    citedMemories = citedMatch[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => /^[a-f0-9]{4,}$/i.test(s))
+    cleanText = cleanText.replace(citedMatch[0], '').trim()
+  }
+
+  return { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate, citedMemories }
 }
 
 export async function POST(request: Request) {
@@ -365,7 +376,7 @@ export async function POST(request: Request) {
           }
 
           // Process write-backs after full response
-          const { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate } =
+          const { cleanText, nutritionLog, injuryLog, schemaGeneration, schemaUpdate, citedMemories } =
             extractWritebacks(fullResponse)
 
           // Save assistant message (clean text).
@@ -387,6 +398,36 @@ export async function POST(request: Request) {
             message_type: questionType,
             tokens_used: outputTokens,
           })
+
+          // Bump last_confirmed_at on memories the coach actively cited.
+          // Coach emits first-8-char prefixes — map back to full UUIDs.
+          if (citedMemories && citedMemories.length > 0) {
+            try {
+              const prefixOrs = citedMemories
+                .map((p) => `id.ilike.${p}%`)
+                .join(',')
+              const { data: matches } = await admin
+                .from('coaching_memory')
+                .select('id')
+                .eq('user_id', user.id)
+                .or(prefixOrs)
+              if (matches && matches.length > 0) {
+                await Promise.all(
+                  matches.map((m) =>
+                    admin
+                      .from('coaching_memory')
+                      .update({
+                        confidence: 1.0,
+                        last_confirmed_at: new Date().toISOString(),
+                      })
+                      .eq('id', m.id),
+                  ),
+                )
+              }
+            } catch (err) {
+              console.error('[chat] cited_memories confirm failed (non-fatal):', err)
+            }
+          }
 
           // Update session
           await admin
