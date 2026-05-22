@@ -1,5 +1,31 @@
-import { describe, it, expect } from 'vitest'
-import { buildCoachPersona, buildKnowledgeBase } from '@/lib/ai/coach-core'
+import { describe, it, expect, vi } from 'vitest'
+import { buildCoachPersona, buildKnowledgeBase, buildMemoryReadBlock } from '@/lib/ai/coach-core'
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => ({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          is: () => ({
+            gte: () => ({
+              order: () => ({
+                limit: async () => ({
+                  data: [
+                    {
+                      id: '11111111-2222-3333-4444-555555555555',
+                      category: 'preference',
+                      value: "Stef traint het liefst 's ochtends",
+                    },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    }),
+  })),
+}))
 
 describe('buildCoachPersona', () => {
   it('declares the coach identity as expert, not pedagogue', () => {
@@ -74,5 +100,36 @@ describe('buildKnowledgeBase', () => {
   it('mentions deload cadence 3-5 weeks', () => {
     const text = buildKnowledgeBase()
     expect(text).toMatch(/deload.*3-?5 weken|deload.*elke 3-?4|3-?4 weken/i)
+  })
+})
+
+describe('buildMemoryReadBlock', () => {
+  it('returns a memory block with category headings and id-tagged lines', async () => {
+    const block = await buildMemoryReadBlock('user-123')
+    expect(block).toMatch(/MIJN GEHEUGEN OVER JOU/i)
+    expect(block).toMatch(/PREFERENCE/i)
+    expect(block).toMatch(/\[id:11111111\]/)
+    expect(block).toMatch(/'s ochtends/)
+  })
+
+  it('returns an empty marker when no memories exist', async () => {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    vi.mocked(createAdminClient).mockReturnValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            is: () => ({
+              gte: () => ({
+                order: () => ({
+                  limit: async () => ({ data: [] }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    } as never)
+    const block = await buildMemoryReadBlock('user-empty')
+    expect(block).toMatch(/nog geen geheugen|geen memories/i)
   })
 })

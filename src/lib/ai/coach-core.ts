@@ -5,6 +5,8 @@
 // Design source: docs/superpowers/specs/2026-05-22-coach-brains-design.md
 // ---------------------------------------------------------------------------
 
+import { createAdminClient } from '@/lib/supabase/admin'
+
 /**
  * The coach's identity and voice — sectie 1 of the design spec.
  * Returns a markdown-flavoured fragment intended to be embedded in a
@@ -100,4 +102,46 @@ Externe focus ("push the floor away") leert sneller en presteert beter dan inter
 - Load management trumps technique cues bij re-flare.
 - Asymmetrieën: unilateral work voor de zwakke kant +1 set, niet -1 op de sterke.
 - McGill big 3 (curl-up, side bridge, bird dog) als rug-prehab.`
+}
+
+/**
+ * Read the coach's memory of the user as a structured prompt block.
+ * In fase 1 covers semantic + episodic (via coaching_memory).
+ * Beliefs (procedural layer) wordt toegevoegd in fase 2.
+ */
+export async function buildMemoryReadBlock(userId: string): Promise<string> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('coaching_memory')
+    .select('id, category, value')
+    .eq('user_id', userId)
+    .is('superseded_by', null)
+    .gte('confidence', 0.3)
+    .order('updated_at', { ascending: false })
+    .limit(30)
+
+  if (!data || data.length === 0) {
+    return '## MIJN GEHEUGEN OVER JOU\n\n(Nog geen geheugen opgebouwd — leer Stef nog kennen.)'
+  }
+
+  const byCategory: Record<string, Array<{ id: string; value: string }>> = {}
+  for (const row of data) {
+    if (!byCategory[row.category]) byCategory[row.category] = []
+    byCategory[row.category].push({ id: row.id, value: row.value })
+  }
+
+  const lines: string[] = ['## MIJN GEHEUGEN OVER JOU', '']
+  for (const [cat, items] of Object.entries(byCategory)) {
+    lines.push(`### ${cat.toUpperCase()}`)
+    for (const it of items) {
+      lines.push(`- [id:${it.id.slice(0, 8)}] ${it.value}`)
+    }
+    lines.push('')
+  }
+
+  lines.push(
+    'Wanneer je naar een feit hier verwijst in je antwoord, eindig je antwoord met een `<cited_memories>id1,id2</cited_memories>`-tag met de id-prefixes die je gebruikt hebt. Dit houdt het geheugen vers.',
+  )
+
+  return lines.join('\n')
 }
