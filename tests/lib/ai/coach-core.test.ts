@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCoachPersona } from '@/lib/ai/coach-core'
+import { buildCoachPersona, buildKnowledgeBase } from '@/lib/ai/coach-core'
 
 describe('buildCoachPersona', () => {
   it('declares the coach identity as expert, not pedagogue', () => {
@@ -40,5 +40,39 @@ describe('buildCoachPersona', () => {
     const text = buildCoachPersona()
     expect(text).toContain('<cited_memories>')
     expect(text).toContain('</cited_memories>')
+  })
+})
+
+describe('buildKnowledgeBase', () => {
+  it('includes Israetel volume landmarks (MV/MEV/MAV/MRV)', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/MV.*MEV.*MAV.*MRV/i)
+  })
+
+  it('includes ACWR safety band 0.8-1.3', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/ACWR/i)
+    expect(text).toMatch(/0\.8.*1\.3/)
+  })
+
+  it('includes rep-ranges per training goal', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/kracht.*1-5 reps/i)
+    expect(text).toMatch(/hypertrofie.*6-12|hypertrofie.*8-12/i)
+  })
+
+  it('includes protein target range per kg LBM', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/1\.6.*2\.2 ?g\/kg|2\.2 ?g\/kg/i)
+  })
+
+  it('mentions interferentie-effect for concurrent training', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/interferentie/i)
+  })
+
+  it('mentions deload cadence 3-5 weeks', () => {
+    const text = buildKnowledgeBase()
+    expect(text).toMatch(/deload.*3-?5 weken|deload.*elke 3-?4|3-?4 weken/i)
   })
 })
