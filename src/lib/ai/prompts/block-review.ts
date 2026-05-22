@@ -1,13 +1,15 @@
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState } from '@/components/block-review/types'
 
-export type BlockReviewPhase = 'questions' | 'proposal'
+export interface BlockReviewMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface BuildBlockReviewPromptParams {
   data: BlockReviewData
   form: BlockReviewFormState
-  phase: BlockReviewPhase
-  qa?: Array<{ question: string; answer: string }>
+  conversation: BlockReviewMessage[]
 }
 
 function formatJsonOrSkip(label: string, value: unknown): string {
@@ -133,7 +135,7 @@ ${settingsLine || '  (defaults)'}
 `
 }
 
-export function buildBlockReviewPrompt({ data, form, phase, qa }: BuildBlockReviewPromptParams): string {
+export function buildBlockReviewPrompt({ data, form, conversation }: BuildBlockReviewPromptParams): string {
   const ratings = form.reflection.templateRatings
     .map((t) => `- ${t.focus}: ${t.rating ?? '—'}${t.note ? ` ("${t.note}")` : ''}`)
     .join('\n')
@@ -156,98 +158,7 @@ export function buildBlockReviewPrompt({ data, form, phase, qa }: BuildBlockRevi
     .map((g) => `- ${g.title}${g.targetValue ? ` (target ${g.targetValue}${g.targetUnit ?? ''})` : ''}`)
     .join('\n')
 
-  const qaBlock =
-    qa && qa.length > 0
-      ? '\n\n# JOUW VRAGEN, STEFS ANTWOORDEN\n\n' +
-        qa.map((p, i) => `${i + 1}. **${p.question}**\n   → ${p.answer.trim() || '(geen antwoord)'}`).join('\n\n')
-      : ''
-
-  const phaseInstruction =
-    phase === 'questions'
-      ? `# JOUW TAAK (FASE: VRAGEN)
-
-Doe NU het volgende, in deze exacte volgorde:
-
-1. **JOURNEY-ERKENNING** (3-4 zinnen): vat samen waar Stef vandaan komt → waar hij nu staat. Verwijs naar concrete cijfers uit de JOURNEY-sectie hierboven (baseline body, key lift progressie, vorige schema's). Geen platitudes — feiten.
-
-2. **DIT BLOK** (3-5 zinnen): wat ging goed, wat niet, waarom. Verwijs naar cijfers + Stefs reflectie. Adresseer:
-   - Beste progressie
-   - Zwakste/stagnante oefening (en oorzaak)
-   - Adherence patroon
-   - Lichaam-trend vs doel-richting
-   - Eventuele red flags (blessure, stagnatie cluster, slechte slaap-data)
-
-3. **DRIE TOT VIJF SCHERPE VRAGEN** voor het volgende blok. Geen open feel-good vragen — concrete keuze-vragen waar het schema-ontwerp van afhangt. Voorbeelden van GOEDE vragen:
-   - "Hoofdfocus volgend blok: spiermassa, kracht, vet eraf, of mix? (Bepaalt rep-ranges + rust)"
-   - "Volume omhoog of consolideren? Je adherence was X% — wil je 4× blijven of testen met 5×?"
-   - "[Oefening Y] stagneert sinds week N. Wil je vervangen, deload, of variant proberen?"
-   - "Padel telt mee voor cardio of zie je het puur als plezier zonder MET-target?"
-   - "Slaap kwam op {gem}/5. Is dat representatief of toeval? (Bepaalt of we volume durven verhogen)"
-
-4. Eindig EXACT met de regel: \`[NU VRAGEN]\`
-
-**STOP** na \`[NU VRAGEN]\`. Geen schema-voorstel in deze fase. Geen verder advies. Wacht op antwoorden.`
-      : `# JOUW TAAK (FASE: VOORSTEL)
-
-Stef heeft je vragen beantwoord. Nu lever je het definitieve schema.
-
-Doe NU het volgende, in deze exacte volgorde:
-
-1. **CONCLUSIE** (3-5 zinnen): vat samen wat Stefs antwoorden betekenen voor de aanpak. Wees concreet over de keuzes die je nu maakt (bv. "Op basis van je antwoord A kies ik X, niet Y").
-
-2. **DE LOGICA** (5-8 bullets): leg het ontwerp uit:
-   - Welk periodisatie-model (linear / DUP / block / hybride) en waarom
-   - Welke rep-range per primaire oefening en waarom (gekoppeld aan doel)
-   - Rusttijden-protocol (per movement pattern)
-   - Progressive overload protocol (double-progression / RPE / %1RM)
-   - Frequency en spier-volume (sets/spiergroep/week, MEV/MAV/MRV referentie)
-   - Deload-timing (week N)
-   - Recovery-overwegingen (slaap, run-load, blessure)
-   - Voedings-aanpak in deze fase (eiwit/kcal richtlijn, periworkout)
-
-3. **VRAAGSTUKKEN** (0-2 stuks): alleen als er nog iets onduidelijk is — anders skippen.
-
-4. **SCHEMA-VOORSTEL** als laatste blok, exact dit format:
-
-\`\`\`
-<block_proposal>
-{
-  "title": "<korte naam>",
-  "schema_type": "<upper_lower|push_pull_legs|full_body|custom>",
-  "weeks_planned": <getal>,
-  "start_date": "<YYYY-MM-DD>",
-  "workout_schedule": [
-    {
-      "day": "monday",
-      "focus": "Upper A",
-      "duration_min": 55,
-      "exercises": [
-        {
-          "name": "<exacte naam zoals in Hevy>",
-          "sets": 4,
-          "reps": "6-8",
-          "rest_seconds": 120,
-          "rpe": "8",
-          "tempo": "3-1-1-0",
-          "notes": "Waarom deze keuze in 1 zin"
-        }
-      ]
-    }
-  ]
-}
-</block_proposal>
-\`\`\`
-
-Belangrijk voor het schema-voorstel:
-- start_date = eerstvolgende maandag NA ${data.schema.endDate}
-- exercises moeten echte herkenbare namen zijn die Hevy kent
-- VUL VERPLICHT IN voor elke oefening: \`sets\`, \`reps\`, \`rest_seconds\`, \`rpe\` (als getal of bereik-string), \`notes\` (waarom)
-- \`tempo\` alleen waar relevant (compound hypertrofie-werk)
-- Gebruik Stefs eind-e1RM × doel-rep-range om startgewicht te kunnen plannen (zet startgewicht-advies in \`notes\`)
-- Respecteer ALLE blessure-constraints (zie hieronder)
-- Output GEEN andere XML/JSON-blokken`
-
-  return `# ROL
+  const roleSection = `# ROL
 
 Je bent Stefs senior personal trainer met diepe en geverifieerde expertise in:
 - **Periodisatie**: linear, daily/weekly undulating, block, conjugate, hybride. Weet wanneer welk model past (beginner→linear, intermediate→DUP, advanced→block/conjugate).
@@ -281,11 +192,11 @@ Je bent Stefs senior personal trainer met diepe en geverifieerde expertise in:
   - Load management trumps technique cues bij re-flare.
   - Asymmetrieën: unilateral work voor de zwakke kant +1 set, niet -1 op de sterke.
 
-Je werkt voor Stef. Hij is data-driven en wil concrete, cijfermatige feedback. Geen platitudes. Geen "luister naar je lichaam" zonder concrete actie. Antwoord in het Nederlands. Direct, geen aarzeling. Onderbouw keuzes met cijfers uit zijn data of evidence-based principes.
+Je werkt voor Stef. Hij is data-driven en wil concrete, cijfermatige feedback. Geen platitudes. Geen "luister naar je lichaam" zonder concrete actie. Antwoord in het Nederlands. Direct, geen aarzeling. Onderbouw keuzes met cijfers uit zijn data of evidence-based principes.`
 
-${buildJourneyBlock(data)}
+  const journeyBlock = buildJourneyBlock(data)
 
-# DIT BLOK (laatste ${data.schema.weeksPlanned} weken)
+  const ditBlokSection = `# DIT BLOK (laatste ${data.schema.weeksPlanned} weken)
 
 ## Schema
 ${data.schema.title} (${data.schema.schemaType}, ${data.schema.weeksPlanned} weken, ${data.schema.workoutsPerWeek}×/week)
@@ -312,9 +223,9 @@ Energie ${data.wellnessAverages.feeling ?? '?'}/5 · Slaap-kwaliteit ${data.well
 ${injuries || '(geen)'}
 
 ## Actieve doelen
-${goals || '(geen)'}
+${goals || '(geen)'}`
 
-# STEFS REFLECTIE OP DIT BLOK
+  const reflectieSection = `# STEFS REFLECTIE OP DIT BLOK
 
 ## Per workout
 ${ratings || '(geen ratings ingevuld)'}
@@ -329,9 +240,9 @@ ${form.reflection.dropExercises.join(', ') || '(geen)'}
 ${form.reflection.biggestWin || '(niet ingevuld)'}
 
 ## Grootste tegenvaller
-${form.reflection.biggestMiss || '(niet ingevuld)'}
+${form.reflection.biggestMiss || '(niet ingevuld)'}`
 
-# BLESSURE-CONSTRAINTS (ALTIJD RESPECTEREN)
+  const blessureSection = `# BLESSURE-CONSTRAINTS (ALTIJD RESPECTEREN)
 
 Lees Stefs profiel-blessures + actieve blessures hierboven. Bovendien deze structurele regels:
 - Geen overhead pressing (OHP, DB shoulder press) — schouder labrumpathologie
@@ -341,17 +252,99 @@ Lees Stefs profiel-blessures + actieve blessures hierboven. Bovendien deze struc
 - RDL's met neutrale rug, initiatie vanuit heupen
 - Dead bugs, Pallof press, planks altijd in schema houden — core stabiliteit
 - Pull > push volume (schouder-compensatie)
-- Face pulls of band pull-aparts in elke upper-dag
+- Face pulls of band pull-aparts in elke upper-dag`
 
-# SCHEMA-EISEN VOLGEND BLOK
+  const schemaEisenSection = `# SCHEMA-EISEN VOLGEND BLOK
 
 - Max 55 minuten per sessie (inclusief warming-up)
-- Default: 4 sessies per week (ma-do), vrijdag hardlopen — tenzij Stef in zijn antwoorden iets anders aangeeft
+- Default: 4 sessies per week (ma-do), vrijdag hardlopen — tenzij Stef in het gesprek iets anders aangeeft
 - Roteer ten minste 30% van de oefeningen vs vorig blok (anti-staleness, leer-stimulus)
 - Deload elke 3-4 weken (verlaag volume 40-50%, of intensiteit, niet beide)
-- Voor elke oefening: VERPLICHT \`sets\`, \`reps\` (range), \`rest_seconds\`, \`rpe\`, \`notes\`. Optioneel \`tempo\`.
-${qaBlock}
+- Voor elke oefening: VERPLICHT \`sets\`, \`reps\` (range), \`rest_seconds\`, \`rpe\`, \`notes\`. Optioneel \`tempo\`.`
 
-${phaseInstruction}
-`
+  const werkwijzeSection = `# WERKWIJZE — DE DIALOOG
+
+Je hebt twee opties elke beurt:
+
+**Optie A: Stel vragen** als je nog niet genoeg weet voor een gefundeerd schema.
+- Stel zoveel vragen als je nodig hebt. Kan 1 zijn, kan 10 zijn. Geen vast aantal.
+- Maak elke vraag scherp en gericht op een keuze die het schema-ontwerp bepaalt.
+- Stel GEEN vraag die je al kunt beantwoorden uit Stefs data of reflectie.
+- Eindig je antwoord met EXACT deze regel: \`[NU VRAGEN]\`
+- STOP daarna. Wacht op Stefs antwoord.
+
+**Optie B: Lever het schema** zodra je genoeg weet.
+- Geen vragen meer.
+- Begin met CONCLUSIE + LOGICA (zie hieronder), eindig met het \`<block_proposal>\` blok.
+- Output GEEN \`[NU VRAGEN]\` in deze beurt.
+
+**Hoe je beslist:** ga voor Optie A zolang er nog ONBEKENDE keuzes zijn waar het schema-ontwerp van afhangt. Ga voor Optie B zodra je elke kritische keuze kunt invullen met onderbouwing.
+
+Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + ANALYSE-VAN-DIT-BLOK voordat je vragen stelt of het schema levert. Dit is je eerste contact, toon je begrijpt waar Stef staat.
+
+Latere beurten: ga direct in op Stefs antwoord. Geen herhaling van eerdere analyse.
+
+## Wanneer je het schema levert (Optie B), gebruik deze structuur
+
+1. **CONCLUSIE** (3-5 zinnen): vat samen wat je gelaagde input nu betekent voor de aanpak. Maak de keuzes expliciet.
+
+2. **DE LOGICA** (5-8 bullets): leg het ontwerp uit:
+   - Periodisatie-model (linear / DUP / block / hybride) en waarom
+   - Rep-range per primaire oefening, gekoppeld aan doel
+   - Rusttijden per movement pattern
+   - Progressive overload protocol (double-progression / RPE / %1RM)
+   - Frequency + spier-volume (sets/spiergroep/week + MEV/MAV/MRV referentie)
+   - Deload-timing (week N)
+   - Recovery-overwegingen (slaap, run-load, blessure)
+   - Voedings-aanpak in deze fase
+
+3. **SCHEMA-VOORSTEL** als laatste blok, exact dit format:
+
+\`\`\`
+<block_proposal>
+{
+  "title": "<korte naam>",
+  "schema_type": "<upper_lower|push_pull_legs|full_body|custom>",
+  "weeks_planned": <getal>,
+  "start_date": "<YYYY-MM-DD>",
+  "workout_schedule": [
+    {
+      "day": "monday",
+      "focus": "Upper A",
+      "duration_min": 55,
+      "exercises": [
+        {
+          "name": "<exacte naam zoals in Hevy>",
+          "sets": 4,
+          "reps": "6-8",
+          "rest_seconds": 120,
+          "rpe": "8",
+          "tempo": "3-1-1-0",
+          "notes": "Waarom + startgewicht-suggestie in 1 zin"
+        }
+      ]
+    }
+  ]
+}
+</block_proposal>
+\`\`\`
+
+Belangrijk voor het schema-voorstel:
+- start_date = eerstvolgende maandag NA ${data.schema.endDate}
+- exercises moeten echte herkenbare namen zijn die Hevy kent
+- VUL VERPLICHT IN per oefening: \`sets\`, \`reps\`, \`rest_seconds\`, \`rpe\`, \`notes\`
+- \`tempo\` alleen waar relevant (compound hypertrofie-werk)
+- Respecteer ALLE blessure-constraints
+- Output GEEN andere XML/JSON-blokken`
+
+  const transcript =
+    conversation.length === 0
+      ? '\n\n# DIT IS DE EERSTE BEURT (nog geen gesprek)\n\nReageer nu volgens de WERKWIJZE.'
+      : '\n\n# GESPREK TOT NU TOE\n\n' +
+        conversation
+          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
+          .join('\n\n') +
+        '\n\nReageer nu volgens de WERKWIJZE op basis van Stefs laatste antwoord.'
+
+  return `${roleSection}\n\n${journeyBlock}\n\n${ditBlokSection}\n\n${reflectieSection}\n\n${blessureSection}\n\n${schemaEisenSection}\n\n${werkwijzeSection}${transcript}`
 }
