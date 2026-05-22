@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
+import { RichText } from '@/components/shared/RichText'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft } from '../types'
 
@@ -268,18 +269,30 @@ export function NextBlockStep({
               {recentRefinements.map((m, i) => (
                 <div
                   key={i}
-                  className={`text-[12.5px] leading-[1.5] whitespace-pre-wrap rounded-md p-2.5 ${
+                  className={`rounded-md p-2.5 ${
                     m.role === 'user'
                       ? 'bg-white/[0.04] border border-white/[0.08] self-end max-w-[85%]'
                       : 'bg-bg-base border border-bg-border'
                   }`}
                 >
-                  {m.role === 'assistant' ? stripProposalAndMarker(m.content) : m.content}
+                  {m.role === 'assistant' ? (
+                    <RichText
+                      content={stripProposalAndMarker(m.content)}
+                      className="text-[12.5px] leading-[1.5] text-text-primary"
+                    />
+                  ) : (
+                    <div className="text-[12.5px] leading-[1.5] whitespace-pre-wrap text-text-primary">
+                      {m.content}
+                    </div>
+                  )}
                 </div>
               ))}
               {streaming && (
-                <div className="text-[12.5px] leading-[1.5] whitespace-pre-wrap rounded-md p-2.5 bg-bg-base border border-bg-border">
-                  {stripProposalAndMarker(streaming)}
+                <div className="rounded-md p-2.5 bg-bg-base border border-bg-border">
+                  <RichText
+                    content={stripProposalAndMarker(streaming)}
+                    className="text-[12.5px] leading-[1.5] text-text-primary"
+                  />
                   <span className="text-text-tertiary ml-1">···</span>
                 </div>
               )}

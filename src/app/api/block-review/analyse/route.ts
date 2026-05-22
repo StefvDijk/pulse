@@ -79,8 +79,10 @@ export async function POST(request: Request) {
       form: {
         reflection: parsed.data.reflection,
         newInBody: null,
+        conversation: parsed.data.conversation,
         aiAnalysis: '',
         aiSchemaProposal: null,
+        schemaProposalVersion: 0,
         selectedGoals: [],
         endReason: 'completed',
       },

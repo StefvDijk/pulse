@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
+import { RichText } from '@/components/shared/RichText'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage } from '../types'
 
@@ -232,7 +233,11 @@ function MessageBubble({ role, content, streaming }: { role: 'user' | 'assistant
           {streaming && <span className="text-[10px] text-text-tertiary ml-1">···</span>}
         </div>
       )}
-      <div className="text-[13.5px] leading-[1.5] text-text-primary whitespace-pre-wrap">{content}</div>
+      {isAssistant ? (
+        <RichText content={content} className="text-[13.5px] leading-[1.5] text-text-primary" />
+      ) : (
+        <div className="text-[13.5px] leading-[1.5] text-text-primary whitespace-pre-wrap">{content}</div>
+      )}
     </div>
   )
 }
