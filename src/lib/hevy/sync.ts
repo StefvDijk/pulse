@@ -4,6 +4,7 @@ import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
 import { syncExerciseTemplates } from '@/lib/hevy/template-sync'
 import { syncHevyRoutines } from '@/lib/hevy/routine-sync'
 import type { MappedWorkout } from '@/lib/hevy/mappers'
+import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 
 export interface SyncResult {
   synced: number
@@ -334,10 +335,19 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     }
   }
 
-  return {
+  const result: SyncResult = {
     synced,
     templatesSynced: templateResult.synced,
     routinesSynced: routineResult.synced,
     errors,
   }
+
+  // Fire-and-forget belief extraction on training-scope events.
+  // Only triggers when at least one workout was actually synced.
+  if (result.synced > 0) {
+    const summary = `Hevy sync klaar voor user ${userId}. Nieuw/geüpdatet: ${result.synced} workouts (${result.templatesSynced} templates, ${result.routinesSynced} routines). Errors: ${result.errors.length}.`
+    runBeliefExtractor({ userId, scope: 'training', eventSummary: summary }).catch(console.error)
+  }
+
+  return result
 }
