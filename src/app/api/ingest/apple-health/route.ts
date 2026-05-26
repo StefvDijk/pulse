@@ -10,7 +10,6 @@ import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import type { Database } from '@/types/database'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
-import { pickBestRunMatch, runMatchWindow } from '@/lib/runs/match'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
@@ -185,88 +184,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     // reasonable pace (closest to 5:30 min/km).
     const dedupedRuns = deduplicateByStartedAt(runInserts)
 
-    // Bidirectional Strava dedup: if a Strava-linked row already exists in
-    // the time/size window, enrich it with the HAE-only fields (apple_health_id,
-    // calories/HR fallback) instead of inserting a duplicate row.
-    const remainingAfterStravaMerge: RunInsert[] = []
-    let stravaEnriched = 0
-
-    for (const run of dedupedRuns) {
-      if (!run.started_at) {
-        remainingAfterStravaMerge.push(run)
-        continue
-      }
-      const { from, to } = runMatchWindow(run.started_at)
-      const { data: stravaLinked } = await supabase
-        .from('runs')
-        .select('id, started_at, distance_meters, duration_seconds, avg_heart_rate, max_heart_rate, calories_burned, apple_health_id, strava_activity_id')
-        .eq('user_id', userId)
-        .gte('started_at', from)
-        .lte('started_at', to)
-        .not('strava_activity_id', 'is', null)
-
-      const match = pickBestRunMatch(
-        {
-          startedAt: run.started_at,
-          distanceMeters: run.distance_meters ?? null,
-          durationSeconds: run.duration_seconds ?? null,
-        },
-        stravaLinked ?? [],
-      )
-
-      if (!match) {
-        remainingAfterStravaMerge.push(run)
-        continue
-      }
-
-      // Skip if this exact apple_health_id is already linked — idempotent re-ingest.
-      if (run.apple_health_id && match.apple_health_id === run.apple_health_id) {
-        stravaEnriched += 1
-        continue
-      }
-
-      // Enrich the Strava row with HAE signals. Strava is authoritative on
-      // distance/duration/pace; HAE fills in HR/calories when Strava didn't.
-      const enrichment: Database['public']['Tables']['runs']['Update'] = {
-        apple_health_id: run.apple_health_id ?? match.apple_health_id ?? null,
-        source: 'strava+health',
-      }
-      if (match.avg_heart_rate == null && run.avg_heart_rate != null) {
-        enrichment.avg_heart_rate = run.avg_heart_rate
-      }
-      if (match.max_heart_rate == null && run.max_heart_rate != null) {
-        enrichment.max_heart_rate = run.max_heart_rate
-      }
-      if (match.calories_burned == null && run.calories_burned != null) {
-        enrichment.calories_burned = run.calories_burned
-      }
-
-      const { error: enrichErr } = await supabase
-        .from('runs')
-        .update(enrichment)
-        .eq('id', (match as { id: string }).id)
-
-      if (enrichErr) {
-        console.error('apple-health ingest: strava-enrich update failed', enrichErr)
-        // Fall back to normal insert path so we don't lose the run silently.
-        remainingAfterStravaMerge.push(run)
-        continue
-      }
-      stravaEnriched += 1
-    }
-
     // Also skip runs that already exist in the DB with the same started_at
-    const startTimes = remainingAfterStravaMerge.map((r) => r.started_at).filter(Boolean) as string[]
-    const { data: existingRuns } = startTimes.length > 0
-      ? await supabase
-          .from('runs')
-          .select('started_at')
-          .eq('user_id', userId)
-          .in('started_at', startTimes)
-      : { data: [] as { started_at: string }[] }
+    const startTimes = dedupedRuns.map((r) => r.started_at).filter(Boolean) as string[]
+    const { data: existingRuns } = await supabase
+      .from('runs')
+      .select('started_at')
+      .eq('user_id', userId)
+      .in('started_at', startTimes)
 
     const existingStartTimes = new Set((existingRuns ?? []).map((r) => r.started_at))
-    const newRuns = remainingAfterStravaMerge.filter((r) => !r.apple_health_id || !existingStartTimes.has(r.started_at))
+    const newRuns = dedupedRuns.filter((r) => !r.apple_health_id || !existingStartTimes.has(r.started_at))
 
     // Runs with an apple_health_id use upsert deduplication.
     const withId = newRuns.filter((r) => r.apple_health_id)
@@ -300,8 +227,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
         runsProcessed += withoutId.length
       }
     }
-
-    runsProcessed += stravaEnriched
   }
 
   // ------------------------------------------------------------------
