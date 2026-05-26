@@ -429,6 +429,60 @@ export type Database = {
           },
         ]
       }
+      coach_questions: {
+        Row: {
+          answer_text: string | null
+          answered_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          question_text: string
+          related_belief_id: string | null
+          status: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          answered_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          question_text: string
+          related_belief_id?: string | null
+          status?: string
+          urgency?: string
+          user_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          answered_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          question_text?: string
+          related_belief_id?: string | null
+          status?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_questions_related_belief_id_fkey"
+            columns: ["related_belief_id"]
+            isOneToOne: false
+            referencedRelation: "coach_beliefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coaching_memory: {
         Row: {
           category: string
