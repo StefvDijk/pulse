@@ -3,27 +3,62 @@ import { buildCoachPersona, buildKnowledgeBase, buildMemoryReadBlock } from '@/l
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          is: () => ({
-            gte: () => ({
-              order: () => ({
-                limit: async () => ({
-                  data: [
-                    {
-                      id: '11111111-2222-3333-4444-555555555555',
-                      category: 'preference',
-                      value: "Stef traint het liefst 's ochtends",
-                    },
-                  ],
+    from: (table: string) => {
+      if (table === 'coaching_memory') {
+        return {
+          select: () => ({
+            eq: () => ({
+              is: () => ({
+                gte: () => ({
+                  order: () => ({
+                    limit: async () => ({
+                      data: [
+                        {
+                          id: '11111111-2222-3333-4444-555555555555',
+                          category: 'preference',
+                          value: "Stef traint het liefst 's ochtends",
+                        },
+                      ],
+                    }),
+                  }),
                 }),
               }),
             }),
           }),
-        }),
-      }),
-    }),
+        }
+      }
+      if (table === 'coach_beliefs') {
+        return {
+          select: () => ({
+            eq: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: async () => ({
+                    data: [
+                      {
+                        id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                        hypothesis_text: 'Ochtendsessies leveren betere PR-ratio',
+                        category: 'training',
+                        confidence: 0.78,
+                        status: 'active',
+                      },
+                      {
+                        id: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
+                        hypothesis_text: 'Slaap < 6u → bench-prestatie zakt 1-2 reps',
+                        category: 'recovery',
+                        confidence: 0.92,
+                        status: 'confirmed',
+                      },
+                    ],
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+      return { select: () => ({}) }
+    },
   })),
 }))
 
@@ -115,21 +150,48 @@ describe('buildMemoryReadBlock', () => {
   it('returns an empty marker when no memories exist', async () => {
     const { createAdminClient } = await import('@/lib/supabase/admin')
     vi.mocked(createAdminClient).mockReturnValueOnce({
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            is: () => ({
-              gte: () => ({
+      from: (table: string) => {
+        if (table === 'coaching_memory') {
+          return {
+            select: () => ({
+              eq: () => ({
+                is: () => ({
+                  gte: () => ({
+                    order: () => ({
+                      limit: async () => ({ data: [] }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        // coach_beliefs — return empty list
+        return {
+          select: () => ({
+            eq: () => ({
+              in: () => ({
                 order: () => ({
                   limit: async () => ({ data: [] }),
                 }),
               }),
             }),
           }),
-        }),
-      }),
+        }
+      },
     } as never)
     const block = await buildMemoryReadBlock('user-empty')
     expect(block).toMatch(/nog geen geheugen|geen memories/i)
+  })
+})
+
+describe('buildMemoryReadBlock — beliefs', () => {
+  it('renders confirmed and active beliefs under their own header', async () => {
+    const out = await buildMemoryReadBlock('user-1')
+    expect(out).toContain('MIJN WERKENDE HYPOTHESES OVER JOU')
+    expect(out).toContain('Ochtendsessies')
+    expect(out).toContain('confidence 0.78')
+    expect(out).toContain('Slaap < 6u')
+    expect(out).toContain('confirmed')
   })
 })

@@ -7,6 +7,7 @@ import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/ma
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
+import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import type { Database } from '@/types/database'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
@@ -516,6 +517,30 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
     }).catch((err: unknown) => {
       console.error('[ingest/apple-health] analyzeAfterSync failed:', err)
+    })
+  }
+
+  // ------------------------------------------------------------------
+  // 13b. Fire-and-forget belief extraction on recovery-scope events.
+  // Fires when sleep/body-comp data arrived OR any activity was ingested.
+  // ------------------------------------------------------------------
+  const recoveryDataIngested =
+    sleepProcessed > 0 || bodyWeightProcessed > 0 || bodyCompositionProcessed > 0 || totalDataIngested > 0
+  if (recoveryDataIngested) {
+    const summary = `Apple Health ingest voor user ${userId}. Ingested: ${JSON.stringify({
+      runs: runsProcessed,
+      padel: padelProcessed,
+      activity: activityProcessed,
+      sleep: sleepProcessed,
+      bodyWeight: bodyWeightProcessed,
+      bodyComposition: bodyCompositionProcessed,
+    }).slice(0, 800)}.`
+    runBeliefExtractor({
+      userId,
+      scope: 'recovery',
+      eventSummary: summary,
+    }).catch((err: unknown) => {
+      console.error('[ingest/apple-health] belief-extractor failed:', err)
     })
   }
 

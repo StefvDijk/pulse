@@ -5,6 +5,7 @@ import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
 import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
+import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
@@ -543,6 +544,14 @@ export async function POST(request: Request) {
 
           // Fire memory extraction after response is sent — non-blocking
           extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+
+          // Fire belief extraction on the chat-turn — lifestyle/preference scope.
+          // Fire-and-forget; errors are logged inside the extractor.
+          runBeliefExtractor({
+            userId: user.id,
+            scope: 'lifestyle',
+            eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
+          }).catch(console.error)
 
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()

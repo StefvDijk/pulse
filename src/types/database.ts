@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -83,6 +78,100 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      block_reviews: {
+        Row: {
+          ai_analysis: string | null
+          ai_schema_proposal: Json | null
+          biggest_miss: string | null
+          biggest_win: string | null
+          body_snapshot: Json | null
+          confirmed_at: string | null
+          created_at: string | null
+          drop_exercises: string[] | null
+          end_reason: string
+          id: string
+          injury_updates: Json | null
+          keep_exercises: string[] | null
+          new_goal_ids: string[] | null
+          next_schema_id: string | null
+          performance_snapshot: Json | null
+          period_end: string
+          period_start: string
+          schema_id: string
+          status: string
+          template_ratings: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          ai_schema_proposal?: Json | null
+          biggest_miss?: string | null
+          biggest_win?: string | null
+          body_snapshot?: Json | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          drop_exercises?: string[] | null
+          end_reason: string
+          id?: string
+          injury_updates?: Json | null
+          keep_exercises?: string[] | null
+          new_goal_ids?: string[] | null
+          next_schema_id?: string | null
+          performance_snapshot?: Json | null
+          period_end: string
+          period_start: string
+          schema_id: string
+          status?: string
+          template_ratings?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          ai_schema_proposal?: Json | null
+          biggest_miss?: string | null
+          biggest_win?: string | null
+          body_snapshot?: Json | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          drop_exercises?: string[] | null
+          end_reason?: string
+          id?: string
+          injury_updates?: Json | null
+          keep_exercises?: string[] | null
+          new_goal_ids?: string[] | null
+          next_schema_id?: string | null
+          performance_snapshot?: Json | null
+          period_end?: string
+          period_start?: string
+          schema_id?: string
+          status?: string
+          template_ratings?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "block_reviews_next_schema_id_fkey"
+            columns: ["next_schema_id"]
+            isOneToOne: false
+            referencedRelation: "training_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "block_reviews_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "training_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "block_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       body_composition_logs: {
         Row: {
@@ -191,100 +280,6 @@ export type Database = {
           },
         ]
       }
-      block_reviews: {
-        Row: {
-          id: string
-          user_id: string
-          schema_id: string
-          period_start: string
-          period_end: string
-          status: string
-          end_reason: string
-          template_ratings: Json
-          keep_exercises: string[]
-          drop_exercises: string[]
-          biggest_win: string | null
-          biggest_miss: string | null
-          injury_updates: Json
-          performance_snapshot: Json
-          body_snapshot: Json
-          ai_analysis: string | null
-          ai_schema_proposal: Json | null
-          next_schema_id: string | null
-          new_goal_ids: string[]
-          created_at: string | null
-          confirmed_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          schema_id: string
-          period_start: string
-          period_end: string
-          status?: string
-          end_reason: string
-          template_ratings?: Json
-          keep_exercises?: string[]
-          drop_exercises?: string[]
-          biggest_win?: string | null
-          biggest_miss?: string | null
-          injury_updates?: Json
-          performance_snapshot?: Json
-          body_snapshot?: Json
-          ai_analysis?: string | null
-          ai_schema_proposal?: Json | null
-          next_schema_id?: string | null
-          new_goal_ids?: string[]
-          created_at?: string | null
-          confirmed_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          schema_id?: string
-          period_start?: string
-          period_end?: string
-          status?: string
-          end_reason?: string
-          template_ratings?: Json
-          keep_exercises?: string[]
-          drop_exercises?: string[]
-          biggest_win?: string | null
-          biggest_miss?: string | null
-          injury_updates?: Json
-          performance_snapshot?: Json
-          body_snapshot?: Json
-          ai_analysis?: string | null
-          ai_schema_proposal?: Json | null
-          next_schema_id?: string | null
-          new_goal_ids?: string[]
-          created_at?: string | null
-          confirmed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "block_reviews_schema_id_fkey"
-            columns: ["schema_id"]
-            isOneToOne: false
-            referencedRelation: "training_schemas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "block_reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "block_reviews_next_schema_id_fkey"
-            columns: ["next_schema_id"]
-            isOneToOne: false
-            referencedRelation: "training_schemas"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       chat_messages: {
         Row: {
           content: string
@@ -367,6 +362,164 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "chat_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_beliefs: {
+        Row: {
+          category: string
+          confidence: number
+          created_at: string
+          evidence_against: Json
+          evidence_for: Json
+          hypothesis_text: string
+          id: string
+          last_tested_at: string | null
+          status: string
+          superseded_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          confidence?: number
+          created_at?: string
+          evidence_against?: Json
+          evidence_for?: Json
+          hypothesis_text: string
+          id?: string
+          last_tested_at?: string | null
+          status?: string
+          superseded_by?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          confidence?: number
+          created_at?: string
+          evidence_against?: Json
+          evidence_for?: Json
+          hypothesis_text?: string
+          id?: string
+          last_tested_at?: string | null
+          status?: string
+          superseded_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_beliefs_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "coach_beliefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_beliefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_inbox: {
+        Row: {
+          created_at: string
+          id: string
+          message_text: string
+          priority: string
+          related_entity_id: string | null
+          requires_response: boolean
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_text: string
+          priority?: string
+          related_entity_id?: string | null
+          requires_response?: boolean
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_text?: string
+          priority?: string
+          related_entity_id?: string | null
+          requires_response?: boolean
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_inbox_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_questions: {
+        Row: {
+          answer_text: string | null
+          answered_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          question_text: string
+          related_belief_id: string | null
+          status: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          answered_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          question_text: string
+          related_belief_id?: string | null
+          status?: string
+          urgency?: string
+          user_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          answered_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          question_text?: string
+          related_belief_id?: string | null
+          status?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_questions_related_belief_id_fkey"
+            columns: ["related_belief_id"]
+            isOneToOne: false
+            referencedRelation: "coach_beliefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_questions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1703,6 +1856,74 @@ export type Database = {
           },
         ]
       }
+      walks: {
+        Row: {
+          activity_subtype: string | null
+          apple_health_id: string | null
+          avg_heart_rate: number | null
+          avg_pace_seconds_per_km: number | null
+          calories_burned: number | null
+          created_at: string | null
+          distance_meters: number
+          duration_seconds: number
+          elevation_gain_meters: number | null
+          ended_at: string | null
+          id: string
+          max_heart_rate: number | null
+          notes: string | null
+          source: string
+          started_at: string
+          strava_activity_id: number | null
+          user_id: string
+        }
+        Insert: {
+          activity_subtype?: string | null
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          avg_pace_seconds_per_km?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          distance_meters: number
+          duration_seconds: number
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          notes?: string | null
+          source?: string
+          started_at: string
+          strava_activity_id?: number | null
+          user_id: string
+        }
+        Update: {
+          activity_subtype?: string | null
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          avg_pace_seconds_per_km?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          distance_meters?: number
+          duration_seconds?: number
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          notes?: string | null
+          source?: string
+          started_at?: string
+          strava_activity_id?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_aggregations: {
         Row: {
           acute_chronic_ratio: number | null
@@ -2217,3 +2438,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

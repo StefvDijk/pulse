@@ -11,6 +11,7 @@ import {
   getInjuryHistory,
   getWeeklyAggregations,
 } from './handlers/profile-tools'
+import { askStef } from './handlers/ask-stef'
 
 // ---------------------------------------------------------------------------
 // All tools available to the Pulse AI coach.
@@ -62,6 +63,12 @@ const recoveryScoreSchema = z.object({
 const searchExercisesSchema = z.object({
   query: z.string().describe('Zoekopdracht (naam of spiergroep)'),
   muscle_group: z.enum(['chest', 'lats', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'calves', 'core']).optional().describe('Optioneel filter op spiergroep'),
+})
+
+const askStefSchema = z.object({
+  question: z.string().min(8).max(500).describe('De vraag voor Stef in natuurlijk Nederlands. Eén concrete vraag, geen lijst.'),
+  urgency: z.enum(['low', 'medium', 'high']).describe('Hoe urgent het is — bepaalt vervaldatum (2w/1w/3d).'),
+  related_belief_id: z.string().uuid().nullable().optional().describe('Optioneel: id van belief die deze vraag gaat beantwoorden.'),
 })
 
 export function createToolsForUser(userId: string) {
@@ -180,6 +187,12 @@ Returns: array van weken (recentste eerst) met de belangrijkste metrics.`,
         weeks_back: z.number().int().min(1).max(52).default(8),
       }),
       execute: async (input) => getWeeklyAggregations(userId, input),
+    }),
+
+    ask_stef: tool({
+      description: `Stel Stef een gerichte vraag wanneer je iets wilt weten dat off-topic is voor de huidige chat, of nodig is om een hypothese te testen. De vraag verschijnt in zijn coach-inbox. Gebruik spaarzaam — max één keer per chat-turn, alleen als het antwoord daadwerkelijk je advies of geheugen zou verbeteren.`,
+      inputSchema: askStefSchema,
+      execute: async (input) => askStef(userId, input),
     }),
   }
 }
