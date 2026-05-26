@@ -106,12 +106,13 @@ Externe focus ("push the floor away") leert sneller en presteert beter dan inter
 
 /**
  * Read the coach's memory of the user as a structured prompt block.
- * In fase 1 covers semantic + episodic (via coaching_memory).
- * Beliefs (procedural layer) wordt toegevoegd in fase 2.
+ * Covers semantic + episodic (via coaching_memory) and procedural beliefs
+ * (via coach_beliefs) fetched in parallel for minimal latency.
  */
 export async function buildMemoryReadBlock(userId: string): Promise<string> {
   const admin = createAdminClient()
-  const { data } = await admin
+
+  const memQuery = admin
     .from('coaching_memory')
     .select('id, category, value')
     .eq('user_id', userId)
@@ -120,28 +121,50 @@ export async function buildMemoryReadBlock(userId: string): Promise<string> {
     .order('updated_at', { ascending: false })
     .limit(30)
 
-  if (!data || data.length === 0) {
-    return '## MIJN GEHEUGEN OVER JOU\n\n(Nog geen geheugen opgebouwd — leer Stef nog kennen.)'
+  const beliefQuery = admin
+    .from('coach_beliefs')
+    .select('id, hypothesis_text, category, confidence, status')
+    .eq('user_id', userId)
+    .in('status', ['active', 'confirmed'])
+    .order('confidence', { ascending: false })
+    .limit(8)
+
+  const [{ data: memData }, { data: beliefData }] = await Promise.all([memQuery, beliefQuery])
+
+  const sections: string[] = []
+
+  if (!memData || memData.length === 0) {
+    sections.push('## MIJN GEHEUGEN OVER JOU\n\n(Nog geen geheugen opgebouwd — leer Stef nog kennen.)')
+  } else {
+    const byCategory: Record<string, Array<{ id: string; value: string }>> = {}
+    for (const row of memData) {
+      if (!byCategory[row.category]) byCategory[row.category] = []
+      byCategory[row.category].push({ id: row.id, value: row.value })
+    }
+    const lines: string[] = ['## MIJN GEHEUGEN OVER JOU', '']
+    for (const [cat, items] of Object.entries(byCategory)) {
+      lines.push(`### ${cat.toUpperCase()}`)
+      for (const it of items) {
+        lines.push(`- [id:${it.id.slice(0, 8)}] ${it.value}`)
+      }
+      lines.push('')
+    }
+    lines.push(
+      'Wanneer je naar een feit hier verwijst in je antwoord, eindig je antwoord met een `<cited_memories>id1,id2</cited_memories>`-tag met de id-prefixes die je gebruikt hebt. Dit houdt het geheugen vers.',
+    )
+    sections.push(lines.join('\n'))
   }
 
-  const byCategory: Record<string, Array<{ id: string; value: string }>> = {}
-  for (const row of data) {
-    if (!byCategory[row.category]) byCategory[row.category] = []
-    byCategory[row.category].push({ id: row.id, value: row.value })
-  }
-
-  const lines: string[] = ['## MIJN GEHEUGEN OVER JOU', '']
-  for (const [cat, items] of Object.entries(byCategory)) {
-    lines.push(`### ${cat.toUpperCase()}`)
-    for (const it of items) {
-      lines.push(`- [id:${it.id.slice(0, 8)}] ${it.value}`)
+  if (beliefData && beliefData.length > 0) {
+    const lines: string[] = ['', '## MIJN WERKENDE HYPOTHESES OVER JOU', '']
+    for (const b of beliefData) {
+      const tag = b.status === 'confirmed' ? 'confirmed' : `confidence ${Number(b.confidence).toFixed(2)}`
+      lines.push(`- (${b.category}, ${tag}) ${b.hypothesis_text}`)
     }
     lines.push('')
+    lines.push('Je mag deze hypotheses noemen, testen, of refereren wanneer relevant. Wanneer je tegenbewijs hebt, zeg het.')
+    sections.push(lines.join('\n'))
   }
 
-  lines.push(
-    'Wanneer je naar een feit hier verwijst in je antwoord, eindig je antwoord met een `<cited_memories>id1,id2</cited_memories>`-tag met de id-prefixes die je gebruikt hebt. Dit houdt het geheugen vers.',
-  )
-
-  return lines.join('\n')
+  return sections.join('\n')
 }
