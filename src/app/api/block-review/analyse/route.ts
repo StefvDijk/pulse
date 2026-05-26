@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamChat } from '@/lib/ai/client'
+import { anthropic } from '@ai-sdk/anthropic'
+import { streamText } from 'ai'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import { buildBlockReviewPrompt } from '@/lib/ai/prompts/block-review'
+import { logAiUsage } from '@/lib/ai/usage'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 // Sonnet 4.6 for the conversational turns — fast enough for back-and-forth
@@ -88,17 +90,54 @@ export async function POST(request: Request) {
     })
 
     const turnNumber = parsed.data.conversation.length + 1
+    const startedAt = Date.now()
     console.log(
       `[block-review-analyse] start turn ${turnNumber} · model=${BLOCK_REVIEW_MODEL} · sysChars=${system.length} · userChars=${userPrompt.length} · schemaId=${schemaId}`,
     )
 
-    const result = streamChat({
+    // Direct streamText with `system` as a top-level parameter — bypasses the
+    // streamChat helper's role:'system' + cacheControl path. Prompt-caching
+    // is sacrificed for stability; we'll wire it back via providerOptions on
+    // the system param once the empty-stream cause is fully understood.
+    const result = streamText({
+      model: anthropic(BLOCK_REVIEW_MODEL),
       system,
       messages: [{ role: 'user', content: userPrompt }],
-      model: BLOCK_REVIEW_MODEL,
       maxOutputTokens: 4096,
-      meta: { userId: user.id, feature: `block-review-analyse-turn-${turnNumber}` },
     })
+
+    // Fire-and-forget usage logging — runs after stream concludes
+    void (async () => {
+      try {
+        const u = await result.usage
+        const fr = await result.finishReason
+        const cacheRead = (u as { cachedInputTokens?: number }).cachedInputTokens ?? null
+        console.log(
+          `[block-review-analyse] turn ${turnNumber} done · finishReason=${fr} · in=${u.inputTokens ?? '?'} out=${u.outputTokens ?? '?'} cache=${cacheRead ?? 0}`,
+        )
+        logAiUsage({
+          userId: user.id,
+          feature: `block-review-analyse-turn-${turnNumber}`,
+          model: BLOCK_REVIEW_MODEL,
+          usage: {
+            inputTokens: u.inputTokens ?? null,
+            outputTokens: u.outputTokens ?? null,
+            cacheReadTokens: cacheRead,
+          },
+          durationMs: Date.now() - startedAt,
+        })
+      } catch (err) {
+        console.error(`[block-review-analyse] turn ${turnNumber} usage/finishReason failed:`, err)
+        logAiUsage({
+          userId: user.id,
+          feature: `block-review-analyse-turn-${turnNumber}`,
+          model: BLOCK_REVIEW_MODEL,
+          durationMs: Date.now() - startedAt,
+          status: 'error',
+          errorCode: (err as { name?: string })?.name ?? 'STREAM_ERROR',
+        })
+      }
+    })()
 
     // Marker fallback: tee the stream so we can inspect the full output before
     // closing. If the model emits neither `[NU VRAGEN]` nor `<block_proposal>`,
