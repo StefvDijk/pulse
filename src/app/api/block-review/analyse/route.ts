@@ -99,11 +99,25 @@ export async function POST(request: Request) {
     // streamChat helper's role:'system' + cacheControl path. Prompt-caching
     // is sacrificed for stability; we'll wire it back via providerOptions on
     // the system param once the empty-stream cause is fully understood.
+    // onError callback captures the RAW underlying provider error which is
+    // otherwise swallowed by the AI SDK into AI_NoOutputGeneratedError.
+    let providerErrorInfo = ''
     const result = streamText({
       model: anthropic(BLOCK_REVIEW_MODEL),
       system,
       messages: [{ role: 'user', content: userPrompt }],
       maxOutputTokens: 4096,
+      onError({ error }) {
+        const e = error as {
+          name?: string
+          message?: string
+          statusCode?: number
+          responseBody?: string
+          cause?: unknown
+        }
+        providerErrorInfo = `${e.name ?? 'Error'} status=${e.statusCode ?? '?'} msg=${(e.message ?? 'unknown').slice(0, 300)} body=${(e.responseBody ?? '').slice(0, 300)}`
+        console.error('[block-review-analyse] onError raw provider error:', error)
+      },
     })
 
     // Fire-and-forget usage logging — runs after stream concludes
@@ -173,10 +187,14 @@ export async function POST(request: Request) {
             } catch (e) {
               diag = `usage-fetch-failed: ${(e as { name?: string; message?: string })?.name}: ${(e as { message?: string })?.message}`
             }
-            const tail = `[DIAG: ${diag}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
+            // Append raw provider error (captured by onError callback) if present
+            const providerSuffix = providerErrorInfo
+              ? ` || providerError: ${providerErrorInfo}`
+              : ''
+            const tail = `[DIAG: ${diag}${providerSuffix}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
             controller.enqueue(encoder.encode(tail))
             console.warn(
-              `[block-review-analyse] empty stream on turn ${turnNumber} · ${diag}`,
+              `[block-review-analyse] empty stream on turn ${turnNumber} · ${diag}${providerSuffix}`,
             )
           }
         } catch (err) {
