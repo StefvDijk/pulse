@@ -146,9 +146,11 @@ export async function POST(request: Request) {
     const fallbackStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         let acc = ''
+        let chunkCount = 0
         try {
           for await (const chunk of result.textStream) {
             acc += chunk
+            chunkCount++
             controller.enqueue(encoder.encode(chunk))
           }
           const hasMarker = /\[NU VRAGEN\]/i.test(acc)
@@ -160,19 +162,30 @@ export async function POST(request: Request) {
               `[block-review-analyse] no marker emitted on turn ${turnNumber}; appended [NU VRAGEN] fallback`,
             )
           } else if (acc.trim().length === 0) {
-            // Empty output — surface as fallback question so UI stays alive
-            const tail = 'Geef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]'
+            // DEBUG: pull Sonnet's stop reason + token counts into the visible
+            // stream so we can diagnose 0-token returns without terminal access.
+            let diag = '?'
+            try {
+              const u = await result.usage
+              const fr = await result.finishReason
+              const cr = (u as { cachedInputTokens?: number }).cachedInputTokens ?? 0
+              diag = `finishReason=${fr} · in=${u.inputTokens ?? '?'} · out=${u.outputTokens ?? '?'} · cache=${cr} · chunks=${chunkCount} · sys=${system.length}ch · user=${userPrompt.length}ch`
+            } catch (e) {
+              diag = `usage-fetch-failed: ${(e as { name?: string; message?: string })?.name}: ${(e as { message?: string })?.message}`
+            }
+            const tail = `[DIAG: ${diag}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
             controller.enqueue(encoder.encode(tail))
             console.warn(
-              `[block-review-analyse] empty stream on turn ${turnNumber}; emitted fallback question`,
+              `[block-review-analyse] empty stream on turn ${turnNumber} · ${diag}`,
             )
           }
         } catch (err) {
           console.error('[block-review-analyse] stream error:', err)
+          const errInfo = `${(err as { name?: string })?.name ?? 'Error'}: ${(err as { message?: string })?.message ?? 'unknown'}`
           if (acc.trim().length > 0) {
             // We have partial output — preserve it + append marker so the UI
             // doesn't deadlock and the user can continue the conversation.
-            const tail = '\n\n[NU VRAGEN]'
+            const tail = `\n\n[DIAG err: ${errInfo}]\n\n[NU VRAGEN]`
             try {
               controller.enqueue(encoder.encode(tail))
               controller.close()
@@ -181,7 +194,14 @@ export async function POST(request: Request) {
             }
             return
           }
-          controller.error(err)
+          // No partial output: surface the error inline so it shows in UI
+          const tail = `[DIAG err on empty stream: ${errInfo}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
+          try {
+            controller.enqueue(encoder.encode(tail))
+            controller.close()
+          } catch {
+            controller.error(err)
+          }
           return
         }
         controller.close()
