@@ -20,6 +20,7 @@ import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Sk
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
 import Link from 'next/link'
+import { InboxBell } from '@/components/coach/InboxBell'
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -138,9 +139,12 @@ export function DashboardPage() {
             {formatDate()} · Week {weekNumber()}
           </div>
         </div>
-        <Link href="/chat" aria-label="Ga naar Coach">
-          <CoachOrb size={32} />
-        </Link>
+        <div className="flex items-center gap-3">
+          <InboxBell />
+          <Link href="/chat" aria-label="Ga naar Coach">
+            <CoachOrb size={32} />
+          </Link>
+        </div>
       </motion.div>
 
       {/* ── Daily quick check-in (30 sec) ─────────────────────── */}
