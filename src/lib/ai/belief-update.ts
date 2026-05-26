@@ -6,7 +6,7 @@
 // - confidence = sum(w_for) / (sum(w_for) + sum(w_against)).
 // - Geen evidence → 0.5 (neutraal).
 // - confidence >= 0.85 EN (n_for + n_against) >= 4 → status confirmed.
-// - confidence < 0.20 → status superseded.
+// - confidence < 0.20 EN (n_for + n_against) >= 2 → status superseded.
 // - status confirmed/rejected wijzigt niet meer automatisch.
 // ---------------------------------------------------------------------------
 
@@ -31,6 +31,7 @@ export interface BeliefOutput {
 const CONFIRM_THRESHOLD = 0.85
 const SUPERSEDE_THRESHOLD = 0.2
 const MIN_DATAPOINTS_FOR_CONFIRM = 4
+const MIN_DATAPOINTS_FOR_SUPERSEDE = 2
 const MAX_DECAY_DAYS = 60
 const MIN_WEIGHT = 0.2
 
@@ -42,8 +43,7 @@ function weightFor(item: EvidenceItem, now: number): number {
 
 export function recomputeBelief(input: BeliefInput): BeliefOutput {
   if (input.status === 'confirmed' || input.status === 'rejected') {
-    const conf = computeConfidence(input)
-    return { confidence: conf, status: input.status }
+    return { confidence: Number(computeConfidence(input).toFixed(2)), status: input.status }
   }
 
   const confidence = computeConfidence(input)
@@ -52,7 +52,7 @@ export function recomputeBelief(input: BeliefInput): BeliefOutput {
   let status: BeliefOutput['status'] = 'active'
   if (confidence >= CONFIRM_THRESHOLD && n >= MIN_DATAPOINTS_FOR_CONFIRM) {
     status = 'confirmed'
-  } else if (confidence < SUPERSEDE_THRESHOLD && n >= 2) {
+  } else if (confidence < SUPERSEDE_THRESHOLD && n >= MIN_DATAPOINTS_FOR_SUPERSEDE) {
     status = 'superseded'
   }
 
