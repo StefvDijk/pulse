@@ -30,6 +30,12 @@ interface StreamChatParams {
   maxOutputTokens?: number
   maxSteps?: number
   meta?: UsageMeta
+  /**
+   * Surface the raw provider error before the AI SDK wraps it in
+   * AI_NoOutputGeneratedError. Useful for catching credit-balance,
+   * rate-limit, and content-filter errors that would otherwise be lost.
+   */
+  onError?: (event: { error: unknown }) => void
 }
 
 interface JsonCompletionParams {
@@ -50,7 +56,7 @@ interface JsonCompletionParams {
  * call them in a loop up to maxSteps rounds before producing the final answer.
  * Returns an AI SDK streamText result — consume via result.textStream.
  */
-export function streamChat({ system, messages, tools, model, maxOutputTokens = 4096, maxSteps = 8, meta }: StreamChatParams) {
+export function streamChat({ system, messages, tools, model, maxOutputTokens = 4096, maxSteps = 8, meta, onError }: StreamChatParams) {
   // Hand the system prompt to the model as a cached message block so
   // Anthropic's prompt cache can short-circuit the (large, mostly stable)
   // coaching context across consecutive requests within ~5 min.
@@ -73,6 +79,7 @@ export function streamChat({ system, messages, tools, model, maxOutputTokens = 4
     messages: messagesWithCachedSystem,
     maxOutputTokens,
     ...(tools ? { tools, stopWhen: stepCountIs(maxSteps) } : {}),
+    ...(onError ? { onError } : {}),
   })
 
   // Log usage when the stream concludes — fire-and-forget, never blocks.

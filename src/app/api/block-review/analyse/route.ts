@@ -1,18 +1,41 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
+import { streamChat } from '@/lib/ai/client'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import { buildBlockReviewPrompt } from '@/lib/ai/prompts/block-review'
-import { logAiUsage } from '@/lib/ai/usage'
 import { checkRateLimit } from '@/lib/rate-limit'
 
 // Sonnet 4.6 for the conversational turns — fast enough for back-and-forth
 // (5-10s TTFB) while staying expert-level with the deep coach prompt.
 // Opus is overkill for the dialogue and adds 30-60s latency that kills UX.
 const BLOCK_REVIEW_MODEL = 'claude-sonnet-4-6' as const
+
+// Translate a captured provider error into a user-facing fallback string.
+// Returned text ends with [NU VRAGEN] so the UI keeps the input box open.
+function formatEmptyStreamFallback(
+  providerError: { statusCode?: number; message?: string; responseBody?: string } | null,
+): string {
+  if (!providerError) {
+    return 'Geef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]'
+  }
+  const { statusCode, message, responseBody } = providerError
+  const lowerMsg = (message ?? '').toLowerCase() + ' ' + (responseBody ?? '').toLowerCase()
+  if (lowerMsg.includes('credit balance') || lowerMsg.includes('billing')) {
+    return 'De AI-coach kan tijdelijk niet bereikt worden — Anthropic credits zijn op. Voeg credits toe via console.anthropic.com en probeer opnieuw.\n\n[NU VRAGEN]'
+  }
+  if (statusCode === 401 || statusCode === 403) {
+    return 'De AI-coach kan tijdelijk niet ingelogd worden bij Anthropic. Check je ANTHROPIC_API_KEY in .env.local.\n\n[NU VRAGEN]'
+  }
+  if (statusCode === 429) {
+    return 'Te veel verzoeken naar de AI. Wacht 30 seconden en probeer opnieuw.\n\n[NU VRAGEN]'
+  }
+  if (statusCode === 529 || (statusCode && statusCode >= 500)) {
+    return 'Anthropic is tijdelijk overbelast. Probeer het over een paar minuten opnieuw.\n\n[NU VRAGEN]'
+  }
+  return `De coach kon geen antwoord genereren (status ${statusCode ?? '?'}). Probeer opnieuw of geef extra context.\n\n[NU VRAGEN]`
+}
 
 const ReqSchema = z.object({
   schema_id: z.string().uuid().optional(),
@@ -90,68 +113,35 @@ export async function POST(request: Request) {
     })
 
     const turnNumber = parsed.data.conversation.length + 1
-    const startedAt = Date.now()
     console.log(
       `[block-review-analyse] start turn ${turnNumber} · model=${BLOCK_REVIEW_MODEL} · sysChars=${system.length} · userChars=${userPrompt.length} · schemaId=${schemaId}`,
     )
 
-    // Direct streamText with `system` as a top-level parameter — bypasses the
-    // streamChat helper's role:'system' + cacheControl path. Prompt-caching
-    // is sacrificed for stability; we'll wire it back via providerOptions on
-    // the system param once the empty-stream cause is fully understood.
-    // onError callback captures the RAW underlying provider error which is
-    // otherwise swallowed by the AI SDK into AI_NoOutputGeneratedError.
-    let providerErrorInfo = ''
-    const result = streamText({
-      model: anthropic(BLOCK_REVIEW_MODEL),
+    // Capture raw provider error via onError — passed through streamChat to the
+    // underlying streamText. AI SDK otherwise swallows the API error into
+    // AI_NoOutputGeneratedError which loses the actionable message
+    // (e.g. credit-balance, rate-limit, content-filter).
+    let providerError: { statusCode?: number; message?: string; responseBody?: string } | null = null
+    const result = streamChat({
       system,
       messages: [{ role: 'user', content: userPrompt }],
+      model: BLOCK_REVIEW_MODEL,
       maxOutputTokens: 4096,
+      meta: { userId: user.id, feature: `block-review-analyse-turn-${turnNumber}` },
       onError({ error }) {
         const e = error as {
-          name?: string
-          message?: string
           statusCode?: number
+          message?: string
           responseBody?: string
-          cause?: unknown
         }
-        providerErrorInfo = `${e.name ?? 'Error'} status=${e.statusCode ?? '?'} msg=${(e.message ?? 'unknown').slice(0, 300)} body=${(e.responseBody ?? '').slice(0, 300)}`
-        console.error('[block-review-analyse] onError raw provider error:', error)
+        providerError = {
+          statusCode: e.statusCode,
+          message: e.message?.slice(0, 500),
+          responseBody: e.responseBody?.slice(0, 500),
+        }
+        console.error('[block-review-analyse] provider error:', e.statusCode, e.message)
       },
     })
-
-    // Fire-and-forget usage logging — runs after stream concludes
-    void (async () => {
-      try {
-        const u = await result.usage
-        const fr = await result.finishReason
-        const cacheRead = (u as { cachedInputTokens?: number }).cachedInputTokens ?? null
-        console.log(
-          `[block-review-analyse] turn ${turnNumber} done · finishReason=${fr} · in=${u.inputTokens ?? '?'} out=${u.outputTokens ?? '?'} cache=${cacheRead ?? 0}`,
-        )
-        logAiUsage({
-          userId: user.id,
-          feature: `block-review-analyse-turn-${turnNumber}`,
-          model: BLOCK_REVIEW_MODEL,
-          usage: {
-            inputTokens: u.inputTokens ?? null,
-            outputTokens: u.outputTokens ?? null,
-            cacheReadTokens: cacheRead,
-          },
-          durationMs: Date.now() - startedAt,
-        })
-      } catch (err) {
-        console.error(`[block-review-analyse] turn ${turnNumber} usage/finishReason failed:`, err)
-        logAiUsage({
-          userId: user.id,
-          feature: `block-review-analyse-turn-${turnNumber}`,
-          model: BLOCK_REVIEW_MODEL,
-          durationMs: Date.now() - startedAt,
-          status: 'error',
-          errorCode: (err as { name?: string })?.name ?? 'STREAM_ERROR',
-        })
-      }
-    })()
 
     // Marker fallback: tee the stream so we can inspect the full output before
     // closing. If the model emits neither `[NU VRAGEN]` nor `<block_proposal>`,
@@ -176,44 +166,29 @@ export async function POST(request: Request) {
               `[block-review-analyse] no marker emitted on turn ${turnNumber}; appended [NU VRAGEN] fallback`,
             )
           } else if (acc.trim().length === 0) {
-            // DEBUG: pull Sonnet's stop reason + token counts into the visible
-            // stream so we can diagnose 0-token returns without terminal access.
-            let diag = '?'
-            try {
-              const u = await result.usage
-              const fr = await result.finishReason
-              const cr = (u as { cachedInputTokens?: number }).cachedInputTokens ?? 0
-              diag = `finishReason=${fr} · in=${u.inputTokens ?? '?'} · out=${u.outputTokens ?? '?'} · cache=${cr} · chunks=${chunkCount} · sys=${system.length}ch · user=${userPrompt.length}ch`
-            } catch (e) {
-              diag = `usage-fetch-failed: ${(e as { name?: string; message?: string })?.name}: ${(e as { message?: string })?.message}`
-            }
-            // Append raw provider error (captured by onError callback) if present
-            const providerSuffix = providerErrorInfo
-              ? ` || providerError: ${providerErrorInfo}`
-              : ''
-            const tail = `[DIAG: ${diag}${providerSuffix}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
+            // No output from the model — translate provider error into a clear
+            // user-facing message instead of the generic "geef meer context".
+            const tail = formatEmptyStreamFallback(providerError)
             controller.enqueue(encoder.encode(tail))
             console.warn(
-              `[block-review-analyse] empty stream on turn ${turnNumber} · ${diag}${providerSuffix}`,
+              `[block-review-analyse] empty stream on turn ${turnNumber} · chunks=${chunkCount} · providerError=${JSON.stringify(providerError)}`,
             )
           }
         } catch (err) {
           console.error('[block-review-analyse] stream error:', err)
-          const errInfo = `${(err as { name?: string })?.name ?? 'Error'}: ${(err as { message?: string })?.message ?? 'unknown'}`
           if (acc.trim().length > 0) {
             // We have partial output — preserve it + append marker so the UI
             // doesn't deadlock and the user can continue the conversation.
-            const tail = `\n\n[DIAG err: ${errInfo}]\n\n[NU VRAGEN]`
             try {
-              controller.enqueue(encoder.encode(tail))
+              controller.enqueue(encoder.encode('\n\n[NU VRAGEN]'))
               controller.close()
             } catch {
               // Controller may already be in error state — fall through.
             }
             return
           }
-          // No partial output: surface the error inline so it shows in UI
-          const tail = `[DIAG err on empty stream: ${errInfo}]\n\nGeef me even meer context — wat speelt er bij dit blok?\n\n[NU VRAGEN]`
+          // No partial output: surface the provider error message inline
+          const tail = formatEmptyStreamFallback(providerError)
           try {
             controller.enqueue(encoder.encode(tail))
             controller.close()
