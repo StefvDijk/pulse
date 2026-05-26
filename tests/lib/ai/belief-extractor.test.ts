@@ -10,24 +10,31 @@ vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn(() => ({ name: 'mocked' })),
 }))
 
-const adminUpsert = vi.fn(async () => ({ error: null }))
 const adminInsert = vi.fn(async (_row: unknown) => ({ error: null }))
-const adminUpdate = vi.fn(async () => ({ error: null }))
-const adminSelectData = { data: [], error: null }
+const adminUpdate = vi.fn((_payload: unknown) => ({ error: null }))
+
+let beliefRowForMaybeSingle: { evidence_for: unknown[]; evidence_against: unknown[]; status: string } | null = null
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
+          // For listing existing beliefs (.eq().in())
+          in: async () => ({ data: [], error: null }),
+          // For evidence-branch lookup (.eq().eq().maybeSingle())
           eq: () => ({
-            in: async () => adminSelectData,
+            maybeSingle: async () => ({ data: beliefRowForMaybeSingle, error: null }),
           }),
-          in: async () => adminSelectData,
         }),
       }),
       insert: adminInsert,
-      update: () => ({ eq: adminUpdate }),
+      update: (payload: unknown) => ({
+        eq: async (..._args: unknown[]) => {
+          adminUpdate(payload)
+          return { error: null }
+        },
+      }),
     }),
   }),
 }))
@@ -38,6 +45,7 @@ beforeEach(() => {
   generateTextMock.mockReset()
   adminInsert.mockClear()
   adminUpdate.mockClear()
+  beliefRowForMaybeSingle = null
 })
 
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
@@ -92,5 +100,36 @@ describe('runBeliefExtractor', () => {
     await expect(
       runBeliefExtractor({ userId: 'user-1', scope: 'training', eventSummary: 'x' }),
     ).resolves.toBeUndefined()
+  })
+
+  it('appends evidence to an existing belief and updates DB', async () => {
+    beliefRowForMaybeSingle = {
+      evidence_for: [],
+      evidence_against: [],
+      status: 'active',
+    }
+    generateTextMock.mockResolvedValue({
+      text: JSON.stringify([
+        {
+          action: 'evidence',
+          target_id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          evidence: { kind: 'for', observation: 'Slecht geslapen, prestaties OK', source: 'chat-turn' },
+        },
+      ]),
+      usage: { inputTokens: 80, outputTokens: 30 },
+    })
+
+    await runBeliefExtractor({
+      userId: 'user-1',
+      scope: 'recovery',
+      eventSummary: 'Slaap 5u, bench wel goed',
+    })
+
+    expect(adminInsert).not.toHaveBeenCalled()
+    expect(adminUpdate).toHaveBeenCalledTimes(1)
+    const payload = adminUpdate.mock.calls[0][0] as { evidence_for: unknown[]; evidence_against: unknown[]; confidence: number }
+    expect(payload.evidence_for).toHaveLength(1)
+    expect(payload.evidence_against).toHaveLength(0)
+    expect(payload.confidence).toBeGreaterThan(0.5)
   })
 })
