@@ -2,25 +2,15 @@
 
 import { useEffect, useRef } from 'react'
 import { InboxCard } from './InboxCard'
-
-interface InboxItem {
-  id: string
-  message_text: string
-  type: string
-  priority: 'low' | 'medium' | 'high'
-  requires_response: boolean
-  status: 'unread' | 'read' | 'dismissed' | 'actioned'
-  related_entity_id: string | null
-  created_at: string
-}
+import type { CoachInboxItem } from './types'
 
 interface Props {
-  items: InboxItem[]
+  items: CoachInboxItem[]
   onClose: () => void
   onMutate: () => void
 }
 
-const PRIORITY_ORDER: Record<InboxItem['priority'], number> = { high: 0, medium: 1, low: 2 }
+const PRIORITY_ORDER: Record<CoachInboxItem['priority'], number> = { high: 0, medium: 1, low: 2 }
 
 export function InboxList({ items, onClose, onMutate }: Props) {
   const ref = useRef<HTMLDivElement>(null)

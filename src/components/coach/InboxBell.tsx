@@ -3,26 +3,13 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import { InboxList } from './InboxList'
+import type { CoachInboxResponse } from './types'
 
-interface InboxResponse {
-  items: Array<{
-    id: string
-    message_text: string
-    type: string
-    priority: 'low' | 'medium' | 'high'
-    requires_response: boolean
-    status: 'unread' | 'read' | 'dismissed' | 'actioned'
-    related_entity_id: string | null
-    created_at: string
-  }>
-  unreadCount: number
-}
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json() as Promise<InboxResponse>)
+const fetcher = (url: string) => fetch(url).then((r) => r.json() as Promise<CoachInboxResponse>)
 
 export function InboxBell() {
   const [open, setOpen] = useState(false)
-  const { data, mutate } = useSWR<InboxResponse>('/api/coach-inbox', fetcher, { refreshInterval: 60_000 })
+  const { data, mutate } = useSWR<CoachInboxResponse>('/api/coach-inbox', fetcher, { refreshInterval: 60_000 })
   const unread = data?.unreadCount ?? 0
 
   return (

@@ -1,20 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-
-interface InboxItem {
-  id: string
-  message_text: string
-  type: string
-  priority: 'low' | 'medium' | 'high'
-  requires_response: boolean
-  status: 'unread' | 'read' | 'dismissed' | 'actioned'
-  related_entity_id: string | null
-  created_at: string
-}
+import type { CoachInboxItem } from './types'
 
 interface Props {
-  item: InboxItem
+  item: CoachInboxItem
   onChanged: () => void
 }
 
@@ -34,13 +24,13 @@ export function InboxCard({ item, onChanged }: Props) {
 
   async function patch(status: 'read' | 'dismissed' | 'actioned') {
     setBusy(true)
-    await fetch(`/api/coach-inbox/${item.id}`, {
+    const res = await fetch(`/api/coach-inbox/${item.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
     setBusy(false)
-    onChanged()
+    if (res.ok) onChanged()
   }
 
   async function submitAnswer() {
