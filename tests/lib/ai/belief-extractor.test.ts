@@ -11,7 +11,7 @@ vi.mock('@ai-sdk/anthropic', () => ({
 }))
 
 const adminUpsert = vi.fn(async () => ({ error: null }))
-const adminInsert = vi.fn(async () => ({ error: null }))
+const adminInsert = vi.fn(async (_row: unknown) => ({ error: null }))
 const adminUpdate = vi.fn(async () => ({ error: null }))
 const adminSelectData = { data: [], error: null }
 
@@ -63,7 +63,8 @@ describe('runBeliefExtractor', () => {
     })
 
     expect(adminInsert).toHaveBeenCalledTimes(1)
-    const call = adminInsert.mock.calls[0][0] as Record<string, unknown>
+    const [firstCall] = adminInsert.mock.calls
+    const call = firstCall?.[0] as Record<string, unknown>
     expect(call.user_id).toBe('user-1')
     expect(call.category).toBe('training')
     expect(call.hypothesis_text).toContain('Ochtendsessies')

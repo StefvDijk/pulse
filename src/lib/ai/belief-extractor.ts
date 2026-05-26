@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import { recomputeBelief, type EvidenceItem } from '@/lib/ai/belief-update'
+import type { Json } from '@/types/database'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -137,8 +138,8 @@ async function applyAction(
       user_id: userId,
       hypothesis_text: action.hypothesis_text.slice(0, 240),
       category: action.category,
-      evidence_for: initial.evidence_for,
-      evidence_against: initial.evidence_against,
+      evidence_for: initial.evidence_for as unknown as Json[],
+      evidence_against: initial.evidence_against as unknown as Json[],
       confidence,
       status,
       last_tested_at: nowIso,
@@ -155,12 +156,10 @@ async function applyAction(
       .maybeSingle()
     if (!data) return
 
-    const evidence_for = action.evidence.kind === 'for'
-      ? [...(data.evidence_for as EvidenceItem[]), evidenceItem]
-      : (data.evidence_for as EvidenceItem[])
-    const evidence_against = action.evidence.kind === 'against'
-      ? [...(data.evidence_against as EvidenceItem[]), evidenceItem]
-      : (data.evidence_against as EvidenceItem[])
+    const existingFor = (data.evidence_for ?? []) as unknown as EvidenceItem[]
+    const existingAgainst = (data.evidence_against ?? []) as unknown as EvidenceItem[]
+    const evidence_for: EvidenceItem[] = action.evidence.kind === 'for' ? [...existingFor, evidenceItem] : existingFor
+    const evidence_against: EvidenceItem[] = action.evidence.kind === 'against' ? [...existingAgainst, evidenceItem] : existingAgainst
 
     const { confidence, status } = recomputeBelief({
       evidence_for,
@@ -171,8 +170,8 @@ async function applyAction(
     await admin
       .from('coach_beliefs')
       .update({
-        evidence_for,
-        evidence_against,
+        evidence_for: evidence_for as unknown as Json[],
+        evidence_against: evidence_against as unknown as Json[],
         confidence,
         status,
         last_tested_at: nowIso,
