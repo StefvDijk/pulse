@@ -35,11 +35,18 @@ export interface NextBlockGoalDraft {
   isNew: boolean
 }
 
+export interface BlockReviewMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface BlockReviewFormState {
   reflection: ReflectionState
   newInBody: NewInBodyState | null
+  conversation: BlockReviewMessage[]
   aiAnalysis: string
   aiSchemaProposal: unknown | null
+  schemaProposalVersion: number
   selectedGoals: NextBlockGoalDraft[]
   endReason: 'completed' | 'switched' | 'injury' | 'goal_reached' | 'time_up'
 }

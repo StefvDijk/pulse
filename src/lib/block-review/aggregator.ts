@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { computeAdherence } from './adherence'
+import { buildJourneyContext, type JourneyContext } from './journey'
 
 export interface ExerciseProgressionPoint {
   date: string
@@ -72,6 +73,7 @@ export interface BlockReviewData {
   }
   injuries: Array<{ bodyLocation: string; severity: string; status: string; description: string | null }>
   goals: Array<{ id: string; title: string; category: string; targetValue: number | null; currentValue: number | null; targetUnit: string | null; deadline: string | null }>
+  journey: JourneyContext
 }
 
 type Admin = SupabaseClient<Database>
@@ -293,6 +295,8 @@ export async function aggregateBlockData(
     return Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10
   }
 
+  const journey = await buildJourneyContext(admin, userId, schemaId)
+
   return {
     schema: {
       id: schemaRow.id as string,
@@ -344,5 +348,6 @@ export async function aggregateBlockData(
       targetUnit: (g as { target_unit?: string | null }).target_unit ?? null,
       deadline: g.deadline as string | null,
     })),
+    journey,
   }
 }

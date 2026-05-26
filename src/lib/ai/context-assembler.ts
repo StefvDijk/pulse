@@ -867,7 +867,7 @@ async function loadCoachingMemory(userId: string): Promise<string | null> {
   // grows unbounded over months) from inflating every chat-request's context.
   const { data } = await supabase
     .from('coaching_memory')
-    .select('category, key, value, source_date')
+    .select('id, category, key, value, source_date')
     .eq('user_id', userId)
     .is('superseded_by', null)
     .gte('confidence', 0.3)
@@ -876,16 +876,19 @@ async function loadCoachingMemory(userId: string): Promise<string | null> {
 
   if (!data || data.length === 0) return null
 
-  const byCategory: Record<string, string[]> = {}
+  const byCategory: Record<string, Array<{ id: string; value: string }>> = {}
   for (const m of data) {
     if (!byCategory[m.category]) byCategory[m.category] = []
-    byCategory[m.category].push(m.value)
+    byCategory[m.category].push({ id: m.id, value: m.value })
   }
 
   const lines: string[] = []
-  for (const [cat, values] of Object.entries(byCategory)) {
+  for (const [cat, items] of Object.entries(byCategory)) {
     lines.push(`${cat.toUpperCase()}:`)
-    for (const v of values) lines.push(`  • ${v}`)
+    for (const it of items) {
+      const shortId = it.id.slice(0, 8)
+      lines.push(`  • [id:${shortId}] ${it.value}`)
+    }
   }
 
   return ['--- COACHING GEHEUGEN ---', ...lines].join('\n')

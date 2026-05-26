@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState, StepId } from './types'
+import type { BlockReviewFormState, BlockReviewMessage, StepId } from './types'
 import { PerformanceStep } from './steps/PerformanceStep'
 import { BodyStep } from './steps/BodyStep'
 import { ReflectionStep } from './steps/ReflectionStep'
@@ -32,8 +32,10 @@ function emptyForm(data: BlockReviewData): BlockReviewFormState {
       injuryUpdates: {},
     },
     newInBody: null,
+    conversation: [],
     aiAnalysis: '',
     aiSchemaProposal: null,
+    schemaProposalVersion: 0,
     selectedGoals: [],
     endReason: 'completed',
   }
@@ -43,6 +45,7 @@ export function BlockReviewFlow() {
   const { data, error, isLoading } = useSWR<BlockReviewData>('/api/block-review/data', fetcher)
   const [stepIdx, setStepIdx] = useState(0)
   const [form, setForm] = useState<BlockReviewFormState | null>(null)
+  const [dryRun, setDryRun] = useState(false)
 
   if (isLoading) return <div className="p-4 pt-[80px]"><SkeletonCard className="h-40"><span /></SkeletonCard></div>
   if (error || !data) return <div className="p-4 pt-[80px]"><ErrorAlert message="Kan blok-review niet laden." /></div>
@@ -57,8 +60,15 @@ export function BlockReviewFlow() {
     setForm({ ...state, reflection: next })
   const setNewInBody = (next: BlockReviewFormState['newInBody']) =>
     setForm({ ...state, newInBody: next })
-  const setAi = (analysis: string, proposal: unknown) =>
-    setForm({ ...state, aiAnalysis: analysis, aiSchemaProposal: proposal })
+  const setConversation = (next: BlockReviewMessage[]) =>
+    setForm({ ...state, conversation: next })
+  const setProposal = (analysis: string, proposal: unknown) =>
+    setForm({
+      ...state,
+      aiAnalysis: analysis,
+      aiSchemaProposal: proposal,
+      schemaProposalVersion: state.schemaProposalVersion + 1,
+    })
   const setGoals = (next: BlockReviewFormState['selectedGoals']) =>
     setForm({ ...state, selectedGoals: next })
   const setEndReason = (next: BlockReviewFormState['endReason']) =>
@@ -70,18 +80,65 @@ export function BlockReviewFlow() {
 
   const common = { stepIndex: stepIdx, stepTotal: STEPS.length, onBack: stepIdx > 0 ? () => go(-1) : undefined }
 
-  switch (step) {
-    case 'performance':
-      return <PerformanceStep data={data} {...common} onNext={() => go(1)} />
-    case 'body':
-      return <BodyStep data={data} newInBody={state.newInBody} onChange={setNewInBody} {...common} onNext={() => go(1)} />
-    case 'reflection':
-      return <ReflectionStep data={data} value={state.reflection} onChange={setReflection} endReason={state.endReason} onEndReasonChange={setEndReason} {...common} onNext={() => go(1)} />
-    case 'analysis':
-      return <AnalysisStep data={data} form={state} onAnalysed={setAi} {...common} onNext={() => go(1)} />
-    case 'next-block':
-      return <NextBlockStep data={data} form={state} onGoalsChange={setGoals} {...common} onNext={() => go(1)} />
-    case 'confirm':
-      return <ConfirmStep data={data} form={state} {...common} />
-  }
+  const stepContent = (() => {
+    switch (step) {
+      case 'performance':
+        return <PerformanceStep data={data} {...common} onNext={() => go(1)} />
+      case 'body':
+        return <BodyStep data={data} newInBody={state.newInBody} onChange={setNewInBody} {...common} onNext={() => go(1)} />
+      case 'reflection':
+        return <ReflectionStep data={data} value={state.reflection} onChange={setReflection} endReason={state.endReason} onEndReasonChange={setEndReason} {...common} onNext={() => go(1)} />
+      case 'analysis':
+        return (
+          <AnalysisStep
+            data={data}
+            reflection={state.reflection}
+            conversation={state.conversation}
+            onConversationChange={setConversation}
+            onAnalysed={setProposal}
+            {...common}
+            onNext={() => go(1)}
+          />
+        )
+      case 'next-block':
+        return (
+          <NextBlockStep
+            data={data}
+            form={state}
+            onGoalsChange={setGoals}
+            onConversationChange={setConversation}
+            onProposalUpdated={setProposal}
+            {...common}
+            onNext={() => go(1)}
+          />
+        )
+      case 'confirm':
+        return <ConfirmStep data={data} form={state} dryRun={dryRun} {...common} />
+    }
+  })()
+
+  return (
+    <>
+      {dryRun && (
+        <div className="fixed top-0 inset-x-0 z-30 bg-status-warning/90 text-black text-[11px] font-semibold uppercase tracking-wider text-center py-1.5">
+          🧪 Test mode — niets wordt opgeslagen
+        </div>
+      )}
+      {stepContent}
+      <div className="fixed bottom-24 right-3 z-30">
+        <button
+          type="button"
+          onClick={() => setDryRun((b) => !b)}
+          className={`px-3 py-1.5 rounded-full text-[11px] font-medium border ${
+            dryRun
+              ? 'bg-status-warning/20 border-status-warning text-status-warning'
+              : 'bg-bg-surface border-bg-border text-text-tertiary'
+          }`}
+          aria-pressed={dryRun}
+        >
+          {dryRun ? '🧪 Test aan' : '🧪 Test uit'}
+        </button>
+      </div>
+    </>
+  )
 }
