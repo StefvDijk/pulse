@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { RichText } from '@/components/shared/RichText'
+import { stripStructuredTags, parseProposalFromStream, awaitsAnswer } from '../parse-utils'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, ProgramAudit } from '../types'
 
@@ -20,43 +21,6 @@ interface Props {
   stepTotal: number
   onBack?: () => void
   onNext: () => void
-}
-
-function extractProposalAndAudit(text: string): { clean: string; proposal: unknown | null; audit: ProgramAudit | null } {
-  const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(text)
-  const auditMatch = /<program_audit>([\s\S]*?)<\/program_audit>/i.exec(text)
-  let proposal: unknown = null
-  let audit: ProgramAudit | null = null
-  if (match) {
-    try {
-      proposal = JSON.parse(match[1].trim())
-    } catch {
-      proposal = null
-    }
-  }
-  if (auditMatch) {
-    try {
-      audit = JSON.parse(auditMatch[1].trim()) as ProgramAudit
-    } catch {
-      audit = null
-    }
-  }
-  return {
-    clean: text
-      .replace(match?.[0] ?? '', '')
-      .replace(auditMatch?.[0] ?? '', '')
-      .trim(),
-    proposal,
-    audit,
-  }
-}
-
-function stripNuVragen(text: string): string {
-  return text.replace(/\[NU VRAGEN\]\s*$/i, '').trimEnd()
-}
-
-function awaitsAnswer(text: string): boolean {
-  return /\[NU VRAGEN\]/i.test(text)
 }
 
 export function AnalysisStep({
@@ -77,6 +41,7 @@ export function AnalysisStep({
   const [input, setInput] = useState('')
   const [proposal, setProposal] = useState<unknown | null>(null)
   const [proposalText, setProposalText] = useState('')
+  const [lastTurnAwaits, setLastTurnAwaits] = useState(false)
   const ranRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -109,15 +74,17 @@ export function AnalysisStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const { clean, proposal: parsed, audit } = extractProposalAndAudit(acc)
-      const assistantMessage: ConvMessage = { role: 'assistant', content: clean }
-      onConversationChange([...history, assistantMessage])
+      const rawAwaits = awaitsAnswer(acc)
+      const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
+      const assistantMessage: ConvMessage = { role: 'assistant', content: displayText }
+      const finalHistory = [...history, assistantMessage]
+      onConversationChange(finalHistory)
       setStreaming('')
+      setLastTurnAwaits(rawAwaits)
       if (parsed) {
-        // Final turn — propagate to form
         setProposal(parsed)
-        setProposalText(clean)
-        const transcript = [...history, assistantMessage]
+        setProposalText(displayText)
+        const transcript = finalHistory
           .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
           .join('\n\n')
         onAnalysed(transcript, parsed, audit)
@@ -130,11 +97,6 @@ export function AnalysisStep({
     }
   }
 
-  // First turn: fire on mount only if conversation is empty (guard against
-  // returning from step 5 with existing messages).
-  // We intentionally do NOT abort in cleanup — React Strict Mode double-invokes
-  // effects in dev and would kill our own in-flight fetch. The `ranRef` guard
-  // prevents the second invocation from starting a duplicate request.
   useEffect(() => {
     if (ranRef.current) return
     ranRef.current = true
@@ -144,7 +106,6 @@ export function AnalysisStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Scroll to bottom on new content
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [conversation, streaming])
@@ -158,8 +119,7 @@ export function AnalysisStep({
     await sendTurn(newHistory)
   }
 
-  const lastAssistant = conversation[conversation.length - 1]?.role === 'assistant' ? conversation[conversation.length - 1] : null
-  const waitingForAnswer = lastAssistant ? awaitsAnswer(lastAssistant.content) : false
+  const waitingForAnswer = lastTurnAwaits
   const done = proposal !== null
 
   return (
@@ -174,22 +134,22 @@ export function AnalysisStep({
     >
       <div ref={scrollRef} className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
         {conversation.map((m, i) => (
-          <MessageBubble key={i} role={m.role} content={m.role === 'assistant' ? stripNuVragen(m.content) : m.content} />
+          <MessageBubble key={i} role={m.role} content={m.content} />
         ))}
         {streaming && (
-          <MessageBubble role="assistant" content={stripNuVragen(streaming)} streaming />
+          <MessageBubble role="assistant" content={stripStructuredTags(streaming)} streaming />
         )}
         {(busy || (conversation.length === 0 && !error)) && !streaming && (
           <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
             <div className="flex items-center gap-2 mb-2">
               <CoachOrb size={18} />
               <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
-              <span className="text-[10px] text-text-tertiary ml-1">···</span>
+              <span className="text-[10px] text-text-tertiary ml-1">...</span>
             </div>
             <div className="text-[13px] text-text-tertiary">
               {conversation.length === 0
                 ? 'Aan het analyseren — kan 10-30 seconden duren bij de eerste beurt.'
-                : 'Coach denkt na…'}
+                : 'Coach denkt na...'}
             </div>
           </div>
         )}
@@ -214,8 +174,8 @@ export function AnalysisStep({
 
       {done && proposalText && (
         <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
-          <div className="text-[11px] uppercase tracking-wider text-text-tertiary mb-2">Definitief schema voorgesteld</div>
-          <div className="text-[12px] text-status-success">Doe stap-knop om te bevestigen op de volgende pagina.</div>
+          <div className="text-[11px] uppercase tracking-wider text-text-tertiary mb-2">Schema voorgesteld</div>
+          <div className="text-[12px] text-status-success">Klik &ldquo;Naar volgend blok&rdquo; om het voorstel te bekijken en te verfijnen.</div>
         </div>
       )}
 
@@ -225,7 +185,7 @@ export function AnalysisStep({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={3}
-            placeholder={waitingForAnswer ? 'Beantwoord de vraag…' : 'Geef extra context of stel een tegenvraag…'}
+            placeholder={waitingForAnswer ? 'Beantwoord de vraag...' : 'Geef extra context of stel een tegenvraag...'}
             className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
           />
           <button
@@ -250,7 +210,7 @@ function MessageBubble({ role, content, streaming }: { role: 'user' | 'assistant
         <div className="flex items-center gap-1.5 mb-2">
           <CoachOrb size={18} />
           <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
-          {streaming && <span className="text-[10px] text-text-tertiary ml-1">···</span>}
+          {streaming && <span className="text-[10px] text-text-tertiary ml-1">...</span>}
         </div>
       )}
       {isAssistant ? (

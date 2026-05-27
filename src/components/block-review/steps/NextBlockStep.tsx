@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
+import { stripStructuredTags, parseProposalFromStream, isValidProposal } from '../parse-utils'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft, ProgramAudit } from '../types'
+import type { ProposalShape } from '../parse-utils'
 
 interface Props {
   data: BlockReviewData
@@ -16,79 +18,6 @@ interface Props {
   stepTotal: number
   onBack?: () => void
   onNext: () => void
-}
-
-interface ProposalShape {
-  title: string
-  schema_type: string
-  weeks_planned: number
-  start_date: string
-  workout_schedule: Array<{
-    day: string
-    focus: string
-    duration_min?: number
-    sport_type?: 'gym' | 'run' | 'padel' | 'rest'
-    run_type?: string
-    exercises?: Array<{ name: string; sets?: number; reps?: string; rest_seconds?: number; rpe?: string; tempo?: string; notes?: string }>
-  }>
-  progression?: { deload_week?: number }
-  coach_rationale?: string[]
-}
-
-function isValidProposal(p: unknown): p is ProposalShape {
-  if (!p || typeof p !== 'object') return false
-  const o = p as Record<string, unknown>
-  if (typeof o.title !== 'string' || typeof o.schema_type !== 'string') return false
-  if (typeof o.start_date !== 'string' || typeof o.weeks_planned !== 'number') return false
-  if (!Array.isArray(o.workout_schedule) || o.workout_schedule.length === 0) return false
-  return o.workout_schedule.every((w) => {
-    if (!w || typeof w !== 'object') return false
-    const wo = w as Record<string, unknown>
-    return typeof wo.day === 'string' && typeof wo.focus === 'string'
-  })
-}
-
-function parseStreamedResponse(acc: string): { parsed: unknown; audit: ProgramAudit | null; clean: string } {
-  const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
-  const audit = extractAudit(acc)
-  let parsed: unknown = null
-  if (match) {
-    try { parsed = JSON.parse(match[1].trim()) } catch { /* ignore */ }
-  }
-  // Fallback: model sometimes outputs ```json blocks instead of <block_proposal> tags
-  if (parsed === null) {
-    const cbMatch = /```json([\s\S]*?)```/i.exec(acc)
-    if (cbMatch) {
-      try {
-        const candidate = JSON.parse(cbMatch[1].trim())
-        if (isValidProposal(candidate)) parsed = candidate
-      } catch { /* ignore */ }
-    }
-  }
-  const rawClean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
-  const clean = rawClean.replace(/```(?:json)?[\s\S]*?```/gi, '').trim()
-  return { parsed, audit, clean }
-}
-
-function stripProposalAndMarker(text: string): string {
-  return text
-    .replace(/<block_proposal>[\s\S]*?<\/block_proposal>/gi, '')
-    .replace(/<block_proposal>[\s\S]*/gi, '')        // incomplete during streaming
-    .replace(/<program_audit>[\s\S]*?<\/program_audit>/gi, '')
-    .replace(/<program_audit>[\s\S]*/gi, '')          // incomplete during streaming
-    .replace(/<current_proposal>[\s\S]*?<\/current_proposal>/gi, '') // strip if echoed
-    .replace(/\[NU VRAGEN\]\s*$/i, '')
-    .trim()
-}
-
-function extractAudit(text: string): ProgramAudit | null {
-  const match = /<program_audit>([\s\S]*?)<\/program_audit>/i.exec(text)
-  if (!match) return null
-  try {
-    return JSON.parse(match[1].trim()) as ProgramAudit
-  } catch {
-    return null
-  }
 }
 
 export function NextBlockStep({
@@ -104,20 +33,19 @@ export function NextBlockStep({
 }: Props) {
   const proposal = form.aiSchemaProposal as ProposalShape | null
   const proposalValid = isValidProposal(proposal)
+  const hasBlockers = !!form.aiProgramAudit?.hasBlockers
 
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [overrideBlockers, setOverrideBlockers] = useState(false)
 
-  // Track which messages were already present when this step mounted.
-  // Only messages added after that baseline are shown as refinement exchanges.
   const baselineLenRef = useRef<number | null>(null)
   useEffect(() => {
     if (baselineLenRef.current === null) {
       baselineLenRef.current = form.conversation.length
     }
-  // Run once on mount — intentionally no deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -152,6 +80,7 @@ export function NextBlockStep({
     setBusy(true)
     setError(null)
     setStreaming('')
+    setOverrideBlockers(false)
     const userMessage: BlockReviewMessage = { role: 'user', content: text }
     const newHistory = [...form.conversation, userMessage]
     onConversationChange(newHistory)
@@ -178,8 +107,8 @@ export function NextBlockStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const { parsed, audit, clean } = parseStreamedResponse(acc)
-      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
+      const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
+      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: displayText }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
       setStreaming('')
@@ -201,6 +130,7 @@ export function NextBlockStep({
     setBusy(true)
     setError(null)
     setStreaming('')
+    setOverrideBlockers(false)
     const userMessage: BlockReviewMessage = {
       role: 'user',
       content: 'Herstel het schema op basis van de audit-blockers en behoud de bedoeling van het voorstel.',
@@ -216,6 +146,7 @@ export function NextBlockStep({
           reflection: form.reflection,
           new_in_body: form.newInBody,
           conversation: newHistory,
+          current_proposal: form.aiSchemaProposal ?? null,
           repair_audit: form.aiProgramAudit,
         }),
       })
@@ -229,8 +160,8 @@ export function NextBlockStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const { parsed, audit, clean } = parseStreamedResponse(acc)
-      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
+      const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
+      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: displayText }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
       setStreaming('')
@@ -247,6 +178,9 @@ export function NextBlockStep({
     }
   }
 
+  const nextDisabled = !!proposal && !proposalValid
+  const showBlockerWarning = hasBlockers && !overrideBlockers
+
   return (
     <StepShell
       title="Volgend blok"
@@ -255,7 +189,7 @@ export function NextBlockStep({
       stepTotal={stepTotal}
       onBack={onBack}
       onNext={onNext}
-      nextDisabled={!!proposal && (!proposalValid || !!form.aiProgramAudit?.hasBlockers)}
+      nextDisabled={nextDisabled || showBlockerWarning}
     >
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
@@ -333,7 +267,7 @@ export function NextBlockStep({
                     <ul className="mt-1.5 ml-1 flex flex-col gap-1 text-[12px] text-text-secondary">
                       {w.exercises.map((e, i) => (
                         <li key={i} className="list-disc list-inside">
-                          {e.name} {e.sets ? `· ${e.sets}×${e.reps ?? ''}` : ''}
+                          {e.name} {e.sets ? `· ${e.sets}x${e.reps ?? ''}` : ''}
                           {e.rpe ? <span className="ml-1 text-text-tertiary">RPE {e.rpe}</span> : null}
                           {e.rest_seconds != null ? <span className="ml-1 text-text-tertiary">rust {e.rest_seconds}s</span> : null}
                           {e.tempo ? <span className="ml-1 text-text-tertiary">tempo {e.tempo}</span> : null}
@@ -373,16 +307,27 @@ export function NextBlockStep({
               </div>
             ))}
           </div>
-          {form.aiProgramAudit.hasBlockers && (
-            <button
-              type="button"
-              onClick={repairFromAudit}
-              disabled={busy}
-              className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
-            >
-              Laat coach herstellen
-            </button>
-          )}
+          <div className="flex gap-2">
+            {hasBlockers && (
+              <button
+                type="button"
+                onClick={repairFromAudit}
+                disabled={busy}
+                className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+              >
+                Laat coach herstellen
+              </button>
+            )}
+            {hasBlockers && !overrideBlockers && (
+              <button
+                type="button"
+                onClick={() => setOverrideBlockers(true)}
+                className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-tertiary"
+              >
+                Toch doorgaan
+              </button>
+            )}
+          </div>
         </section>
       )}
 
@@ -408,7 +353,7 @@ export function NextBlockStep({
                 >
                   {m.role === 'assistant' ? (
                     <RichText
-                      content={stripProposalAndMarker(m.content)}
+                      content={m.content}
                       className="text-[12.5px] leading-[1.5] text-text-primary"
                     />
                   ) : (
@@ -421,10 +366,10 @@ export function NextBlockStep({
               {streaming && (
                 <div className="rounded-md p-2.5 bg-bg-base border border-bg-border">
                   <RichText
-                    content={stripProposalAndMarker(streaming)}
+                    content={stripStructuredTags(streaming)}
                     className="text-[12.5px] leading-[1.5] text-text-primary"
                   />
-                  <span className="text-text-tertiary ml-1">···</span>
+                  <span className="text-text-tertiary ml-1">...</span>
                 </div>
               )}
             </div>
@@ -438,7 +383,7 @@ export function NextBlockStep({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={2}
-            placeholder="Bijv. 'Vervang Lat Pulldown met Pull-ups' of 'minder volume op donderdag'…"
+            placeholder="Bijv. 'Vervang Lat Pulldown met Pull-ups' of 'minder volume op donderdag'..."
             className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
             disabled={busy}
           />
@@ -448,7 +393,7 @@ export function NextBlockStep({
             disabled={!input.trim() || busy}
             className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
           >
-            {busy ? 'Coach denkt na…' : 'Verstuur'}
+            {busy ? 'Coach denkt na...' : 'Verstuur'}
           </button>
         </section>
       )}

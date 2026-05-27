@@ -64,28 +64,33 @@ export function BlockReviewFlow() {
 
   const state = form ?? emptyForm(data)
   if (!form) {
-    // Initialise once data is available.
     queueMicrotask(() => setForm(state))
   }
 
+  const update = (patch: Partial<BlockReviewFormState>) =>
+    setForm((prev) => ({ ...(prev ?? emptyForm(data)), ...patch }))
+
   const setReflection = (next: BlockReviewFormState['reflection']) =>
-    setForm({ ...state, reflection: next })
+    update({ reflection: next })
   const setNewInBody = (next: BlockReviewFormState['newInBody']) =>
-    setForm({ ...state, newInBody: next })
+    update({ newInBody: next })
   const setConversation = (next: BlockReviewMessage[]) =>
-    setForm({ ...state, conversation: next })
+    update({ conversation: next })
   const setProposal = (analysis: string, proposal: unknown, audit: BlockReviewFormState['aiProgramAudit'] = null) =>
-    setForm({
-      ...state,
-      aiAnalysis: analysis,
-      aiSchemaProposal: proposal,
-      aiProgramAudit: audit,
-      schemaProposalVersion: state.schemaProposalVersion + 1,
+    setForm((prev) => {
+      const current = prev ?? emptyForm(data)
+      return {
+        ...current,
+        aiAnalysis: analysis,
+        aiSchemaProposal: proposal,
+        aiProgramAudit: audit,
+        schemaProposalVersion: current.schemaProposalVersion + 1,
+      }
     })
   const setGoals = (next: BlockReviewFormState['selectedGoals']) =>
-    setForm({ ...state, selectedGoals: next })
+    update({ selectedGoals: next })
   const setEndReason = (next: BlockReviewFormState['endReason']) =>
-    setForm({ ...state, endReason: next })
+    update({ endReason: next })
 
   const step = STEPS[stepIdx]
   const go = (delta: number) =>
