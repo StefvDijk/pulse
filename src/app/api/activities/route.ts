@@ -5,9 +5,11 @@ import type { Sport } from '@/lib/constants'
 
 /* ── Types ────────────────────────────────────────────────── */
 
+export type ActivityType = Sport | 'walk'
+
 export interface ActivityItem {
   id: string
-  type: Sport
+  type: ActivityType
   title: string
   started_at: string
   duration_seconds: number | null
@@ -19,7 +21,7 @@ export interface ActivityItem {
   exercise_count?: number | null
   pr_count?: number | null
   exercises?: Array<{ name: string; primary_muscle_group: string; set_summary: string }>
-  // Run
+  // Run + Walk
   distance_meters?: number | null
   avg_pace_seconds_per_km?: number | null
   elevation_gain_meters?: number | null
@@ -49,8 +51,8 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(req.nextUrl.searchParams.get('page') ?? '1', 10))
     const admin = createAdminClient()
 
-    // Fetch all three activity types in parallel
-    const [workoutsResult, runsResult, padelResult] = await Promise.all([
+    // Fetch all four activity types in parallel
+    const [workoutsResult, runsResult, padelResult, walksResult] = await Promise.all([
       admin
         .from('workouts')
         .select(
@@ -78,11 +80,18 @@ export async function GET(req: NextRequest) {
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
         .limit(50),
+      admin
+        .from('walks')
+        .select('id, started_at, duration_seconds, distance_meters, avg_pace_seconds_per_km, avg_heart_rate, max_heart_rate, calories_burned, elevation_gain_meters, activity_subtype, notes')
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(50),
     ])
 
     if (workoutsResult.error) throw workoutsResult.error
     if (runsResult.error) throw runsResult.error
     if (padelResult.error) throw padelResult.error
+    if (walksResult.error) throw walksResult.error
 
     // Map gym workouts
     const gymActivities: ActivityItem[] = (workoutsResult.data ?? []).map((w) => {
@@ -157,8 +166,28 @@ export async function GET(req: NextRequest) {
       intensity: p.intensity ?? null,
     }))
 
+    // Map walks
+    const walkActivities: ActivityItem[] = (walksResult.data ?? []).map((w) => {
+      const subtype = w.activity_subtype?.toLowerCase() ?? ''
+      const title = w.notes
+        ?? (subtype.includes('hike') ? 'Wandeling (hike)' : 'Wandeling')
+      return {
+        id: w.id,
+        type: 'walk' as const,
+        title,
+        started_at: w.started_at,
+        duration_seconds: w.duration_seconds ?? null,
+        calories_burned: w.calories_burned != null ? Number(w.calories_burned) : null,
+        avg_heart_rate: w.avg_heart_rate ?? null,
+        max_heart_rate: w.max_heart_rate ?? null,
+        distance_meters: w.distance_meters != null ? Number(w.distance_meters) : null,
+        avg_pace_seconds_per_km: w.avg_pace_seconds_per_km ?? null,
+        elevation_gain_meters: w.elevation_gain_meters != null ? Number(w.elevation_gain_meters) : null,
+      }
+    })
+
     // Merge + sort + paginate
-    const all = [...gymActivities, ...runActivities, ...padelActivities]
+    const all = [...gymActivities, ...runActivities, ...padelActivities, ...walkActivities]
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
 
     const total = all.length

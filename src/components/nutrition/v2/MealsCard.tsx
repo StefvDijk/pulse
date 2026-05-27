@@ -5,7 +5,7 @@
  */
 import { MealsList, type MealsListProps } from '@/components/nutrition/MealsList'
 
-export interface MealsCardProps extends MealsListProps {}
+export type MealsCardProps = MealsListProps
 
 export function MealsCard({ meals, onDelete }: MealsCardProps) {
   return (

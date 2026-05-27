@@ -9,7 +9,9 @@ import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 interface WorkoutScheduleItem {
   day: string
   focus: string
-  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+  sport_type?: 'gym' | 'run' | 'padel' | 'rest'
+  run_type?: 'easy' | 'interval' | 'tempo' | 'long'
+  exercises?: Array<{ name: string; sets?: number; reps?: string; rest_seconds?: number; rpe?: string; tempo?: string; notes?: string }>
   duration_min?: number
 }
 
@@ -69,7 +71,7 @@ function computeCurrentWeek(startDate: string, totalWeeks: number): number {
 
 interface OverrideObject {
   focus: string
-  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+  exercises?: WorkoutScheduleItem['exercises']
   duration_min?: number
 }
 
@@ -83,7 +85,7 @@ function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], ove
   date: string
   dayName: string
   workoutFocus: string | null
-  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
+  exercises?: WorkoutScheduleItem['exercises']
 }> {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
@@ -121,7 +123,7 @@ export async function GET() {
 
     const { data: schema, error } = await admin
       .from('training_schemas')
-      .select('id, title, description, schema_type, start_date, end_date, weeks_planned, current_week, workout_schedule, scheduled_overrides, progression_rules, ai_generated, updated_at')
+      .select('id, title, description, schema_type, start_date, end_date, weeks_planned, current_week, workout_schedule, scheduled_overrides, progression_rules, quality_audit, planned_weekly_load, source_block_review_id, ai_generated, updated_at')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .maybeSingle()
@@ -371,6 +373,10 @@ export async function GET() {
       totalSessionsCompleted,
       aiGenerated: schema.ai_generated,
       updatedAt: schema.updated_at,
+      progressionRules: schema.progression_rules,
+      qualityAudit: schema.quality_audit,
+      plannedWeeklyLoad: schema.planned_weekly_load,
+      sourceBlockReviewId: schema.source_block_review_id,
       schedule,
       weeks: enrichedWeeks,
     })
@@ -386,12 +392,17 @@ const ExerciseSchema = z.object({
   name: z.string().min(1),
   sets: z.number().int().positive().optional(),
   reps: z.string().optional(),
+  rest_seconds: z.number().int().nonnegative().optional(),
+  rpe: z.string().optional(),
+  tempo: z.string().optional(),
   notes: z.string().optional(),
 })
 
 const WorkoutScheduleItemSchema = z.object({
   day: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
   focus: z.string().min(1),
+  sport_type: z.enum(['gym', 'run', 'padel', 'rest']).optional(),
+  run_type: z.enum(['easy', 'interval', 'tempo', 'long']).optional(),
   exercises: z.array(ExerciseSchema).optional(),
   duration_min: z.number().int().positive().optional(),
 })

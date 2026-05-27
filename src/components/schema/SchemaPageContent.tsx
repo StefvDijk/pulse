@@ -54,6 +54,8 @@ export function SchemaPageContent() {
   const { data, error, isLoading, mutate } = useSchema()
   const { data: settings } = useSettings()
   const [calendarModalOpen, setCalendarModalOpen] = useState(false)
+  const [undoing, setUndoing] = useState(false)
+  const [undoError, setUndoError] = useState<string | null>(null)
 
   const calendarConnected = !!settings?.settings.google_calendar_email
 
@@ -108,6 +110,24 @@ export function SchemaPageContent() {
     refreshSchemaWeek()
   }
 
+  async function handleUndoBlockReview() {
+    setUndoing(true)
+    setUndoError(null)
+    try {
+      const res = await fetch('/api/block-review/undo', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Terugdraaien mislukt')
+      }
+      await mutate()
+      refreshSchemaWeek()
+    } catch (err) {
+      setUndoError((err as Error).message)
+    } finally {
+      setUndoing(false)
+    }
+  }
+
   // Derive ISO week number from the current week's first day
   const currentWeekData = data.weeks[data.currentWeek - 1]
   const weekLabel = currentWeekData?.days[0]?.date
@@ -132,6 +152,26 @@ export function SchemaPageContent() {
       />
 
       <div className="flex flex-col gap-3 px-4">
+        {data.sourceBlockReviewId && (
+          <div className="rounded-card-lg border border-status-warning/40 bg-status-warning/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[13px] font-medium text-text-primary">Net gestart</div>
+                <div className="text-[12px] text-text-secondary">Niet wat je bedoelde?</div>
+              </div>
+              <button
+                type="button"
+                onClick={handleUndoBlockReview}
+                disabled={undoing}
+                className="rounded-full border border-status-warning/60 px-3 py-1.5 text-[12px] text-status-warning disabled:opacity-40"
+              >
+                {undoing ? 'Bezig...' : 'Ongedaan maken'}
+              </button>
+            </div>
+            {undoError && <div className="mt-2 text-[12px] text-status-danger">{undoError}</div>}
+          </div>
+        )}
+
         {/* Block-level progress segments */}
         <SchemaProgress
           title={data.title}

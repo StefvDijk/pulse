@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import type { Database } from '@/types/database'
-import { Confetti } from './Confetti'
 import { GoalSparkline } from './GoalSparkline'
 
 type GoalRow = Database['public']['Tables']['goals']['Row']
@@ -53,24 +51,11 @@ export function GoalCard({ goal, onComplete, onDelete }: GoalCardProps) {
   const tone = CATEGORY_TONE[goal.category] ?? CATEGORY_TONE.general
   const isCompleted = goal.status === 'completed'
 
-  const wasCompletedRef = useRef(isCompleted)
-  const [showConfetti, setShowConfetti] = useState(false)
-
-  useEffect(() => {
-    if (isCompleted && !wasCompletedRef.current) {
-      setShowConfetti(true)
-      const timer = setTimeout(() => setShowConfetti(false), 2000)
-      return () => clearTimeout(timer)
-    }
-    wasCompletedRef.current = isCompleted
-  }, [isCompleted])
-
   return (
     <div
       className="relative overflow-hidden rounded-[18px] border-[0.5px] border-bg-border bg-bg-surface p-4"
       style={{ opacity: isCompleted ? 0.7 : 1 }}
     >
-      {showConfetti && <Confetti />}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-1.5">

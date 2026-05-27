@@ -5,32 +5,50 @@ import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { RichText } from '@/components/shared/RichText'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState, BlockReviewMessage } from '../types'
+import type { BlockReviewFormState, BlockReviewMessage, ProgramAudit } from '../types'
 
 type ConvMessage = BlockReviewMessage
 
 interface Props {
   data: BlockReviewData
   reflection: BlockReviewFormState['reflection']
+  newInBody: BlockReviewFormState['newInBody']
   conversation: BlockReviewMessage[]
   onConversationChange: (next: BlockReviewMessage[]) => void
-  onAnalysed: (analysis: string, proposal: unknown) => void
+  onAnalysed: (analysis: string, proposal: unknown, audit: ProgramAudit | null) => void
   stepIndex: number
   stepTotal: number
   onBack?: () => void
   onNext: () => void
 }
 
-function extractProposal(text: string): { clean: string; proposal: unknown | null } {
+function extractProposalAndAudit(text: string): { clean: string; proposal: unknown | null; audit: ProgramAudit | null } {
   const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(text)
-  if (!match) return { clean: text, proposal: null }
+  const auditMatch = /<program_audit>([\s\S]*?)<\/program_audit>/i.exec(text)
   let proposal: unknown = null
-  try {
-    proposal = JSON.parse(match[1].trim())
-  } catch {
-    proposal = null
+  let audit: ProgramAudit | null = null
+  if (match) {
+    try {
+      proposal = JSON.parse(match[1].trim())
+    } catch {
+      proposal = null
+    }
   }
-  return { clean: text.replace(match[0], '').trim(), proposal }
+  if (auditMatch) {
+    try {
+      audit = JSON.parse(auditMatch[1].trim()) as ProgramAudit
+    } catch {
+      audit = null
+    }
+  }
+  return {
+    clean: text
+      .replace(match?.[0] ?? '', '')
+      .replace(auditMatch?.[0] ?? '', '')
+      .trim(),
+    proposal,
+    audit,
+  }
 }
 
 function stripNuVragen(text: string): string {
@@ -44,6 +62,7 @@ function awaitsAnswer(text: string): boolean {
 export function AnalysisStep({
   data,
   reflection,
+  newInBody,
   conversation,
   onConversationChange,
   onAnalysed,
@@ -75,6 +94,7 @@ export function AnalysisStep({
         body: JSON.stringify({
           schema_id: data.schema.id,
           reflection,
+          new_in_body: newInBody,
           conversation: history,
         }),
         signal: controller.signal,
@@ -89,7 +109,7 @@ export function AnalysisStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const { clean, proposal: parsed } = extractProposal(acc)
+      const { clean, proposal: parsed, audit } = extractProposalAndAudit(acc)
       const assistantMessage: ConvMessage = { role: 'assistant', content: clean }
       onConversationChange([...history, assistantMessage])
       setStreaming('')
@@ -100,7 +120,7 @@ export function AnalysisStep({
         const transcript = [...history, assistantMessage]
           .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
           .join('\n\n')
-        onAnalysed(transcript, parsed)
+        onAnalysed(transcript, parsed, audit)
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return

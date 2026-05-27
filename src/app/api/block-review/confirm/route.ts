@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import type { Json } from '@/types/database'
+import { insertProgramSchema, validateProgramProposalForUser, type ProgramValidationResult } from '@/lib/training/program-save'
 
 const ConfirmSchema = z.object({
   schema_id: z.string().uuid(),
@@ -21,8 +22,11 @@ const ConfirmSchema = z.object({
     dropExercises: z.array(z.string()),
     biggestWin: z.string(),
     biggestMiss: z.string(),
-    injuryUpdates: z.record(z.string(), z.enum(['still_active', 'resolved'])),
-  }),
+    injuryUpdates: z.record(
+      z.string(),
+      z.enum(['still_active', 'resolved', 'verbeterd', 'stabiel', 'verergerd', 'flare_up_gehad', 'opgelost']),
+    ),
+  }).passthrough(),
   new_in_body: z
     .object({
       measuredAt: z.string(),
@@ -36,34 +40,7 @@ const ConfirmSchema = z.object({
     .nullable(),
   ai_analysis: z.string(),
   ai_schema_proposal: z.unknown().nullable(),
-  new_schema: z
-    .object({
-      title: z.string(),
-      schema_type: z.enum(['upper_lower', 'push_pull_legs', 'full_body', 'custom']),
-      weeks_planned: z.number().int().min(1).max(16),
-      start_date: z.string(),
-      workout_schedule: z.array(
-        z.object({
-          day: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
-          focus: z.string(),
-          duration_min: z.number().optional(),
-          exercises: z
-            .array(
-              z.object({
-                name: z.string(),
-                sets: z.number().optional(),
-                reps: z.string().optional(),
-                rest_seconds: z.number().int().nonnegative().optional(),
-                rpe: z.union([z.string(), z.number()]).optional(),
-                tempo: z.string().optional(),
-                notes: z.string().optional(),
-              }),
-            )
-            .optional(),
-        }),
-      ),
-    })
-    .nullable(),
+  new_schema: z.unknown().nullable(),
   selected_goal_ids: z.array(z.string().uuid()),
   dry_run: z.boolean().default(false),
 })
@@ -101,7 +78,7 @@ export async function POST(request: Request) {
 
     const { data: owned } = await admin
       .from('training_schemas')
-      .select('id')
+      .select('id, workout_schedule')
       .eq('id', schema_id)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -111,6 +88,22 @@ export async function POST(request: Request) {
 
     // 1) Aggregate snapshot for the snapshot fields
     const aggregate = await aggregateBlockData(admin, user.id, schema_id)
+    let validation: ProgramValidationResult | null = null
+    if (new_schema) {
+      validation = await validateProgramProposalForUser({
+        admin,
+        userId: user.id,
+        proposal: new_schema,
+        previousScheduleRaw: owned.workout_schedule,
+        acwrWeekEnd: aggregate.schema.endDate,
+      })
+      if (validation.audit.hasBlockers) {
+        return NextResponse.json(
+          { error: 'Schema bevat blockers', code: 'PROGRAM_AUDIT_BLOCKED', audit: validation.audit },
+          { status: 422 },
+        )
+      }
+    }
 
     // 2) Insert block_review row (status confirmed)
     const { data: review, error: reviewErr } = await admin
@@ -128,9 +121,15 @@ export async function POST(request: Request) {
         biggest_win: reflection.biggestWin || null,
         biggest_miss: reflection.biggestMiss || null,
         injury_updates: reflection.injuryUpdates as unknown as Json,
+        exercise_verdicts: ((reflection as { exerciseVerdicts?: unknown }).exerciseVerdicts ?? []) as unknown as Json,
+        missed_sessions: ((reflection as { missedSessions?: unknown }).missedSessions ?? []) as unknown as Json,
         performance_snapshot: {
           totals: aggregate.totals,
           templateAdherence: aggregate.templateAdherence,
+          weeklyMuscleVolume: aggregate.weeklyMuscleVolume,
+          movementPatternVolume: aggregate.movementPatternVolume,
+          sportBreakdown: aggregate.sportBreakdown,
+          sportLoadTrend: aggregate.sportLoadTrend,
           exerciseProgressions: aggregate.exerciseProgressions,
           personalRecords: aggregate.personalRecords,
         } as unknown as Json,
@@ -140,6 +139,7 @@ export async function POST(request: Request) {
         } as unknown as Json,
         ai_analysis,
         ai_schema_proposal: (ai_schema_proposal ?? null) as Json | null,
+        trainer_audit: (validation?.audit ?? {}) as unknown as Json,
         confirmed_at: new Date().toISOString(),
       })
       .select('id')
@@ -164,24 +164,17 @@ export async function POST(request: Request) {
 
     // 4) Insert new schema first (is_active=false). If this fails, old schema stays active.
     let newSchemaId: string | null = null
-    if (new_schema) {
-      const { data: inserted, error: insertErr } = await admin
-        .from('training_schemas')
-        .insert({
-          user_id: user.id,
-          title: new_schema.title,
-          schema_type: new_schema.schema_type,
-          weeks_planned: new_schema.weeks_planned,
-          start_date: new_schema.start_date,
-          workout_schedule: new_schema.workout_schedule as unknown as Json,
-          is_active: false,
-          ai_generated: true,
-          generation_context: `Block review ${review.id}`,
-        })
-        .select('id')
-        .single()
-      if (insertErr || !inserted) throw insertErr ?? new Error('new schema insert failed')
-      newSchemaId = inserted.id
+    if (validation) {
+      newSchemaId = await insertProgramSchema({
+        admin,
+        userId: user.id,
+        proposal: validation.proposal,
+        audit: validation.audit,
+        plannedWeeklyLoad: validation.plannedWeeklyLoad,
+        sourceBlockReviewId: review.id,
+        generationContext: `Block review ${review.id}`,
+        isActive: false,
+      })
     }
 
     // 5) Write summary row for old schema (non-fatal)

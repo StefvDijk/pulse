@@ -49,7 +49,7 @@ export async function GET() {
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStr = toAmsterdamDate(yesterday)
 
-    const [activityToday, activityYesterday, hrvBaseline, sleepBaseline, rhrBaseline, weekly] =
+    const [activityToday, activityYesterday, sleepToday, sleepYesterday, hrvBaseline, sleepBaseline, rhrBaseline, weekly] =
       await Promise.all([
         admin
           .from('daily_activity')
@@ -60,6 +60,18 @@ export async function GET() {
         admin
           .from('daily_activity')
           .select('hrv_average, resting_heart_rate')
+          .eq('user_id', user.id)
+          .eq('date', yesterdayStr)
+          .maybeSingle(),
+        admin
+          .from('sleep_logs')
+          .select('total_sleep_minutes')
+          .eq('user_id', user.id)
+          .eq('date', todayStr)
+          .maybeSingle(),
+        admin
+          .from('sleep_logs')
+          .select('total_sleep_minutes')
           .eq('user_id', user.id)
           .eq('date', yesterdayStr)
           .maybeSingle(),
@@ -99,7 +111,8 @@ export async function GET() {
     const activity = activityToday.data ?? activityYesterday.data
     const hrv = activity?.hrv_average ?? null
     const rhr = activity?.resting_heart_rate ?? null
-    const sleepMinutes: number | null = null // sleep_logs not yet ingested separately
+    const sleepMinutes =
+      sleepToday.data?.total_sleep_minutes ?? sleepYesterday.data?.total_sleep_minutes ?? null
     const acwr = weekly.data?.acute_chronic_ratio ?? null
 
     const hrvBase = hrvBaseline.data?.value_30d_avg ?? null

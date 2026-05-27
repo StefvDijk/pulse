@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useProgressData } from '@/hooks/useProgressData'
 import { useExerciseList } from '@/hooks/useExerciseList'
 import { useExerciseProgress } from '@/hooks/useExerciseProgress'
@@ -23,7 +23,8 @@ export function ProgressPage() {
   const { data: progressData, isLoading: progressLoading, error: progressError, refresh } = useProgressData(period)
   const { exercises, isLoading: exercisesLoading } = useExerciseList()
   const { bigLifts } = useBigLifts()
-  const { data: exerciseProgress, isLoading: chartLoading } = useExerciseProgress(selectedExercise)
+  const effectiveSelectedExercise = selectedExercise ?? exercises[0]?.name ?? null
+  const { data: exerciseProgress, isLoading: chartLoading } = useExerciseProgress(effectiveSelectedExercise)
 
   const handleBigLiftSelect = (name: string) => {
     setSelectedExercise(name)
@@ -31,13 +32,6 @@ export function ProgressPage() {
       chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }
-
-  // Auto-select first exercise when list loads
-  useEffect(() => {
-    if (!selectedExercise && exercises.length > 0) {
-      setSelectedExercise(exercises[0].name)
-    }
-  }, [exercises, selectedExercise])
 
   const isLoading = progressLoading || exercisesLoading
 
@@ -110,7 +104,7 @@ export function ProgressPage() {
                 <div className="flex flex-col gap-4">
                   <ExercisePicker
                     exercises={exercises}
-                    selected={selectedExercise}
+                    selected={effectiveSelectedExercise}
                     onSelect={setSelectedExercise}
                   />
                   {chartLoading ? (

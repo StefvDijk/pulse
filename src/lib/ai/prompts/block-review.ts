@@ -148,7 +148,10 @@ export function buildBlockReviewPrompt({
 }: BuildBlockReviewPromptParams): BlockReviewPrompt {
   // -- per-call dynamic content (varies per turn) -----------------------------
   const ratings = form.reflection.templateRatings
-    .map((t) => `- ${t.focus}: ${t.rating ?? '—'}${t.note ? ` ("${t.note}")` : ''}`)
+    .map(
+      (t) =>
+        `- ${t.focus}: algemeen ${t.rating ?? '—'} · volume ${t.volume ?? '—'} · intensiteit ${t.intensity ?? '—'} · motivatie ${t.motivation ?? '—'} · herstel ${t.recovery_cost ?? '—'} · tijdsdruk ${t.time_pressure ? 'ja' : 'nee'}${t.note ? ` ("${t.note}")` : ''}`,
+    )
     .join('\n')
 
   const currentExercises = data.exerciseProgressions
@@ -181,9 +184,20 @@ Periode: ${data.schema.startDate} → ${data.schema.endDate}
 ${data.totals.completedSessions}/${data.totals.plannedSessions} sessies (${data.totals.adherencePct ?? '?'}%)
 Gym: ${data.totals.gymSessions} · Hardloop: ${data.totals.runs}× / ${data.totals.runKm}km · Padel: ${data.totals.padelSessions}×
 Tonnage: ${data.totals.totalTonnageKg.toLocaleString('nl-NL')}kg
+Sport breakdown: ${JSON.stringify(data.sportBreakdown)}
+ACWR: huidig ${data.currentACWR ?? '?'} · projectie zelfde volume ${data.projectedNextBlockACWR ?? '?'}
 
 ## Per workout template
 ${data.templateAdherence.map((t) => `- ${t.focus}: ${t.completed}/${t.planned} (${t.adherencePct ?? '?'}%)`).join('\n')}
+
+## Spiergroepvolume per week (working sets, primary muscle)
+${JSON.stringify(data.weeklyMuscleVolume)}
+
+## Movement-pattern volume per week
+${JSON.stringify(data.movementPatternVolume)}
+
+## Sport-load trend per week
+${JSON.stringify(data.sportLoadTrend)}
 
 ## Oefening-progressie (top 20 op delta)
 ${currentExercises || '(geen progressie-data)'}
@@ -193,6 +207,9 @@ ${bodyLine}
 
 ## Wellness-gemiddelde dit blok
 Energie ${data.wellnessAverages.feeling ?? '?'}/5 · Slaap-kwaliteit ${data.wellnessAverages.sleepQuality ?? '?'}/5 (n=${data.wellnessAverages.checkinCount} check-ins)
+
+## Wellness trend per week
+${JSON.stringify(data.weeklyWellness)}
 
 ## Actieve blessures
 ${injuries || '(geen)'}
@@ -210,6 +227,12 @@ ${form.reflection.keepExercises.join(', ') || '(geen)'}
 
 ## Weg / vervangen
 ${form.reflection.dropExercises.join(', ') || '(geen)'}
+
+## Exercise verdicts
+${form.reflection.exerciseVerdicts?.length ? JSON.stringify(form.reflection.exerciseVerdicts) : '(geen)'}
+
+## Gemiste sessies met reden
+${form.reflection.missedSessions?.length ? JSON.stringify(form.reflection.missedSessions) : '(geen)'}
 
 ## Grootste win
 ${form.reflection.biggestWin || '(niet ingevuld)'}
@@ -246,6 +269,8 @@ Lees Stefs profiel-blessures + actieve blessures hierboven. Bovendien deze struc
 - Roteer ten minste 30% van de oefeningen vs vorig blok (anti-staleness, leer-stimulus)
 - Deload elke 3-4 weken (verlaag volume 40-50%, of intensiteit, niet beide)
 - Voor elke oefening: VERPLICHT \`sets\`, \`reps\` (range), \`rest_seconds\`, \`rpe\`, \`notes\`. Optioneel \`tempo\`.
+- Voor elke sessie: VERPLICHT \`sport_type\` = gym/run/padel/rest. Voor run liefst ook \`run_type\` = easy/interval/tempo/long.
+- Lever \`progression\` en \`coach_rationale\` exact volgens contract.
 - start_date = eerstvolgende maandag NA de \`endDate\` uit het DIT BLOK gedeelte
 - exercises moeten echte herkenbare namen zijn die Hevy kent`
 
@@ -286,6 +311,7 @@ Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + A
     {
       "day": "monday",
       "focus": "Upper A",
+      "sport_type": "gym",
       "duration_min": 55,
       "exercises": [
         {
@@ -299,6 +325,15 @@ Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + A
         }
       ]
     }
+  ],
+  "progression": {
+    "protocol": "double_progression",
+    "deload_week": 4,
+    "deload_strategy": "volume",
+    "overload_increment_kg": 2.5
+  },
+  "coach_rationale": [
+    "5-8 korte bullets met de ontwerp-logica"
   ]
 }
 </block_proposal>

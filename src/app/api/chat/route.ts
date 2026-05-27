@@ -13,6 +13,7 @@ import { selectSkills, extractContextHints } from '@/lib/ai/skills/router'
 import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
+import { insertProgramSchema, validateProgramProposalForUser } from '@/lib/training/program-save'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -86,6 +87,8 @@ interface SchemaGenerationData {
   weeks_planned: number
   start_date: string
   workout_schedule: unknown
+  progression?: unknown
+  coach_rationale?: unknown
 }
 
 interface SchemaUpdateData {
@@ -287,7 +290,7 @@ export async function POST(request: Request) {
             assembleThinContext(user.id),
             admin
               .from('training_schemas')
-              .select('title, schema_type, weeks_planned, start_date')
+              .select('id, title, schema_type, weeks_planned, start_date, workout_schedule')
               .eq('user_id', user.id)
               .eq('is_active', true)
               .maybeSingle(),
@@ -469,39 +472,40 @@ export async function POST(request: Request) {
           // INSERT fails (e.g. validation error, CHECK constraint violation).
           if (schemaGeneration?.title) {
             try {
-              const allowedSchemaTypes = ['upper_lower', 'push_pull_legs', 'full_body', 'custom'] as const
-              const requestedType = schemaGeneration.schema_type as typeof allowedSchemaTypes[number]
-              const safeSchemaType = (allowedSchemaTypes as readonly string[]).includes(requestedType)
-                ? requestedType
-                : 'custom'
-
-              const { data: inserted, error: insertError } = await admin
-                .from('training_schemas')
-                .insert({
-                  user_id: user.id,
-                  title: schemaGeneration.title,
-                  schema_type: safeSchemaType,
-                  weeks_planned: schemaGeneration.weeks_planned ?? 8,
-                  start_date: schemaGeneration.start_date ?? todayAmsterdam(),
-                  workout_schedule: (schemaGeneration.workout_schedule ?? []) as import('@/types/database').Json,
-                  is_active: false,
-                  ai_generated: true,
-                })
-                .select('id')
-                .single()
-
-              if (insertError || !inserted) {
-                throw insertError ?? new Error('Insert returned no row')
-              }
-
               // Capture the old active schema id (if any) BEFORE deactivating, so we can write a summary row.
               const { data: oldActive } = await admin
                 .from('training_schemas')
-                .select('id')
+                .select('id, workout_schedule')
                 .eq('user_id', user.id)
                 .eq('is_active', true)
-                .neq('id', inserted.id)
                 .maybeSingle()
+
+              const validation = await validateProgramProposalForUser({
+                admin,
+                userId: user.id,
+                proposal: schemaGeneration,
+                previousScheduleRaw: oldActive?.workout_schedule,
+              })
+
+              if (validation.audit.hasBlockers) {
+                const blockerText = `\n\nSchema niet opgeslagen: ${validation.audit.items
+                  .filter((i) => i.severity === 'blocker')
+                  .map((i) => i.message)
+                  .join(' ')}`
+                fullResponse += blockerText
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(blockerText)}\n\n`))
+                throw new Error('Generated schema blocked by program audit')
+              }
+
+              const newSchemaId = await insertProgramSchema({
+                admin,
+                userId: user.id,
+                proposal: validation.proposal,
+                audit: validation.audit,
+                plannedWeeklyLoad: validation.plannedWeeklyLoad,
+                generationContext: 'Chat schema generation',
+                isActive: false,
+              })
 
               // Deactivate previous active schemas, then activate the new one.
               const { error: deactivateError } = await admin
@@ -509,14 +513,14 @@ export async function POST(request: Request) {
                 .update({ is_active: false })
                 .eq('user_id', user.id)
                 .eq('is_active', true)
-                .neq('id', inserted.id)
+                .neq('id', newSchemaId)
 
               if (deactivateError) throw deactivateError
 
               const { error: activateError } = await admin
                 .from('training_schemas')
                 .update({ is_active: true })
-                .eq('id', inserted.id)
+                .eq('id', newSchemaId)
 
               if (activateError) throw activateError
 

@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getCurrentUserId } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
 import { OnboardingWizard } from './OnboardingWizard'
 
 export async function OnboardingCheck() {
@@ -12,7 +12,13 @@ export async function OnboardingCheck() {
     const pathname = h.get('x-pathname') ?? h.get('next-url') ?? ''
     if (pathname.startsWith('/auth')) return null
 
-    const userId = getCurrentUserId()
+    const supabaseAuth = await createClient()
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser()
+    if (!user) return null
+
+    const userId = user.id
     const supabase = createAdminClient()
 
     const { data: profile } = await supabase

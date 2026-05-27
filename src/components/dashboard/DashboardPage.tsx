@@ -21,6 +21,7 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
 import Link from 'next/link'
 import { InboxBell } from '@/components/coach/InboxBell'
+import { calculateReadinessScore } from '@/lib/readiness/score'
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -113,8 +114,17 @@ export function DashboardPage() {
     )
   }
 
-  const score = readinessScore(readiness?.level)
-  const { label: readinessLbl, tone } = readinessLabel(readiness?.level)
+  const fallbackScore = readiness
+    ? calculateReadinessScore({
+        acwr: readiness.acwr,
+        sleepMinutes: readiness.sleepMinutes,
+        recentSessions: readiness.recentSessions,
+        todayWorkout: readiness.todayWorkout,
+      }).score
+    : readinessScore(undefined)
+  const score = summary?.score ?? fallbackScore
+  const readinessLevel = summary?.level ?? readiness?.level
+  const { label: readinessLbl, tone } = readinessLabel(readinessLevel)
   const ratio = workload?.ratio ?? readiness?.acwr ?? null
   const ratioPct = ratio !== null ? Math.max(0, Math.min(1, ratio / 2.0)) : 0.5
 

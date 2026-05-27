@@ -1,10 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { Navigation } from '@/components/layout/Navigation'
-import { MiniChat } from '@/components/layout/MiniChat'
-import { OnboardingCheck } from '@/components/settings/OnboardingCheck'
-import { TimeOfDayTheme } from '@/components/shared/TimeOfDayTheme'
-import { SWRProvider } from '@/components/providers/SWRProvider'
-import { InstallPrompt } from '@/components/shared/InstallPrompt'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -37,17 +31,7 @@ export default function RootLayout({
   return (
     <html lang="nl" className="h-full dark">
       <body className="min-h-full bg-bg-grouped">
-        <SWRProvider>
-          <TimeOfDayTheme />
-          <Navigation />
-          {/* Desktop: offset voor sidebar. Mobile: ruimte voor dynamische tab bar incl. safe-area-bottom. */}
-          <main className="lg:pl-56 pb-[var(--nav-height)] min-h-[100dvh] pt-safe pl-safe pr-safe">
-            {children}
-          </main>
-          <MiniChat />
-          <OnboardingCheck />
-          <InstallPrompt />
-        </SWRProvider>
+        {children}
       </body>
     </html>
   )

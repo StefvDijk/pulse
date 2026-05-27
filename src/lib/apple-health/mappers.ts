@@ -1,8 +1,9 @@
 import type { Database } from '@/types/database'
-import type { ParsedRun, ParsedPadel, ParsedDailyActivity } from '@/lib/apple-health/types'
+import type { ParsedRun, ParsedPadel, ParsedWalk, ParsedDailyActivity } from '@/lib/apple-health/types'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelSessionInsert = Database['public']['Tables']['padel_sessions']['Insert']
+type WalkInsert = Database['public']['Tables']['walks']['Insert']
 type DailyActivityInsert = Database['public']['Tables']['daily_activity']['Insert']
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,38 @@ export function mapPadelSession(
       : null,
     intensity: classifyIntensity(parsed.avgHeartRate),
     session_type: 'match',
+    notes: null,
+  }
+}
+
+/**
+ * Map a parsed Apple Health walk to a walks table Insert object.
+ * Walks are intentionally kept out of the runs table and run-derived load.
+ */
+export function mapWalk(parsed: ParsedWalk, userId: string): WalkInsert {
+  return {
+    user_id: userId,
+    apple_health_id: parsed.appleHealthId ?? null,
+    source: 'apple_health',
+    started_at: parsed.startedAt,
+    ended_at: parsed.endedAt ?? null,
+    duration_seconds: Math.round(parsed.durationSeconds ?? 0),
+    distance_meters: parsed.distanceMeters ?? 0,
+    avg_pace_seconds_per_km: computePace(
+      parsed.durationSeconds,
+      parsed.distanceMeters,
+    ),
+    calories_burned: parsed.calories != null
+      ? Math.round(parsed.calories)
+      : null,
+    avg_heart_rate: parsed.avgHeartRate
+      ? Math.round(parsed.avgHeartRate)
+      : null,
+    max_heart_rate: parsed.maxHeartRate
+      ? Math.round(parsed.maxHeartRate)
+      : null,
+    elevation_gain_meters: null,
+    activity_subtype: parsed.name,
     notes: null,
   }
 }

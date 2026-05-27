@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 
@@ -16,17 +16,15 @@ export interface CoachCardProps {
 
 export function CoachCard({ signalId, text }: CoachCardProps) {
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const stored = window.localStorage.getItem(STORAGE_PREFIX + signalId)
-    setCollapsed(stored === '1')
-  }, [signalId])
+  const [collapsedBySignal, setCollapsedBySignal] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {}
+    return { [signalId]: window.localStorage.getItem(STORAGE_PREFIX + signalId) === '1' }
+  })
+  const collapsed = collapsedBySignal[signalId] ?? false
 
   const persist = useCallback(
     (next: boolean) => {
-      setCollapsed(next)
+      setCollapsedBySignal((current) => ({ ...current, [signalId]: next }))
       if (typeof window === 'undefined') return
       const key = STORAGE_PREFIX + signalId
       if (next) {

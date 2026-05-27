@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { listActivities, type StravaSummaryActivity } from '@/lib/strava/api'
 import { deriveRunsFromStrava } from '@/lib/strava/derive-runs'
+import { deriveWalksFromStrava } from '@/lib/strava/derive-walks'
 import type { Database } from '@/types/database'
 
 // Manual sync — pulls Strava activities for a recent window and upserts them
@@ -75,13 +76,6 @@ export async function POST(request: Request) {
     const days = parsed.data.days ?? 30
     const after = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60
 
-    console.log('[strava/sync] start', {
-      user: user.id,
-      days,
-      afterUnix: after,
-      afterIso: new Date(after * 1000).toISOString(),
-    })
-
     // Paginate to be safe — a heavy user can have >100 activities in a month.
     // Strava caps per_page at 200; we cap total fetched here to 600 (3 pages)
     // to stay well under 100 reads/15min.
@@ -89,15 +83,6 @@ export async function POST(request: Request) {
     const perPage = 200
     for (let page = 1; page <= 3; page += 1) {
       const batch = await listActivities(user.id, { after, perPage, page })
-      console.log('[strava/sync] page', page, 'got', batch.length, 'activities')
-      if (page === 1 && batch.length > 0) {
-        console.log('[strava/sync] first activity sample:', {
-          id: batch[0].id,
-          type: batch[0].type,
-          name: batch[0].name,
-          start: batch[0].start_date,
-        })
-      }
       allActivities.push(...batch)
       if (batch.length < perPage) break
     }
@@ -121,14 +106,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Derive `runs` rows from the freshly-cached Strava activities. This step
-    // is idempotent — re-running updates already-linked rows and leaves the
-    // rest untouched. Failures here shouldn't undo the upsert above.
-    let derive: { scanned: number; matched: number; inserted: number } | null = null
+    // Derive `runs` and `walks` from the freshly-cached Strava activities.
+    // Idempotent — re-running updates already-linked rows and leaves the rest
+    // untouched. Failures here shouldn't undo the upsert above.
+    let derivedRuns: { scanned: number; matched: number; inserted: number } | null = null
+    let derivedWalks: { scanned: number; matched: number; inserted: number } | null = null
     try {
-      derive = await deriveRunsFromStrava(user.id, admin)
+      derivedRuns = await deriveRunsFromStrava(user.id, admin)
     } catch (deriveErr) {
-      console.error('[strava/sync] derive failed:', deriveErr)
+      console.error('[strava/sync] derive runs failed:', deriveErr)
+    }
+    try {
+      derivedWalks = await deriveWalksFromStrava(user.id, admin)
+    } catch (deriveErr) {
+      console.error('[strava/sync] derive walks failed:', deriveErr)
     }
 
     await touchLastSync(user.id)
@@ -136,7 +127,8 @@ export async function POST(request: Request) {
       ok: true,
       fetched: allActivities.length,
       synced: data?.length ?? 0,
-      derived_runs: derive,
+      derived_runs: derivedRuns,
+      derived_walks: derivedWalks,
       days,
     })
   } catch (err) {

@@ -16,7 +16,7 @@ interface SchemaBlockHeaderProps {
   phaseName?: string
 }
 
-export interface SchemaBlockHeaderPropsExport extends SchemaBlockHeaderProps {}
+export type SchemaBlockHeaderPropsExport = SchemaBlockHeaderProps
 
 export function SchemaBlockHeader({
   title,

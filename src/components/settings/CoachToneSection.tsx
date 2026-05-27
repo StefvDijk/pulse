@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useSaveStatus, SectionHeader } from './shared'
 
 export type CoachTone = 'direct' | 'friendly' | 'scientific'
@@ -35,15 +34,10 @@ const OPTIONS: ToneOption[] = [
 ]
 
 export function CoachToneSection({ currentValue, onSaved }: CoachToneSectionProps) {
-  const [value, setValue] = useState<CoachTone>(currentValue ?? 'direct')
   const [, save] = useSaveStatus()
-
-  useEffect(() => {
-    setValue(currentValue ?? 'direct')
-  }, [currentValue])
+  const value = currentValue ?? 'direct'
 
   function handleChange(next: CoachTone) {
-    setValue(next)
     save(async () => {
       const res = await fetch('/api/settings', {
         method: 'PATCH',

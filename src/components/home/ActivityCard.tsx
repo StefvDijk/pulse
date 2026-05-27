@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Dumbbell, Footprints, Trophy, Clock, Flame, Heart, MapPin, Gauge } from 'lucide-react'
+import { Dumbbell, Footprints, Trophy, Clock, Flame, Heart, MapPin, Gauge, Mountain } from 'lucide-react'
 import { MuscleGroupDot } from './MuscleGroupDot'
 import type { ActivityItem } from '@/hooks/useActivityFeed'
 
@@ -65,6 +65,12 @@ const SPORT_CONFIG = {
     bg: 'bg-[var(--color-status-warn)]/10',
     border: 'border-system-yellow/20',
   },
+  walk: {
+    icon: Mountain,
+    color: 'text-text-secondary',
+    bg: 'bg-text-secondary/10',
+    border: 'border-bg-border',
+  },
 } as const
 
 /* ── Component ───────────────────────────────────────────── */
@@ -110,14 +116,14 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
           </span>
         )}
 
-        {/* Run-specific stats */}
-        {activity.type === 'run' && activity.distance_meters != null && (
+        {/* Run / Walk distance + pace */}
+        {(activity.type === 'run' || activity.type === 'walk') && activity.distance_meters != null && (
           <span className={`flex items-center gap-1 text-xs font-medium ${config.color}`}>
             <MapPin size={11} />
             {formatDistance(activity.distance_meters)}
           </span>
         )}
-        {activity.type === 'run' && activity.avg_pace_seconds_per_km != null && (
+        {(activity.type === 'run' || activity.type === 'walk') && activity.avg_pace_seconds_per_km != null && (
           <span className="text-xs tabular-nums text-text-secondary">
             {formatPace(activity.avg_pace_seconds_per_km)}
           </span>

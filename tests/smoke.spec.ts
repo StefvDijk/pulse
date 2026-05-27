@@ -6,6 +6,7 @@ test.describe('Smoke tests — public routes', () => {
     await expect(page).toHaveURL(/\/auth\/login/)
     await expect(page.locator('input[type="email"]')).toBeVisible()
     await expect(page.locator('input[type="password"]')).toBeVisible()
+    await expect(page.locator('nav[aria-label="Hoofdnavigatie"]')).toHaveCount(0)
   })
 
   test('unauthenticated access to / redirects to login', async ({ page }) => {

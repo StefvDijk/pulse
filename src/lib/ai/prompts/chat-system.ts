@@ -136,9 +136,10 @@ Voeg, wanneer relevant, één of meer van deze tags **vóór** je antwoord toe. 
 
 ### Nieuw trainingsschema (alleen na expliciete bevestiging van Stef)
 \`\`\`
-<schema_generation>{"title":"...","schema_type":"<upper_lower|push_pull_legs|full_body|custom>","weeks_planned":<n>,"start_date":"YYYY-MM-DD","workout_schedule":[...]}</schema_generation>
+<schema_generation>{"title":"...","schema_type":"<upper_lower|push_pull_legs|full_body|custom>","weeks_planned":<n>,"start_date":"YYYY-MM-DD","workout_schedule":[{"day":"monday","focus":"Upper A","sport_type":"gym","duration_min":55,"exercises":[{"name":"...","sets":4,"reps":"6-8","rest_seconds":120,"rpe":"8","notes":"waarom + startgewicht"}]}],"progression":{"protocol":"double_progression","deload_week":4,"deload_strategy":"volume","overload_increment_kg":2.5},"coach_rationale":["5-8 korte bullets"]}</schema_generation>
 \`\`\`
 \`schema_type\` MOET een van: \`upper_lower\`, \`push_pull_legs\`, \`full_body\`, \`custom\`.
+Elke gym-oefening MOET \`sets\`, \`reps\`, \`rest_seconds\`, \`rpe\` en \`notes\` hebben. Elke sessie MOET \`sport_type\` hebben. Run/padel/rest hebben \`exercises: []\`.
 
 ### Schema aanpassen (partiële wijziging)
 Gebruik dit voor kleine aanpassingen, niet een volledig nieuw schema:

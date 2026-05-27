@@ -1,18 +1,22 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { Brain, RefreshCcw, X } from 'lucide-react'
 import { InboxCard } from './InboxCard'
 import type { CoachInboxItem } from './types'
 
 interface Props {
   items: CoachInboxItem[]
+  isLoading?: boolean
+  isError?: boolean
   onClose: () => void
   onMutate: () => void
 }
 
 const PRIORITY_ORDER: Record<CoachInboxItem['priority'], number> = { high: 0, medium: 1, low: 2 }
 
-export function InboxList({ items, onClose, onMutate }: Props) {
+export function InboxList({ items, isLoading = false, isError = false, onClose, onMutate }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,25 +34,63 @@ export function InboxList({ items, onClose, onMutate }: Props) {
   })
 
   return (
-    <div
-      ref={ref}
-      className="absolute right-0 top-11 z-50 max-h-[70vh] w-[340px] overflow-y-auto rounded-[18px] border border-white/5 bg-[#15171F] p-3 shadow-xl"
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Coach-inbox</h3>
-        <button type="button" onClick={onClose} className="text-white/40 hover:text-white" aria-label="Sluit">
-          ×
-        </button>
-      </div>
-      {sorted.length === 0 ? (
-        <p className="px-1 py-4 text-xs text-white/50">Niets om over te lezen — de coach houdt zich gedeisd.</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {sorted.map((item) => (
-            <InboxCard key={item.id} item={item} onChanged={onMutate} />
-          ))}
+    <>
+      <button
+        type="button"
+        className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm lg:hidden"
+        onClick={onClose}
+        aria-label="Sluit coach-inbox"
+      />
+      <div
+        ref={ref}
+        className={[
+          'fixed inset-x-3 bottom-[calc(var(--nav-height)+12px)] z-[60]',
+          'max-h-[min(70dvh,520px)] overflow-y-auto rounded-[22px]',
+          'border border-white/5 bg-[#15171F] p-3 shadow-2xl',
+          'lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-12',
+          'lg:max-h-[70vh] lg:w-[360px] lg:rounded-[18px]',
+        ].join(' ')}
+      >
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Coach-inbox</h3>
+            <Link
+              href="/coach/beliefs"
+              onClick={onClose}
+              className="mt-1 inline-flex items-center gap-1 text-[11px] text-white/45 hover:text-white/75"
+            >
+              <Brain size={12} strokeWidth={1.8} />
+              Hypotheses
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-white/45 hover:bg-white/5 hover:text-white"
+            aria-label="Sluit"
+          >
+            <X size={18} />
+          </button>
         </div>
-      )}
-    </div>
+        {isLoading ? (
+          <div className="flex items-center gap-2 px-1 py-4 text-xs text-white/50">
+            <RefreshCcw size={14} className="animate-spin" />
+            Laden...
+          </div>
+        ) : isError ? (
+          <div className="rounded-[14px] border border-[#FF5E3A]/20 bg-[#FF5E3A]/10 px-3 py-3 text-xs text-[#FFB39F]">
+            Coach-inbox kon niet laden.
+          </div>
+        ) : sorted.length === 0 ? (
+          <p className="px-1 py-4 text-xs text-white/50">Geen coach-meldingen.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {sorted.map((item) => (
+              <InboxCard key={item.id} item={item} onChanged={onMutate} />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
