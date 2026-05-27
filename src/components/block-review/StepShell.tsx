@@ -26,7 +26,7 @@ export function StepShell({
   children,
 }: StepShellProps) {
   return (
-    <div className="flex flex-col min-h-dvh bg-bg-base pb-24">
+    <div className="flex flex-col min-h-dvh bg-bg-base pb-44">
       <div className="sticky top-0 z-10 px-4 pt-[64px] pb-3 bg-bg-base/95 backdrop-blur">
         <div className="flex items-center gap-2 text-[12px] text-text-tertiary">
           {onBack && (

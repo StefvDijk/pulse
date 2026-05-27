@@ -68,6 +68,7 @@ const ReqSchema = z.object({
   }).passthrough(),
   new_in_body: z.unknown().nullable().optional(),
   repair_audit: z.unknown().nullable().optional(),
+  current_proposal: z.unknown().nullable().optional(),
 })
 
 function extractBlockProposal(text: string): unknown | null {
@@ -148,6 +149,7 @@ export async function POST(request: Request) {
         endReason: 'completed',
       },
       conversation: parsed.data.conversation,
+      currentProposal: parsed.data.current_proposal ?? undefined,
     })
     const userPrompt = parsed.data.repair_audit
       ? `${userPromptBase}\n\n# AUDIT DIE JE MOET HERSTELLEN\n${JSON.stringify(parsed.data.repair_audit)}\n\nLever een nieuw voorstel dat deze audit oplost.`

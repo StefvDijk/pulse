@@ -140,6 +140,7 @@ export function NextBlockStep({
           reflection: form.reflection,
           new_in_body: form.newInBody,
           conversation: newHistory,
+          current_proposal: form.aiSchemaProposal ?? null,
         }),
       })
       if (!res.ok || !res.body) throw new Error('Coach reageerde niet')

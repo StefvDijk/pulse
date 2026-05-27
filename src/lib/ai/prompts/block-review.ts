@@ -11,6 +11,7 @@ interface BuildBlockReviewPromptParams {
   data: BlockReviewData
   form: BlockReviewFormState
   conversation: BlockReviewMessage[]
+  currentProposal?: unknown
 }
 
 function formatJsonOrSkip(label: string, value: unknown): string {
@@ -145,6 +146,7 @@ export function buildBlockReviewPrompt({
   data,
   form,
   conversation,
+  currentProposal,
 }: BuildBlockReviewPromptParams): BlockReviewPrompt {
   // -- per-call dynamic content (varies per turn) -----------------------------
   const ratings = form.reflection.templateRatings
@@ -240,10 +242,15 @@ ${form.reflection.biggestWin || '(niet ingevuld)'}
 ## Grootste tegenvaller
 ${form.reflection.biggestMiss || '(niet ingevuld)'}`
 
+  const refinementHeader = currentProposal
+    ? `\n\n# HUIDIG SCHEMA-VOORSTEL (dit is een VERFIJNING — gebruik ALTIJD Optie B)\n\`\`\`json\n${JSON.stringify(currentProposal, null, 2)}\n\`\`\``
+    : ''
+
   const transcript =
     conversation.length === 0
       ? '\n\n# DIT IS DE EERSTE BEURT (nog geen gesprek)\n\nReageer nu volgens de WERKWIJZE.'
-      : '\n\n# GESPREK TOT NU TOE\n\n' +
+      : refinementHeader +
+        '\n\n# GESPREK TOT NU TOE\n\n' +
         conversation
           .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
           .join('\n\n') +
@@ -293,6 +300,8 @@ Je hebt twee opties elke beurt:
 **Hoe je beslist:** ga voor Optie A zolang er nog ONBEKENDE keuzes zijn waar het schema-ontwerp van afhangt. Ga voor Optie B zodra je elke kritische keuze kunt invullen met onderbouwing.
 
 Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + ANALYSE-VAN-DIT-BLOK voordat je vragen stelt of het schema levert. Latere beurten: ga direct in op Stefs antwoord.
+
+**VERFIJN-MODUS (geldt als er al een voorstel bestaat):** Als er al een \`<block_proposal>\` is geleverd en Stef vraagt om een aanpassing, gebruik dan ALTIJD Optie B. Verwerk de aanpassing direct in een volledig nieuw voorstel. Stel GEEN verdere vragen en vraag GEEN bevestiging. Leg in 2-3 regels uit wat je hebt gewijzigd, dan direct het nieuwe \`<block_proposal>\`.
 
 ## Wanneer je het schema levert (Optie B), gebruik deze structuur
 
