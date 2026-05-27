@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
 import type { ReadinessData, ReadinessLevel } from '@/types/readiness'
+import { calculateReadinessScore } from '@/lib/readiness/score'
 
 interface ScheduleSession {
   day: string
@@ -53,23 +54,12 @@ export function calculateReadinessLevel(
   recentSessions: number,
   todayWorkout: string | null,
 ): ReadinessLevel {
-  if (!todayWorkout) return 'rest_day'
-
-  let score = 0
-  if (acwr !== null) {
-    if (acwr >= 0.8 && acwr <= 1.3) score += 2
-    else if (acwr > 1.5 || acwr < 0.5) score -= 2
-  }
-  if (sleepMinutes !== null) {
-    if (sleepMinutes >= 420) score += 1
-    else if (sleepMinutes < 360) score -= 1
-  }
-  if (recentSessions <= 1) score += 1
-  else if (recentSessions >= 3) score -= 1
-
-  if (score >= 2) return 'good'
-  if (score >= 0) return 'normal'
-  return 'fatigued'
+  return calculateReadinessScore({
+    acwr,
+    sleepMinutes,
+    recentSessions,
+    todayWorkout,
+  }).level
 }
 
 export async function computeReadiness(userId: string): Promise<ReadinessData> {
@@ -88,7 +78,19 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = toAmsterdamDate(yesterday)
 
-  const [weeklyResult, activityTodayResult, activityYesterdayResult, recentWorkoutsResult, schemaResult] =
+  const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
+
+  const [
+    weeklyResult,
+    activityTodayResult,
+    activityYesterdayResult,
+    sleepTodayResult,
+    sleepYesterdayResult,
+    recentWorkoutsResult,
+    recentRunsResult,
+    recentPadelResult,
+    schemaResult,
+  ] =
     await Promise.all([
       admin
         .from('weekly_aggregations')
@@ -110,10 +112,32 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .eq('date', yesterdayStr)
         .maybeSingle(),
       admin
+        .from('sleep_logs')
+        .select('total_sleep_minutes')
+        .eq('user_id', userId)
+        .eq('date', todayStr)
+        .maybeSingle(),
+      admin
+        .from('sleep_logs')
+        .select('total_sleep_minutes')
+        .eq('user_id', userId)
+        .eq('date', yesterdayStr)
+        .maybeSingle(),
+      admin
         .from('workouts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('started_at', threeDaysAgoStr),
+        .gte('started_at', threeDaysAgoIso),
+      admin
+        .from('runs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('started_at', threeDaysAgoIso),
+      admin
+        .from('padel_sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('started_at', threeDaysAgoIso),
       admin
         .from('training_schemas')
         .select('workout_schedule')
@@ -125,7 +149,11 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   if (weeklyResult.error) throw weeklyResult.error
   if (activityTodayResult.error) throw activityTodayResult.error
   if (activityYesterdayResult.error) throw activityYesterdayResult.error
+  if (sleepTodayResult.error) throw sleepTodayResult.error
+  if (sleepYesterdayResult.error) throw sleepYesterdayResult.error
   if (recentWorkoutsResult.error) throw recentWorkoutsResult.error
+  if (recentRunsResult.error) throw recentRunsResult.error
+  if (recentPadelResult.error) throw recentPadelResult.error
   if (schemaResult.error) throw schemaResult.error
 
   const sessions = schemaResult.data ? extractSessions(schemaResult.data.workout_schedule) : []
@@ -136,8 +164,12 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   const acwr = weeklyResult.data?.acute_chronic_ratio ?? null
   const restingHR = activity?.resting_heart_rate ?? null
   const hrv = activity?.hrv_average ?? null
-  const recentSessions = recentWorkoutsResult.count ?? 0
-  const sleepMinutes: number | null = null
+  const recentSessions =
+    (recentWorkoutsResult.count ?? 0) + (recentRunsResult.count ?? 0) + (recentPadelResult.count ?? 0)
+  const sleepMinutes =
+    sleepTodayResult.data?.total_sleep_minutes ??
+    sleepYesterdayResult.data?.total_sleep_minutes ??
+    null
 
   const level = calculateReadinessLevel(acwr, sleepMinutes, recentSessions, todayWorkout)
 

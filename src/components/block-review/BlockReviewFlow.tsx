@@ -24,7 +24,18 @@ const fetcher = (url: string) =>
 function emptyForm(data: BlockReviewData): BlockReviewFormState {
   return {
     reflection: {
-      templateRatings: data.templateAdherence.map((t) => ({ focus: t.focus, rating: null, note: '' })),
+      templateRatings: data.templateAdherence.map((t) => ({
+        focus: t.focus,
+        rating: null,
+        volume: null,
+        intensity: null,
+        motivation: null,
+        recovery_cost: null,
+        time_pressure: false,
+        note: '',
+      })),
+      exerciseVerdicts: data.exerciseProgressions.map((e) => ({ name: e.exerciseName, verdict: 'neutral' })),
+      missedSessions: [],
       keepExercises: [],
       dropExercises: [],
       biggestWin: '',
@@ -35,6 +46,7 @@ function emptyForm(data: BlockReviewData): BlockReviewFormState {
     conversation: [],
     aiAnalysis: '',
     aiSchemaProposal: null,
+    aiProgramAudit: null,
     schemaProposalVersion: 0,
     selectedGoals: [],
     endReason: 'completed',
@@ -62,11 +74,12 @@ export function BlockReviewFlow() {
     setForm({ ...state, newInBody: next })
   const setConversation = (next: BlockReviewMessage[]) =>
     setForm({ ...state, conversation: next })
-  const setProposal = (analysis: string, proposal: unknown) =>
+  const setProposal = (analysis: string, proposal: unknown, audit: BlockReviewFormState['aiProgramAudit'] = null) =>
     setForm({
       ...state,
       aiAnalysis: analysis,
       aiSchemaProposal: proposal,
+      aiProgramAudit: audit,
       schemaProposalVersion: state.schemaProposalVersion + 1,
     })
   const setGoals = (next: BlockReviewFormState['selectedGoals']) =>
@@ -93,6 +106,7 @@ export function BlockReviewFlow() {
           <AnalysisStep
             data={data}
             reflection={state.reflection}
+            newInBody={state.newInBody}
             conversation={state.conversation}
             onConversationChange={setConversation}
             onAnalysed={setProposal}

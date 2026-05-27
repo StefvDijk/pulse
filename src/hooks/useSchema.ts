@@ -6,12 +6,17 @@ export interface SchemaExercise {
   name: string
   sets?: number
   reps?: string
+  rest_seconds?: number
+  rpe?: string
+  tempo?: string
   notes?: string
 }
 
 export interface SchemaScheduleItem {
   day: string
   focus: string
+  sport_type?: 'gym' | 'run' | 'padel' | 'rest'
+  run_type?: 'easy' | 'interval' | 'tempo' | 'long'
   exercises?: SchemaExercise[]
   duration_min?: number
 }
@@ -57,6 +62,10 @@ export interface SchemaData {
   totalSessionsCompleted: number
   aiGenerated: boolean | null
   updatedAt: string | null
+  progressionRules?: unknown
+  qualityAudit?: unknown
+  plannedWeeklyLoad?: unknown
+  sourceBlockReviewId?: string | null
   schedule: SchemaScheduleItem[]
   weeks: SchemaWeek[]
 }

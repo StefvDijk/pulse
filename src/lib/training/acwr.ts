@@ -40,13 +40,13 @@ export interface ACWRResult {
 const ACUTE_LAMBDA = 2 / (7 + 1)
 const CHRONIC_LAMBDA = 2 / (28 + 1)
 
-function statusFor(ratio: number): ACWRStatus {
+export function statusFor(ratio: number): ACWRStatus {
   if (!isFinite(ratio) || ratio <= ACWR_BANDS.green) return 'green'
   if (ratio <= ACWR_BANDS.amber) return 'amber'
   return 'red'
 }
 
-function ewma(loadsByDayOldestFirst: number[], lambda: number): number {
+export function ewma(loadsByDayOldestFirst: number[], lambda: number): number {
   let s = loadsByDayOldestFirst[0] ?? 0
   for (let i = 1; i < loadsByDayOldestFirst.length; i++) {
     s = lambda * loadsByDayOldestFirst[i] + (1 - lambda) * s

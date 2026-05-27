@@ -7,6 +7,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { READINESS_SUMMARY_SYSTEM, buildReadinessUserMessage } from '@/lib/ai/prompts/readiness-summary'
 import type { Json } from '@/types/database'
 import type { ReadinessLevel } from '@/types/readiness'
+import { calculateReadinessScore } from '@/lib/readiness/score'
 
 export const maxDuration = 20
 
@@ -101,53 +102,6 @@ function getWorkoutForDay(sessions: ScheduleSession[], dayName: string): string 
   return match?.focus ?? null
 }
 
-interface ScoringInput {
-  acwr: number | null
-  sleepMinutes: number | null
-  recentSessions: number
-  todayWorkout: string | null
-}
-
-interface ScoringResult {
-  level: ReadinessLevel
-  score: number
-}
-
-function calculateScoreAndLevel({
-  acwr,
-  sleepMinutes,
-  recentSessions,
-  todayWorkout,
-}: ScoringInput): ScoringResult {
-  if (!todayWorkout) {
-    return { level: 'rest_day', score: 60 }
-  }
-
-  let raw = 0
-
-  if (acwr !== null) {
-    if (acwr >= 0.8 && acwr <= 1.3) raw += 2
-    else if (acwr > 1.5 || acwr < 0.5) raw -= 2
-  }
-  if (sleepMinutes !== null) {
-    if (sleepMinutes >= 420) raw += 1
-    else if (sleepMinutes < 360) raw -= 1
-  }
-  if (recentSessions <= 1) raw += 1
-  else if (recentSessions >= 3) raw -= 1
-
-  // Map raw [-4, +4] to score [10, 95]; positive bias because we generally
-  // want training to be encouraging unless data clearly says otherwise.
-  const score = Math.max(10, Math.min(95, Math.round(50 + raw * 11)))
-
-  let level: ReadinessLevel
-  if (raw >= 2) level = 'good'
-  else if (raw >= 0) level = 'normal'
-  else level = 'fatigued'
-
-  return { level, score }
-}
-
 // Convert raw metric values to a 0-100 indicator. Without baselines (UXR-101)
 // these are rough thresholds; the UI uses them as relative bars, not science.
 function metricBreakdown(
@@ -224,7 +178,20 @@ export async function GET() {
     twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21)
     const twentyOneDaysAgoStr = toAmsterdamDate(twentyOneDaysAgo)
 
-    const [weekly, activityToday, activityYesterday, recentWorkouts, schema, biometricHistory] = await Promise.all([
+    const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
+
+    const [
+      weekly,
+      activityToday,
+      activityYesterday,
+      sleepToday,
+      sleepYesterday,
+      recentWorkouts,
+      recentRuns,
+      recentPadel,
+      schema,
+      biometricHistory,
+    ] = await Promise.all([
       admin
         .from('weekly_aggregations')
         .select('acute_chronic_ratio')
@@ -245,10 +212,32 @@ export async function GET() {
         .eq('date', yesterdayStr)
         .maybeSingle(),
       admin
+        .from('sleep_logs')
+        .select('total_sleep_minutes')
+        .eq('user_id', user.id)
+        .eq('date', todayStr)
+        .maybeSingle(),
+      admin
+        .from('sleep_logs')
+        .select('total_sleep_minutes')
+        .eq('user_id', user.id)
+        .eq('date', yesterdayStr)
+        .maybeSingle(),
+      admin
         .from('workouts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('started_at', threeDaysAgoStr),
+        .gte('started_at', threeDaysAgoIso),
+      admin
+        .from('runs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('started_at', threeDaysAgoIso),
+      admin
+        .from('padel_sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('started_at', threeDaysAgoIso),
       admin
         .from('training_schemas')
         .select('workout_schedule')
@@ -280,10 +269,12 @@ export async function GET() {
     const acwr = weekly.data?.acute_chronic_ratio ?? null
     const restingHR = activity?.resting_heart_rate ?? null
     const hrv = activity?.hrv_average ?? null
-    const recentSessions = recentWorkouts.count ?? 0
-    const sleepMinutes: number | null = null // sleep_logs table doesn't exist yet
+    const recentSessions =
+      (recentWorkouts.count ?? 0) + (recentRuns.count ?? 0) + (recentPadel.count ?? 0)
+    const sleepMinutes =
+      sleepToday.data?.total_sleep_minutes ?? sleepYesterday.data?.total_sleep_minutes ?? null
 
-    const { level, score } = calculateScoreAndLevel({
+    const { level, score } = calculateReadinessScore({
       acwr,
       sleepMinutes,
       recentSessions,

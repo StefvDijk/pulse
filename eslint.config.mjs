@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     // Local-only user data dirs (not part of the app source)
     "files/**",
     "files lichaam/**",
+    // Static design handoff prototypes are reference material, not app source.
+    "design/**",
     // Nested `pulse/` dir holds design-handoff + docs + reference copies of src,
     // none of which is the canonical build source for this app.
     "pulse/**",

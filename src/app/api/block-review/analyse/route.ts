@@ -6,6 +6,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import { buildBlockReviewPrompt } from '@/lib/ai/prompts/block-review'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { auditProgramProposal } from '@/lib/training/program-quality'
+import { validateProgramProposalForUser } from '@/lib/training/program-save'
 
 // Sonnet 4.6 for the conversational turns — fast enough for back-and-forth
 // (5-10s TTFB) while staying expert-level with the deep coach prompt.
@@ -59,9 +61,24 @@ const ReqSchema = z.object({
     dropExercises: z.array(z.string()),
     biggestWin: z.string(),
     biggestMiss: z.string(),
-    injuryUpdates: z.record(z.string(), z.enum(['still_active', 'resolved'])),
-  }),
+    injuryUpdates: z.record(
+      z.string(),
+      z.enum(['still_active', 'resolved', 'verbeterd', 'stabiel', 'verergerd', 'flare_up_gehad', 'opgelost']),
+    ),
+  }).passthrough(),
+  new_in_body: z.unknown().nullable().optional(),
+  repair_audit: z.unknown().nullable().optional(),
 })
+
+function extractBlockProposal(text: string): unknown | null {
+  const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(text)
+  if (!match) return null
+  try {
+    return JSON.parse(match[1].trim())
+  } catch {
+    return null
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -96,21 +113,45 @@ export async function POST(request: Request) {
     }
 
     const data = await aggregateBlockData(admin, user.id, schemaId)
+    const { data: schemaForAudit } = await admin
+      .from('training_schemas')
+      .select('workout_schedule')
+      .eq('id', schemaId)
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-    const { system, user: userPrompt } = buildBlockReviewPrompt({
+    const reflectionForPrompt = {
+      ...parsed.data.reflection,
+      templateRatings: parsed.data.reflection.templateRatings.map((t) => ({
+        volume: null,
+        intensity: null,
+        motivation: null,
+        recovery_cost: null,
+        time_pressure: false,
+        ...t,
+      })),
+      exerciseVerdicts: (parsed.data.reflection as { exerciseVerdicts?: unknown[] }).exerciseVerdicts ?? [],
+      missedSessions: (parsed.data.reflection as { missedSessions?: unknown[] }).missedSessions ?? [],
+    }
+
+    const { system, user: userPromptBase } = buildBlockReviewPrompt({
       data,
       form: {
-        reflection: parsed.data.reflection,
-        newInBody: null,
+        reflection: reflectionForPrompt as never,
+        newInBody: (parsed.data.new_in_body ?? null) as never,
         conversation: parsed.data.conversation,
         aiAnalysis: '',
         aiSchemaProposal: null,
+        aiProgramAudit: null,
         schemaProposalVersion: 0,
         selectedGoals: [],
         endReason: 'completed',
       },
       conversation: parsed.data.conversation,
     })
+    const userPrompt = parsed.data.repair_audit
+      ? `${userPromptBase}\n\n# AUDIT DIE JE MOET HERSTELLEN\n${JSON.stringify(parsed.data.repair_audit)}\n\nLever een nieuw voorstel dat deze audit oplost.`
+      : userPromptBase
 
     const turnNumber = parsed.data.conversation.length + 1
     console.log(
@@ -159,6 +200,22 @@ export async function POST(request: Request) {
           }
           const hasMarker = /\[NU VRAGEN\]/i.test(acc)
           const hasProposal = /<block_proposal>/i.test(acc)
+          if (hasProposal) {
+            const proposal = extractBlockProposal(acc)
+            const audit =
+              proposal === null
+                ? auditProgramProposal(null)
+                : await validateProgramProposalForUser({
+                    admin,
+                    userId: user.id,
+                    proposal,
+                    previousScheduleRaw: schemaForAudit?.workout_schedule,
+                    acwrWeekEnd: data.schema.endDate,
+                  })
+                    .then((r) => r.audit)
+                    .catch(() => auditProgramProposal(proposal))
+            controller.enqueue(encoder.encode(`\n<program_audit>${JSON.stringify(audit)}</program_audit>\n`))
+          }
           if (!hasMarker && !hasProposal && acc.trim().length > 0) {
             const tail = '\n\n[NU VRAGEN]'
             controller.enqueue(encoder.encode(tail))

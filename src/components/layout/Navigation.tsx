@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   LayoutGrid,
@@ -36,18 +36,15 @@ const NAV_ITEMS: NavItem[] = [
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const [moreOpen, setMoreOpen] = useState(false)
-
-  useEffect(() => {
-    setMoreOpen(false)
-  }, [pathname])
+  const [moreMenu, setMoreMenu] = useState({ path: pathname, open: false })
+  const moreOpen = moreMenu.open && moreMenu.path === pathname
 
   useBodyScrollLock(moreOpen)
 
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   return (
@@ -100,7 +97,7 @@ export function Navigation() {
 
         <button
           type="button"
-          onClick={() => setMoreOpen(true)}
+          onClick={() => setMoreMenu({ path: pathname, open: true })}
           aria-label="Meer"
           aria-expanded={moreOpen}
           aria-haspopup="dialog"
@@ -140,7 +137,7 @@ export function Navigation() {
           >
             <div
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setMoreOpen(false)}
+              onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
             />
             <motion.div
               className={[
@@ -169,7 +166,7 @@ export function Navigation() {
               <div className="px-3 pb-3">
                 <Link
                   href="/settings"
-                  onClick={() => setMoreOpen(false)}
+                  onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
                   className={[
                     'flex items-center gap-3 px-3 py-3 rounded-xl',
                     'text-[15px] font-medium text-text-primary',
@@ -185,7 +182,7 @@ export function Navigation() {
                 <button
                   type="button"
                   onClick={() => {
-                    setMoreOpen(false)
+                    setMoreMenu((current) => ({ ...current, open: false }))
                     handleSignOut()
                   }}
                   className={[

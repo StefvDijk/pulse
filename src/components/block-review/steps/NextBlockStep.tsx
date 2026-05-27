@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
-import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft } from '../types'
+import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft, ProgramAudit } from '../types'
 
 interface Props {
   data: BlockReviewData
   form: BlockReviewFormState
   onGoalsChange: (next: NextBlockGoalDraft[]) => void
   onConversationChange: (next: BlockReviewMessage[]) => void
-  onProposalUpdated: (analysis: string, proposal: unknown) => void
+  onProposalUpdated: (analysis: string, proposal: unknown, audit: ProgramAudit | null) => void
   stepIndex: number
   stepTotal: number
   onBack?: () => void
@@ -27,8 +27,12 @@ interface ProposalShape {
     day: string
     focus: string
     duration_min?: number
-    exercises?: Array<{ name: string; sets?: number; reps?: string }>
+    sport_type?: 'gym' | 'run' | 'padel' | 'rest'
+    run_type?: string
+    exercises?: Array<{ name: string; sets?: number; reps?: string; rest_seconds?: number; rpe?: string; tempo?: string; notes?: string }>
   }>
+  progression?: { deload_week?: number }
+  coach_rationale?: string[]
 }
 
 function isValidProposal(p: unknown): p is ProposalShape {
@@ -47,8 +51,19 @@ function isValidProposal(p: unknown): p is ProposalShape {
 function stripProposalAndMarker(text: string): string {
   return text
     .replace(/<block_proposal>[\s\S]*?<\/block_proposal>/gi, '')
+    .replace(/<program_audit>[\s\S]*?<\/program_audit>/gi, '')
     .replace(/\[NU VRAGEN\]\s*$/i, '')
     .trim()
+}
+
+function extractAudit(text: string): ProgramAudit | null {
+  const match = /<program_audit>([\s\S]*?)<\/program_audit>/i.exec(text)
+  if (!match) return null
+  try {
+    return JSON.parse(match[1].trim()) as ProgramAudit
+  } catch {
+    return null
+  }
 }
 
 export function NextBlockStep({
@@ -123,6 +138,7 @@ export function NextBlockStep({
         body: JSON.stringify({
           schema_id: data.schema.id,
           reflection: form.reflection,
+          new_in_body: form.newInBody,
           conversation: newHistory,
         }),
       })
@@ -137,6 +153,7 @@ export function NextBlockStep({
         setStreaming(acc)
       }
       const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
+      const audit = extractAudit(acc)
       let parsed: unknown = null
       if (match) {
         try {
@@ -145,7 +162,7 @@ export function NextBlockStep({
           parsed = null
         }
       }
-      const clean = match ? acc.replace(match[0], '').trim() : acc
+      const clean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
       const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
@@ -154,7 +171,68 @@ export function NextBlockStep({
         const transcript = finalHistory
           .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
           .join('\n\n')
-        onProposalUpdated(transcript, parsed)
+        onProposalUpdated(transcript, parsed, audit)
+      }
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function repairFromAudit() {
+    if (!form.aiProgramAudit || busy) return
+    setBusy(true)
+    setError(null)
+    setStreaming('')
+    const userMessage: BlockReviewMessage = {
+      role: 'user',
+      content: 'Herstel het schema op basis van de audit-blockers en behoud de bedoeling van het voorstel.',
+    }
+    const newHistory = [...form.conversation, userMessage]
+    onConversationChange(newHistory)
+    try {
+      const res = await fetch('/api/block-review/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schema_id: data.schema.id,
+          reflection: form.reflection,
+          new_in_body: form.newInBody,
+          conversation: newHistory,
+          repair_audit: form.aiProgramAudit,
+        }),
+      })
+      if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let acc = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        acc += decoder.decode(value)
+        setStreaming(acc)
+      }
+      const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
+      const audit = extractAudit(acc)
+      let parsed: unknown = null
+      if (match) {
+        try {
+          parsed = JSON.parse(match[1].trim())
+        } catch {
+          parsed = null
+        }
+      }
+      const clean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
+      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
+      const finalHistory = [...newHistory, assistantMessage]
+      onConversationChange(finalHistory)
+      setStreaming('')
+      if (parsed !== null) {
+        const transcript = finalHistory
+          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
+          .join('\n\n')
+        onProposalUpdated(transcript, parsed, audit)
       }
     } catch (err) {
       setError((err as Error).message)
@@ -171,7 +249,7 @@ export function NextBlockStep({
       stepTotal={stepTotal}
       onBack={onBack}
       onNext={onNext}
-      nextDisabled={!!proposal && !proposalValid}
+      nextDisabled={!!proposal && (!proposalValid || !!form.aiProgramAudit?.hasBlockers)}
     >
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
@@ -228,6 +306,7 @@ export function NextBlockStep({
               <div className="text-[15px] font-semibold text-text-primary">{proposal.title}</div>
               <div className="text-[12px] text-text-secondary">
                 {proposal.weeks_planned} weken · start {proposal.start_date}
+                {proposal.progression?.deload_week ? ` · deload week ${proposal.progression.deload_week}` : ''}
               </div>
             </div>
             <div className="flex flex-col divide-y divide-bg-border/40">
@@ -236,14 +315,23 @@ export function NextBlockStep({
                   <div className="flex justify-between">
                     <span className="text-[14px] text-text-primary capitalize">
                       {w.day} · {w.focus}
+                      {w.sport_type && (
+                        <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase text-text-secondary">
+                          {w.sport_type}
+                        </span>
+                      )}
                     </span>
                     <span className="text-[12px] text-text-tertiary">{w.duration_min ?? 55} min</span>
                   </div>
                   {w.exercises && (
-                    <ul className="mt-1.5 ml-1 text-[12px] text-text-secondary list-disc list-inside">
+                    <ul className="mt-1.5 ml-1 flex flex-col gap-1 text-[12px] text-text-secondary">
                       {w.exercises.map((e, i) => (
-                        <li key={i}>
+                        <li key={i} className="list-disc list-inside">
                           {e.name} {e.sets ? `· ${e.sets}×${e.reps ?? ''}` : ''}
+                          {e.rpe ? <span className="ml-1 text-text-tertiary">RPE {e.rpe}</span> : null}
+                          {e.rest_seconds != null ? <span className="ml-1 text-text-tertiary">rust {e.rest_seconds}s</span> : null}
+                          {e.tempo ? <span className="ml-1 text-text-tertiary">tempo {e.tempo}</span> : null}
+                          {e.notes ? <div className="ml-5 mt-0.5 text-[11px] text-text-tertiary">{e.notes}</div> : null}
                         </li>
                       ))}
                     </ul>
@@ -254,6 +342,43 @@ export function NextBlockStep({
           </div>
         )}
       </section>
+
+      {form.aiProgramAudit && (
+        <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4 flex flex-col gap-3">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">Schema audit</h3>
+          <div className="flex flex-col gap-1.5">
+            {form.aiProgramAudit.items.slice(0, 12).map((item, idx) => (
+              <div key={`${item.code}-${idx}`} className="flex items-start gap-2 text-[12px]">
+                <span
+                  className={
+                    item.severity === 'blocker'
+                      ? 'text-status-danger'
+                      : item.severity === 'warning'
+                        ? 'text-status-warning'
+                        : 'text-text-tertiary'
+                  }
+                >
+                  {item.severity === 'blocker' ? 'x' : item.severity === 'warning' ? '!' : 'i'}
+                </span>
+                <span className="text-text-secondary">{item.message}</span>
+                <span className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[9px] uppercase text-text-tertiary">
+                  {item.severity}
+                </span>
+              </div>
+            ))}
+          </div>
+          {form.aiProgramAudit.hasBlockers && (
+            <button
+              type="button"
+              onClick={repairFromAudit}
+              disabled={busy}
+              className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+            >
+              Laat coach herstellen
+            </button>
+          )}
+        </section>
+      )}
 
       {proposal && (
         <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4 flex flex-col gap-3">

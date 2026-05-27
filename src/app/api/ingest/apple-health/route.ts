@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { parseSleepData, parseBodyWeight, parseBodyComposition, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
-import { mapRun, mapPadelSession, mapDailyActivity } from '@/lib/apple-health/mappers'
+import { mapRun, mapPadelSession, mapWalk, mapDailyActivity } from '@/lib/apple-health/mappers'
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
@@ -13,6 +13,7 @@ import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
+type WalkInsert = Database['public']['Tables']['walks']['Insert']
 
 // ---------------------------------------------------------------------------
 // Cross-source dedup: Apple Watch + training apps (e.g. Runna) both write
@@ -45,8 +46,8 @@ function deduplicateByStartedAt(runs: RunInsert[]): RunInsert[] {
   })
 }
 
-function deduplicateSessionsByStartedAt(sessions: PadelInsert[]): PadelInsert[] {
-  const grouped = new Map<string, PadelInsert[]>()
+function deduplicateSessionsByStartedAt<T extends PadelInsert | WalkInsert>(sessions: T[]): T[] {
+  const grouped = new Map<string, T[]>()
 
   for (const session of sessions) {
     const key = session.started_at ?? ''
@@ -72,6 +73,7 @@ export const dynamic = 'force-dynamic'
 interface IngestResponse {
   processed: {
     runs: number
+    walks: number
     padel: number
     activity: number
     sleep: number
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
   console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
 
-  const { runs: parsedRuns, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
+  const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
   const parsedSleep = parseSleepData(payload)
   const parsedBodyWeight = parseBodyWeight(payload)
@@ -284,7 +286,59 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 6. Upsert daily activity
+  // 6. Upsert walks
+  // ------------------------------------------------------------------
+  let walksProcessed = 0
+
+  if (parsedWalks.length > 0) {
+    const walkInserts = parsedWalks.map((w) => mapWalk(w, userId))
+    const dedupedWalks = deduplicateSessionsByStartedAt(walkInserts)
+
+    const startTimes = dedupedWalks.map((w) => w.started_at).filter(Boolean) as string[]
+    const { data: existingWalks } = await supabase
+      .from('walks')
+      .select('started_at')
+      .eq('user_id', userId)
+      .in('started_at', startTimes)
+
+    const existingWalkStarts = new Set((existingWalks ?? []).map((w) => w.started_at))
+    const newWalks = dedupedWalks.filter((w) => !w.apple_health_id || !existingWalkStarts.has(w.started_at))
+
+    const withId = newWalks.filter((w) => w.apple_health_id)
+    const withoutId = newWalks.filter((w) => !w.apple_health_id)
+
+    if (withId.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('walks')
+        .upsert(withId, {
+          onConflict: 'user_id,apple_health_id',
+          ignoreDuplicates: false,
+        })
+
+      if (upsertError) {
+        console.error('apple-health ingest: walks upsert error', upsertError)
+        errors.push(`Walks upsert failed: ${upsertError.message}`)
+      } else {
+        walksProcessed += withId.length
+      }
+    }
+
+    if (withoutId.length > 0) {
+      const { error: insertError } = await supabase
+        .from('walks')
+        .insert(withoutId)
+
+      if (insertError) {
+        console.error('apple-health ingest: walks insert error', insertError)
+        errors.push(`Walks insert failed: ${insertError.message}`)
+      } else {
+        walksProcessed += withoutId.length
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 7. Upsert daily activity
   // ------------------------------------------------------------------
   let activityProcessed = 0
 
@@ -307,7 +361,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 7. Upsert sleep logs
+  // 8. Upsert sleep logs
   // ------------------------------------------------------------------
   let sleepProcessed = 0
 
@@ -339,7 +393,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 8. Upsert body weight logs
+  // 9. Upsert body weight logs
   // ------------------------------------------------------------------
   let bodyWeightProcessed = 0
 
@@ -371,7 +425,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 9. Upsert body composition logs (InBody via Apple Health)
+  // 10. Upsert body composition logs (InBody via Apple Health)
   // ------------------------------------------------------------------
   let bodyCompositionProcessed = 0
 
@@ -424,7 +478,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 10. Correlate Apple Watch gym workouts → Hevy workouts
+  // 11. Correlate Apple Watch gym workouts → Hevy workouts
   // ------------------------------------------------------------------
   let gymCorrelations = 0
 
@@ -482,7 +536,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 11. Update last_apple_health_sync_at
+  // 12. Update last_apple_health_sync_at
   // ------------------------------------------------------------------
   const { error: syncUpdateError } = await supabase
     .from('user_settings')
@@ -494,9 +548,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 12. Re-aggregate today + current week so dashboard stats are fresh
+  // 13. Re-aggregate today + current week so dashboard stats are fresh
   // ------------------------------------------------------------------
-  const totalDataIngested = runsProcessed + padelProcessed + activityProcessed
+  const totalDataIngested = runsProcessed + walksProcessed + padelProcessed + activityProcessed
   if (totalDataIngested > 0) {
     try {
       await computeDailyAggregation(userId, todayAmsterdam())
@@ -508,7 +562,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 13. Fire-and-forget: analyze training progress and store as coaching memory
+  // 14. Fire-and-forget: analyze training progress and store as coaching memory
   // ------------------------------------------------------------------
   if (totalDataIngested > 0) {
     analyzeAfterSync({
@@ -521,7 +575,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 13b. Fire-and-forget belief extraction on recovery-scope events.
+  // 14b. Fire-and-forget belief extraction on recovery-scope events.
   // Fires when sleep/body-comp data arrived OR any activity was ingested.
   // ------------------------------------------------------------------
   const recoveryDataIngested =
@@ -529,6 +583,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   if (recoveryDataIngested) {
     const summary = `Apple Health ingest voor user ${userId}. Ingested: ${JSON.stringify({
       runs: runsProcessed,
+      walks: walksProcessed,
       padel: padelProcessed,
       activity: activityProcessed,
       sleep: sleepProcessed,
@@ -545,11 +600,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 14. Return summary
+  // 15. Return summary
   // ------------------------------------------------------------------
   return NextResponse.json({
     processed: {
       runs: runsProcessed,
+      walks: walksProcessed,
       padel: padelProcessed,
       activity: activityProcessed,
       sleep: sleepProcessed,
@@ -560,6 +616,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     errors,
     debug: {
       metricNames: payload.data.metrics.map((m) => m.name),
+      otherWorkouts: parsedOther.length,
       bodyCompParsed: parsedBodyComposition.length,
       bodyWeightParsed: parsedBodyWeight.length,
     },

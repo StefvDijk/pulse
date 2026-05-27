@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { computeAdherence } from './adherence'
 import { buildJourneyContext, type JourneyContext } from './journey'
+import { computeACWR, projectACWR, type PlannedSessionLoad } from '@/lib/training/acwr'
 
 export interface ExerciseProgressionPoint {
   date: string
@@ -19,6 +20,10 @@ export interface ExerciseProgression {
   deltaE1rmKg: number | null
   deltaPct: number | null
   stagnant: boolean
+  bestSet: { weight: number; reps: number; e1rm: number; date: string } | null
+  last3Sessions: Array<{ date: string; topWeight: number; topReps: number; e1rm: number }>
+  weeklyVolume: number
+  plateauScore: number
 }
 
 export interface TemplateAdherence {
@@ -49,6 +54,16 @@ export interface BlockReviewData {
     totalTonnageKg: number
   }
   templateAdherence: TemplateAdherence[]
+  weeklyMuscleVolume: Array<{ week: number; muscles: Record<string, number> }>
+  movementPatternVolume: Array<{ week: number; patterns: Record<string, number> }>
+  sportBreakdown: {
+    gym: { planned: number; actual: number; swaps: number; extras: number }
+    run: { planned: number; actual: number; totalKm: number }
+    padel: { planned: number; actual: number }
+  }
+  sportLoadTrend: Array<{ week: number; gymLoad: number; runLoad: number; padelLoad: number; totalLoad: number }>
+  currentACWR: number | null
+  projectedNextBlockACWR: number | null
   exerciseProgressions: ExerciseProgression[]
   personalRecords: Array<{ exercise: string; recordType: string; value: number; unit: string; achievedAt: string }>
   bodyTimeline: Array<{
@@ -71,6 +86,7 @@ export interface BlockReviewData {
     sleepQuality: number | null
     checkinCount: number
   }
+  weeklyWellness: Array<{ week: number; avgEnergy: number | null; avgSleep: number | null; count: number }>
   injuries: Array<{ bodyLocation: string; severity: string; status: string; description: string | null }>
   goals: Array<{ id: string; title: string; category: string; targetValue: number | null; currentValue: number | null; targetUnit: string | null; deadline: string | null }>
   journey: JourneyContext
@@ -82,6 +98,39 @@ function estimateOneRm(weight: number, reps: number): number {
   if (reps <= 0 || weight <= 0) return 0
   if (reps === 1) return weight
   return Math.round(weight * (1 + reps / 30) * 10) / 10
+}
+
+export function weekOf(date: string, startMs: number, weeksPlanned: number): number {
+  const ms = new Date(`${date.slice(0, 10)}T00:00:00Z`).getTime()
+  const week = Math.floor((ms - startMs) / (7 * 86400_000)) + 1
+  return Math.max(1, Math.min(weeksPlanned, week))
+}
+
+export function avgNumber(values: number[]): number | null {
+  if (values.length === 0) return null
+  return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
+}
+
+export function focusKind(focus: string, sportType?: string): 'gym' | 'run' | 'padel' | 'rest' {
+  if (sportType === 'gym' || sportType === 'run' || sportType === 'padel' || sportType === 'rest') return sportType
+  const f = focus.toLowerCase().trim()
+  if (f.includes('rust') || f.includes('rest')) return 'rest'
+  if (f.includes('hardlopen') || f.includes('run')) return 'run'
+  if (f.includes('padel')) return 'padel'
+  return 'gym'
+}
+
+export function plateauScore(points: Array<{ estimatedOneRm: number | null }>, deltaE1rmKg: number | null): number {
+  const last4 = points.slice(-4).map((p) => p.estimatedOneRm ?? 0).filter((v) => v > 0)
+  if (last4.length < 3) return 0
+  const max = Math.max(...last4)
+  const min = Math.min(...last4)
+  const flat = max - min <= 2.5
+  const declining = deltaE1rmKg !== null && deltaE1rmKg < 0
+  if (flat && declining) return 10
+  if (flat) return 8
+  if (deltaE1rmKg !== null && deltaE1rmKg <= 0) return 6
+  return 2
 }
 
 export async function aggregateBlockData(
@@ -107,8 +156,8 @@ export async function aggregateBlockData(
   const toIso = `${endDate}T23:59:59Z`
 
   const scheduleRaw = schemaRow.workout_schedule as unknown
-  const schedule: Array<{ day: string; focus: string }> = Array.isArray(scheduleRaw)
-    ? (scheduleRaw as Array<{ day: string; focus: string }>)
+  const schedule: Array<{ day: string; focus: string; sport_type?: string; duration_min?: number }> = Array.isArray(scheduleRaw)
+    ? (scheduleRaw as Array<{ day: string; focus: string; sport_type?: string; duration_min?: number }>)
     : []
   const workoutsPerWeek = schedule.length
   const plannedSessions = workoutsPerWeek * weeksPlanned
@@ -128,13 +177,13 @@ export async function aggregateBlockData(
   ] = await Promise.all([
     admin
       .from('workouts')
-      .select('id, title, started_at, total_volume_kg')
+      .select('id, title, started_at, total_volume_kg, duration_seconds')
       .eq('user_id', userId)
       .gte('started_at', fromIso)
       .lte('started_at', toIso),
     admin
       .from('workout_exercises')
-      .select('id, workout_id, exercise_definitions(name), workout_sets(weight_kg, reps), workouts!inner(user_id, started_at)')
+      .select('id, workout_id, exercise_definitions(name, primary_muscle_group, secondary_muscle_groups, movement_pattern), workout_sets(weight_kg, reps, set_type), workouts!inner(user_id, started_at, title, total_volume_kg)')
       .eq('workouts.user_id', userId)
       .gte('workouts.started_at', fromIso)
       .lte('workouts.started_at', toIso),
@@ -146,7 +195,7 @@ export async function aggregateBlockData(
       .lte('started_at', toIso),
     admin
       .from('padel_sessions')
-      .select('started_at')
+      .select('started_at, duration_seconds')
       .eq('user_id', userId)
       .gte('started_at', fromIso)
       .lte('started_at', toIso),
@@ -196,17 +245,34 @@ export async function aggregateBlockData(
   // Exercise progressions — group sets across the block per exercise name.
   type ExerciseRow = {
     workout_id: string
-    exercise_definitions: { name: string } | null
-    workout_sets: Array<{ weight_kg: number | null; reps: number | null }> | null
-    workouts: { user_id: string; started_at: string } | null
+    exercise_definitions: {
+      name: string
+      primary_muscle_group: string
+      secondary_muscle_groups: string[] | null
+      movement_pattern: string
+    } | null
+    workout_sets: Array<{ weight_kg: number | null; reps: number | null; set_type: string | null }> | null
+    workouts: { user_id: string; started_at: string; title: string | null; total_volume_kg: number | null } | null
   }
   const setsByExercise = new Map<string, Array<{ date: string; weight: number; reps: number }>>()
+  const weeklyMuscleMaps = Array.from({ length: weeksPlanned }, () => new Map<string, number>())
+  const weeklyPatternMaps = Array.from({ length: weeksPlanned }, () => new Map<string, number>())
   for (const ex of (exercisesRes.data ?? []) as unknown as ExerciseRow[]) {
-    const name = ex.exercise_definitions?.name
-    if (!name) continue
+    const definition = ex.exercise_definitions
+    const name = definition?.name
+    if (!name || !definition) continue
     const date = (ex.workouts?.started_at ?? '').slice(0, 10)
     if (!date) continue
+    const week = weekOf(date, startMs, weeksPlanned)
+    const workingSets = (ex.workout_sets ?? []).filter((set) => set.set_type !== 'warmup').length
+    if (workingSets > 0) {
+      const muscleMap = weeklyMuscleMaps[week - 1]
+      muscleMap.set(definition.primary_muscle_group, (muscleMap.get(definition.primary_muscle_group) ?? 0) + workingSets)
+      const patternMap = weeklyPatternMaps[week - 1]
+      patternMap.set(definition.movement_pattern, (patternMap.get(definition.movement_pattern) ?? 0) + workingSets)
+    }
     for (const set of ex.workout_sets ?? []) {
+      if (set.set_type === 'warmup') continue
       const w = set.weight_kg ?? 0
       const r = set.reps ?? 0
       if (w <= 0 || r <= 0) continue
@@ -241,6 +307,10 @@ export async function aggregateBlockData(
     const deltaPct = startE && delta !== null ? Math.round((delta / startE) * 1000) / 10 : null
     const last3 = points.slice(-3).map((p) => p.estimatedOneRm ?? 0)
     const stagnant = Math.max(...last3) - Math.min(...last3) <= 2.5
+    const best = points.reduce<(typeof points)[number] | null>(
+      (acc, p) => ((p.estimatedOneRm ?? 0) > (acc?.estimatedOneRm ?? 0) ? p : acc),
+      null,
+    )
     exerciseProgressions.push({
       exerciseName: name,
       points,
@@ -249,6 +319,22 @@ export async function aggregateBlockData(
       deltaE1rmKg: delta,
       deltaPct,
       stagnant,
+      bestSet: best
+        ? {
+            weight: best.topWeightKg ?? 0,
+            reps: best.topReps ?? 0,
+            e1rm: best.estimatedOneRm ?? 0,
+            date: best.date,
+          }
+        : null,
+      last3Sessions: points.slice(-3).map((p) => ({
+        date: p.date,
+        topWeight: p.topWeightKg ?? 0,
+        topReps: p.topReps ?? 0,
+        e1rm: p.estimatedOneRm ?? 0,
+      })),
+      weeklyVolume: Math.round((sets.length / weeksPlanned) * 10) / 10,
+      plateauScore: plateauScore(points, delta),
     })
   }
   exerciseProgressions.sort((a, b) => (b.deltaE1rmKg ?? 0) - (a.deltaE1rmKg ?? 0))
@@ -286,6 +372,66 @@ export async function aggregateBlockData(
   const completedSessions = gymSessions + runCount + padelCount
   const runKm = (runsRes.data ?? []).reduce((sum, r) => sum + (r.distance_meters ?? 0) / 1000, 0)
   const totalTonnageKg = (workoutsRes.data ?? []).reduce((sum, w) => sum + (w.total_volume_kg ?? 0), 0)
+  const weeklyMuscleVolume = weeklyMuscleMaps.map((muscles, idx) => ({
+    week: idx + 1,
+    muscles: Object.fromEntries(Array.from(muscles.entries()).sort(([a], [b]) => a.localeCompare(b))),
+  }))
+  const movementPatternVolume = weeklyPatternMaps.map((patterns, idx) => ({
+    week: idx + 1,
+    patterns: Object.fromEntries(Array.from(patterns.entries()).sort(([a], [b]) => a.localeCompare(b))),
+  }))
+
+  const plannedBySport = schedule.reduce(
+    (acc, s) => {
+      const kind = focusKind(s.focus, s.sport_type)
+      if (kind !== 'rest') acc[kind] += weeksPlanned
+      return acc
+    },
+    { gym: 0, run: 0, padel: 0 },
+  )
+  const exactGym = templateAdherence.reduce((sum, t) => sum + t.completed, 0)
+  const gymSwaps = Math.max(0, Math.min(gymSessions - exactGym, plannedBySport.gym - exactGym))
+  const gymExtras = Math.max(0, gymSessions - exactGym - gymSwaps)
+  const sportBreakdown = {
+    gym: { planned: plannedBySport.gym, actual: gymSessions, swaps: gymSwaps, extras: gymExtras },
+    run: { planned: plannedBySport.run, actual: runCount, totalKm: Math.round(runKm * 10) / 10 },
+    padel: { planned: plannedBySport.padel, actual: padelCount },
+  }
+
+  const sportLoadMaps = Array.from({ length: weeksPlanned }, () => ({ gymLoad: 0, runLoad: 0, padelLoad: 0 }))
+  for (const w of workoutsRes.data ?? []) {
+    const week = weekOf(w.started_at, startMs, weeksPlanned)
+    sportLoadMaps[week - 1].gymLoad += (w.total_volume_kg ?? 0) / 100
+  }
+  for (const r of runsRes.data ?? []) {
+    const week = weekOf(r.started_at, startMs, weeksPlanned)
+    sportLoadMaps[week - 1].runLoad += (r.distance_meters ?? 0) / 100
+  }
+  for (const p of padelRes.data ?? []) {
+    const week = weekOf(p.started_at, startMs, weeksPlanned)
+    sportLoadMaps[week - 1].padelLoad += (p.duration_seconds ?? 0) / 60
+  }
+  const sportLoadTrend = sportLoadMaps.map((w, idx) => ({
+    week: idx + 1,
+    gymLoad: Math.round(w.gymLoad * 10) / 10,
+    runLoad: Math.round(w.runLoad * 10) / 10,
+    padelLoad: Math.round(w.padelLoad * 10) / 10,
+    totalLoad: Math.round((w.gymLoad + w.runLoad + w.padelLoad) * 10) / 10,
+  }))
+
+  let currentACWR: number | null = null
+  let projectedNextBlockACWR: number | null = null
+  try {
+    const current = await computeACWR(userId, endDate)
+    const plannedLoads: PlannedSessionLoad[] = schedule
+      .map((s) => ({ kind: focusKind(s.focus, s.sport_type), estimatedMinutes: s.duration_min ?? 55 }))
+      .filter((s): s is { kind: 'gym' | 'run' | 'padel'; estimatedMinutes: number } => s.kind !== 'rest')
+      .map((s) => ({ type: s.kind, estimatedMinutes: s.estimatedMinutes }))
+    currentACWR = current.ratio
+    projectedNextBlockACWR = projectACWR(current, plannedLoads).ratio
+  } catch (err) {
+    console.error('[block-review] ACWR aggregation failed (non-fatal):', err)
+  }
 
   // Wellness averages from daily_checkins (feeling, sleep_quality)
   const checkins = checkinRes.data ?? []
@@ -294,6 +440,16 @@ export async function aggregateBlockData(
     if (xs.length === 0) return null
     return Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10
   }
+  const weeklyWellness = Array.from({ length: weeksPlanned }, (_, idx) => {
+    const week = idx + 1
+    const rows = checkins.filter((c) => weekOf(c.date, startMs, weeksPlanned) === week)
+    return {
+      week,
+      avgEnergy: avgNumber(rows.map((r) => r.feeling).filter((v): v is number => typeof v === 'number')),
+      avgSleep: avgNumber(rows.map((r) => r.sleep_quality).filter((v): v is number => typeof v === 'number')),
+      count: rows.length,
+    }
+  })
 
   const journey = await buildJourneyContext(admin, userId, schemaId)
 
@@ -318,6 +474,12 @@ export async function aggregateBlockData(
       totalTonnageKg: Math.round(totalTonnageKg),
     },
     templateAdherence,
+    weeklyMuscleVolume,
+    movementPatternVolume,
+    sportBreakdown,
+    sportLoadTrend,
+    currentACWR,
+    projectedNextBlockACWR,
     exerciseProgressions,
     personalRecords: (prRes.data ?? []).map((p) => ({
       exercise: (p.exercise_definitions as unknown as { name: string } | null)?.name ?? 'Unknown',
@@ -333,6 +495,7 @@ export async function aggregateBlockData(
       sleepQuality: avg('sleep_quality'),
       checkinCount: checkins.length,
     },
+    weeklyWellness,
     injuries: (injRes.data ?? []).map((i) => ({
       bodyLocation: i.body_location as string,
       severity: i.severity as string,

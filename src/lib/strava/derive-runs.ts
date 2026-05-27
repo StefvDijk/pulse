@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { pickBestRunMatch, runMatchWindow } from '@/lib/runs/match'
 
 // Derive `runs` rows from cached Strava activities. Idempotent: re-running this
 // after a sync updates already-merged rows in place and only inserts genuinely
@@ -10,8 +11,6 @@ type AdminClient = SupabaseClient<Database>
 
 const STRAVA_RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'] as const
 
-const MATCH_WINDOW_MS = 10 * 60 * 1000 // ±10 minutes — same run reported by HAE and Strava
-
 interface DeriveResult {
   scanned: number
   matched: number
@@ -20,7 +19,7 @@ interface DeriveResult {
 
 function paceSecondsPerKm(distanceMeters: number | null, movingTimeSeconds: number | null): number | null {
   if (!distanceMeters || !movingTimeSeconds) return null
-  if (distanceMeters < 100) return null // sub-100m is noise, not a run
+  if (distanceMeters < 100) return null
   return Math.round(movingTimeSeconds / (distanceMeters / 1000))
 }
 
@@ -51,13 +50,10 @@ export async function deriveRunsFromStrava(
   let inserted = 0
 
   for (const sa of stravaRuns) {
-    const startMs = new Date(sa.start_date).getTime()
-    const windowStart = new Date(startMs - MATCH_WINDOW_MS).toISOString()
-    const windowEnd = new Date(startMs + MATCH_WINDOW_MS).toISOString()
     const duration = sa.moving_time_seconds ?? sa.elapsed_time_seconds ?? null
     const pace = paceSecondsPerKm(sa.distance_meters, duration)
 
-    // First check by strava_activity_id (idempotent re-run).
+    // 1. Already linked? Update in place (idempotent re-run).
     const { data: byStrava } = await admin
       .from('runs')
       .select('id, source, apple_health_id')
@@ -66,7 +62,7 @@ export async function deriveRunsFromStrava(
       .maybeSingle()
 
     if (byStrava) {
-      const upd = await admin
+      const { error: updErr } = await admin
         .from('runs')
         .update({
           distance_meters: sa.distance_meters ?? 0,
@@ -77,55 +73,37 @@ export async function deriveRunsFromStrava(
           max_heart_rate: sa.max_heartrate != null ? Math.round(sa.max_heartrate) : null,
           calories_burned: sa.calories,
           ended_at: endIso(sa.start_date, duration),
-          // Preserve mixed source label when both sources contributed.
           source: byStrava.apple_health_id ? 'strava+health' : 'strava',
         })
         .eq('id', byStrava.id)
-        .select('id')
-      if (upd.error) {
-        console.error('[derive-runs] byStrava update failed', upd.error)
-      } else {
-        console.log('[derive-runs] byStrava updated', upd.data?.length, 'row(s) for sa', sa.strava_activity_id)
+      if (updErr) {
+        console.error('[derive-runs] byStrava update failed', updErr)
       }
       matched += 1
       continue
     }
 
-    // No strava-linked row yet — try to find a HAE-imported row in the same window.
-    const candRes = await admin
+    // 2. Try to find an unlinked HAE-imported run in the same time/size window.
+    const { from, to } = runMatchWindow(sa.start_date)
+    const { data: candidates } = await admin
       .from('runs')
-      .select('id, started_at, apple_health_id, strava_activity_id')
+      .select('id, started_at, distance_meters, duration_seconds, apple_health_id, strava_activity_id')
       .eq('user_id', userId)
-      .gte('started_at', windowStart)
-      .lte('started_at', windowEnd)
+      .gte('started_at', from)
+      .lte('started_at', to)
       .is('strava_activity_id', null)
 
-    if (candRes.error) {
-      console.error('[derive-runs] candidates query failed', candRes.error)
-    }
-    console.log(
-      '[derive-runs] sa',
-      sa.strava_activity_id,
-      'start',
-      sa.start_date,
-      'window',
-      windowStart,
-      '..',
-      windowEnd,
-      'candidates',
-      candRes.data?.length ?? 0,
+    const match = pickBestRunMatch(
+      {
+        startedAt: sa.start_date,
+        distanceMeters: sa.distance_meters,
+        durationSeconds: duration,
+      },
+      candidates ?? [],
     )
 
-    const closest = (candRes.data ?? [])
-      .map((r) => ({
-        row: r,
-        delta: Math.abs(new Date(r.started_at).getTime() - startMs),
-      }))
-      .sort((a, b) => a.delta - b.delta)[0]
-
-    if (closest) {
-      // Enrich existing HAE row with Strava data.
-      const upd = await admin
+    if (match) {
+      const { error: updErr } = await admin
         .from('runs')
         .update({
           strava_activity_id: sa.strava_activity_id,
@@ -133,35 +111,23 @@ export async function deriveRunsFromStrava(
           duration_seconds: duration ?? 0,
           avg_pace_seconds_per_km: pace,
           elevation_gain_meters: sa.total_elevation_gain_meters,
-          // Strava HR usually comes from the same Apple Watch — prefer it,
-          // fall back to HAE value otherwise.
+          // Strava HR usually comes from the same Apple Watch — prefer it.
           avg_heart_rate: sa.average_heartrate != null ? Math.round(sa.average_heartrate) : null,
           max_heart_rate: sa.max_heartrate != null ? Math.round(sa.max_heartrate) : null,
           calories_burned: sa.calories,
           ended_at: endIso(sa.start_date, duration),
-          source: closest.row.apple_health_id ? 'strava+health' : 'strava',
+          source: match.apple_health_id ? 'strava+health' : 'strava',
         })
-        .eq('id', closest.row.id)
-        .select('id, strava_activity_id')
-      if (upd.error) {
-        console.error('[derive-runs] match update failed', upd.error, 'row', closest.row.id)
-      } else {
-        console.log(
-          '[derive-runs] matched row',
-          closest.row.id,
-          'updated',
-          upd.data?.length,
-          'value',
-          upd.data?.[0],
-        )
+        .eq('id', (match as { id: string }).id)
+      if (updErr) {
+        console.error('[derive-runs] match update failed', updErr)
       }
       matched += 1
       continue
     }
 
-    // No match — fresh row, Strava-only run.
-    console.log('[derive-runs] inserting new run for sa', sa.strava_activity_id)
-    await admin.from('runs').insert({
+    // 3. No match — fresh row, Strava-only run.
+    const { error: insErr } = await admin.from('runs').insert({
       user_id: userId,
       started_at: sa.start_date,
       ended_at: endIso(sa.start_date, duration),
@@ -169,14 +135,18 @@ export async function deriveRunsFromStrava(
       duration_seconds: duration ?? 0,
       avg_pace_seconds_per_km: pace,
       elevation_gain_meters: sa.total_elevation_gain_meters,
-      avg_heart_rate: sa.average_heartrate,
-      max_heart_rate: sa.max_heartrate,
+      avg_heart_rate: sa.average_heartrate != null ? Math.round(sa.average_heartrate) : null,
+      max_heart_rate: sa.max_heartrate != null ? Math.round(sa.max_heartrate) : null,
       calories_burned: sa.calories,
       notes: sa.name,
       run_type: sa.sport_type ?? sa.activity_type,
       source: 'strava',
       strava_activity_id: sa.strava_activity_id,
     })
+    if (insErr) {
+      console.error('[derive-runs] insert failed', insErr)
+      continue
+    }
     inserted += 1
   }
 

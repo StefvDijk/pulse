@@ -34,6 +34,7 @@ function offsetDate(dateStr: string, days: number): string {
 
 export function NutritionPage() {
   const [selectedDate, setSelectedDate] = useState(() => todayAmsterdam())
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const today = todayAmsterdam()
 
   const { data, error, isLoading, mutate } = useSWR<NutritionSummaryData>(
@@ -48,11 +49,16 @@ export function NutritionPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
+      setDeleteError(null)
       try {
-        await fetch(`/api/nutrition/log/${id}`, { method: 'DELETE' })
+        const res = await fetch(`/api/nutrition/log/${id}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error ?? 'Verwijderen mislukt')
+        }
         mutate()
-      } catch {
-        // Ignore — optimistic UI handled by mutate
+      } catch (err) {
+        setDeleteError(err instanceof Error ? err.message : 'Verwijderen mislukt')
       }
     },
     [mutate],
@@ -85,6 +91,7 @@ export function NutritionPage() {
         <NaturalLogCard onSuccess={handleSuccess} date={selectedDate} />
 
         {error && <ErrorAlert message="Kan voedingsdata niet laden." onRetry={() => mutate()} />}
+        {deleteError && <ErrorAlert message={deleteError} onRetry={() => mutate()} />}
 
         {isLoading && <NutritionSkeleton />}
 

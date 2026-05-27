@@ -43,11 +43,13 @@ Je genereert een nieuw trainingsschema voor Stef. Volg deze instructies exact.
 ### OUTPUT FORMAT
 Wanneer Stef het schema bevestigt, voeg een schema_generation write-back blok toe:
 \`\`\`
-<schema_generation>{"title":"<naam>","schema_type":"<type>","weeks_planned":<n>,"start_date":"<YYYY-MM-DD>","workout_schedule":[...]}</schema_generation>
+<schema_generation>{"title":"<naam>","schema_type":"<type>","weeks_planned":<n>,"start_date":"<YYYY-MM-DD>","workout_schedule":[...],"progression":{"protocol":"double_progression","deload_week":4,"deload_strategy":"volume","overload_increment_kg":2.5},"coach_rationale":["5-8 korte bullets"]}</schema_generation>
 \`\`\`
 
 Het workout_schedule format per dag:
-{"day":"monday","focus":"Upper A","exercises":[{"name":"<naam>","sets":4,"reps":"8-10","notes":"<notities>"}]}
+{"day":"monday","focus":"Upper A","sport_type":"gym","duration_min":55,"exercises":[{"name":"<naam>","sets":4,"reps":"8-10","rest_seconds":120,"rpe":"8","notes":"<waarom + startgewicht>"}]}
+
+Voor run/padel/rest: zet \`sport_type\` op \`run\`, \`padel\` of \`rest\` en laat \`exercises\` leeg. Voor hardlopen voeg je bij voorkeur \`run_type\` toe: \`easy\`, \`interval\`, \`tempo\` of \`long\`.
 
 ${currentSchema ? `### HUIDIG SCHEMA\n${currentSchema}` : ''}
 ${blockSummaries ? `### VORIGE SCHEMA'S\n${blockSummaries}` : ''}

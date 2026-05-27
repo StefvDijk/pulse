@@ -1,7 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
-
 const PARTICLE_COUNT = 20
 const COLORS = ['#16A34A', '#FFB020', '#FF5E3A', '#0EA5E9', '#A855F7']
 
@@ -15,31 +13,34 @@ interface Particle {
   rotate: number
 }
 
+function seededFraction(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453
+  return value - Math.floor(value)
+}
+
+const PARTICLES: Particle[] = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+  id: i,
+  left: seededFraction(i + 1) * 100,
+  delay: seededFraction(i + 11) * 200,
+  duration: 1200 + seededFraction(i + 21) * 600,
+  color: COLORS[i % COLORS.length],
+  size: 4 + seededFraction(i + 31) * 4,
+  rotate: seededFraction(i + 41) * 360,
+}))
+
 /**
  * Lightweight CSS-only confetti burst. Renders 20 small absolutely-positioned
- * squares falling from the top of the parent container with random colour,
+ * squares falling from the top of the parent container with varied colour,
  * size, delay and rotation. Auto-removes via parent unmount when the burst
  * finishes (no JS animation loop).
  */
 export function Confetti() {
-  const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 200,
-      duration: 1200 + Math.random() * 600,
-      color: COLORS[i % COLORS.length],
-      size: 4 + Math.random() * 4,
-      rotate: Math.random() * 360,
-    }))
-  }, [])
-
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      {particles.map((p) => (
+      {PARTICLES.map((p) => (
         <span
           key={p.id}
           className="absolute -top-2 block animate-pulse-fall"

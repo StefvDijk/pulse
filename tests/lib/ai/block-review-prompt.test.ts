@@ -68,6 +68,8 @@ const minimalData: BlockReviewData = {
 const minimalForm: BlockReviewFormState = {
   reflection: {
     templateRatings: [],
+    exerciseVerdicts: [],
+    missedSessions: [],
     keepExercises: [],
     dropExercises: [],
     biggestWin: '',
@@ -78,6 +80,7 @@ const minimalForm: BlockReviewFormState = {
   conversation: [],
   aiAnalysis: '',
   aiSchemaProposal: null,
+  aiProgramAudit: null,
   schemaProposalVersion: 0,
   selectedGoals: [],
   endReason: 'completed',

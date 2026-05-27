@@ -40,8 +40,12 @@ export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }
         }),
       })
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(body.error ?? 'Opslaan mislukt')
+        const body = (await res.json().catch(() => ({}))) as {
+          error?: string
+          audit?: { items?: Array<{ severity: string; message: string }> }
+        }
+        const blockers = body.audit?.items?.filter((i) => i.severity === 'blocker').map((i) => i.message)
+        throw new Error(blockers?.length ? blockers.join(' ') : body.error ?? 'Opslaan mislukt')
       }
       router.push('/schema')
     } catch (err) {
@@ -65,6 +69,7 @@ export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }
           <li>Block review opslaan ({data.schema.weeksPlanned} weken snapshot)</li>
           <li>Oud schema &ldquo;{data.schema.title}&rdquo; sluiten</li>
           {form.aiSchemaProposal != null && <li>Nieuw schema activeren</li>}
+          {form.aiProgramAudit?.hasBlockers && <li>Schema-audit bevat nog blockers</li>}
           {form.newInBody && <li>InBody-meting toevoegen</li>}
           {form.reflection.biggestWin && <li>Win opslaan in coach-geheugen</li>}
           {form.reflection.biggestMiss && <li>Miss opslaan in coach-geheugen</li>}
@@ -76,7 +81,7 @@ export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }
       <button
         type="button"
         onClick={submit}
-        disabled={submitting}
+        disabled={submitting || !!form.aiProgramAudit?.hasBlockers}
         className="w-full h-12 rounded-full text-[15px] font-semibold text-black bg-white disabled:opacity-30"
       >
         {submitting ? 'Bezig…' : dryRun ? 'Test bevestiging' : 'Bevestig & start nieuw blok'}

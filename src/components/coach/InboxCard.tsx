@@ -63,7 +63,7 @@ export function InboxCard({ item, onChanged }: Props) {
             type="button"
             disabled={busy}
             onClick={() => setAnswering((v) => !v)}
-            className="rounded-full bg-[#D97757] px-3 py-1 text-xs text-white hover:opacity-90 disabled:opacity-50"
+            className="min-h-9 rounded-full bg-[#D97757] px-3 py-1 text-xs text-white hover:opacity-90 disabled:opacity-50"
           >
             {answering ? 'Sluit' : 'Beantwoorden'}
           </button>
@@ -73,7 +73,7 @@ export function InboxCard({ item, onChanged }: Props) {
             type="button"
             disabled={busy}
             onClick={() => patch('read')}
-            className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/80 hover:bg-white/10 disabled:opacity-50"
+            className="min-h-9 rounded-full bg-white/5 px-3 py-1 text-xs text-white/80 hover:bg-white/10 disabled:opacity-50"
           >
             Markeer gelezen
           </button>
@@ -82,7 +82,7 @@ export function InboxCard({ item, onChanged }: Props) {
           type="button"
           disabled={busy}
           onClick={() => patch('dismissed')}
-          className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/60 hover:bg-white/10 disabled:opacity-50"
+          className="min-h-9 rounded-full bg-white/5 px-3 py-1 text-xs text-white/60 hover:bg-white/10 disabled:opacity-50"
         >
           Negeren
         </button>
@@ -100,7 +100,7 @@ export function InboxCard({ item, onChanged }: Props) {
             type="button"
             disabled={busy || answer.trim().length === 0}
             onClick={submitAnswer}
-            className="mt-1 rounded-full bg-[#D97757] px-3 py-1 text-xs text-white disabled:opacity-50"
+            className="mt-1 min-h-9 rounded-full bg-[#D97757] px-3 py-1 text-xs text-white disabled:opacity-50"
           >
             Versturen
           </button>

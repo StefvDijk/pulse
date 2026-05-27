@@ -2,6 +2,7 @@ import {
   type RawHealthPayload,
   type ParsedRun,
   type ParsedPadel,
+  type ParsedWalk,
   type ParsedWorkout,
   type ParsedDailyActivity,
   categorizeWorkout,
@@ -152,6 +153,7 @@ function parseRawWorkout(
 
 export interface ParsedWorkouts {
   runs: ParsedRun[]
+  walks: ParsedWalk[]
   padel: ParsedPadel[]
   other: ParsedWorkout[]
 }
@@ -166,13 +168,15 @@ export function parseWorkouts(payload: RawHealthPayload): ParsedWorkouts {
       switch (parsed.category) {
         case 'running':
           return { ...acc, runs: [...acc.runs, parsed as ParsedRun] }
+        case 'walking':
+          return { ...acc, walks: [...acc.walks, parsed as ParsedWalk] }
         case 'padel':
           return { ...acc, padel: [...acc.padel, parsed as ParsedPadel] }
         default:
           return { ...acc, other: [...acc.other, parsed] }
       }
     },
-    { runs: [], padel: [], other: [] },
+    { runs: [], walks: [], padel: [], other: [] },
   )
 }
 

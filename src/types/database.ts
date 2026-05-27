@@ -90,17 +90,21 @@ export type Database = {
           created_at: string | null
           drop_exercises: string[] | null
           end_reason: string
+          exercise_verdicts: Json | null
           id: string
           injury_updates: Json | null
           keep_exercises: string[] | null
+          missed_sessions: Json | null
           new_goal_ids: string[] | null
           next_schema_id: string | null
           performance_snapshot: Json | null
           period_end: string
           period_start: string
+          reverted_at: string | null
           schema_id: string
           status: string
           template_ratings: Json | null
+          trainer_audit: Json | null
           user_id: string
         }
         Insert: {
@@ -113,17 +117,21 @@ export type Database = {
           created_at?: string | null
           drop_exercises?: string[] | null
           end_reason: string
+          exercise_verdicts?: Json | null
           id?: string
           injury_updates?: Json | null
           keep_exercises?: string[] | null
+          missed_sessions?: Json | null
           new_goal_ids?: string[] | null
           next_schema_id?: string | null
           performance_snapshot?: Json | null
           period_end: string
           period_start: string
+          reverted_at?: string | null
           schema_id: string
           status?: string
           template_ratings?: Json | null
+          trainer_audit?: Json | null
           user_id: string
         }
         Update: {
@@ -136,17 +144,21 @@ export type Database = {
           created_at?: string | null
           drop_exercises?: string[] | null
           end_reason?: string
+          exercise_verdicts?: Json | null
           id?: string
           injury_updates?: Json | null
           keep_exercises?: string[] | null
+          missed_sessions?: Json | null
           new_goal_ids?: string[] | null
           next_schema_id?: string | null
           performance_snapshot?: Json | null
           period_end?: string
           period_start?: string
+          reverted_at?: string | null
           schema_id?: string
           status?: string
           template_ratings?: Json | null
+          trainer_audit?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -1679,9 +1691,12 @@ export type Database = {
           generation_context: string | null
           id: string
           is_active: boolean | null
+          planned_weekly_load: Json | null
           progression_rules: Json | null
+          quality_audit: Json | null
           scheduled_overrides: Json | null
           schema_type: string
+          source_block_review_id: string | null
           start_date: string
           title: string
           updated_at: string | null
@@ -1698,9 +1713,12 @@ export type Database = {
           generation_context?: string | null
           id?: string
           is_active?: boolean | null
+          planned_weekly_load?: Json | null
           progression_rules?: Json | null
+          quality_audit?: Json | null
           scheduled_overrides?: Json | null
           schema_type: string
+          source_block_review_id?: string | null
           start_date: string
           title: string
           updated_at?: string | null
@@ -1717,9 +1735,12 @@ export type Database = {
           generation_context?: string | null
           id?: string
           is_active?: boolean | null
+          planned_weekly_load?: Json | null
           progression_rules?: Json | null
+          quality_audit?: Json | null
           scheduled_overrides?: Json | null
           schema_type?: string
+          source_block_review_id?: string | null
           start_date?: string
           title?: string
           updated_at?: string | null
@@ -1728,6 +1749,13 @@ export type Database = {
           workout_schedule?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "training_schemas_source_block_review_id_fkey"
+            columns: ["source_block_review_id"]
+            isOneToOne: false
+            referencedRelation: "block_reviews"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "training_schemas_user_id_fkey"
             columns: ["user_id"]
@@ -2438,4 +2466,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
