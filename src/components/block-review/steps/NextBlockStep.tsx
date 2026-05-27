@@ -48,10 +48,35 @@ function isValidProposal(p: unknown): p is ProposalShape {
   })
 }
 
+function parseStreamedResponse(acc: string): { parsed: unknown; audit: ProgramAudit | null; clean: string } {
+  const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
+  const audit = extractAudit(acc)
+  let parsed: unknown = null
+  if (match) {
+    try { parsed = JSON.parse(match[1].trim()) } catch { /* ignore */ }
+  }
+  // Fallback: model sometimes outputs ```json blocks instead of <block_proposal> tags
+  if (parsed === null) {
+    const cbMatch = /```json([\s\S]*?)```/i.exec(acc)
+    if (cbMatch) {
+      try {
+        const candidate = JSON.parse(cbMatch[1].trim())
+        if (isValidProposal(candidate)) parsed = candidate
+      } catch { /* ignore */ }
+    }
+  }
+  const rawClean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
+  const clean = rawClean.replace(/```(?:json)?[\s\S]*?```/gi, '').trim()
+  return { parsed, audit, clean }
+}
+
 function stripProposalAndMarker(text: string): string {
   return text
     .replace(/<block_proposal>[\s\S]*?<\/block_proposal>/gi, '')
+    .replace(/<block_proposal>[\s\S]*/gi, '')        // incomplete during streaming
     .replace(/<program_audit>[\s\S]*?<\/program_audit>/gi, '')
+    .replace(/<program_audit>[\s\S]*/gi, '')          // incomplete during streaming
+    .replace(/<current_proposal>[\s\S]*?<\/current_proposal>/gi, '') // strip if echoed
     .replace(/\[NU VRAGEN\]\s*$/i, '')
     .trim()
 }
@@ -153,17 +178,7 @@ export function NextBlockStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
-      const audit = extractAudit(acc)
-      let parsed: unknown = null
-      if (match) {
-        try {
-          parsed = JSON.parse(match[1].trim())
-        } catch {
-          parsed = null
-        }
-      }
-      const clean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
+      const { parsed, audit, clean } = parseStreamedResponse(acc)
       const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
@@ -214,17 +229,7 @@ export function NextBlockStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const match = /<block_proposal>([\s\S]*?)<\/block_proposal>/i.exec(acc)
-      const audit = extractAudit(acc)
-      let parsed: unknown = null
-      if (match) {
-        try {
-          parsed = JSON.parse(match[1].trim())
-        } catch {
-          parsed = null
-        }
-      }
-      const clean = stripProposalAndMarker(match ? acc.replace(match[0], '').trim() : acc)
+      const { parsed, audit, clean } = parseStreamedResponse(acc)
       const assistantMessage: BlockReviewMessage = { role: 'assistant', content: clean }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)

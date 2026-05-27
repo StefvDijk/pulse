@@ -243,7 +243,7 @@ ${form.reflection.biggestWin || '(niet ingevuld)'}
 ${form.reflection.biggestMiss || '(niet ingevuld)'}`
 
   const refinementHeader = currentProposal
-    ? `\n\n# HUIDIG SCHEMA-VOORSTEL (dit is een VERFIJNING — gebruik ALTIJD Optie B)\n\`\`\`json\n${JSON.stringify(currentProposal, null, 2)}\n\`\`\``
+    ? `\n\n# HUIDIG SCHEMA-VOORSTEL\nPas dit schema aan op basis van Stefs verzoek. Output het volledige bijgewerkte schema UITSLUITEND in <block_proposal>...</block_proposal> XML tags — NOOIT als code block of op een andere manier.\n\n<current_proposal>\n${JSON.stringify(currentProposal)}\n</current_proposal>`
     : ''
 
   const transcript =
