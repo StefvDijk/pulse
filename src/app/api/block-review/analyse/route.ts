@@ -55,7 +55,7 @@ const ReqSchema = z.object({
         focus: z.string(),
         rating: z.enum(['good', 'ok', 'meh']).nullable(),
         note: z.string(),
-      }),
+      }).passthrough(),
     ),
     keepExercises: z.array(z.string()),
     dropExercises: z.array(z.string()),
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
       system,
       messages: [{ role: 'user', content: userPrompt }],
       model: BLOCK_REVIEW_MODEL,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       meta: { userId: user.id, feature: `block-review-analyse-turn-${turnNumber}` },
       onError({ error }) {
         const e = error as {
@@ -204,19 +204,27 @@ export async function POST(request: Request) {
           const hasProposal = /<block_proposal>/i.test(acc)
           if (hasProposal) {
             const proposal = extractBlockProposal(acc)
-            const audit =
-              proposal === null
-                ? auditProgramProposal(null)
-                : await validateProgramProposalForUser({
-                    admin,
-                    userId: user.id,
-                    proposal,
-                    previousScheduleRaw: schemaForAudit?.workout_schedule,
-                    acwrWeekEnd: data.schema.endDate,
-                  })
-                    .then((r) => r.audit)
-                    .catch(() => auditProgramProposal(proposal))
-            controller.enqueue(encoder.encode(`\n<program_audit>${JSON.stringify(audit)}</program_audit>\n`))
+            if (proposal === null) {
+              const audit = auditProgramProposal(null)
+              controller.enqueue(encoder.encode(`\n<program_audit>${JSON.stringify(audit)}</program_audit>\n`))
+              controller.enqueue(
+                encoder.encode(
+                  '\n\nIk kreeg het schema technisch niet in een geldig formaat. Geef kort aan wat ik moet behouden of aanpassen, dan lever ik het opnieuw als volledig voorstel.\n\n[NU VRAGEN]',
+                ),
+              )
+              console.warn(`[block-review-analyse] invalid proposal JSON on turn ${turnNumber}; appended recovery prompt`)
+            } else {
+              const audit = await validateProgramProposalForUser({
+                admin,
+                userId: user.id,
+                proposal,
+                previousScheduleRaw: schemaForAudit?.workout_schedule,
+                acwrWeekEnd: data.schema.endDate,
+              })
+                .then((r) => r.audit)
+                .catch(() => auditProgramProposal(proposal))
+              controller.enqueue(encoder.encode(`\n<program_audit>${JSON.stringify(audit)}</program_audit>\n`))
+            }
           }
           if (!hasMarker && !hasProposal && acc.trim().length > 0) {
             const tail = '\n\n[NU VRAGEN]'

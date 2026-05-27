@@ -93,12 +93,28 @@ export function parseProposalFromStream(acc: string): ParsedResponse {
   }
 
   if (proposal === null) {
-    const cbMatch = /```json([\s\S]*?)```/i.exec(acc)
-    if (cbMatch) {
+    const codeBlocks = Array.from(acc.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi))
+    for (const cbMatch of codeBlocks) {
       try {
         const candidate = JSON.parse(cbMatch[1].trim())
-        if (isValidProposal(candidate)) proposal = candidate
+        if (isValidProposal(candidate)) {
+          proposal = candidate
+          break
+        }
       } catch { /* ignore */ }
+    }
+  }
+
+  if (proposal === null) {
+    const jsonStart = acc.indexOf('{"title"')
+    if (jsonStart >= 0) {
+      const jsonEnd = acc.lastIndexOf('}')
+      if (jsonEnd > jsonStart) {
+        try {
+          const candidate = JSON.parse(acc.slice(jsonStart, jsonEnd + 1))
+          if (isValidProposal(candidate)) proposal = candidate
+        } catch { /* ignore */ }
+      }
     }
   }
 

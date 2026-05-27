@@ -16,7 +16,7 @@ const ConfirmSchema = z.object({
         focus: z.string(),
         rating: z.enum(['good', 'ok', 'meh']).nullable(),
         note: z.string(),
-      }),
+      }).passthrough(),
     ),
     keepExercises: z.array(z.string()),
     dropExercises: z.array(z.string()),

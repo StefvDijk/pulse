@@ -113,6 +113,7 @@ export function BlockReviewFlow() {
             reflection={state.reflection}
             newInBody={state.newInBody}
             conversation={state.conversation}
+            existingProposal={state.aiSchemaProposal}
             onConversationChange={setConversation}
             onAnalysed={setProposal}
             {...common}

@@ -4,17 +4,16 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { RichText } from '@/components/shared/RichText'
-import { stripStructuredTags, parseProposalFromStream, awaitsAnswer } from '../parse-utils'
+import { stripStructuredTags, parseProposalFromStream } from '../parse-utils'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, ProgramAudit } from '../types'
-
-type ConvMessage = BlockReviewMessage
 
 interface Props {
   data: BlockReviewData
   reflection: BlockReviewFormState['reflection']
   newInBody: BlockReviewFormState['newInBody']
   conversation: BlockReviewMessage[]
+  existingProposal: unknown | null
   onConversationChange: (next: BlockReviewMessage[]) => void
   onAnalysed: (analysis: string, proposal: unknown, audit: ProgramAudit | null) => void
   stepIndex: number
@@ -28,6 +27,7 @@ export function AnalysisStep({
   reflection,
   newInBody,
   conversation,
+  existingProposal,
   onConversationChange,
   onAnalysed,
   stepIndex,
@@ -39,19 +39,18 @@ export function AnalysisStep({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [input, setInput] = useState('')
-  const [proposal, setProposal] = useState<unknown | null>(null)
-  const [proposalText, setProposalText] = useState('')
-  const [lastTurnAwaits, setLastTurnAwaits] = useState(false)
+  const [proposalFound, setProposalFound] = useState(existingProposal !== null)
   const ranRef = useRef(false)
-  const abortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  async function sendTurn(history: ConvMessage[]) {
+  useEffect(() => {
+    if (existingProposal !== null) setProposalFound(true)
+  }, [existingProposal])
+
+  async function sendTurn(history: BlockReviewMessage[]) {
     setBusy(true)
     setError(null)
     setStreaming('')
-    const controller = new AbortController()
-    abortRef.current = controller
     try {
       const res = await fetch('/api/block-review/analyse', {
         method: 'POST',
@@ -62,7 +61,6 @@ export function AnalysisStep({
           new_in_body: newInBody,
           conversation: history,
         }),
-        signal: controller.signal,
       })
       if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
       const reader = res.body.getReader()
@@ -74,16 +72,13 @@ export function AnalysisStep({
         acc += decoder.decode(value)
         setStreaming(acc)
       }
-      const rawAwaits = awaitsAnswer(acc)
       const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
-      const assistantMessage: ConvMessage = { role: 'assistant', content: displayText }
+      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: displayText }
       const finalHistory = [...history, assistantMessage]
       onConversationChange(finalHistory)
       setStreaming('')
-      setLastTurnAwaits(rawAwaits)
       if (parsed) {
-        setProposal(parsed)
-        setProposalText(displayText)
+        setProposalFound(true)
         const transcript = finalHistory
           .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
           .join('\n\n')
@@ -94,6 +89,7 @@ export function AnalysisStep({
       setError((err as Error).message)
     } finally {
       setBusy(false)
+      setStreaming('')
     }
   }
 
@@ -113,14 +109,22 @@ export function AnalysisStep({
   async function handleSend() {
     const text = input.trim()
     if (!text || busy) return
-    const newHistory: ConvMessage[] = [...conversation, { role: 'user', content: text }]
+    const newHistory: BlockReviewMessage[] = [...conversation, { role: 'user', content: text }]
     onConversationChange(newHistory)
     setInput('')
     await sendTurn(newHistory)
   }
 
-  const waitingForAnswer = lastTurnAwaits
-  const done = proposal !== null
+  async function requestSchema() {
+    if (busy) return
+    const msg = 'Genereer nu een concreet schema-voorstel op basis van je analyse.'
+    const newHistory: BlockReviewMessage[] = [...conversation, { role: 'user', content: msg }]
+    onConversationChange(newHistory)
+    await sendTurn(newHistory)
+  }
+
+  const hasConversation = conversation.length > 0
+  const showInteraction = !busy && (hasConversation || !!error)
 
   return (
     <StepShell
@@ -129,29 +133,21 @@ export function AnalysisStep({
       stepIndex={stepIndex}
       stepTotal={stepTotal}
       onBack={onBack}
-      onNext={done ? onNext : undefined}
+      onNext={proposalFound ? onNext : undefined}
       nextLabel="Naar volgend blok"
     >
-      <div ref={scrollRef} className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
+      <div ref={scrollRef} className="flex flex-col gap-3 min-h-[100px] max-h-[50vh] overflow-y-auto">
         {conversation.map((m, i) => (
           <MessageBubble key={i} role={m.role} content={m.content} />
         ))}
         {streaming && (
           <MessageBubble role="assistant" content={stripStructuredTags(streaming)} streaming />
         )}
-        {(busy || (conversation.length === 0 && !error)) && !streaming && (
-          <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CoachOrb size={18} />
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
-              <span className="text-[10px] text-text-tertiary ml-1">...</span>
-            </div>
-            <div className="text-[13px] text-text-tertiary">
-              {conversation.length === 0
-                ? 'Aan het analyseren — kan 10-30 seconden duren bij de eerste beurt.'
-                : 'Coach denkt na...'}
-            </div>
-          </div>
+        {busy && !streaming && (
+          <LoadingBubble initial={!hasConversation} />
+        )}
+        {!busy && !hasConversation && !error && !streaming && (
+          <LoadingBubble initial />
         )}
       </div>
 
@@ -162,7 +158,6 @@ export function AnalysisStep({
             type="button"
             onClick={() => {
               setError(null)
-              ranRef.current = false
               sendTurn(conversation)
             }}
             className="self-start px-3 py-1.5 rounded-full text-[12px] border border-bg-border text-text-primary"
@@ -172,21 +167,57 @@ export function AnalysisStep({
         </div>
       )}
 
-      {done && proposalText && (
+      {showInteraction && proposalFound && (
         <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
-          <div className="text-[11px] uppercase tracking-wider text-text-tertiary mb-2">Schema voorgesteld</div>
-          <div className="text-[12px] text-status-success">Klik &ldquo;Naar volgend blok&rdquo; om het voorstel te bekijken en te verfijnen.</div>
+          <div className="text-[11px] uppercase tracking-wider text-text-tertiary mb-1">Schema voorgesteld</div>
+          <div className="text-[12px] text-status-success">
+            Klik &ldquo;Naar volgend blok&rdquo; om het voorstel te bekijken en te verfijnen.
+          </div>
         </div>
       )}
 
-      {!done && !busy && (waitingForAnswer || conversation.length > 0) && (
+      {showInteraction && !proposalFound && hasConversation && (
+        <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4 flex flex-col gap-3">
+          <div className="text-[13px] text-text-secondary">
+            Er is nog geen schema gegenereerd. Je kunt het gesprek voortzetten of direct een schema opvragen.
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={requestSchema}
+              className="h-9 px-4 rounded-full text-[12px] font-semibold bg-white text-black"
+            >
+              Genereer schema voorstel
+            </button>
+            <button
+              type="button"
+              onClick={onNext}
+              className="h-9 px-4 rounded-full text-[12px] border border-bg-border text-text-tertiary"
+            >
+              Sla over
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showInteraction && (
         <div className="rounded-card-lg bg-bg-surface border border-bg-border p-3 flex flex-col gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            rows={3}
-            placeholder={waitingForAnswer ? 'Beantwoord de vraag...' : 'Geef extra context of stel een tegenvraag...'}
+            rows={2}
+            placeholder={
+              proposalFound
+                ? 'Nog iets aanpassen? Of klik "Naar volgend blok"...'
+                : 'Stel een vraag of geef extra context...'
+            }
             className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
           />
           <button
             type="button"
@@ -202,10 +233,39 @@ export function AnalysisStep({
   )
 }
 
-function MessageBubble({ role, content, streaming }: { role: 'user' | 'assistant'; content: string; streaming?: boolean }) {
+function LoadingBubble({ initial }: { initial: boolean }) {
+  return (
+    <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <CoachOrb size={18} />
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
+        <span className="text-[10px] text-text-tertiary ml-1">...</span>
+      </div>
+      <div className="text-[13px] text-text-tertiary">
+        {initial ? 'Aan het analyseren — kan 10-30 seconden duren.' : 'Coach denkt na...'}
+      </div>
+    </div>
+  )
+}
+
+function MessageBubble({
+  role,
+  content,
+  streaming,
+}: {
+  role: 'user' | 'assistant'
+  content: string
+  streaming?: boolean
+}) {
   const isAssistant = role === 'assistant'
   return (
-    <div className={`rounded-card-lg p-3.5 border ${isAssistant ? 'bg-bg-surface border-bg-border' : 'bg-white/[0.04] border-white/[0.08] self-end max-w-[85%]'}`}>
+    <div
+      className={`rounded-card-lg p-3.5 border ${
+        isAssistant
+          ? 'bg-bg-surface border-bg-border'
+          : 'bg-white/[0.04] border-white/[0.08] self-end max-w-[85%]'
+      }`}
+    >
       {isAssistant && (
         <div className="flex items-center gap-1.5 mb-2">
           <CoachOrb size={18} />
