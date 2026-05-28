@@ -141,14 +141,17 @@ export function NextBlockStep({
         setStreaming(acc)
       }
       const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
+      const hasValidParsedProposal = parsed !== null && isValidProposal(parsed)
       const assistantMessage: BlockReviewMessage = {
         role: 'assistant',
-        content: displayText || (parsed !== null ? proposalUpdateMessage(parsed, audit) : 'Geen zichtbaar antwoord ontvangen.'),
+        content: hasValidParsedProposal
+          ? proposalUpdateMessage(parsed, audit)
+          : displayText || 'Geen zichtbaar antwoord ontvangen.',
       }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
       setStreaming('')
-      if (parsed !== null && isValidProposal(parsed)) {
+      if (hasValidParsedProposal) {
         onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
         return true
       }
@@ -245,8 +248,14 @@ export function NextBlockStep({
     })
   }
 
-  const nextDisabled = !proposal || !proposalValid || hasBlockers
+  const currentBlockers = blockerMessages(form.aiProgramAudit)
+  const nextDisabled = !proposal || !proposalValid || currentBlockers.length > 0
   const showBlockerWarning = hasBlockers
+  const nextLabel = !proposal || !proposalValid
+    ? 'Genereer geldig schema'
+    : currentBlockers.length > 0
+      ? 'Audit eerst herstellen'
+      : 'Naar bevestigen'
 
   return (
     <StepShell
@@ -256,7 +265,8 @@ export function NextBlockStep({
       stepTotal={stepTotal}
       onBack={onBack}
       onNext={onNext}
-      nextDisabled={nextDisabled || showBlockerWarning}
+      nextLabel={nextLabel}
+      nextDisabled={nextDisabled}
     >
       <section className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary mb-3">
@@ -456,6 +466,13 @@ export function NextBlockStep({
                 {proposalRecovery ??
                   'Je kunt pas door als de audit-blockers zijn opgelost.'}
               </div>
+              {showBlockerWarning && currentBlockers.length > 0 && (
+                <ul className="mt-2 list-disc pl-4 text-text-secondary">
+                  {currentBlockers.map((message, idx) => (
+                    <li key={idx}>{message}</li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 {proposalRecovery && (
                   <button
