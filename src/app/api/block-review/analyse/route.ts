@@ -69,6 +69,7 @@ const ReqSchema = z.object({
   new_in_body: z.unknown().nullable().optional(),
   repair_audit: z.unknown().nullable().optional(),
   current_proposal: z.unknown().nullable().optional(),
+  force_proposal: z.boolean().optional(),
 })
 
 function extractBlockProposal(text: string): unknown | null {
@@ -151,9 +152,18 @@ export async function POST(request: Request) {
       conversation: parsed.data.conversation,
       currentProposal: parsed.data.current_proposal ?? undefined,
     })
-    const userPrompt = parsed.data.repair_audit
-      ? `${userPromptBase}\n\n# AUDIT DIE JE MOET HERSTELLEN\n${JSON.stringify(parsed.data.repair_audit)}\n\nLever een nieuw voorstel dat deze audit oplost.`
-      : userPromptBase
+    const mustReturnProposal = !!(
+      parsed.data.force_proposal ||
+      parsed.data.current_proposal ||
+      parsed.data.repair_audit
+    )
+    const proposalContract = mustReturnProposal
+      ? `\n\n# VERPLICHT OUTPUT-CONTRACT VOOR DEZE BEURT\nJe mag nu GEEN gewone tekst, vragen, markdown of uitleg buiten tags teruggeven. Output exact één volledig bijgewerkt schema:\n<block_proposal>{...geldige JSON volgens ProgramProposalV2...}</block_proposal>\n\nAls je iets moet uitleggen, zet dat in coach_rationale binnen de JSON.`
+      : ''
+    const auditRepairInstruction = parsed.data.repair_audit
+      ? `\n\n# AUDIT DIE JE MOET HERSTELLEN\n${JSON.stringify(parsed.data.repair_audit)}\n\nHerstel alle blockers/warnings die logisch oplosbaar zijn en behoud de bedoeling van het huidige voorstel.`
+      : ''
+    const userPrompt = `${userPromptBase}${auditRepairInstruction}${proposalContract}`
 
     const turnNumber = parsed.data.conversation.length + 1
     console.log(
@@ -227,10 +237,12 @@ export async function POST(request: Request) {
             }
           }
           if (!hasMarker && !hasProposal && acc.trim().length > 0) {
-            const tail = '\n\n[NU VRAGEN]'
+            const tail = mustReturnProposal
+              ? '\n\nIk kreeg tekst terug, maar geen technisch schema. Gebruik de knop om het volledige voorstel opnieuw te genereren.\n\n[NU VRAGEN]'
+              : '\n\n[NU VRAGEN]'
             controller.enqueue(encoder.encode(tail))
             console.warn(
-              `[block-review-analyse] no marker emitted on turn ${turnNumber}; appended [NU VRAGEN] fallback`,
+              `[block-review-analyse] no marker emitted on turn ${turnNumber}; appended ${mustReturnProposal ? 'proposal recovery' : '[NU VRAGEN]'} fallback`,
             )
           } else if (acc.trim().length === 0) {
             // No output from the model — translate provider error into a clear

@@ -243,7 +243,7 @@ ${form.reflection.biggestWin || '(niet ingevuld)'}
 ${form.reflection.biggestMiss || '(niet ingevuld)'}`
 
   const refinementHeader = currentProposal
-    ? `\n\n# HUIDIG SCHEMA-VOORSTEL\nPas dit schema aan op basis van Stefs verzoek. Output het volledige bijgewerkte schema UITSLUITEND in <block_proposal>...</block_proposal> XML tags — NOOIT als code block of op een andere manier.\n\n<current_proposal>\n${JSON.stringify(currentProposal)}\n</current_proposal>`
+    ? `\n\n# HUIDIG SCHEMA-VOORSTEL\nJe zit in VERFIJN-MODUS. Pas dit schema aan op basis van Stefs laatste verzoek en/of audit. Output exact één volledig bijgewerkt schema in <block_proposal>...</block_proposal> XML tags. Geen markdown-codeblock. Geen tekst buiten de tags. Zet eventuele wijzigingsuitleg uitsluitend in coach_rationale.\n\n<current_proposal>\n${JSON.stringify(currentProposal)}\n</current_proposal>`
     : ''
 
   const transcript =
@@ -301,7 +301,7 @@ Je hebt twee opties elke beurt:
 
 Eerste beurt (geen conversation history): begin altijd met JOURNEY-ERKENNING + ANALYSE-VAN-DIT-BLOK voordat je vragen stelt of het schema levert. Latere beurten: ga direct in op Stefs antwoord.
 
-**VERFIJN-MODUS (geldt als er al een voorstel bestaat):** Als er al een \`<block_proposal>\` is geleverd en Stef vraagt om een aanpassing, gebruik dan ALTIJD Optie B. Verwerk de aanpassing direct in een volledig nieuw voorstel. Stel GEEN verdere vragen en vraag GEEN bevestiging. Leg in 2-3 regels uit wat je hebt gewijzigd, dan direct het nieuwe \`<block_proposal>\`.
+**VERFIJN-MODUS (geldt als er al een voorstel bestaat):** Als er al een \`<block_proposal>\` is geleverd en Stef vraagt om een aanpassing, gebruik dan ALTIJD Optie B. Verwerk de aanpassing direct in een volledig nieuw voorstel. Stel GEEN verdere vragen en vraag GEEN bevestiging. Output uitsluitend het nieuwe \`<block_proposal>\` blok. Geen tekst buiten de tags; zet korte wijzigingsuitleg in \`coach_rationale\`.
 
 ## Wanneer je het schema levert (Optie B), gebruik deze structuur
 

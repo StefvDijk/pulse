@@ -39,6 +39,7 @@ export function NextBlockStep({
   const [streaming, setStreaming] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [proposalRecovery, setProposalRecovery] = useState<string | null>(null)
   const [overrideBlockers, setOverrideBlockers] = useState(false)
 
   const baselineLenRef = useRef<number | null>(null)
@@ -74,17 +75,28 @@ export function NextBlockStep({
     }
   }
 
-  async function sendRefinement() {
-    const text = input.trim()
-    if (!text || busy) return
+  function buildTranscript(history: BlockReviewMessage[]) {
+    return history
+      .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
+      .join('\n\n')
+  }
+
+  async function runAnalysisTurn({
+    newHistory,
+    body,
+    invalidMessage,
+  }: {
+    newHistory: BlockReviewMessage[]
+    body: Record<string, unknown>
+    invalidMessage: string
+  }) {
     setBusy(true)
     setError(null)
+    setProposalRecovery(null)
     setStreaming('')
     setOverrideBlockers(false)
-    const userMessage: BlockReviewMessage = { role: 'user', content: text }
-    const newHistory = [...form.conversation, userMessage]
     onConversationChange(newHistory)
-    setInput('')
+
     try {
       const res = await fetch('/api/block-review/analyse', {
         method: 'POST',
@@ -94,7 +106,7 @@ export function NextBlockStep({
           reflection: form.reflection,
           new_in_body: form.newInBody,
           conversation: newHistory,
-          current_proposal: form.aiSchemaProposal ?? null,
+          ...body,
         }),
       })
       if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
@@ -108,74 +120,86 @@ export function NextBlockStep({
         setStreaming(acc)
       }
       const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
-      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: displayText }
+      const assistantMessage: BlockReviewMessage = {
+        role: 'assistant',
+        content: displayText || (parsed !== null ? 'Voorstel bijgewerkt.' : 'Geen zichtbaar antwoord ontvangen.'),
+      }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
       setStreaming('')
-      if (parsed !== null) {
-        const transcript = finalHistory
-          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
-          .join('\n\n')
-        onProposalUpdated(transcript, parsed, audit)
+      if (parsed !== null && isValidProposal(parsed)) {
+        onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
+        return true
       }
+      if (parsed !== null) {
+        onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
+      }
+      setProposalRecovery(invalidMessage)
+      return false
     } catch (err) {
       setError((err as Error).message)
+      return false
     } finally {
       setBusy(false)
     }
   }
 
+  async function sendRefinement() {
+    const text = input.trim()
+    if (!text || busy) return
+    const userMessage: BlockReviewMessage = { role: 'user', content: text }
+    const newHistory = [...form.conversation, userMessage]
+    setInput('')
+    await runAnalysisTurn({
+      newHistory,
+      body: {
+        current_proposal: form.aiSchemaProposal ?? null,
+        repair_audit: form.aiProgramAudit ?? null,
+        force_proposal: true,
+      },
+      invalidMessage:
+        'De coach gaf tekst terug, maar geen volledig technisch schema. Genereer het voorstel opnieuw zodat stap 5 verder kan.',
+    })
+  }
+
   async function repairFromAudit() {
     if (!form.aiProgramAudit || busy) return
-    setBusy(true)
-    setError(null)
-    setStreaming('')
-    setOverrideBlockers(false)
     const userMessage: BlockReviewMessage = {
       role: 'user',
-      content: 'Herstel het schema op basis van de audit-blockers en behoud de bedoeling van het voorstel.',
+      content:
+        'Herstel het schema op basis van de audit-blockers en behoud de bedoeling van het voorstel. Output alleen het volledige bijgewerkte schema.',
     }
     const newHistory = [...form.conversation, userMessage]
-    onConversationChange(newHistory)
-    try {
-      const res = await fetch('/api/block-review/analyse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          schema_id: data.schema.id,
-          reflection: form.reflection,
-          new_in_body: form.newInBody,
-          conversation: newHistory,
-          current_proposal: form.aiSchemaProposal ?? null,
-          repair_audit: form.aiProgramAudit,
-        }),
-      })
-      if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let acc = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        acc += decoder.decode(value)
-        setStreaming(acc)
-      }
-      const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
-      const assistantMessage: BlockReviewMessage = { role: 'assistant', content: displayText }
-      const finalHistory = [...newHistory, assistantMessage]
-      onConversationChange(finalHistory)
-      setStreaming('')
-      if (parsed !== null) {
-        const transcript = finalHistory
-          .map((m) => (m.role === 'assistant' ? `## Coach\n${m.content}` : `## Stef\n${m.content}`))
-          .join('\n\n')
-        onProposalUpdated(transcript, parsed, audit)
-      }
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setBusy(false)
+    await runAnalysisTurn({
+      newHistory,
+      body: {
+        current_proposal: form.aiSchemaProposal ?? null,
+        repair_audit: form.aiProgramAudit,
+        force_proposal: true,
+      },
+      invalidMessage:
+        'De coach heeft de audit besproken, maar geen volledig technisch schema geleverd. Genereer het complete voorstel opnieuw.',
+    })
+  }
+
+  async function regenerateFullProposal() {
+    if (busy) return
+    const userMessage: BlockReviewMessage = {
+      role: 'user',
+      content:
+        'Genereer nu opnieuw het volledige technische schema. Output uitsluitend <block_proposal> met geldige JSON; geen uitleg buiten het JSON-veld coach_rationale.',
     }
+    const newHistory = [...form.conversation, userMessage]
+    await runAnalysisTurn({
+      newHistory,
+      body: {
+        current_proposal: form.aiSchemaProposal ?? null,
+        repair_audit: form.aiProgramAudit ?? null,
+        force_proposal: true,
+      },
+      invalidMessage:
+        'Er kwam opnieuw geen volledig technisch schema terug. Probeer nogmaals of ga terug naar de analyse-stap en laat de coach een vers voorstel maken.',
+    })
   }
 
   const nextDisabled = !!proposal && !proposalValid
@@ -237,8 +261,18 @@ export function NextBlockStep({
           </div>
         )}
         {!proposal ? (
-          <div className="text-[13px] text-status-warning">
-            Geen schema-voorstel ontvangen — je kunt later via de coach een schema vragen.
+          <div className="flex flex-col gap-2">
+            <div className="text-[13px] text-status-warning">
+              Geen schema-voorstel ontvangen. Genereer het voorstel opnieuw om deze review af te maken.
+            </div>
+            <button
+              type="button"
+              onClick={regenerateFullProposal}
+              disabled={busy}
+              className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+            >
+              Genereer volledig voorstel
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -377,6 +411,49 @@ export function NextBlockStep({
 
           {error && (
             <div className="text-status-danger text-[12px]">{error}</div>
+          )}
+
+          {(proposalRecovery || showBlockerWarning) && (
+            <div className="rounded-md border border-status-warning/30 bg-status-warning/10 p-3 text-[12px] text-text-secondary">
+              <div className="font-medium text-text-primary">
+                {proposalRecovery ? 'Technisch voorstel ontbreekt' : 'Audit-blockers staan nog open'}
+              </div>
+              <div className="mt-1">
+                {proposalRecovery ??
+                  'Je kunt pas door als de audit is opgelost, of als je bewust kiest om toch door te gaan.'}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {proposalRecovery && (
+                  <button
+                    type="button"
+                    onClick={regenerateFullProposal}
+                    disabled={busy}
+                    className="rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-black disabled:opacity-40"
+                  >
+                    Genereer volledig voorstel
+                  </button>
+                )}
+                {showBlockerWarning && (
+                  <button
+                    type="button"
+                    onClick={repairFromAudit}
+                    disabled={busy}
+                    className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+                  >
+                    Laat coach herstellen
+                  </button>
+                )}
+                {showBlockerWarning && !overrideBlockers && (
+                  <button
+                    type="button"
+                    onClick={() => setOverrideBlockers(true)}
+                    className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-tertiary"
+                  >
+                    Toch doorgaan
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           <textarea

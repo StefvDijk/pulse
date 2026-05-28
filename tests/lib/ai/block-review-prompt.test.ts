@@ -131,4 +131,24 @@ describe('buildBlockReviewPrompt', () => {
     })
     expect(user).toMatch(/eerste beurt|nog geen gesprek/i)
   })
+
+  it('forces refinement turns to return only a complete proposal block', () => {
+    const { system, user } = buildBlockReviewPrompt({
+      data: minimalData,
+      form: minimalForm,
+      conversation: [{ role: 'user', content: 'maak donderdag lichter' }],
+      currentProposal: {
+        title: 'Bestaand voorstel',
+        schema_type: 'upper_lower',
+        weeks_planned: 4,
+        start_date: '2026-06-01',
+        workout_schedule: [{ day: 'monday', focus: 'Upper A', sport_type: 'gym', exercises: [] }],
+      },
+    })
+
+    expect(system).toMatch(/Output uitsluitend het nieuwe `<block_proposal>` blok/i)
+    expect(system).not.toMatch(/Leg in 2-3 regels/i)
+    expect(user).toMatch(/VERFIJN-MODUS/i)
+    expect(user).toMatch(/Geen tekst buiten de tags/i)
+  })
 })
