@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
 import { stripStructuredTags, parseProposalFromStream, isValidProposal } from '../parse-utils'
-import { isNextBlockQuestionTurn } from '../message-intent'
+import { isNextBlockProceedTurn, isNextBlockQuestionTurn } from '../message-intent'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft, ProgramAudit } from '../types'
 import type { ProposalShape } from '../parse-utils'
@@ -54,6 +54,23 @@ export function NextBlockStep({
     baselineLenRef.current !== null
       ? form.conversation.slice(baselineLenRef.current)
       : []
+
+  function blockerMessages(audit: ProgramAudit | null | undefined) {
+    return audit?.items.filter((i) => i.severity === 'blocker').map((i) => i.message) ?? []
+  }
+
+  function proposalUpdateMessage(parsed: unknown, audit: ProgramAudit | null) {
+    if (!isValidProposal(parsed)) return 'Geen geldig technisch voorstel ontvangen.'
+    const blockers = blockerMessages(audit)
+    if (blockers.length === 0) {
+      return 'Voorstel bijgewerkt. Audit schoon: geen blockers meer. Je kunt door naar stap 6.'
+    }
+    return [
+      'Voorstel bijgewerkt, maar de audit blokkeert nog:',
+      ...blockers.slice(0, 5).map((message) => `- ${message}`),
+      'Laat de coach deze blockers herstellen voordat je doorgaat.',
+    ].join('\n')
+  }
 
   function toggleGoal(g: BlockReviewData['goals'][number]) {
     const exists = form.selectedGoals.find((x) => x.id === g.id)
@@ -110,7 +127,10 @@ export function NextBlockStep({
           ...body,
         }),
       })
-      if (!res.ok || !res.body) throw new Error('Coach reageerde niet')
+      if (!res.ok || !res.body) {
+        const errBody = (await res.json().catch(() => ({}))) as { error?: string; code?: string }
+        throw new Error(errBody.error ?? 'Coach reageerde niet')
+      }
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let acc = ''
@@ -123,7 +143,7 @@ export function NextBlockStep({
       const { proposal: parsed, audit, displayText } = parseProposalFromStream(acc)
       const assistantMessage: BlockReviewMessage = {
         role: 'assistant',
-        content: displayText || (parsed !== null ? 'Voorstel bijgewerkt.' : 'Geen zichtbaar antwoord ontvangen.'),
+        content: displayText || (parsed !== null ? proposalUpdateMessage(parsed, audit) : 'Geen zichtbaar antwoord ontvangen.'),
       }
       const finalHistory = [...newHistory, assistantMessage]
       onConversationChange(finalHistory)
@@ -148,6 +168,21 @@ export function NextBlockStep({
   async function sendRefinement() {
     const text = input.trim()
     if (!text || busy) return
+    if (isNextBlockProceedTurn(text)) {
+      setInput('')
+      setError(null)
+      if (!proposal || !proposalValid) {
+        setError('Er is nog geen geldig schema-voorstel om mee door te gaan.')
+        return
+      }
+      const blockers = blockerMessages(form.aiProgramAudit)
+      if (blockers.length > 0) {
+        setError(`Je kunt nog niet door: ${blockers.join(' ')}`)
+        return
+      }
+      onNext()
+      return
+    }
     const questionOnly = isNextBlockQuestionTurn(text)
     const userMessage: BlockReviewMessage = { role: 'user', content: text }
     const newHistory = [...form.conversation, userMessage]
@@ -419,7 +454,7 @@ export function NextBlockStep({
               </div>
               <div className="mt-1">
                 {proposalRecovery ??
-                  'Je kunt pas door als de audit is opgelost, of als je bewust kiest om toch door te gaan.'}
+                  'Je kunt pas door als de audit-blockers zijn opgelost.'}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {proposalRecovery && (

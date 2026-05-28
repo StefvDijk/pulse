@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isNextBlockQuestionTurn } from '@/components/block-review/message-intent'
+import { isNextBlockProceedTurn, isNextBlockQuestionTurn } from '@/components/block-review/message-intent'
 
 describe('block-review next-block message intent', () => {
   it('treats explanation prompts as questions', () => {
@@ -13,5 +13,12 @@ describe('block-review next-block message intent', () => {
     expect(isNextBlockQuestionTurn('Maak donderdag lichter')).toBe(false)
     expect(isNextBlockQuestionTurn('Herstel de audit blockers')).toBe(false)
     expect(isNextBlockQuestionTurn('Pas upper B aan met minder volume')).toBe(false)
+  })
+
+  it('detects proceed-to-confirm intent', () => {
+    expect(isNextBlockProceedTurn('ik vind het goed zo ik wil door naar stap 6/6')).toBe(true)
+    expect(isNextBlockProceedTurn('Prima zo, volgende')).toBe(true)
+    expect(isNextBlockProceedTurn('akkoord')).toBe(true)
+    expect(isNextBlockProceedTurn('Vervang lat pulldown')).toBe(false)
   })
 })

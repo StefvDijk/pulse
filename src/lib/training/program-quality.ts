@@ -223,9 +223,9 @@ export function auditProgramProposal(
   if (projected !== null) {
     if (projected > 1.5 && enoughLoadHistory) {
       add(items, {
-        severity: 'blocker',
+        severity: 'warning',
         code: 'acwr_red',
-        message: `Projected ACWR ${projected.toFixed(2)} is boven 1.50.`,
+        message: `Projected ACWR ${projected.toFixed(2)} is boven 1.50; start rustig en monitor herstel in week 1.`,
         meta: { projectedACWR: projected },
       })
     } else if (projected > 1.5) {

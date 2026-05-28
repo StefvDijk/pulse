@@ -9,3 +9,11 @@ export function isNextBlockQuestionTurn(text: string): boolean {
     /^(waarom|wat|hoe|wanneer|welke|klopt|kan|kun|leg|verklaar|bedoel|is dit|is dat|wat als)\b/.test(t)
   )
 }
+
+export function isNextBlockProceedTurn(text: string): boolean {
+  const t = text.trim().toLowerCase()
+  return (
+    /\b(stap\s*6|6\/6|volgende|verder|doorgaan|door naar|naar bevestig|naar bevestigen|afronden|bevestigen)\b/.test(t) ||
+    /\b(goed zo|prima zo|akkoord|ik ben akkoord|ik vind het goed|dit is goed|ziet er goed uit)\b/.test(t)
+  )
+}

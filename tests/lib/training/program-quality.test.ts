@@ -227,15 +227,17 @@ describe('auditProgramProposal', () => {
     expect(audit.items.some((i) => i.code === 'duplicate_day' && i.severity === 'blocker')).toBe(true)
   })
 
-  it('blocks projected ACWR > 1.5 with enough load history', () => {
+  it('warns projected ACWR > 1.5 with enough load history', () => {
     const p = proposal()
     const audit = auditProgramProposal(p, {
       exerciseMetadata: metadata,
       projectedACWR: 1.7,
       hasEnoughLoadHistory: true,
     })
-    expect(audit.items.some((i) => i.code === 'acwr_red' && i.severity === 'blocker')).toBe(true)
-    expect(audit.hasBlockers).toBe(true)
+    const item = audit.items.find((i) => i.code === 'acwr_red')
+    expect(item).toBeDefined()
+    expect(item!.severity).toBe('warning')
+    expect(audit.hasBlockers).toBe(false)
   })
 
   it('warns projected ACWR > 1.5 with limited load history', () => {
