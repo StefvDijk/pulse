@@ -40,7 +40,6 @@ export function NextBlockStep({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [proposalRecovery, setProposalRecovery] = useState<string | null>(null)
-  const [overrideBlockers, setOverrideBlockers] = useState(false)
 
   const baselineLenRef = useRef<number | null>(null)
   useEffect(() => {
@@ -94,7 +93,6 @@ export function NextBlockStep({
     setError(null)
     setProposalRecovery(null)
     setStreaming('')
-    setOverrideBlockers(false)
     onConversationChange(newHistory)
 
     try {
@@ -130,9 +128,6 @@ export function NextBlockStep({
       if (parsed !== null && isValidProposal(parsed)) {
         onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
         return true
-      }
-      if (parsed !== null) {
-        onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
       }
       setProposalRecovery(invalidMessage)
       return false
@@ -202,8 +197,8 @@ export function NextBlockStep({
     })
   }
 
-  const nextDisabled = !!proposal && !proposalValid
-  const showBlockerWarning = hasBlockers && !overrideBlockers
+  const nextDisabled = !proposal || !proposalValid || hasBlockers
+  const showBlockerWarning = hasBlockers
 
   return (
     <StepShell
@@ -352,15 +347,6 @@ export function NextBlockStep({
                 Laat coach herstellen
               </button>
             )}
-            {hasBlockers && !overrideBlockers && (
-              <button
-                type="button"
-                onClick={() => setOverrideBlockers(true)}
-                className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-tertiary"
-              >
-                Toch doorgaan
-              </button>
-            )}
           </div>
         </section>
       )}
@@ -441,15 +427,6 @@ export function NextBlockStep({
                     className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
                   >
                     Laat coach herstellen
-                  </button>
-                )}
-                {showBlockerWarning && !overrideBlockers && (
-                  <button
-                    type="button"
-                    onClick={() => setOverrideBlockers(true)}
-                    className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-tertiary"
-                  >
-                    Toch doorgaan
                   </button>
                 )}
               </div>

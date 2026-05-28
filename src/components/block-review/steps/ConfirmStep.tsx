@@ -19,10 +19,18 @@ export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [confirmedBlockers, setConfirmedBlockers] = useState(false)
   const hasBlockers = !!form.aiProgramAudit?.hasBlockers
+  const hasSchemaProposal = form.aiSchemaProposal != null
 
   async function submit() {
+    if (!hasSchemaProposal) {
+      setError('Er is geen nieuw schema-voorstel om te starten. Ga terug naar stap 5 en genereer een voorstel.')
+      return
+    }
+    if (hasBlockers) {
+      setError('De schema-audit bevat nog blockers. Ga terug naar stap 5 en laat de coach het schema herstellen.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -80,25 +88,24 @@ export function ConfirmStep({ data, form, dryRun, stepIndex, stepTotal, onBack }
 
       {error && <div className="text-status-danger text-[13px]">{error}</div>}
 
-      {hasBlockers && !confirmedBlockers && (
+      {!hasSchemaProposal && (
+        <div className="rounded-card-lg bg-status-warning/10 border border-status-warning/40 p-3 text-[13px] text-status-warning">
+          Er is nog geen nieuw schema-voorstel. Ga terug naar stap 5 en genereer het volledige voorstel.
+        </div>
+      )}
+
+      {hasBlockers && (
         <div className="rounded-card-lg bg-status-danger/10 border border-status-danger/40 p-3 flex flex-col gap-2">
           <div className="text-[13px] text-status-danger">
-            De schema-audit bevat nog blockers. Je kunt toch doorgaan, maar het schema kan fouten bevatten.
+            De schema-audit bevat nog blockers. Ga terug naar stap 5 en laat de coach het schema herstellen voordat je start.
           </div>
-          <button
-            type="button"
-            onClick={() => setConfirmedBlockers(true)}
-            className="self-start px-3 py-1.5 rounded-full text-[12px] border border-status-danger/40 text-status-danger"
-          >
-            Ik begrijp het, toch doorgaan
-          </button>
         </div>
       )}
 
       <button
         type="button"
         onClick={submit}
-        disabled={submitting || (hasBlockers && !confirmedBlockers)}
+        disabled={submitting || hasBlockers || !hasSchemaProposal}
         className="w-full h-12 rounded-full text-[15px] font-semibold text-black bg-white disabled:opacity-30"
       >
         {submitting ? 'Bezig...' : dryRun ? 'Test bevestiging' : 'Bevestig & start nieuw blok'}
