@@ -70,6 +70,7 @@ const ReqSchema = z.object({
   repair_audit: z.unknown().nullable().optional(),
   current_proposal: z.unknown().nullable().optional(),
   force_proposal: z.boolean().optional(),
+  question_only: z.boolean().optional(),
 })
 
 function extractBlockProposal(text: string): unknown | null {
@@ -136,6 +137,7 @@ export async function POST(request: Request) {
       missedSessions: (parsed.data.reflection as { missedSessions?: unknown[] }).missedSessions ?? [],
     }
 
+    const questionOnly = !!parsed.data.question_only
     const { system, user: userPromptBase } = buildBlockReviewPrompt({
       data,
       form: {
@@ -150,20 +152,24 @@ export async function POST(request: Request) {
         endReason: 'completed',
       },
       conversation: parsed.data.conversation,
-      currentProposal: parsed.data.current_proposal ?? undefined,
+      currentProposal: questionOnly ? undefined : parsed.data.current_proposal ?? undefined,
     })
     const mustReturnProposal = !!(
-      parsed.data.force_proposal ||
-      parsed.data.current_proposal ||
-      parsed.data.repair_audit
+      !questionOnly &&
+      (parsed.data.force_proposal ||
+        parsed.data.current_proposal ||
+        parsed.data.repair_audit)
     )
+    const questionContext = questionOnly
+      ? `\n\n# HUIDIG SCHEMA-VOORSTEL TER CONTEXT\nGebruik dit voorstel alleen om Stefs vraag te beantwoorden. Wijzig het voorstel niet en output GEEN <block_proposal>.\n\n<current_proposal>\n${JSON.stringify(parsed.data.current_proposal ?? null)}\n</current_proposal>\n\n# OUTPUT VOOR DEZE BEURT\nBeantwoord Stefs laatste vraag kort en concreet in gewone tekst. Eindig met exact: [NU VRAGEN]`
+      : ''
     const proposalContract = mustReturnProposal
       ? `\n\n# VERPLICHT OUTPUT-CONTRACT VOOR DEZE BEURT\nJe mag nu GEEN gewone tekst, vragen, markdown of uitleg buiten tags teruggeven. Output exact één volledig bijgewerkt schema:\n<block_proposal>{...geldige JSON volgens ProgramProposalV2...}</block_proposal>\n\nAls je iets moet uitleggen, zet dat in coach_rationale binnen de JSON.`
       : ''
     const auditRepairInstruction = parsed.data.repair_audit
       ? `\n\n# AUDIT DIE JE MOET HERSTELLEN\n${JSON.stringify(parsed.data.repair_audit)}\n\nHerstel alle blockers/warnings die logisch oplosbaar zijn en behoud de bedoeling van het huidige voorstel.`
       : ''
-    const userPrompt = `${userPromptBase}${auditRepairInstruction}${proposalContract}`
+    const userPrompt = `${userPromptBase}${questionContext}${auditRepairInstruction}${proposalContract}`
 
     const turnNumber = parsed.data.conversation.length + 1
     console.log(

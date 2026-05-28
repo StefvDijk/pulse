@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
 import { stripStructuredTags, parseProposalFromStream, isValidProposal } from '../parse-utils'
+import { isNextBlockQuestionTurn } from '../message-intent'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, NextBlockGoalDraft, ProgramAudit } from '../types'
 import type { ProposalShape } from '../parse-utils'
@@ -84,10 +85,12 @@ export function NextBlockStep({
     newHistory,
     body,
     invalidMessage,
+    allowNoProposal = false,
   }: {
     newHistory: BlockReviewMessage[]
     body: Record<string, unknown>
     invalidMessage: string
+    allowNoProposal?: boolean
   }) {
     setBusy(true)
     setError(null)
@@ -129,6 +132,9 @@ export function NextBlockStep({
         onProposalUpdated(buildTranscript(finalHistory), parsed, audit)
         return true
       }
+      if (allowNoProposal) {
+        return true
+      }
       setProposalRecovery(invalidMessage)
       return false
     } catch (err) {
@@ -142,18 +148,25 @@ export function NextBlockStep({
   async function sendRefinement() {
     const text = input.trim()
     if (!text || busy) return
+    const questionOnly = isNextBlockQuestionTurn(text)
     const userMessage: BlockReviewMessage = { role: 'user', content: text }
     const newHistory = [...form.conversation, userMessage]
     setInput('')
     await runAnalysisTurn({
       newHistory,
-      body: {
-        current_proposal: form.aiSchemaProposal ?? null,
-        repair_audit: form.aiProgramAudit ?? null,
-        force_proposal: true,
-      },
+      body: questionOnly
+        ? {
+            current_proposal: form.aiSchemaProposal ?? null,
+            question_only: true,
+          }
+        : {
+            current_proposal: form.aiSchemaProposal ?? null,
+            repair_audit: form.aiProgramAudit ?? null,
+            force_proposal: true,
+          },
       invalidMessage:
         'De coach gaf tekst terug, maar geen volledig technisch schema. Genereer het voorstel opnieuw zodat stap 5 verder kan.',
+      allowNoProposal: questionOnly,
     })
   }
 
