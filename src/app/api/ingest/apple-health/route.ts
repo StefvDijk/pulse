@@ -4,12 +4,11 @@ import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { parseSleepData, parseBodyWeight, parseBodyComposition, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
 import { mapRun, mapPadelSession, mapWalk, mapDailyActivity } from '@/lib/apple-health/mappers'
-import { computeDailyAggregation } from '@/lib/aggregations/daily'
-import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import type { Database } from '@/types/database'
-import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
@@ -172,6 +171,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
 
   const errors: string[] = []
 
+  // Day-keys (Amsterdam wall-clock) of every record we actually wrote. Drives
+  // the re-aggregation at the end so months-old backfills rebuild the right
+  // days/weeks instead of just "today".
+  const touchedDays = new Set<string>()
+
   // ------------------------------------------------------------------
   // 4. Upsert runs
   // ------------------------------------------------------------------
@@ -195,7 +199,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       .in('started_at', startTimes)
 
     const existingStartTimes = new Set((existingRuns ?? []).map((r) => r.started_at))
-    const newRuns = dedupedRuns.filter((r) => !r.apple_health_id || !existingStartTimes.has(r.started_at))
+    const newRuns = dedupedRuns.filter((r) =>
+      r.apple_health_id ? true : !existingStartTimes.has(r.started_at),
+    )
+
+    for (const r of newRuns) {
+      if (r.started_at) touchedDays.add(dayKeyAmsterdam(r.started_at))
+    }
 
     // Runs with an apple_health_id use upsert deduplication.
     const withId = newRuns.filter((r) => r.apple_health_id)
@@ -250,7 +260,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       .in('started_at', startTimes)
 
     const existingPadelStarts = new Set((existingPadel ?? []).map((p) => p.started_at))
-    const newPadel = dedupedPadel.filter((p) => !p.apple_health_id || !existingPadelStarts.has(p.started_at))
+    const newPadel = dedupedPadel.filter((p) =>
+      p.apple_health_id ? true : !existingPadelStarts.has(p.started_at),
+    )
+
+    for (const p of newPadel) {
+      if (p.started_at) touchedDays.add(dayKeyAmsterdam(p.started_at))
+    }
 
     const withId = newPadel.filter((p) => p.apple_health_id)
     const withoutId = newPadel.filter((p) => !p.apple_health_id)
@@ -302,7 +318,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       .in('started_at', startTimes)
 
     const existingWalkStarts = new Set((existingWalks ?? []).map((w) => w.started_at))
-    const newWalks = dedupedWalks.filter((w) => !w.apple_health_id || !existingWalkStarts.has(w.started_at))
+    const newWalks = dedupedWalks.filter((w) =>
+      w.apple_health_id ? true : !existingWalkStarts.has(w.started_at),
+    )
+
+    for (const w of newWalks) {
+      if (w.started_at) touchedDays.add(dayKeyAmsterdam(w.started_at))
+    }
 
     const withId = newWalks.filter((w) => w.apple_health_id)
     const withoutId = newWalks.filter((w) => !w.apple_health_id)
@@ -345,18 +367,55 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   if (parsedActivity.length > 0) {
     const activityInserts = parsedActivity.map((a) => mapDailyActivity(a, userId))
 
-    const { error: upsertError } = await supabase
+    // Fetch existing rows so we can merge instead of overwriting non-null fields.
+    const dates = activityInserts.map((a) => a.date).filter((d): d is string => d != null)
+    const { data: existingActivity, error: fetchError } = await supabase
       .from('daily_activity')
-      .upsert(activityInserts, {
-        onConflict: 'user_id,date',
-        ignoreDuplicates: false,
+      .select('date,steps,active_calories,resting_heart_rate,total_calories,active_minutes,stand_hours,hrv_average')
+      .eq('user_id', userId)
+      .in('date', dates)
+
+    if (fetchError) {
+      console.error('apple-health ingest: activity fetch error', fetchError)
+      errors.push(`Activity fetch failed: ${fetchError.message}`)
+    } else {
+      type ExistingRow = NonNullable<typeof existingActivity>[number]
+      const existingByDate = new Map<string, ExistingRow>(
+        (existingActivity ?? []).map((row) => [row.date, row] as [string, ExistingRow]),
+      )
+
+      // Merge: prefer non-null incoming value; fall back to stored non-null value.
+      const mergedInserts = activityInserts.map((incoming) => {
+        const existing = incoming.date != null ? existingByDate.get(incoming.date) : undefined
+        if (!existing) return incoming
+        return {
+          ...incoming,
+          steps: incoming.steps ?? existing.steps,
+          active_calories: incoming.active_calories ?? existing.active_calories,
+          resting_heart_rate: incoming.resting_heart_rate ?? existing.resting_heart_rate,
+          total_calories: incoming.total_calories ?? existing.total_calories,
+          active_minutes: incoming.active_minutes ?? existing.active_minutes,
+          stand_hours: incoming.stand_hours ?? existing.stand_hours,
+          hrv_average: incoming.hrv_average ?? existing.hrv_average,
+        }
       })
 
-    if (upsertError) {
-      console.error('apple-health ingest: activity upsert error', upsertError)
-      errors.push(`Activity upsert failed: ${upsertError.message}`)
-    } else {
-      activityProcessed += activityInserts.length
+      const { error: upsertError } = await supabase
+        .from('daily_activity')
+        .upsert(mergedInserts, {
+          onConflict: 'user_id,date',
+          ignoreDuplicates: false,
+        })
+
+      if (upsertError) {
+        console.error('apple-health ingest: activity upsert error', upsertError)
+        errors.push(`Activity upsert failed: ${upsertError.message}`)
+      } else {
+        activityProcessed += mergedInserts.length
+        for (const a of mergedInserts) {
+          if (a.date) touchedDays.add(a.date)
+        }
+      }
     }
   }
 
@@ -388,6 +447,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
         errors.push(`Sleep upsert failed: ${upsertError.message}`)
       } else {
         sleepProcessed += batch.length
+        for (const s of batch) {
+          if (s.date) touchedDays.add(s.date)
+        }
       }
     }
   }
@@ -548,13 +610,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 13. Re-aggregate today + current week so dashboard stats are fresh
+  // 13. Re-aggregate every touched day (+ today) and their weeks, so even
+  //     months-old backfilled batches rebuild the correct historical stats.
   // ------------------------------------------------------------------
   const totalDataIngested = runsProcessed + walksProcessed + padelProcessed + activityProcessed
-  if (totalDataIngested > 0) {
+  if (touchedDays.size > 0) {
+    // Today always stays in scope so the live dashboard reflects fresh data.
+    touchedDays.add(todayAmsterdam())
     try {
-      await computeDailyAggregation(userId, todayAmsterdam())
-      await computeWeeklyAggregation(userId, weekStartAmsterdam())
+      await reaggregateDates(userId, Array.from(touchedDays))
     } catch (aggError) {
       console.error('apple-health ingest: re-aggregation failed', aggError)
       errors.push(`Re-aggregation: ${aggError instanceof Error ? aggError.message : String(aggError)}`)

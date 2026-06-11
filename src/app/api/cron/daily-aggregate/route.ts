@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
 import { computeBaselinesForUser } from '@/lib/baselines/aggregate'
+import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import {
   addDaysToKey,
   dayIndexAmsterdam,
@@ -30,6 +30,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const todayStr = todayAmsterdam()
   const yesterdayStr = addDaysToKey(todayStr, -1)
+
+  // Rolling 7-day window (today + previous 6). Late-arriving data (Apple Health
+  // backfills, Strava edits) can land on any of the last several days, so we
+  // rebuild the whole window each night instead of just yesterday + today.
+  const rollingWindow = Array.from({ length: 7 }, (_, i) => addDaysToKey(todayStr, -i))
 
   const dayIdx = dayIndexAmsterdam()
   const isMonday = dayIdx === 1
@@ -78,33 +83,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let monthlyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
     let baselinesStatus: 'ok' | 'error' = 'ok'
 
-    // Daily — aggregate both yesterday (final) and today (partial, will be overwritten later)
+    // Daily + their weeks — rebuild the rolling 7-day window. reaggregateDates
+    // also recomputes every week those days fall in (incl. the current week),
+    // so the dashboard stays fresh without a separate current-week pass.
     try {
-      await computeDailyAggregation(userId, yesterdayStr)
+      await reaggregateDates(userId, rollingWindow)
     } catch (error) {
       dailyStatus = 'error'
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`[GET /api/cron/daily-aggregate] Daily (yesterday) failed for ${userId}:`, error)
-      userErrors.push(`daily-yesterday: ${message}`)
-    }
-
-    try {
-      await computeDailyAggregation(userId, todayStr)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(`[GET /api/cron/daily-aggregate] Daily (today) failed for ${userId}:`, error)
-      userErrors.push(`daily-today: ${message}`)
-    }
-
-    // Always recompute current week so dashboard stays fresh
-    const currentWeekMondayStr = weekStartAmsterdam()
-
-    try {
-      await computeWeeklyAggregation(userId, currentWeekMondayStr)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(`[GET /api/cron/daily-aggregate] Current week agg failed for ${userId}:`, error)
-      userErrors.push(`weekly-current: ${message}`)
+      console.error(`[GET /api/cron/daily-aggregate] Rolling re-aggregation failed for ${userId}:`, error)
+      userErrors.push(`daily-window: ${message}`)
     }
 
     // Weekly (only on Mondays)
