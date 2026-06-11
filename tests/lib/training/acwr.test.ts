@@ -2,9 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   ACWR_BANDS,
   ewma,
+  INITIAL_ACWR_STATE,
+  MIN_CHRONIC_FOR_RATIO,
+  MIN_RUN_CHRONIC_KM,
   projectACWR,
+  ratioFromChain,
   statusFor,
+  stepAcwrState,
   type ACWRResult,
+  type AcwrChainState,
   type PlannedSessionLoad,
 } from '@/lib/training/acwr'
 
@@ -190,5 +196,85 @@ describe('projectACWR', () => {
     const expectedAcute = Math.round((baseCurrent.acute + expectedAcuteAdd) * 10) / 10
 
     expect(projected.acute).toBeCloseTo(expectedAcute, 1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// stepAcwrState / ratioFromChain — persisted EWMA chain (audit #11)
+// ---------------------------------------------------------------------------
+
+const ACUTE_LAMBDA = 2 / 8
+const CHRONIC_LAMBDA = 2 / 29
+
+describe('stepAcwrState', () => {
+  it('starts from a zero state so day one never fabricates ratio 1.0', () => {
+    const after = stepAcwrState(INITIAL_ACWR_STATE, 50, 0)
+    expect(after.acute).toBeCloseTo(ACUTE_LAMBDA * 50, 6)
+    expect(after.chronic).toBeCloseTo(CHRONIC_LAMBDA * 50, 6)
+    expect(after.acute).toBeGreaterThan(after.chronic)
+  })
+
+  it('does not mutate the previous state', () => {
+    const before: AcwrChainState = { acute: 10, chronic: 10, runAcute: 1, runChronic: 1 }
+    stepAcwrState(before, 50, 5)
+    expect(before).toEqual({ acute: 10, chronic: 10, runAcute: 1, runChronic: 1 })
+  })
+
+  it('decays toward zero on rest days', () => {
+    const before: AcwrChainState = { acute: 40, chronic: 40, runAcute: 4, runChronic: 4 }
+    const after = stepAcwrState(before, 0, 0)
+    expect(after.acute).toBeCloseTo(40 * (1 - ACUTE_LAMBDA), 6)
+    expect(after.chronic).toBeCloseTo(40 * (1 - CHRONIC_LAMBDA), 6)
+  })
+
+  it('tracks the running chain on km, independent of total load', () => {
+    const after = stepAcwrState(INITIAL_ACWR_STATE, 50, 5)
+    expect(after.runAcute).toBeCloseTo(ACUTE_LAMBDA * 5, 6)
+    expect(after.runChronic).toBeCloseTo(CHRONIC_LAMBDA * 5, 6)
+  })
+
+  it('converges acute and chronic to the same value under constant load', () => {
+    let state = INITIAL_ACWR_STATE
+    for (let i = 0; i < 365; i++) state = stepAcwrState(state, 50, 5)
+    expect(state.acute).toBeCloseTo(50, 1)
+    expect(state.chronic).toBeCloseTo(50, 1)
+    expect(ratioFromChain(state.acute, state.chronic, MIN_CHRONIC_FOR_RATIO)).toBeCloseTo(1.0, 2)
+  })
+
+  it('shows an elevated ratio after a sudden training spike', () => {
+    let state = INITIAL_ACWR_STATE
+    for (let i = 0; i < 60; i++) state = stepAcwrState(state, 30, 0)
+    for (let i = 0; i < 7; i++) state = stepAcwrState(state, 90, 0)
+    const ratio = ratioFromChain(state.acute, state.chronic, MIN_CHRONIC_FOR_RATIO)
+    expect(ratio).not.toBeNull()
+    expect(ratio!).toBeGreaterThan(1.3)
+  })
+})
+
+describe('ratioFromChain', () => {
+  it('returns null below the minimum chronic baseline (build-up phase)', () => {
+    expect(ratioFromChain(20, MIN_CHRONIC_FOR_RATIO - 0.01, MIN_CHRONIC_FOR_RATIO)).toBeNull()
+  })
+
+  it('returns the ratio at or above the minimum chronic baseline', () => {
+    expect(ratioFromChain(10, MIN_CHRONIC_FOR_RATIO, MIN_CHRONIC_FOR_RATIO)).toBeCloseTo(
+      10 / MIN_CHRONIC_FOR_RATIO,
+      6,
+    )
+  })
+
+  it('returns null after a long full stop, instead of a fabricated ratio', () => {
+    // 60 days of solid training, then 10 weeks of nothing: chronic has decayed
+    // below the threshold, so there is no meaningful baseline anymore.
+    let state = INITIAL_ACWR_STATE
+    for (let i = 0; i < 60; i++) state = stepAcwrState(state, 50, 0)
+    for (let i = 0; i < 70; i++) state = stepAcwrState(state, 0, 0)
+    expect(ratioFromChain(state.acute, state.chronic, MIN_CHRONIC_FOR_RATIO)).toBeNull()
+  })
+
+  it('uses a lower threshold for the running chain (km scale)', () => {
+    expect(MIN_RUN_CHRONIC_KM).toBeLessThan(MIN_CHRONIC_FOR_RATIO)
+    expect(ratioFromChain(2, 1, MIN_RUN_CHRONIC_KM)).toBeCloseTo(2, 6)
+    expect(ratioFromChain(2, 0.3, MIN_RUN_CHRONIC_KM)).toBeNull()
   })
 })

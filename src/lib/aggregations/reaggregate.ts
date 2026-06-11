@@ -1,5 +1,6 @@
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { recomputeAcwrChain } from '@/lib/training/acwr'
 import { weekStartAmsterdam } from '@/lib/time/amsterdam'
 
 /**
@@ -19,6 +20,12 @@ export async function reaggregateDates(userId: string, dates: string[]): Promise
 
   for (const day of uniqueDays) {
     await computeDailyAggregation(userId, day)
+  }
+
+  // ACWR chain after the dailies (it reads training_load_score) and before
+  // the weeklies (they read the persisted per-day ACWR).
+  if (uniqueDays.length > 0) {
+    await recomputeAcwrChain(userId)
   }
 
   // weekStartAmsterdam expects an Amsterdam-day key; deriving the Monday for

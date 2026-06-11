@@ -55,6 +55,153 @@ export function ewma(loadsByDayOldestFirst: number[], lambda: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Persisted EWMA chain (audit #11) — the canonical ACWR.
+//
+// Both EWMAs run continuously over the full calendar history (Williams et al.
+// convention), one step per day, rest days included as zero load. The state
+// after each day is persisted on daily_aggregations so every reader sees the
+// same numbers and incremental recomputes can seed from the previous day.
+//
+// The chain deliberately starts from zero state instead of the textbook
+// s0 = x0 seed: that seed makes day one acute == chronic, i.e. a fabricated
+// "1.0 optimal" with zero history. With a zero start the ratio stays null
+// (build-up phase) until the chronic baseline crosses a minimum.
+// ---------------------------------------------------------------------------
+
+export interface AcwrChainState {
+  acute: number
+  chronic: number
+  runAcute: number
+  runChronic: number
+}
+
+export const INITIAL_ACWR_STATE: AcwrChainState = {
+  acute: 0,
+  chronic: 0,
+  runAcute: 0,
+  runChronic: 0,
+}
+
+/**
+ * Minimum chronic load (units/day) for a meaningful combined ratio.
+ * 5 units/day ≈ 35 units/week ≈ less than one typical session per week.
+ */
+export const MIN_CHRONIC_FOR_RATIO = 5
+
+/**
+ * Minimum chronic running volume (km/day) for a meaningful running ratio.
+ * 0.5 km/day ≈ 3.5 km/week.
+ */
+export const MIN_RUN_CHRONIC_KM = 0.5
+
+/** Advance the chain by one calendar day. Returns a new state (no mutation). */
+export function stepAcwrState(
+  state: AcwrChainState,
+  dayLoad: number,
+  dayRunKm: number,
+): AcwrChainState {
+  return {
+    acute: ACUTE_LAMBDA * dayLoad + (1 - ACUTE_LAMBDA) * state.acute,
+    chronic: CHRONIC_LAMBDA * dayLoad + (1 - CHRONIC_LAMBDA) * state.chronic,
+    runAcute: ACUTE_LAMBDA * dayRunKm + (1 - ACUTE_LAMBDA) * state.runAcute,
+    runChronic: CHRONIC_LAMBDA * dayRunKm + (1 - CHRONIC_LAMBDA) * state.runChronic,
+  }
+}
+
+/** Ratio for a chain, or null while the chronic baseline is below the minimum. */
+export function ratioFromChain(
+  acute: number,
+  chronic: number,
+  minChronic: number,
+): number | null {
+  if (chronic < minChronic) return null
+  return acute / chronic
+}
+
+// ---------------------------------------------------------------------------
+// Chain recompute — persists the EWMA state per day on daily_aggregations.
+// ---------------------------------------------------------------------------
+
+const round3 = (n: number): number => Math.round(n * 1000) / 1000
+const round2 = (n: number): number => Math.round(n * 100) / 100
+
+/**
+ * Recompute and persist the full ACWR chain up to and including today.
+ *
+ * Call this whenever daily_aggregations rows changed (ingest, backfill,
+ * formula change): late-arriving data for day X shifts the EWMA for every
+ * day after X. A full replay is one select + one batch upsert over a few
+ * hundred single-user rows, so there is no incremental-seed complexity —
+ * the replay is always bit-identical to recomputing from scratch.
+ */
+export async function recomputeAcwrChain(userId: string): Promise<void> {
+  const admin = createAdminClient()
+  const today = dayKeyAmsterdam(new Date())
+
+  const { data: rows, error: rowsError } = await admin
+    .from('daily_aggregations')
+    .select('date, training_load_score, total_running_km')
+    .eq('user_id', userId)
+    .lte('date', today)
+    .order('date', { ascending: true })
+
+  if (rowsError) {
+    throw new Error(`Failed to fetch daily loads for ACWR chain: ${rowsError.message}`)
+  }
+  if (!rows || rows.length === 0) return
+
+  const startDate = rows[0].date
+  let state: AcwrChainState = INITIAL_ACWR_STATE
+
+  const byDate = new Map(
+    rows.map((r) => [
+      r.date,
+      { load: r.training_load_score ?? 0, runKm: r.total_running_km ?? 0 },
+    ]),
+  )
+
+  const updates: Array<{
+    user_id: string
+    date: string
+    acwr_acute: number
+    acwr_chronic: number
+    acwr_ratio: number | null
+    run_acwr_ratio: number | null
+  }> = []
+
+  for (let date = startDate; date <= today; date = addDaysToKey(date, 1)) {
+    const day = byDate.get(date)
+    state = stepAcwrState(state, day?.load ?? 0, day?.runKm ?? 0)
+
+    // Only days with an aggregation row can be persisted; pure rest days
+    // without a row still decay the in-memory chain.
+    if (!day) continue
+
+    const ratio = ratioFromChain(state.acute, state.chronic, MIN_CHRONIC_FOR_RATIO)
+    const runRatio = ratioFromChain(state.runAcute, state.runChronic, MIN_RUN_CHRONIC_KM)
+
+    updates.push({
+      user_id: userId,
+      date,
+      acwr_acute: round3(state.acute),
+      acwr_chronic: round3(state.chronic),
+      acwr_ratio: ratio !== null ? round2(ratio) : null,
+      run_acwr_ratio: runRatio !== null ? round2(runRatio) : null,
+    })
+  }
+
+  if (updates.length === 0) return
+
+  const { error: upsertError } = await admin
+    .from('daily_aggregations')
+    .upsert(updates, { onConflict: 'user_id,date' })
+
+  if (upsertError) {
+    throw new Error(`Failed to persist ACWR chain: ${upsertError.message}`)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Load aggregation per day in Amsterdam tz, for a given window.
 // ---------------------------------------------------------------------------
 

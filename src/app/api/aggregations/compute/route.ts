@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
 import { checkGoalProgress } from '@/lib/goals/auto-track'
 
@@ -58,7 +58,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     switch (body.type) {
       case 'daily': {
-        await computeDailyAggregation(user.id, body.date)
+        // Shared funnel: daily + ACWR chain + the touched week, so a manual
+        // recompute can never leave the persisted ACWR stale.
+        await reaggregateDates(user.id, [body.date])
         return NextResponse.json({ success: true, type: 'daily', date: body.date })
       }
 

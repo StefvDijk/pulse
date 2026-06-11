@@ -647,6 +647,9 @@ export type Database = {
       }
       daily_aggregations: {
         Row: {
+          acwr_acute: number | null
+          acwr_chronic: number | null
+          acwr_ratio: number | null
           created_at: string | null
           date: string
           gym_minutes: number | null
@@ -657,6 +660,7 @@ export type Database = {
           muscle_load: Json | null
           padel_minutes: number | null
           resting_heart_rate: number | null
+          run_acwr_ratio: number | null
           running_minutes: number | null
           total_reps: number | null
           total_running_km: number | null
@@ -668,6 +672,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          acwr_acute?: number | null
+          acwr_chronic?: number | null
+          acwr_ratio?: number | null
           created_at?: string | null
           date: string
           gym_minutes?: number | null
@@ -678,6 +685,7 @@ export type Database = {
           muscle_load?: Json | null
           padel_minutes?: number | null
           resting_heart_rate?: number | null
+          run_acwr_ratio?: number | null
           running_minutes?: number | null
           total_reps?: number | null
           total_running_km?: number | null
@@ -689,6 +697,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          acwr_acute?: number | null
+          acwr_chronic?: number | null
+          acwr_ratio?: number | null
           created_at?: string | null
           date?: string
           gym_minutes?: number | null
@@ -699,6 +710,7 @@ export type Database = {
           muscle_load?: Json | null
           padel_minutes?: number | null
           resting_heart_rate?: number | null
+          run_acwr_ratio?: number | null
           running_minutes?: number | null
           total_reps?: number | null
           total_running_km?: number | null
