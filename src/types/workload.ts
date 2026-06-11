@@ -12,6 +12,8 @@ export interface WorkloadData {
   /** null when chronic load is zero (insufficient training history, e.g. after a holiday gap). */
   ratio: number | null
   status: WorkloadStatus | 'insufficient_data'
+  /** Running-only ACWR over km/day; null when the chronic running baseline is insufficient. */
+  runRatio: number | null
   acuteLoad: number
   chronicLoad: number
   /** Number of training days (load > 0) in the 7-day acute window. */

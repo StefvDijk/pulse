@@ -660,6 +660,8 @@ export type Database = {
           muscle_load: Json | null
           padel_minutes: number | null
           resting_heart_rate: number | null
+          run_acwr_acute: number | null
+          run_acwr_chronic: number | null
           run_acwr_ratio: number | null
           running_minutes: number | null
           total_reps: number | null
@@ -685,6 +687,8 @@ export type Database = {
           muscle_load?: Json | null
           padel_minutes?: number | null
           resting_heart_rate?: number | null
+          run_acwr_acute?: number | null
+          run_acwr_chronic?: number | null
           run_acwr_ratio?: number | null
           running_minutes?: number | null
           total_reps?: number | null
@@ -710,6 +714,8 @@ export type Database = {
           muscle_load?: Json | null
           padel_minutes?: number | null
           resting_heart_rate?: number | null
+          run_acwr_acute?: number | null
+          run_acwr_chronic?: number | null
           run_acwr_ratio?: number | null
           running_minutes?: number | null
           total_reps?: number | null

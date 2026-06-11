@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACWR_BANDS,
+  decayAcwrState,
   ewma,
   INITIAL_ACWR_STATE,
   MIN_CHRONIC_FOR_RATIO,
@@ -186,13 +187,13 @@ describe('projectACWR', () => {
   })
 
   it('handles padel session load estimation correctly', () => {
-    // padel: mins * 1.0 → 90 / 7 = ~12.86
+    // padel: mins * 0.65 (matches padelSessionLoad) → 58.5 / 7 = ~8.36
     const planned: PlannedSessionLoad[] = [
       { type: 'padel', estimatedMinutes: 90 },
     ]
 
     const projected = projectACWR(baseCurrent, planned)
-    const expectedAcuteAdd = 90 / 7
+    const expectedAcuteAdd = (90 * 0.65) / 7
     const expectedAcute = Math.round((baseCurrent.acute + expectedAcuteAdd) * 10) / 10
 
     expect(projected.acute).toBeCloseTo(expectedAcute, 1)
@@ -276,5 +277,24 @@ describe('ratioFromChain', () => {
     expect(MIN_RUN_CHRONIC_KM).toBeLessThan(MIN_CHRONIC_FOR_RATIO)
     expect(ratioFromChain(2, 1, MIN_RUN_CHRONIC_KM)).toBeCloseTo(2, 6)
     expect(ratioFromChain(2, 0.3, MIN_RUN_CHRONIC_KM)).toBeNull()
+  })
+})
+
+describe('decayAcwrState', () => {
+  it('matches stepping with zero load day by day', () => {
+    const start: AcwrChainState = { acute: 40, chronic: 35, runAcute: 4, runChronic: 3 }
+    let stepped = start
+    for (let i = 0; i < 5; i++) stepped = stepAcwrState(stepped, 0, 0)
+    const decayed = decayAcwrState(start, 5)
+    expect(decayed.acute).toBeCloseTo(stepped.acute, 10)
+    expect(decayed.chronic).toBeCloseTo(stepped.chronic, 10)
+    expect(decayed.runAcute).toBeCloseTo(stepped.runAcute, 10)
+    expect(decayed.runChronic).toBeCloseTo(stepped.runChronic, 10)
+  })
+
+  it('returns the state unchanged for zero or negative days', () => {
+    const state: AcwrChainState = { acute: 40, chronic: 35, runAcute: 4, runChronic: 3 }
+    expect(decayAcwrState(state, 0)).toEqual(state)
+    expect(decayAcwrState(state, -3)).toEqual(state)
   })
 })
