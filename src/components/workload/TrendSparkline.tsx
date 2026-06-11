@@ -6,11 +6,14 @@ interface TrendSparklineProps {
   points: TrendPoint[]
 }
 
-const STATUS_FILL: Record<WorkloadStatus, string> = {
+type DisplayStatus = WorkloadStatus | 'insufficient_data'
+
+const STATUS_FILL: Record<DisplayStatus, string> = {
   low: 'rgba(255,255,255,0.16)',
   optimal: 'var(--color-status-good)',
   warning: 'var(--color-status-warn)',
   danger: 'var(--color-status-bad)',
+  insufficient_data: 'rgba(255,255,255,0.16)',
 }
 
 const Y_MIN = 0
@@ -50,8 +53,13 @@ export function TrendSparkline({ points }: TrendSparklineProps) {
     return padTop + (1 - (clamped - Y_MIN) / (Y_MAX - Y_MIN)) * innerH
   }
 
+  // Skip points with null ratio (insufficient_data) in the path — they have no meaningful position.
   const pathD = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(p.ratio)}`)
+    .reduce<string[]>((acc, p, i) => {
+      if (p.ratio === null) return acc
+      const cmd = acc.length === 0 ? 'M' : 'L'
+      return [...acc, `${cmd} ${xFor(i)} ${yFor(p.ratio)}`]
+    }, [])
     .join(' ')
 
   const baselineY = yFor(1.0)
@@ -96,8 +104,9 @@ export function TrendSparkline({ points }: TrendSparklineProps) {
         strokeLinejoin="round"
       />
 
-      {/* Points */}
+      {/* Points — omit when ratio is null (insufficient_data) */}
       {points.map((p, i) => {
+        if (p.ratio === null) return null
         const isCurrent = i === lastIdx
         return (
           <circle

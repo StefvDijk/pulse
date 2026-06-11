@@ -95,9 +95,10 @@ export async function computeWeeklyAggregation(
       ? chronicScores.reduce((a, b) => a + b, 0) / 28
       : 0
 
-  // 5. ACWR — guard against division by zero → 1.0
-  const acuteChronicRatio = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0
-  const workloadStatus = getWorkloadStatus(acuteChronicRatio)
+  // 5. ACWR — null when chronicLoad is 0 (insufficient history, e.g. after a holiday gap).
+  // Fabricating 1.0 would show a misleading "In balans" to the athlete.
+  const acuteChronicRatio: number | null = chronicLoad > 0 ? acuteLoad / chronicLoad : null
+  const workloadStatus = acuteChronicRatio !== null ? getWorkloadStatus(acuteChronicRatio) : 'insufficient_data'
 
   // 6. Nutrition averages for the week
   const { data: nutritionRows, error: nutritionError } = await admin
