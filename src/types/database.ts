@@ -1681,6 +1681,50 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_runs: {
+        Row: {
+          error_count: number | null
+          finished_at: string | null
+          first_error: string | null
+          id: string
+          source: string
+          started_at: string
+          status: string
+          synced_count: number | null
+          user_id: string
+        }
+        Insert: {
+          error_count?: number | null
+          finished_at?: string | null
+          first_error?: string | null
+          id?: string
+          source: string
+          started_at?: string
+          status: string
+          synced_count?: number | null
+          user_id: string
+        }
+        Update: {
+          error_count?: number | null
+          finished_at?: string | null
+          first_error?: string | null
+          id?: string
+          source?: string
+          started_at?: string
+          status?: string
+          synced_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_schemas: {
         Row: {
           ai_generated: boolean | null
@@ -1817,6 +1861,7 @@ export type Database = {
           hevy_api_key: string | null
           last_apple_health_sync_at: string | null
           last_hevy_sync_at: string | null
+          last_strava_sync_at: string | null
           preferred_unit_system: string | null
           protein_target_per_kg: number | null
           strava_access_token: string | null
@@ -1840,6 +1885,7 @@ export type Database = {
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
+          last_strava_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
           strava_access_token?: string | null
@@ -1863,6 +1909,7 @@ export type Database = {
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
+          last_strava_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
           strava_access_token?: string | null
@@ -2466,3 +2513,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

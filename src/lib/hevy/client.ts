@@ -2,6 +2,8 @@ import {
   HevyWorkout,
   HevyWorkoutsResponse,
   HevyWorkoutsResponseSchema,
+  HevyWorkoutEventsResponse,
+  HevyWorkoutEventsResponseSchema,
   HevyExerciseTemplate,
   HevyExerciseTemplatesResponseSchema,
   HevyRoutine,
@@ -59,9 +61,12 @@ async function hevyFetch(
 // Public API functions
 // ---------------------------------------------------------------------------
 
+// [BUG B] GET /v1/workouts only supports page/pageSize (verified against the
+// Hevy OpenAPI spec). The previous `since` param was silently ignored, so every
+// "incremental" sync re-paginated the full history. Incremental syncing lives
+// in getWorkoutEvents() below. This endpoint is the full-history / recovery path.
 export async function getWorkouts(
   apiKey: string,
-  since?: Date,
   page = 1,
 ): Promise<HevyWorkoutsResponse> {
   const params: Record<string, string> = {
@@ -69,12 +74,26 @@ export async function getWorkouts(
     pageSize: String(PAGE_SIZE),
   }
 
-  if (since) {
-    params.since = since.toISOString()
-  }
-
   const raw = await hevyFetch(apiKey, '/v1/workouts', params)
   return HevyWorkoutsResponseSchema.parse(raw)
+}
+
+// Incremental change feed. `since` is an ISO-8601 instant; the endpoint returns
+// 'updated' (full workout payload) and 'deleted' (id only) events that occurred
+// after it. This is the correct way to pick up edits and deletions cheaply.
+export async function getWorkoutEvents(
+  apiKey: string,
+  since: Date,
+  page = 1,
+): Promise<HevyWorkoutEventsResponse> {
+  const params: Record<string, string> = {
+    page: String(page),
+    pageSize: String(PAGE_SIZE),
+    since: since.toISOString(),
+  }
+
+  const raw = await hevyFetch(apiKey, '/v1/workouts/events', params)
+  return HevyWorkoutEventsResponseSchema.parse(raw)
 }
 
 export async function getWorkout(apiKey: string, id: string): Promise<HevyWorkout> {

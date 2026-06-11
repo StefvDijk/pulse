@@ -3,13 +3,15 @@ export type WorkloadStatus = 'low' | 'optimal' | 'warning' | 'danger'
 export interface TrendPoint {
   /** ISO date (YYYY-MM-DD) — last day of the rolling 7-day window for this point. */
   windowEnd: string
-  ratio: number
-  status: WorkloadStatus
+  /** null when chronic load is zero (insufficient training history). */
+  ratio: number | null
+  status: WorkloadStatus | 'insufficient_data'
 }
 
 export interface WorkloadData {
-  ratio: number
-  status: WorkloadStatus
+  /** null when chronic load is zero (insufficient training history, e.g. after a holiday gap). */
+  ratio: number | null
+  status: WorkloadStatus | 'insufficient_data'
   acuteLoad: number
   chronicLoad: number
   /** Number of training days (load > 0) in the 7-day acute window. */

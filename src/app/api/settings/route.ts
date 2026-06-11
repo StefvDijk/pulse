@@ -66,7 +66,7 @@ export async function GET() {
       admin
         .from('user_settings')
         .select(
-          'user_id, hevy_api_key, health_auto_export_token, protein_target_per_kg, weekly_training_target, ai_custom_instructions, coach_tone, last_hevy_sync_at, last_apple_health_sync_at, google_calendar_email, strava_athlete_id, strava_athlete_name, preferred_unit_system, created_at, updated_at',
+          'user_id, hevy_api_key, health_auto_export_token, protein_target_per_kg, weekly_training_target, ai_custom_instructions, coach_tone, last_hevy_sync_at, last_apple_health_sync_at, last_strava_sync_at, google_calendar_email, strava_athlete_id, strava_athlete_name, preferred_unit_system, created_at, updated_at',
         )
         .eq('user_id', user.id)
         .single(),

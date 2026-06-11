@@ -17,8 +17,8 @@ interface ComputedPoint {
   windowEnd: string
   acuteLoad: number
   chronicLoad: number
-  ratio: number
-  status: WorkloadStatus
+  ratio: number | null
+  status: WorkloadStatus | 'insufficient_data'
   acuteSessions: number
   chronicSessions: number
 }
@@ -52,14 +52,18 @@ function computePoint(
 
   const acuteLoad = acuteSum / ACUTE_DAYS
   const chronicLoad = chronicSum / CHRONIC_DAYS
-  const ratio = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0
+  // null when chronicLoad is 0: no meaningful baseline to compare against.
+  // Returning 1.0 would fabricate an "optimal" status after holidays or data gaps.
+  const ratio: number | null = chronicLoad > 0 ? acuteLoad / chronicLoad : null
+  const status: WorkloadStatus | 'insufficient_data' =
+    ratio !== null ? getWorkloadStatus(ratio) : 'insufficient_data'
 
   return {
     windowEnd: endDate,
     acuteLoad: parseFloat(acuteLoad.toFixed(1)),
     chronicLoad: parseFloat(chronicLoad.toFixed(1)),
-    ratio: parseFloat(ratio.toFixed(2)),
-    status: getWorkloadStatus(ratio),
+    ratio: ratio !== null ? parseFloat(ratio.toFixed(2)) : null,
+    status,
     acuteSessions,
     chronicSessions,
   }

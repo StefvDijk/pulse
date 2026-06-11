@@ -69,6 +69,43 @@ export const HevyRoutinesResponseSchema = z.object({
   routines: z.array(HevyRoutineSchema),
 })
 
+// ---------------------------------------------------------------------------
+// Workout events schema (GET /v1/workouts/events)
+//
+// The events feed reports incremental changes since a timestamp. Each event is
+// either an 'updated' event carrying the full workout payload, or a 'deleted'
+// event carrying only the workout id. We model defensively: unknown event
+// types and extra fields are tolerated so a Hevy schema change can't break the
+// whole sync — callers filter on the discriminator and ignore the rest.
+// ---------------------------------------------------------------------------
+
+export const HevyWorkoutUpdatedEventSchema = z.object({
+  type: z.literal('updated'),
+  workout: HevyWorkoutSchema,
+})
+
+export const HevyWorkoutDeletedEventSchema = z.object({
+  type: z.literal('deleted'),
+  id: z.string(),
+})
+
+// Catch-all so an unrecognised event type does not fail the whole page parse.
+export const HevyWorkoutUnknownEventSchema = z
+  .object({ type: z.string() })
+  .passthrough()
+
+export const HevyWorkoutEventSchema = z.union([
+  HevyWorkoutUpdatedEventSchema,
+  HevyWorkoutDeletedEventSchema,
+  HevyWorkoutUnknownEventSchema,
+])
+
+export const HevyWorkoutEventsResponseSchema = z.object({
+  page: z.number().int(),
+  page_count: z.number().int(),
+  events: z.array(HevyWorkoutEventSchema),
+})
+
 export const HevyExerciseTemplateSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -92,6 +129,10 @@ export type HevySet = z.infer<typeof HevySetSchema>
 export type HevyExercise = z.infer<typeof HevyExerciseSchema>
 export type HevyWorkout = z.infer<typeof HevyWorkoutSchema>
 export type HevyWorkoutsResponse = z.infer<typeof HevyWorkoutsResponseSchema>
+export type HevyWorkoutUpdatedEvent = z.infer<typeof HevyWorkoutUpdatedEventSchema>
+export type HevyWorkoutDeletedEvent = z.infer<typeof HevyWorkoutDeletedEventSchema>
+export type HevyWorkoutEvent = z.infer<typeof HevyWorkoutEventSchema>
+export type HevyWorkoutEventsResponse = z.infer<typeof HevyWorkoutEventsResponseSchema>
 export type HevyExerciseTemplate = z.infer<typeof HevyExerciseTemplateSchema>
 export type HevyExerciseTemplatesResponse = z.infer<typeof HevyExerciseTemplatesResponseSchema>
 export type HevyRoutineExerciseSet = z.infer<typeof HevyRoutineExerciseSetSchema>

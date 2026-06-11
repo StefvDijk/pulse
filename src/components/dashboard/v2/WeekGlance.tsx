@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
-import { Card, SportDot, SPORT_BASE, type Sport } from '@/components/ui/v2'
+import { Card, SPORT_BASE, type Sport } from '@/components/ui/v2'
 import type { SchemaWeekDay, ActivityToken } from '@/hooks/useSchemaWeek'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -16,6 +17,14 @@ function isDoneToken(t: ActivityToken): boolean {
 
 function tokenSport(t: ActivityToken): Sport {
   return t.type as Sport
+}
+
+/** Detail-pagina voor een afgeronde activiteit, of null als die niet bestaat. */
+function tokenHref(t: ActivityToken): string | null {
+  if (!t.actualId) return null
+  if (t.type === 'run') return `/runs/${t.actualId}`
+  if (t.type === 'gym') return `/workouts/${t.actualId}`
+  return null // padel heeft (nog) geen detailpagina
 }
 
 function SportGlyph({
@@ -35,6 +44,65 @@ function SportGlyph({
 
 const PILL_SIZE = 26
 const PILL_GAP = 4
+
+// ── Pill ─────────────────────────────────────────────────────────────────────
+
+function TokenPill({ token }: { token: ActivityToken }) {
+  const sport = tokenSport(token)
+  return (
+    <div
+      className="flex items-center justify-center rounded-full"
+      style={{
+        width: PILL_SIZE,
+        height: PILL_SIZE,
+        background: SPORT_BASE[sport],
+      }}
+      aria-label={token.title}
+    >
+      <SportGlyph sport={sport} color="#0B0E14" size={12} />
+    </div>
+  )
+}
+
+/** Wrap een pill in een ≥44px tap-target link wanneer er een detailpagina is. */
+function TokenSlot({ token }: { token: ActivityToken }) {
+  const href = tokenHref(token)
+  if (!href) return <TokenPill token={token} />
+  return (
+    <Link
+      href={href}
+      aria-label={`Bekijk ${token.title}`}
+      className="flex items-center justify-center"
+      style={{ minWidth: 44, minHeight: 44, marginBlock: -(44 - PILL_SIZE) / 2 }}
+    >
+      <TokenPill token={token} />
+    </Link>
+  )
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+export function WeekGlanceSkeleton() {
+  return (
+    <Card className="p-[14px]">
+      <div className="flex items-center justify-between">
+        <div className="h-3 w-20 rounded bg-white/[0.06]" />
+        <div className="h-3 w-12 rounded bg-white/[0.06]" />
+      </div>
+      <div className="mt-3 grid animate-pulse grid-cols-7 gap-1.5">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5">
+            <div
+              className="rounded-full bg-white/[0.06]"
+              style={{ width: PILL_SIZE, height: PILL_SIZE }}
+            />
+            <div className="h-3 w-2 rounded bg-white/[0.06]" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -80,23 +148,9 @@ export function WeekGlance({ days }: WeekGlanceProps) {
                 style={{ height: stackHeight, gap: PILL_GAP }}
               >
                 {done ? (
-                  doneTokens.map((t, i) => {
-                    const sport = tokenSport(t)
-                    return (
-                      <div
-                        key={`${d.date}-${i}`}
-                        className="flex items-center justify-center rounded-full"
-                        style={{
-                          width: PILL_SIZE,
-                          height: PILL_SIZE,
-                          background: SPORT_BASE[sport],
-                        }}
-                        aria-label={t.title}
-                      >
-                        <SportGlyph sport={sport} color="#0B0E14" size={12} />
-                      </div>
-                    )
-                  })
+                  doneTokens.map((t, i) => (
+                    <TokenSlot key={`${d.date}-${i}`} token={t} />
+                  ))
                 ) : (
                   <div
                     className="rounded-full"

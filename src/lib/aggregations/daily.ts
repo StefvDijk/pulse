@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { startOfDayUtcIso, addDaysToKey } from '@/lib/time/amsterdam'
 import { calculateMuscleLoad } from './muscle-groups'
 import { calculateMovementVolume } from './movement-patterns'
 import { calculateTrainingLoadScore } from './workload'
@@ -50,8 +51,8 @@ export async function computeDailyAggregation(
     `,
     )
     .eq('user_id', userId)
-    .gte('started_at', `${date}T00:00:00Z`)
-    .lt('started_at', `${date}T23:59:59Z`)
+    .gte('started_at', startOfDayUtcIso(date))
+    .lt('started_at', startOfDayUtcIso(addDaysToKey(date, 1)))
 
   if (workoutsError) {
     throw new Error(`Failed to fetch workouts for ${date}: ${workoutsError.message}`)
@@ -62,8 +63,8 @@ export async function computeDailyAggregation(
     .from('runs')
     .select('duration_seconds, distance_meters, avg_pace_seconds_per_km')
     .eq('user_id', userId)
-    .gte('started_at', `${date}T00:00:00Z`)
-    .lt('started_at', `${date}T23:59:59Z`)
+    .gte('started_at', startOfDayUtcIso(date))
+    .lt('started_at', startOfDayUtcIso(addDaysToKey(date, 1)))
 
   if (runsError) {
     throw new Error(`Failed to fetch runs for ${date}: ${runsError.message}`)
@@ -74,8 +75,8 @@ export async function computeDailyAggregation(
     .from('padel_sessions')
     .select('duration_seconds')
     .eq('user_id', userId)
-    .gte('started_at', `${date}T00:00:00Z`)
-    .lt('started_at', `${date}T23:59:59Z`)
+    .gte('started_at', startOfDayUtcIso(date))
+    .lt('started_at', startOfDayUtcIso(addDaysToKey(date, 1)))
 
   if (padelError) {
     throw new Error(`Failed to fetch padel sessions for ${date}: ${padelError.message}`)

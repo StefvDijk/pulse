@@ -13,13 +13,16 @@ import {
 } from 'recharts'
 import type { TrendPoint, WorkloadStatus } from '@/types/workload'
 
+type DisplayStatus = WorkloadStatus | 'insufficient_data'
+
 // ── Theme tokens (CSS variables resolved by the browser) ─────────────────────
 
-const STATUS_FILL: Record<WorkloadStatus, string> = {
+const STATUS_FILL: Record<DisplayStatus, string> = {
   low: 'rgba(255,255,255,0.16)',
   optimal: 'var(--color-status-good)',
   warning: 'var(--color-status-warn)',
   danger: 'var(--color-status-bad)',
+  insufficient_data: 'rgba(255,255,255,0.16)',
 }
 
 // Optimal corridor — Stef's training stays inside this band when load is balanced.
@@ -36,11 +39,12 @@ function formatShortNL(dateStr: string): string {
   return `${day} ${MONTH_SHORT_NL[month - 1]}`
 }
 
-const STATUS_LABEL_NL: Record<WorkloadStatus, string> = {
+const STATUS_LABEL_NL: Record<DisplayStatus, string> = {
   low: 'Te licht',
   optimal: 'In balans',
   warning: 'Opbouw',
   danger: 'Overbelast',
+  insufficient_data: 'Opbouwfase',
 }
 
 // ── Chart data shape ─────────────────────────────────────────────────────────
@@ -48,8 +52,9 @@ const STATUS_LABEL_NL: Record<WorkloadStatus, string> = {
 interface ChartPoint {
   windowEnd: string
   dateLabel: string
-  ratio: number
-  status: WorkloadStatus
+  /** null when chronicLoad is zero (insufficient training history). */
+  ratio: number | null
+  status: DisplayStatus
   isCurrent: boolean
 }
 
@@ -99,7 +104,7 @@ function CorridorTooltip({ active, payload }: TooltipProps) {
         Week eindigend {formatShortNL(point.windowEnd)}
       </p>
       <p className="mt-1 text-title3 font-bold tabular-nums text-text-primary">
-        {point.ratio.toFixed(2)}
+        {point.ratio !== null ? point.ratio.toFixed(2) : '—'}
       </p>
       <p
         className="text-caption1 font-medium"

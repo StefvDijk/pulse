@@ -30,6 +30,8 @@ export interface ChatInterfaceProps {
    *  homescreen CoachCard so the nudge appears as the first AI message and the
    *  user's first reply continues that thread. Persisted server-side on send. */
   seededAssistant?: string
+  /** Called whenever the loading/streaming state changes so parent can disable UI (e.g. "Nieuwe chat" button). */
+  onLoadingChange?: (loading: boolean) => void
 }
 
 const NEAR_BOTTOM_PX = 120
@@ -39,6 +41,7 @@ export function ChatInterface({
   compact = false,
   initialMessage,
   seededAssistant,
+  onLoadingChange,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
@@ -48,6 +51,9 @@ export function ChatInterface({
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [isInitializing, setIsInitializing] = useState(true)
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  // When there is no initialSessionId the user started a fresh chat — skip the
+  // history fetch until the first send returns a real session_id via header.
+  const [isFreshSession, setIsFreshSession] = useState(!initialSessionId)
   const initialMessageSentRef = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -64,8 +70,27 @@ export function ChatInterface({
   const smoothRafRef = useRef<number | null>(null)
   const lastTickRef = useRef<number>(0)
 
-  // Load history on mount
+  // Notify parent of loading state changes so it can disable the "Nieuwe chat" button.
   useEffect(() => {
+    onLoadingChange?.(isLoading)
+  }, [isLoading, onLoadingChange])
+
+  // Load history on mount (or when a known sessionId is provided).
+  // Skipped for fresh sessions (no sessionId yet) — the history fetch would
+  // otherwise pull in the *previous* session. Once the first send returns a
+  // session_id via X-Session-Id header, isFreshSession flips to false and this
+  // effect re-runs to load the new session's history (which is fine at that point).
+  useEffect(() => {
+    if (isFreshSession) {
+      // Show empty state immediately; seed assistant nudge if provided.
+      if (seededAssistant) {
+        setMessages([{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }])
+        setShowSuggestions(false)
+      }
+      setIsInitializing(false)
+      return
+    }
+
     const url = sessionId
       ? `/api/chat/history?session_id=${sessionId}`
       : '/api/chat/history'
@@ -97,7 +122,7 @@ export function ChatInterface({
         console.error('[ChatInterface] Failed to load history:', err)
       })
       .finally(() => setIsInitializing(false))
-  }, [sessionId, seededAssistant])
+  }, [sessionId, seededAssistant, isFreshSession])
 
   // Smooth scroll only when a new message arrives — not on every streamed token.
   useEffect(() => {
@@ -205,9 +230,13 @@ export function ChatInterface({
           throw new Error(`HTTP ${res.status}`)
         }
 
-        // Capture session id from header
+        // Capture session id from header; clearing isFreshSession lets history
+        // re-fetch work correctly for future page reloads on this session.
         const newSessionId = res.headers.get('X-Session-Id')
-        if (newSessionId) setSessionId(newSessionId)
+        if (newSessionId) {
+          setSessionId(newSessionId)
+          setIsFreshSession(false)
+        }
 
         if (!res.body) {
           throw new Error('Empty response body')

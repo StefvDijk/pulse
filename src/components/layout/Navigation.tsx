@@ -14,6 +14,10 @@ import {
   Apple,
   MoreHorizontal,
   ChevronRight,
+  Activity,
+  Target,
+  LineChart,
+  CalendarCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
@@ -31,6 +35,14 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/progress', label: 'Progressie', icon: TrendingUp },
   { href: '/nutrition', label: 'Voeding', icon: Apple },
   { href: '/chat', label: 'Coach', icon: MessageCircle },
+]
+
+const MORE_ITEMS: NavItem[] = [
+  { href: '/belasting', label: 'Belasting', icon: Activity },
+  { href: '/goals', label: 'Doelen', icon: Target },
+  { href: '/trends', label: 'Trends', icon: LineChart },
+  { href: '/check-in/history', label: 'Check-in historie', icon: CalendarCheck },
+  { href: '/settings', label: 'Instellingen', icon: SettingsIcon },
 ]
 
 export function Navigation() {
@@ -164,20 +176,23 @@ export function Navigation() {
 
               {/* List */}
               <div className="px-3 pb-3">
-                <Link
-                  href="/settings"
-                  onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
-                  className={[
-                    'flex items-center gap-3 px-3 py-3 rounded-xl',
-                    'text-[15px] font-medium text-text-primary',
-                    'hover:bg-white/[0.04] active:bg-white/[0.08]',
-                    'transition-colors duration-150',
-                  ].join(' ')}
-                >
-                  <SettingsIcon size={22} strokeWidth={1.5} className="text-text-secondary" />
-                  <span className="flex-1">Instellingen</span>
-                  <ChevronRight size={18} strokeWidth={1.5} className="text-text-muted" />
-                </Link>
+                {MORE_ITEMS.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
+                    className={[
+                      'flex min-h-[44px] items-center gap-3 px-3 py-3 rounded-xl',
+                      'text-[15px] font-medium text-text-primary',
+                      'hover:bg-white/[0.04] active:bg-white/[0.08]',
+                      'transition-colors duration-150',
+                    ].join(' ')}
+                  >
+                    <Icon size={22} strokeWidth={1.5} className="text-text-secondary" />
+                    <span className="flex-1">{label}</span>
+                    <ChevronRight size={18} strokeWidth={1.5} className="text-text-muted" />
+                  </Link>
+                ))}
 
                 <button
                   type="button"
@@ -186,7 +201,7 @@ export function Navigation() {
                     handleSignOut()
                   }}
                   className={[
-                    'mt-1 flex w-full items-center gap-3 px-3 py-3 rounded-xl text-left',
+                    'mt-1 flex min-h-[44px] w-full items-center gap-3 px-3 py-3 rounded-xl text-left',
                     'text-[15px] font-medium text-status-bad',
                     'hover:bg-status-bad/10 active:bg-status-bad/15',
                     'transition-colors duration-150',

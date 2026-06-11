@@ -14,8 +14,30 @@ async function fetcher(url: string): Promise<NutritionSummaryData> {
   return res.json()
 }
 
-function formatPageTitle(dateStr: string): string {
-  // Simple on-track title — will be data-driven in a later iteration
+function derivePageTitle(
+  isLoading: boolean,
+  summary:
+    | { total_calories?: number | null; total_protein_g?: number | null; calorie_target?: number | null; protein_target_g?: number | null }
+    | null
+    | undefined,
+): string {
+  if (isLoading || summary == null) return 'Voeding'
+
+  const totalCalories = summary.total_calories ?? 0
+  const totalProtein = summary.total_protein_g ?? 0
+  const calorieTarget = summary.calorie_target ?? null
+  const proteinTarget = summary.protein_target_g ?? null
+
+  const hasLogged = totalCalories > 0 || totalProtein > 0
+  if (!hasLogged) return 'Nog niets gelogd'
+
+  if (calorieTarget !== null && totalCalories > calorieTarget * 1.1) return 'Boven doel'
+
+  if (proteinTarget !== null && totalProtein < proteinTarget * 0.9) {
+    const missing = Math.round(proteinTarget - totalProtein)
+    return `Nog ${missing}g eiwit te gaan`
+  }
+
   return 'Op koers'
 }
 
@@ -80,7 +102,7 @@ export function NutritionPage() {
       {/* v2 page header with date navigation */}
       <NutritionHeader
         eyebrow={formatEyebrow(selectedDate)}
-        title={formatPageTitle(selectedDate)}
+        title={derivePageTitle(isLoading, summary)}
         onPrev={() => setSelectedDate((d) => offsetDate(d, -1))}
         onNext={() => setSelectedDate((d) => offsetDate(d, 1))}
         nextDisabled={selectedDate >= today}

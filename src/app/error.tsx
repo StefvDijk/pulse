@@ -14,7 +14,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           Er is iets misgegaan
         </p>
         <p className="mb-5 text-sm text-text-secondary">
-          {error.message || 'Een onverwachte fout is opgetreden.'}
+          Een onverwachte fout is opgetreden.
         </p>
         <button
           onClick={reset}

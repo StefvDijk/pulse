@@ -5,30 +5,35 @@ import { Card } from '@/components/ui/v2'
 import { ZoneBar } from '@/components/ui/v2'
 import type { WorkloadData, WorkloadStatus } from '@/types/workload'
 
-const STATUS_LABELS: Record<WorkloadStatus, string> = {
+type DisplayStatus = WorkloadStatus | 'insufficient_data'
+
+const STATUS_LABELS: Record<DisplayStatus, string> = {
   low: 'Te licht',
   optimal: 'In balans',
   warning: 'Opbouw',
   danger: 'Overbelast',
+  insufficient_data: 'Opbouwfase',
 }
 
-const STATUS_COLOR: Record<WorkloadStatus, string> = {
+const STATUS_COLOR: Record<DisplayStatus, string> = {
   low: 'rgba(142,142,147,1)',
   optimal: '#22D67A',
   warning: '#FFB020',
   danger: '#FF4D6D',
+  insufficient_data: 'rgba(142,142,147,1)',
 }
 
-const STATUS_BG: Record<WorkloadStatus, string> = {
+const STATUS_BG: Record<DisplayStatus, string> = {
   low: 'rgba(142,142,147,0.15)',
   optimal: 'rgba(34,214,122,0.15)',
   warning: 'rgba(255,176,32,0.15)',
   danger: 'rgba(255,77,109,0.15)',
+  insufficient_data: 'rgba(142,142,147,0.15)',
 }
 
 interface ExplanationInput {
-  status: WorkloadStatus
-  ratio: number
+  status: DisplayStatus
+  ratio: number | null
   acuteSessions: number
   chronicSessions: number
   acuteLoad: number
@@ -37,6 +42,11 @@ interface ExplanationInput {
 
 function getExplanation(input: ExplanationInput): string {
   const { status, ratio, acuteSessions, chronicSessions, acuteLoad, chronicLoad } = input
+
+  if (status === 'insufficient_data' || ratio === null) {
+    return 'Nog onvoldoende trainingshistorie om een betrouwbare ratio te berekenen. Ga door met trainen — na ~14 dagen wordt de ratio zichtbaar.'
+  }
+
   const pct = Math.round((ratio - 1) * 100)
   const absPct = Math.abs(pct)
   const loadTrend =
@@ -93,7 +103,7 @@ export function RatioCard({ data }: RatioCardProps) {
             {STATUS_LABELS[data.status]}
           </div>
           <div className="mt-2 text-[64px] font-bold leading-none tracking-[-2px] text-text-primary tabular-nums">
-            {data.ratio.toFixed(2)}
+            {data.ratio !== null ? data.ratio.toFixed(2) : '—'}
           </div>
           <div className="mt-1 text-[12px] text-text-tertiary">acute : chronisch ratio</div>
         </div>
@@ -109,15 +119,17 @@ export function RatioCard({ data }: RatioCardProps) {
         </div>
       </div>
 
-      <div className="mt-5">
-        <ZoneBar value={Math.max(0, Math.min(1, data.ratio / 2.0))} />
-        <div className="mt-2 flex justify-between text-[10px] text-text-tertiary tabular-nums">
-          <span>0.6</span>
-          <span>0.8</span>
-          <span>1.3</span>
-          <span>1.5</span>
+      {data.ratio !== null && (
+        <div className="mt-5">
+          <ZoneBar value={Math.max(0, Math.min(1, data.ratio / 2.0))} />
+          <div className="mt-2 flex justify-between text-[10px] text-text-tertiary tabular-nums">
+            <span>0.6</span>
+            <span>0.8</span>
+            <span>1.3</span>
+            <span>1.5</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <p className="mt-4 text-[13px] leading-snug text-text-secondary">
         {getExplanation({

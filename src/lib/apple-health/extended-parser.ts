@@ -1,39 +1,5 @@
 import type { RawHealthPayload } from '@/lib/apple-health/types'
-
-// ---------------------------------------------------------------------------
-// Internal helpers (duplicated from parser.ts to keep files independent)
-// ---------------------------------------------------------------------------
-
-/**
- * Normalise a HAE date string to an ISO-8601 UTC string.
- * HAE timestamps look like "2026-01-15 08:00:00 +0100".
- */
-function normaliseDate(str: string): string {
-  const normalised = str
-    .trim()
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/, '$1T$2$3:$4')
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2Z')
-
-  const d = new Date(normalised)
-  if (isNaN(d.getTime())) return str
-  return d.toISOString()
-}
-
-/**
- * Extract the date part (YYYY-MM-DD) from a HAE date string,
- * using the wall-clock date in the original timezone offset.
- */
-function extractDate(str: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str.trim())) return str.trim()
-  // Preserve local date: re-parse with offset and extract YYYY-MM-DD
-  const normalised = str
-    .trim()
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/, '$1T$2$3:$4')
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2Z')
-  // Return the date portion from the original string before any timezone shift
-  const dateOnly = normalised.slice(0, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(dateOnly) ? dateOnly : normaliseDate(str).slice(0, 10)
-}
+import { normaliseDate, extractWallClockDate } from '@/lib/apple-health/date-utils'
 
 // ---------------------------------------------------------------------------
 // Sleep data
@@ -62,7 +28,7 @@ export function parseSleepData(payload: RawHealthPayload): ParsedSleepDay[] {
 
     for (const point of metric.data) {
       if (point.qty === undefined) continue
-      const date = extractDate(point.date)
+      const date = extractWallClockDate(point.date)
       const existing = byDate.get(date) ?? 0
       byDate.set(date, existing + point.qty)
     }
@@ -103,7 +69,7 @@ export function parseBodyWeight(payload: RawHealthPayload): ParsedBodyWeight[] {
 
     for (const point of metric.data) {
       if (point.qty === undefined) continue
-      const date = extractDate(point.date)
+      const date = extractWallClockDate(point.date)
       const weightKg = isLbs
         ? Math.round(point.qty * 0.453592 * 100) / 100
         : Math.round(point.qty * 100) / 100
@@ -215,7 +181,7 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
 
     for (const point of metric.data) {
       if (point.qty === undefined) continue
-      const date = extractDate(point.date)
+      const date = extractWallClockDate(point.date)
       const existing = byDate.get(date) ?? {
         weightKg: undefined,
         fatPct: undefined,
@@ -242,7 +208,7 @@ export function parseBodyComposition(payload: RawHealthPayload): ParsedBodyCompo
 
     for (const point of metric.data) {
       if (point.qty === undefined) continue
-      const date = extractDate(point.date)
+      const date = extractWallClockDate(point.date)
       const existing = byDate.get(date) ?? {
         weightKg: undefined,
         fatPct: undefined,

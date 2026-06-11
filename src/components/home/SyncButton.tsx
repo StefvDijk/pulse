@@ -17,7 +17,35 @@ export function SyncButton() {
 
     try {
       const hevyRes = await fetch('/api/ingest/hevy/sync', { method: 'POST' })
-      const hevyData = hevyRes.ok ? await hevyRes.json() : null
+      const hevyData = (await hevyRes.json().catch(() => null)) as
+        | { synced?: number; errors?: string[]; error?: string }
+        | null
+
+      // A non-OK response (e.g. 500) previously fell through to the success
+      // branch and read as "up-to-date". Surface the real failure instead.
+      if (!hevyRes.ok) {
+        const firstError = hevyData?.error ?? hevyData?.errors?.[0] ?? 'Sync mislukt'
+        setStatus('error')
+        setMessage(firstError)
+        setTimeout(() => {
+          setStatus('idle')
+          setMessage(null)
+        }, 6000)
+        return
+      }
+
+      // The sync can return 200 while individual workouts errored — show the
+      // first error rather than a false success.
+      const syncErrors = hevyData?.errors ?? []
+      if (syncErrors.length > 0) {
+        setStatus('error')
+        setMessage(syncErrors[0])
+        setTimeout(() => {
+          setStatus('idle')
+          setMessage(null)
+        }, 6000)
+        return
+      }
 
       const todayStr = todayAmsterdam()
       const mondayStr = weekStartAmsterdam()
@@ -37,9 +65,10 @@ export function SyncButton() {
 
       const aggOk = dailyRes.ok && weeklyRes.ok
 
-      if (hevyData?.synced > 0) {
-        const noun = hevyData.synced === 1 ? 'workout' : 'workouts'
-        setMessage(`${hevyData.synced} nieuwe ${noun}`)
+      const synced = hevyData?.synced ?? 0
+      if (synced > 0) {
+        const noun = synced === 1 ? 'workout' : 'workouts'
+        setMessage(`${synced} nieuwe ${noun}`)
       } else {
         setMessage('Hevy is up-to-date')
       }

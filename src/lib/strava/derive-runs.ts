@@ -15,6 +15,16 @@ interface DeriveResult {
   scanned: number
   matched: number
   inserted: number
+  failed: number
+}
+
+type ValidRunType = 'easy' | 'tempo' | 'interval' | 'long' | 'race'
+
+/** Map a Strava sport_type/activity_type to a DB-valid run_type.
+ *  workout_type is not stored in strava_activities, so we always default to 'easy'.
+ */
+function toValidRunType(_sportType: string | null | undefined): ValidRunType {
+  return 'easy'
 }
 
 function paceSecondsPerKm(distanceMeters: number | null, movingTimeSeconds: number | null): number | null {
@@ -43,11 +53,12 @@ export async function deriveRunsFromStrava(
 
   if (error) throw new Error(`Failed to load strava_activities: ${error.message}`)
   if (!stravaRuns || stravaRuns.length === 0) {
-    return { scanned: 0, matched: 0, inserted: 0 }
+    return { scanned: 0, matched: 0, inserted: 0, failed: 0 }
   }
 
   let matched = 0
   let inserted = 0
+  let failed = 0
 
   for (const sa of stravaRuns) {
     const duration = sa.moving_time_seconds ?? sa.elapsed_time_seconds ?? null
@@ -139,16 +150,17 @@ export async function deriveRunsFromStrava(
       max_heart_rate: sa.max_heartrate != null ? Math.round(sa.max_heartrate) : null,
       calories_burned: sa.calories,
       notes: sa.name,
-      run_type: sa.sport_type ?? sa.activity_type,
+      run_type: toValidRunType(sa.sport_type ?? sa.activity_type),
       source: 'strava',
       strava_activity_id: sa.strava_activity_id,
     })
     if (insErr) {
       console.error('[derive-runs] insert failed', insErr)
+      failed += 1
       continue
     }
     inserted += 1
   }
 
-  return { scanned: stravaRuns.length, matched, inserted }
+  return { scanned: stravaRuns.length, matched, inserted, failed }
 }

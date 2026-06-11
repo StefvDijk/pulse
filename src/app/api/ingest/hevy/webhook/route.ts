@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkout } from '@/lib/hevy/client'
-import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
+import { upsertSingleWorkout, reaggregateForInstant } from '@/lib/hevy/sync'
 import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
@@ -76,79 +76,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { data: definitions } = await admin.from('exercise_definitions').select('id, name')
   const exerciseDefinitions = definitions ?? []
 
-  // Try each user until we find the one who owns this workout
+  // Try each user until we find the one who owns this workout. The workout
+  // fetch throws (404) for users who don't own it, so we move on to the next.
   for (const { user_id, hevy_api_key } of usersWithKey ?? []) {
     if (!hevy_api_key) continue
 
+    let hevyWorkout
     try {
-      const hevyWorkout = await getWorkout(hevy_api_key, payload.workoutId)
-      const mapped = mapHevyWorkoutWithDefinitions(hevyWorkout, user_id, exerciseDefinitions)
-
-      // Upsert workout
-      const { data: upsertedWorkout, error: upsertError } = await admin
-        .from('workouts')
-        .upsert(mapped.workout, { onConflict: 'user_id,hevy_workout_id' })
-        .select('id')
-        .single()
-
-      if (upsertError) {
-        console.error(
-          `[POST /api/ingest/hevy/webhook] Upsert failed for workout ${payload.workoutId}:`,
-          upsertError,
-        )
-        break
-      }
-
-      const workoutId = upsertedWorkout.id
-
-      // Upsert exercises and sets
-      for (const item of mapped.exercises) {
-        if (!item.exerciseDefinitionId) continue
-
-        const exerciseInsert = {
-          ...item.exercise,
-          workout_id: workoutId,
-          exercise_definition_id: item.exerciseDefinitionId,
-        }
-
-        const { data: upsertedExercise, error: exerciseError } = await admin
-          .from('workout_exercises')
-          .upsert(exerciseInsert)
-          .select('id')
-          .single()
-
-        if (exerciseError) {
-          console.error(
-            `[POST /api/ingest/hevy/webhook] Exercise upsert failed:`,
-            exerciseError,
-          )
-          continue
-        }
-
-        const setsToInsert = item.sets.map((set) => ({
-          ...set,
-          workout_exercise_id: upsertedExercise.id,
-        }))
-
-        if (setsToInsert.length > 0) {
-          const { error: setsError } = await admin.from('workout_sets').upsert(setsToInsert)
-
-          if (setsError) {
-            console.error(
-              `[POST /api/ingest/hevy/webhook] Sets upsert failed:`,
-              setsError,
-            )
-          }
-        }
-      }
-
-      // Successfully handled — stop iterating
-      break
+      hevyWorkout = await getWorkout(hevy_api_key, payload.workoutId)
     } catch {
-      // This user doesn't own the workout (404) or another error — try the next
+      // This user doesn't own the workout (404) or a transient fetch error —
+      // try the next user.
       continue
     }
+
+    // Owner found. Route through the shared single-workout pipeline so the
+    // webhook does delete-then-insert (no duplicate sets on redelivery/edit),
+    // computes workout stats, and runs PR detection — identical to sync.
+    const result = await upsertSingleWorkout(hevyWorkout, user_id, exerciseDefinitions)
+
+    if (result.errors.length > 0) {
+      console.error(
+        `[POST /api/ingest/hevy/webhook] Upsert errors for workout ${payload.workoutId}:`,
+        result.errors,
+      )
+    }
+
+    // Any persistence failure — whether the workout row itself or its
+    // exercises/sets/stats — must return a non-2xx so Hevy redelivers. The
+    // upsert flow is idempotent (delete-then-insert on conflict), so a retry
+    // does not duplicate data.
+    if (!result.workoutId || result.errors.length > 0) {
+      return NextResponse.json(
+        { received: true, action: 'error', error: result.errors[0] ?? null },
+        { status: 500 },
+      )
+    }
+
+    // Re-aggregate the day THIS workout falls on (not "today"), so edits to an
+    // older workout still refresh the right daily/weekly stats.
+    try {
+      await reaggregateForInstant(user_id, result.startedAt)
+    } catch (aggError) {
+      console.error(
+        `[POST /api/ingest/hevy/webhook] Re-aggregation failed for workout ${payload.workoutId}:`,
+        aggError,
+      )
+    }
+
+    // Successfully handled — stop iterating
+    return NextResponse.json({ received: true, action: 'processed' })
   }
 
-  return NextResponse.json({ received: true, action: 'processed' })
+  // No configured user owned this workout.
+  return NextResponse.json({ received: true, action: 'ignored' })
 }
