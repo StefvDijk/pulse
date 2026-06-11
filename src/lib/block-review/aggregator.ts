@@ -3,6 +3,7 @@ import type { Database } from '@/types/database'
 import { computeAdherence } from './adherence'
 import { buildJourneyContext, type JourneyContext } from './journey'
 import { computeACWR, projectACWR, type PlannedSessionLoad } from '@/lib/training/acwr'
+import { estimateOneRm } from '@/lib/training/e1rm'
 
 export interface ExerciseProgressionPoint {
   date: string
@@ -93,12 +94,6 @@ export interface BlockReviewData {
 }
 
 type Admin = SupabaseClient<Database>
-
-function estimateOneRm(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0
-  if (reps === 1) return weight
-  return Math.round(weight * (1 + reps / 30) * 10) / 10
-}
 
 export function weekOf(date: string, startMs: number, weeksPlanned: number): number {
   const ms = new Date(`${date.slice(0, 10)}T00:00:00Z`).getTime()
