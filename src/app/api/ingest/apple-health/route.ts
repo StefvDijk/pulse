@@ -7,6 +7,7 @@ import { mapRun, mapPadelSession, mapWalk, mapDailyActivity } from '@/lib/apple-
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
+import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 
@@ -84,6 +85,7 @@ interface IngestResponse {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<IngestResponse | { error: string }>> {
+  const syncStartedAt = new Date().toISOString()
   try {
   // ------------------------------------------------------------------
   // 1. Extract Bearer token
@@ -664,7 +666,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 15. Return summary
+  // 15. Record this sync attempt for the per-source status chip + audit
+  //     trail. Fire-and-forget; recordSyncRun logs its own insert failures.
+  // ------------------------------------------------------------------
+  const syncedCount =
+    runsProcessed +
+    walksProcessed +
+    padelProcessed +
+    activityProcessed +
+    sleepProcessed +
+    bodyWeightProcessed +
+    bodyCompositionProcessed +
+    gymCorrelations
+  void recordSyncRun({
+    userId,
+    source: 'apple_health',
+    startedAt: syncStartedAt,
+    syncedCount,
+    errors,
+  })
+
+  // ------------------------------------------------------------------
+  // 16. Return summary
   // ------------------------------------------------------------------
   return NextResponse.json({
     processed: {

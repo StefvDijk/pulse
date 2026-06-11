@@ -6,6 +6,7 @@ import { deriveRunsFromStrava } from '@/lib/strava/derive-runs'
 import { deriveWalksFromStrava } from '@/lib/strava/derive-walks'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
+import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
 
 // Shared Strava sync logic — pulls activities for a recent window, upserts them
@@ -91,6 +92,7 @@ export async function syncStravaActivities(
   userId: string,
   days: number,
 ): Promise<StravaSyncResult> {
+  const startedAt = new Date().toISOString()
   const after = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60
 
   // Paginate to be safe — a heavy user can have >100 activities in a month.
@@ -108,6 +110,7 @@ export async function syncStravaActivities(
 
   if (allActivities.length === 0) {
     await touchLastSync(userId, admin)
+    void recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: 0, errors: [] })
     return { fetched: 0, synced: 0, derivedRuns: null, derivedWalks: null, days }
   }
 
@@ -118,6 +121,13 @@ export async function syncStravaActivities(
     .select('id')
   if (error) {
     console.error('[strava/sync] upsert failed:', error)
+    void recordSyncRun({
+      userId,
+      source: 'strava',
+      startedAt,
+      syncedCount: 0,
+      errors: [`Opslaan mislukt: ${error.message}`],
+    })
     throw new Error('Opslaan mislukt')
   }
 
@@ -157,6 +167,14 @@ export async function syncStravaActivities(
   }
 
   await touchLastSync(userId, admin)
+
+  void recordSyncRun({
+    userId,
+    source: 'strava',
+    startedAt,
+    syncedCount: data?.length ?? 0,
+    errors: [],
+  })
 
   return {
     fetched: allActivities.length,

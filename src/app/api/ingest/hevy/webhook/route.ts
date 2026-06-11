@@ -102,9 +102,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!result.workoutId) {
-      // Could not persist the workout row — report failure, stop iterating.
-      return NextResponse.json({ received: true, action: 'error' }, { status: 500 })
+    // Any persistence failure — whether the workout row itself or its
+    // exercises/sets/stats — must return a non-2xx so Hevy redelivers. The
+    // upsert flow is idempotent (delete-then-insert on conflict), so a retry
+    // does not duplicate data.
+    if (!result.workoutId || result.errors.length > 0) {
+      return NextResponse.json(
+        { received: true, action: 'error', error: result.errors[0] ?? null },
+        { status: 500 },
+      )
     }
 
     // Re-aggregate the day THIS workout falls on (not "today"), so edits to an

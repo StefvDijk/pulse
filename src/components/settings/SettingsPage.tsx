@@ -15,6 +15,7 @@ import { AIContextPreview } from './AIContextPreview'
 import { ProfileHeader } from './v2/ProfileHeader'
 import { FormSection } from './v2/FormSection'
 import { SyncButton } from '@/components/home/SyncButton'
+import { SyncStatusChips } from './SyncStatusChips'
 
 export function SettingsPage() {
   const { data, isLoading, error, refresh } = useSettings()
@@ -309,6 +310,7 @@ export function SettingsPage() {
       {/* Manual sync trigger — Hevy + aggregaties */}
       <FormSection title="Synchronisatie">
         <SyncButton />
+        <SyncStatusChips />
       </FormSection>
 
       {/* Google Calendar */}

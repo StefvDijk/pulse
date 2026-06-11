@@ -12,6 +12,7 @@ import {
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
+import { recordSyncRun } from '@/lib/sync/record-sync-run'
 
 interface ExerciseDefinition {
   id: string
@@ -541,6 +542,16 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     routinesSynced: routineResult.synced,
     errors,
   }
+
+  // Record this sync attempt so the per-source status chip + audit trail stay
+  // accurate. Fire-and-forget; recordSyncRun logs its own insert failures.
+  void recordSyncRun({
+    userId,
+    source: 'hevy',
+    startedAt: syncStartedAt,
+    syncedCount: synced,
+    errors,
+  })
 
   // Fire-and-forget belief extraction on training-scope events.
   // Only triggers when at least one workout was actually synced.
