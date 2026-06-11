@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
 import type { ReadinessData, ReadinessLevel } from '@/types/readiness'
 import { calculateReadinessScore } from '@/lib/readiness/score'
+import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
 
 interface ScheduleSession {
   day: string
@@ -81,7 +82,7 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
 
   const [
-    weeklyResult,
+    rollingAcwr,
     activityTodayResult,
     activityYesterdayResult,
     sleepTodayResult,
@@ -92,13 +93,9 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
     schemaResult,
   ] =
     await Promise.all([
-      admin
-        .from('weekly_aggregations')
-        .select('acute_chronic_ratio, workload_status')
-        .eq('user_id', userId)
-        .order('week_start', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      // Rollend venster t/m vandaag i.p.v. de lopende-week-rij uit
+      // weekly_aggregations (die vroeg in de week onterecht laag is).
+      computeRollingAcwr(userId),
       admin
         .from('daily_activity')
         .select('resting_heart_rate, hrv_average')
@@ -146,7 +143,6 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .maybeSingle(),
     ])
 
-  if (weeklyResult.error) throw weeklyResult.error
   if (activityTodayResult.error) throw activityTodayResult.error
   if (activityYesterdayResult.error) throw activityYesterdayResult.error
   if (sleepTodayResult.error) throw sleepTodayResult.error
@@ -161,7 +157,7 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   const tomorrowWorkout = getWorkoutForDay(sessions, tomorrowDayName)
   const activity = activityTodayResult.data ?? activityYesterdayResult.data
 
-  const acwr = weeklyResult.data?.acute_chronic_ratio ?? null
+  const acwr = rollingAcwr.ratio
   const restingHR = activity?.resting_heart_rate ?? null
   const hrv = activity?.hrv_average ?? null
   const recentSessions =

@@ -8,6 +8,7 @@ import { READINESS_SUMMARY_SYSTEM, buildReadinessUserMessage } from '@/lib/ai/pr
 import type { Json } from '@/types/database'
 import type { ReadinessLevel } from '@/types/readiness'
 import { calculateReadinessScore } from '@/lib/readiness/score'
+import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
 
 export const maxDuration = 20
 
@@ -181,7 +182,7 @@ export async function GET() {
     const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
 
     const [
-      weekly,
+      rollingAcwr,
       activityToday,
       activityYesterday,
       sleepToday,
@@ -192,13 +193,10 @@ export async function GET() {
       schema,
       biometricHistory,
     ] = await Promise.all([
-      admin
-        .from('weekly_aggregations')
-        .select('acute_chronic_ratio')
-        .eq('user_id', user.id)
-        .order('week_start', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      // Rollend venster t/m vandaag i.p.v. de lopende-week-rij uit
+      // weekly_aggregations (die vroeg in de week onterecht laag is en zo de
+      // readiness-score én de AI-coach een te lage ACWR voedt).
+      computeRollingAcwr(user.id),
       admin
         .from('daily_activity')
         .select('resting_heart_rate, hrv_average')
@@ -266,7 +264,7 @@ export async function GET() {
     const sessions = schema.data ? extractSessions(schema.data.workout_schedule) : []
     const todayWorkout = getWorkoutForDay(sessions, todayDayName)
     const activity = activityToday.data ?? activityYesterday.data
-    const acwr = weekly.data?.acute_chronic_ratio ?? null
+    const acwr = rollingAcwr.ratio
     const restingHR = activity?.resting_heart_rate ?? null
     const hrv = activity?.hrv_average ?? null
     const recentSessions =
