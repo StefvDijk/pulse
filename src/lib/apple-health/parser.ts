@@ -8,6 +8,7 @@ import {
   categorizeWorkout,
   parseMetricValue,
 } from '@/lib/apple-health/types'
+import { normaliseDate, extractWallClockDate } from '@/lib/apple-health/date-utils'
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -24,35 +25,6 @@ function distanceToMeters(qty: number, units: string): number {
     case 'mi': return Math.round(qty * 1609.344)
     default: return Math.round(qty)
   }
-}
-
-/**
- * Normalise a HAE date string to an ISO-8601 UTC string.
- * HAE timestamps look like "2026-01-15 08:00:00 +0100".
- */
-function normaliseDate(str: string): string {
-  // Replace space-separated offset "2026-01-15 08:00:00 +0100"
-  // → "2026-01-15T08:00:00+01:00" which Date can parse reliably.
-  const normalised = str
-    .trim()
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/, '$1T$2$3:$4')
-    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2Z')
-
-  const d = new Date(normalised)
-  if (isNaN(d.getTime())) return str // return as-is when unparseable
-  return d.toISOString()
-}
-
-/**
- * Extract the date part (YYYY-MM-DD) from a HAE date string,
- * using local wall-clock date (Amsterdam / device timezone).
- * For daily metrics the date field already is "YYYY-MM-DD".
- */
-function extractDate(str: string): string {
-  // If it's already just a date
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str.trim())) return str.trim()
-  // Otherwise normalise and take first 10 chars of ISO string
-  return normaliseDate(str).slice(0, 10)
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +168,7 @@ export function parseActivitySummary(
     const metricUnits = metric.units?.toLowerCase()
 
     for (const point of metric.data) {
-      const date = extractDate(point.date)
+      const date = extractWallClockDate(point.date)
       const existing = byDate.get(date) ?? {}
 
       switch (metric.name) {
@@ -268,7 +240,7 @@ export function parseHeartRate(
   // Group by date and compute average
   const grouped = new Map<string, number[]>()
   for (const point of hrMetric.data) {
-    const date = extractDate(point.date)
+    const date = extractWallClockDate(point.date)
     const value = point.qty ?? point.Avg
     if (value === undefined) continue
     const existing = grouped.get(date) ?? []
