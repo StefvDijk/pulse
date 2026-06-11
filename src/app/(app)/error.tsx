@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 
-export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error('Route error:', error)
   }, [error])
@@ -11,10 +11,10 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
       <div className="w-full max-w-md bg-bg-surface border border-bg-border rounded-[14px] p-6 text-center">
         <p className="mb-2 text-base font-semibold text-[var(--color-status-bad)]">
-          Kan pagina niet laden
+          Er ging iets mis
         </p>
         <p className="mb-5 text-sm text-text-secondary">
-          {error.message || 'Er is een fout opgetreden bij het laden van deze pagina.'}
+          Er is een fout opgetreden bij het laden van deze pagina.
         </p>
         <button
           onClick={reset}
