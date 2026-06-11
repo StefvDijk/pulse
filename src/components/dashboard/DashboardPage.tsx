@@ -14,9 +14,9 @@ import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
-import { WeekGlance } from '@/components/dashboard/v2/WeekGlance'
+import { WeekGlance, WeekGlanceSkeleton } from '@/components/dashboard/v2/WeekGlance'
+import { RecentActivities } from '@/components/home/RecentActivities'
 import { CoachCard } from '@/components/dashboard/v2/CoachCard'
-import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
 import Link from 'next/link'
@@ -67,30 +67,6 @@ function readinessLabel(level: string | undefined): {
   return { label: 'Rustdag aanbevolen', tone: 'bad' }
 }
 
-// ── Skeleton ─────────────────────────────────────────────────────────────────
-
-function HomeSkeleton() {
-  return (
-    <div className="flex flex-col gap-3 p-4 pt-16">
-      <SkeletonCard className="flex flex-col gap-3">
-        <SkeletonLine width="w-2/5" />
-        <SkeletonRect height="h-24" />
-      </SkeletonCard>
-      <SkeletonCard className="flex flex-col gap-3">
-        <SkeletonRect height="h-32" />
-      </SkeletonCard>
-      <div className="grid grid-cols-2 gap-2">
-        <SkeletonCard>
-          <SkeletonLine width="w-2/3" />
-        </SkeletonCard>
-        <SkeletonCard>
-          <SkeletonLine width="w-2/3" />
-        </SkeletonCard>
-      </div>
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
@@ -105,10 +81,12 @@ export function DashboardPage() {
   const { data: workload } = useWorkload()
   const { signal: coachSignal } = useCoachSignal()
 
-  if (schemaLoading) return <HomeSkeleton />
-  if (schemaError) {
+  // Note: we gaten de hele pagina niet langer op schemaLoading — elke card
+  // toont zijn eigen skeleton zodat snelle cards niet wachten op het zwaarste
+  // endpoint (BUG B). Alleen een harde schema-error blokkeert nog.
+  if (schemaError && !schemaWeek) {
     return (
-      <div className="p-4">
+      <div className="p-4 pt-16">
         <ErrorAlert message="Kan homepage niet laden." onRetry={refreshSchema} />
       </div>
     )
@@ -181,7 +159,8 @@ export function DashboardPage() {
       {/* ── Workload / strain bar (only when data is available) ── */}
       {ratio !== null && (
         <motion.div variants={listItem} transition={springContent}>
-          <Card className="p-[14px]">
+          <Link href="/belasting" aria-label="Bekijk belasting" className="block active:scale-[0.99]">
+          <Card className="p-[14px] transition-colors hover:border-bg-border-strong">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.6px] text-text-tertiary">
@@ -210,6 +189,7 @@ export function DashboardPage() {
               <ZoneBar value={ratioPct} />
             </div>
           </Card>
+          </Link>
         </motion.div>
       )}
 
@@ -221,11 +201,18 @@ export function DashboardPage() {
       )}
 
       {/* ── Week glance strip ─────────────────────────────────── */}
-      {schemaWeek && (
-        <motion.div variants={listItem} transition={springContent}>
+      <motion.div variants={listItem} transition={springContent}>
+        {schemaWeek ? (
           <WeekGlance days={schemaWeek.days} />
-        </motion.div>
-      )}
+        ) : schemaLoading ? (
+          <WeekGlanceSkeleton />
+        ) : null}
+      </motion.div>
+
+      {/* ── Recente activiteiten ──────────────────────────────── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <RecentActivities />
+      </motion.div>
 
       {/* ── Daily health bar (steps, RHR, HRV, sleep) ────────── */}
       <motion.div variants={listItem} transition={springContent}>
