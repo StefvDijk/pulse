@@ -2,72 +2,65 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkloadStatus } from '@/lib/aggregations/workload'
+import {
+  decayAcwrState,
+  MIN_CHRONIC_FOR_RATIO,
+  MIN_RUN_CHRONIC_KM,
+  ratioFromChain,
+  type AcwrChainState,
+} from '@/lib/training/acwr'
 import type { TrendPoint, WorkloadData, WorkloadStatus } from '@/types/workload'
-import { addDaysToKey, dayKeyAmsterdam } from '@/lib/time/amsterdam'
+import { addDaysToKey, dayKeyAmsterdam, diffDayKeys } from '@/lib/time/amsterdam'
 
 const ACUTE_DAYS = 7
 const CHRONIC_DAYS = 28
 const TREND_POINTS = 8
 const TREND_INTERVAL_DAYS = 7
 
-const toAmsterdamDate = (date: Date): string => dayKeyAmsterdam(date)
-const addDays = (dateStr: string, days: number): string => addDaysToKey(dateStr, days)
-
-interface ComputedPoint {
-  windowEnd: string
-  acuteLoad: number
-  chronicLoad: number
-  ratio: number | null
-  status: WorkloadStatus | 'insufficient_data'
-  acuteSessions: number
-  chronicSessions: number
+interface ChainRow {
+  date: string
+  training_load_score: number | null
+  acwr_acute: number | null
+  acwr_chronic: number | null
+  run_acwr_acute: number | null
+  run_acwr_chronic: number | null
 }
 
 /**
- * Compute one rolling-window ACWR snapshot for `endDate`, given a lookup map
- * of date → daily training_load_score.
+ * ACWR snapshot for `endDate` from the persisted EWMA chain (audit #11):
+ * take the last persisted state on or before `endDate` and decay it over the
+ * gap (days without a row are rest days).
  */
-function computePoint(
+function snapshotAt(
   endDate: string,
-  dayMap: Map<string, number>,
-): ComputedPoint {
-  const acuteStart = addDays(endDate, -(ACUTE_DAYS - 1))
-  const chronicStart = addDays(endDate, -(CHRONIC_DAYS - 1))
-
-  let acuteSum = 0
-  let chronicSum = 0
-  let acuteSessions = 0
-  let chronicSessions = 0
-
-  for (let i = 0; i < CHRONIC_DAYS; i++) {
-    const date = addDays(chronicStart, i)
-    const load = dayMap.get(date) ?? 0
-    chronicSum += load
-    if (load > 0) chronicSessions++
-    if (date >= acuteStart) {
-      acuteSum += load
-      if (load > 0) acuteSessions++
-    }
+  rowsAscending: ChainRow[],
+): { ratio: number | null; runRatio: number | null; state: AcwrChainState } | null {
+  let last: ChainRow | null = null
+  for (const row of rowsAscending) {
+    if (row.date > endDate) break
+    if (row.acwr_acute !== null) last = row
   }
+  if (!last) return null
 
-  const acuteLoad = acuteSum / ACUTE_DAYS
-  const chronicLoad = chronicSum / CHRONIC_DAYS
-  // null when chronicLoad is 0: no meaningful baseline to compare against.
-  // Returning 1.0 would fabricate an "optimal" status after holidays or data gaps.
-  const ratio: number | null = chronicLoad > 0 ? acuteLoad / chronicLoad : null
-  const status: WorkloadStatus | 'insufficient_data' =
-    ratio !== null ? getWorkloadStatus(ratio) : 'insufficient_data'
+  const state = decayAcwrState(
+    {
+      acute: Number(last.acwr_acute ?? 0),
+      chronic: Number(last.acwr_chronic ?? 0),
+      runAcute: Number(last.run_acwr_acute ?? 0),
+      runChronic: Number(last.run_acwr_chronic ?? 0),
+    },
+    diffDayKeys(last.date, endDate),
+  )
 
   return {
-    windowEnd: endDate,
-    acuteLoad: parseFloat(acuteLoad.toFixed(1)),
-    chronicLoad: parseFloat(chronicLoad.toFixed(1)),
-    ratio: ratio !== null ? parseFloat(ratio.toFixed(2)) : null,
-    status,
-    acuteSessions,
-    chronicSessions,
+    ratio: ratioFromChain(state.acute, state.chronic, MIN_CHRONIC_FOR_RATIO),
+    runRatio: ratioFromChain(state.runAcute, state.runChronic, MIN_RUN_CHRONIC_KM),
+    state,
   }
 }
+
+const round1 = (n: number): number => Math.round(n * 10) / 10
+const round2 = (n: number): number => Math.round(n * 100) / 100
 
 export async function GET() {
   try {
@@ -85,22 +78,24 @@ export async function GET() {
 
     const admin = createAdminClient()
 
-    const today = toAmsterdamDate(new Date())
+    const today = dayKeyAmsterdam(new Date())
 
-    // We need enough history for the OLDEST trend point's chronic window.
-    // Oldest point ends at  today - (TREND_POINTS - 1) * 7
-    // Its chronic window starts (CHRONIC_DAYS - 1) days before that.
-    const oldestNeeded = addDays(
+    // Enough history to find a persisted chain state at the oldest trend
+    // point, plus its chronic window for the session counts.
+    const oldestNeeded = addDaysToKey(
       today,
       -((TREND_POINTS - 1) * TREND_INTERVAL_DAYS + (CHRONIC_DAYS - 1)),
     )
 
-    const { data: rows, error } = await admin
+    const { data, error } = await admin
       .from('daily_aggregations')
-      .select('date, training_load_score')
+      .select(
+        'date, training_load_score, acwr_acute, acwr_chronic, run_acwr_acute, run_acwr_chronic',
+      )
       .eq('user_id', user.id)
       .gte('date', oldestNeeded)
       .lte('date', today)
+      .order('date', { ascending: true })
 
     if (error) {
       console.error('Failed to fetch daily aggregations:', error)
@@ -110,38 +105,50 @@ export async function GET() {
       )
     }
 
-    // Build a date → load lookup map. Missing days are treated as 0
-    // (rest day), per sports-science convention.
-    const dayMap = new Map<string, number>()
-    for (const r of rows ?? []) {
-      dayMap.set(r.date, r.training_load_score ?? 0)
-    }
+    const rows = (data ?? []) as ChainRow[]
 
-    // Compute 6 trend points: oldest first → newest (today) last.
-    const points: ComputedPoint[] = []
+    // Trend: oldest first → newest (today) last, one point per week.
+    const trend: TrendPoint[] = []
     for (let i = TREND_POINTS - 1; i >= 0; i--) {
-      const endDate = addDays(today, -i * TREND_INTERVAL_DAYS)
-      points.push(computePoint(endDate, dayMap))
+      const endDate = addDaysToKey(today, -i * TREND_INTERVAL_DAYS)
+      const snap = snapshotAt(endDate, rows)
+      const ratio = snap?.ratio ?? null
+      trend.push({
+        windowEnd: endDate,
+        ratio: ratio !== null ? round2(ratio) : null,
+        status: ratio !== null ? getWorkloadStatus(ratio) : 'insufficient_data',
+      })
     }
 
-    const current = points[points.length - 1]
+    const current = snapshotAt(today, rows)
+    const currentRatio = current?.ratio ?? null
+    const currentStatus: WorkloadStatus | 'insufficient_data' =
+      currentRatio !== null ? getWorkloadStatus(currentRatio) : 'insufficient_data'
 
-    const trend: TrendPoint[] = points.map((p) => ({
-      windowEnd: p.windowEnd,
-      ratio: p.ratio,
-      status: p.status,
-    }))
+    // Training-day counts over the rolling windows (display context).
+    const acuteStart = addDaysToKey(today, -(ACUTE_DAYS - 1))
+    const chronicStart = addDaysToKey(today, -(CHRONIC_DAYS - 1))
+    let acuteSessions = 0
+    let chronicSessions = 0
+    for (const row of rows) {
+      if ((row.training_load_score ?? 0) <= 0 || row.date < chronicStart) continue
+      chronicSessions++
+      if (row.date >= acuteStart) acuteSessions++
+    }
 
     const response: WorkloadData = {
-      ratio: current.ratio,
-      status: current.status,
-      acuteLoad: current.acuteLoad,
-      chronicLoad: current.chronicLoad,
-      acuteSessions: current.acuteSessions,
-      chronicSessions: current.chronicSessions,
-      acuteStart: addDays(today, -(ACUTE_DAYS - 1)),
+      ratio: currentRatio !== null ? round2(currentRatio) : null,
+      status: currentStatus,
+      runRatio: current?.runRatio !== null && current?.runRatio !== undefined
+        ? round2(current.runRatio)
+        : null,
+      acuteLoad: round1(current?.state.acute ?? 0),
+      chronicLoad: round1(current?.state.chronic ?? 0),
+      acuteSessions,
+      chronicSessions,
+      acuteStart,
       windowEnd: today,
-      chronicStart: addDays(today, -(CHRONIC_DAYS - 1)),
+      chronicStart,
       trend,
     }
 

@@ -124,6 +124,15 @@ export function addDaysToKey(key: string, days: number): string {
 }
 
 /** Vandaag-min-n in Amsterdam-tijd, als YYYY-MM-DD. */
+/**
+ * Whole days from day-key `a` to day-key `b` (positive when b is later).
+ * Day keys are calendar dates, parsed as UTC midnight, so the difference is
+ * exact across DST transitions.
+ */
+export function diffDayKeys(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000)
+}
+
 export function daysAgoAmsterdam(n: number): string {
   return addDaysToKey(todayAmsterdam(), -n)
 }

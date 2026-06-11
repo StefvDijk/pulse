@@ -12,6 +12,8 @@ export interface WorkloadData {
   /** null when chronic load is zero (insufficient training history, e.g. after a holiday gap). */
   ratio: number | null
   status: WorkloadStatus | 'insufficient_data'
+  /** Running-only ACWR over km/day; null when the chronic running baseline is insufficient. */
+  runRatio: number | null
   acuteLoad: number
   chronicLoad: number
   /** Number of training days (load > 0) in the 7-day acute window. */
@@ -24,6 +26,6 @@ export interface WorkloadData {
   windowEnd: string
   /** ISO date (YYYY-MM-DD) — first day of the rolling 28-day chronic window. */
   chronicStart: string
-  /** Last 6 ACWR snapshots, oldest → newest, spaced 7 days apart. */
+  /** Last 8 ACWR snapshots, oldest → newest, spaced 7 days apart. */
   trend: TrendPoint[]
 }

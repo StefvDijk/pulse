@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '@/types/database'
+import { estimateOneRm } from '@/lib/training/e1rm'
 
 type Admin = SupabaseClient<Database>
 
@@ -77,12 +78,6 @@ export interface JourneyContext {
   customInstructions: string | null
   proteinTargetPerKg: number | null
   coachTone: string | null
-}
-
-function estimateOneRm(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0
-  if (reps === 1) return weight
-  return Math.round(weight * (1 + reps / 30) * 10) / 10
 }
 
 /**

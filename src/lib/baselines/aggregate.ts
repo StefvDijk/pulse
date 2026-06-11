@@ -16,15 +16,24 @@ interface DatedValue {
 
 interface WindowResult {
   avg: number | null
+  /** Sample stddev (n-1); null when fewer than 2 samples. */
+  stddev: number | null
   count: number
 }
 
 function avgWithinWindow(values: DatedValue[], endDate: string, windowDays: number): WindowResult {
   const fromDate = daysBefore(endDate, windowDays - 1)
   const within = values.filter((v) => v.date >= fromDate && v.date <= endDate)
-  if (within.length === 0) return { avg: null, count: 0 }
+  if (within.length === 0) return { avg: null, stddev: null, count: 0 }
   const sum = within.reduce((s, v) => s + v.value, 0)
-  return { avg: sum / within.length, count: within.length }
+  const avg = sum / within.length
+  const stddev =
+    within.length >= 2
+      ? Math.sqrt(
+          within.reduce((s, v) => s + (v.value - avg) ** 2, 0) / (within.length - 1),
+        )
+      : null
+  return { avg, stddev, count: within.length }
 }
 
 // ── Source fetchers (one per metric) ─────────────────────────────────────────
@@ -190,6 +199,7 @@ export async function computeBaselinesForUser(userId: string, endDate: string): 
       metric,
       date: endDate,
       value_30d_avg: w30.avg !== null ? Number(w30.avg.toFixed(3)) : null,
+      value_30d_stddev: w30.stddev !== null ? Number(w30.stddev.toFixed(3)) : null,
       value_60d_avg: w60.avg !== null ? Number(w60.avg.toFixed(3)) : null,
       value_365d_avg: w365.avg !== null ? Number(w365.avg.toFixed(3)) : null,
       sample_count_30d: w30.count,

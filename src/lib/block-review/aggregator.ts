@@ -3,6 +3,8 @@ import type { Database } from '@/types/database'
 import { computeAdherence } from './adherence'
 import { buildJourneyContext, type JourneyContext } from './journey'
 import { computeACWR, projectACWR, type PlannedSessionLoad } from '@/lib/training/acwr'
+import { estimateOneRm } from '@/lib/training/e1rm'
+import { gymSessionLoad, padelSessionLoad, runSessionLoad } from '@/lib/aggregations/workload'
 
 export interface ExerciseProgressionPoint {
   date: string
@@ -93,12 +95,6 @@ export interface BlockReviewData {
 }
 
 type Admin = SupabaseClient<Database>
-
-function estimateOneRm(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0
-  if (reps === 1) return weight
-  return Math.round(weight * (1 + reps / 30) * 10) / 10
-}
 
 export function weekOf(date: string, startMs: number, weeksPlanned: number): number {
   const ms = new Date(`${date.slice(0, 10)}T00:00:00Z`).getTime()
@@ -398,18 +394,21 @@ export async function aggregateBlockData(
     padel: { planned: plannedBySport.padel, actual: padelCount },
   }
 
+  // Same unit scale as the canonical session loads in
+  // lib/aggregations/workload.ts (gym tonnage/100, run km*10 at reference
+  // intensity, padel min*0.65) so this trend matches what the ACWR counts.
   const sportLoadMaps = Array.from({ length: weeksPlanned }, () => ({ gymLoad: 0, runLoad: 0, padelLoad: 0 }))
   for (const w of workoutsRes.data ?? []) {
     const week = weekOf(w.started_at, startMs, weeksPlanned)
-    sportLoadMaps[week - 1].gymLoad += (w.total_volume_kg ?? 0) / 100
+    sportLoadMaps[week - 1].gymLoad += gymSessionLoad(w.total_volume_kg ?? 0, 0)
   }
   for (const r of runsRes.data ?? []) {
     const week = weekOf(r.started_at, startMs, weeksPlanned)
-    sportLoadMaps[week - 1].runLoad += (r.distance_meters ?? 0) / 100
+    sportLoadMaps[week - 1].runLoad += runSessionLoad((r.distance_meters ?? 0) / 1000, 0)
   }
   for (const p of padelRes.data ?? []) {
     const week = weekOf(p.started_at, startMs, weeksPlanned)
-    sportLoadMaps[week - 1].padelLoad += (p.duration_seconds ?? 0) / 60
+    sportLoadMaps[week - 1].padelLoad += padelSessionLoad((p.duration_seconds ?? 0) / 60)
   }
   const sportLoadTrend = sportLoadMaps.map((w, idx) => ({
     week: idx + 1,

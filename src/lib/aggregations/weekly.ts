@@ -1,4 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAcwrForDate } from '@/lib/training/acwr'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { getWorkloadStatus } from './workload'
 
 function getISOWeekNumber(date: Date): number {
@@ -12,10 +14,6 @@ function addDays(dateStr: string, days: number): string {
   const d = new Date(`${dateStr}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().slice(0, 10)
-}
-
-function subtractDays(dateStr: string, days: number): string {
-  return addDays(dateStr, -days)
 }
 
 /**
@@ -70,34 +68,16 @@ export async function computeWeeklyAggregation(
   const avgRestingHeartRate =
     hrValues.length > 0 ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length : null
 
-  // 3. Acute load = average training_load_score over 7 days
-  const loadScores = rows.map((r) => r.training_load_score ?? 0)
-  const acuteLoad = loadScores.reduce((a, b) => a + b, 0) / 7
-
-  // 4. Chronic load = average daily load over previous 28 days
-  const chronicStart = subtractDays(weekStart, 28)
-  const { data: chronicRows, error: chronicError } = await admin
-    .from('daily_aggregations')
-    .select('training_load_score')
-    .eq('user_id', userId)
-    .gte('date', chronicStart)
-    .lt('date', weekStart)
-
-  if (chronicError) {
-    throw new Error(
-      `Failed to fetch chronic load data for week ${weekStart}: ${chronicError.message}`,
-    )
-  }
-
-  const chronicScores = (chronicRows ?? []).map((r) => r.training_load_score ?? 0)
-  const chronicLoad =
-    chronicScores.length > 0
-      ? chronicScores.reduce((a, b) => a + b, 0) / 28
-      : 0
-
-  // 5. ACWR — null when chronicLoad is 0 (insufficient history, e.g. after a holiday gap).
-  // Fabricating 1.0 would show a misleading "In balans" to the athlete.
-  const acuteChronicRatio: number | null = chronicLoad > 0 ? acuteLoad / chronicLoad : null
+  // 3+4+5. ACWR from the canonical persisted EWMA chain (audit #11): the
+  // snapshot of the week's last day — or today for the running week, so a
+  // Tuesday no longer reads a "sum of two days / 7" ratio. Status is
+  // insufficient_data while the chronic baseline is too thin; fabricating
+  // 1.0 would show a misleading "In balans" to the athlete.
+  const acwrDay = weekEnd < todayAmsterdam() ? weekEnd : todayAmsterdam()
+  const snapshot = await getAcwrForDate(userId, acwrDay)
+  const acuteLoad = snapshot?.acute ?? 0
+  const chronicLoad = snapshot?.chronic ?? 0
+  const acuteChronicRatio: number | null = snapshot?.ratio ?? null
   const workloadStatus = acuteChronicRatio !== null ? getWorkloadStatus(acuteChronicRatio) : 'insufficient_data'
 
   // 6. Nutrition averages for the week
