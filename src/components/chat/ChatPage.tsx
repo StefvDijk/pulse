@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { SquarePen } from 'lucide-react'
 import { ChatInterface } from './ChatInterface'
 import { CoachOrb } from '@/components/shared/CoachOrb'
-import { Button } from '@/components/ui'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -12,10 +12,11 @@ interface ChatPageProps {
 
 export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
   const [sessionKey, setSessionKey] = useState(0)
+  const [isChatLoading, setIsChatLoading] = useState(false)
 
-  function handleNewSession() {
+  const handleNewChat = useCallback(() => {
     setSessionKey((k) => k + 1)
-  }
+  }, [])
 
   return (
     <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
@@ -41,14 +42,16 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
               Beschikbaar · kent al je data
             </div>
           </div>
-          {/* Trailing: new session */}
-          <Button
-            variant="glass"
-            size="sm"
-            onClick={handleNewSession}
+          {/* Trailing: new chat icon button (≥44px tap target) */}
+          <button
+            type="button"
+            aria-label="Nieuwe chat"
+            disabled={isChatLoading}
+            onClick={handleNewChat}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-text-secondary transition-all duration-150 hover:text-text-primary active:scale-95 disabled:pointer-events-none disabled:opacity-40"
           >
-            Nieuwe sessie
-          </Button>
+            <SquarePen size={20} strokeWidth={1.75} />
+          </button>
         </div>
       </header>
 
@@ -57,6 +60,7 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
           key={sessionKey}
           initialMessage={initialMessage}
           seededAssistant={seededAssistant}
+          onLoadingChange={setIsChatLoading}
         />
       </div>
     </div>
