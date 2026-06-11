@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
-import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
+import { buildSystemPromptBlocks } from '@/lib/ai/prompts/chat-system'
 import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
@@ -337,19 +337,25 @@ export async function POST(request: Request) {
               }
             : null
 
-          let systemWithContext =
-            buildSystemPrompt({
-              activeSchema,
-              activeInjuries: injuriesResult.data ?? [],
-              activeGoals: goalsResult.data ?? [],
-              customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
-              coachTone: (settingsResult.data?.coach_tone ?? 'direct') as 'direct' | 'friendly' | 'scientific',
-              profileBlock: renderProfileBlock(profile),
-            }) + thinContext
+          // STATIC system block = persona/kennis/profiel/instructies/write-backs.
+          // Byte-identiek tussen turns → krijgt de cache_control breakpoint.
+          // DYNAMIC system block = datum/dagdeel/schema/blessures/doelen +
+          // coaching-geheugen (thinContext) + skills. Verandert per turn, dus
+          // ná de breakpoint zodat het de cache van het statische deel niet breekt.
+          const { systemStatic, systemDynamic } = buildSystemPromptBlocks({
+            activeSchema,
+            activeInjuries: injuriesResult.data ?? [],
+            activeGoals: goalsResult.data ?? [],
+            customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+            coachTone: (settingsResult.data?.coach_tone ?? 'direct') as 'direct' | 'friendly' | 'scientific',
+            profileBlock: renderProfileBlock(profile),
+          })
+
+          let dynamicBlock = systemDynamic + thinContext
 
           const skills = selectSkills(questionType, message, extractContextHints(thinContext))
           if (skills.length > 0) {
-            systemWithContext += '\n\n' + skills.join('\n\n')
+            dynamicBlock += '\n\n' + skills.join('\n\n')
           }
 
           const isSimple = questionType === 'simple_greeting'
@@ -367,7 +373,8 @@ export async function POST(request: Request) {
             : [...historyMessages, { role: 'user' as const, content: message }]
 
           const result = streamChat({
-            system: systemWithContext,
+            system: systemStatic,
+            systemDynamic: dynamicBlock,
             messages: conversation,
             tools,
             ...(isSimple ? { model: MEMORY_MODEL } : {}),

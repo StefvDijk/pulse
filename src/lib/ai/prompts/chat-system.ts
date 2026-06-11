@@ -30,7 +30,21 @@ interface SystemPromptParams {
   profileBlock?: string | null
 }
 
-export function buildSystemPrompt(params: SystemPromptParams = {}): string {
+/**
+ * Split system prompt into a STATIC and a DYNAMIC block.
+ *
+ * The static block (persona, kennisbank, profiel, write-back-instructies,
+ * tool-uitleg) is byte-identiek tussen turns → krijgt de cache_control
+ * breakpoint in client.ts. Het dynamische blok (datum/dagdeel, schema,
+ * blessures, doelen) verandert per turn/dag en staat ERNA, zonder breakpoint.
+ *
+ * Zo blijft Anthropic's prefix-cache cross-turn geldig: het grote stabiele
+ * deel wordt hergebruikt, alleen het kleine dynamische staartje is uncached.
+ */
+export function buildSystemPromptBlocks(params: SystemPromptParams = {}): {
+  systemStatic: string
+  systemDynamic: string
+} {
   const { activeSchema, activeInjuries, activeGoals, customInstructions, profileBlock } = params
   const ctx = currentDateContext()
 
@@ -102,11 +116,19 @@ Je hebt directe toegang tot Stefs trainingsdata via tools:
         .join('\n')
     : 'Geen actieve doelen'
 
+  // Dagdeel i.p.v. minuut-granulariteit: een coach heeft genoeg aan
+  // ochtend/middag/avond. Minuten zouden het dynamische blok elke request
+  // wijzigen (geen cache-prefix-probleem meer omdat dit ná de breakpoint zit,
+  // maar inhoudelijk overbodig). Uur uit de Amsterdam-tijd (formatter blijft
+  // ongemoeid voor andere callers).
+  const hour = Number(ctx.time.slice(0, 2))
+  const dagdeel = hour < 6 ? 'nacht' : hour < 12 ? 'ochtend' : hour < 18 ? 'middag' : 'avond'
+
   const dynamicSections = `## HUIDIG MOMENT (autoritatief — gebruik deze waarden voor "vandaag", "deze week", "gisteren")
 
 - Datum: ${ctx.longLabel}
 - ISO-datum: ${ctx.date}
-- Lokale tijd: ${ctx.time} (${ctx.timezone})
+- Dagdeel: ${dagdeel} (${ctx.timezone})
 - Maandag van deze week: ${ctx.weekStart}
 
 Negeer eventuele "knowledge cutoff"-aannames over de huidige datum.
@@ -158,24 +180,31 @@ Gebruik de id-prefixes (eerste 8 chars) zoals ze in "MIJN GEHEUGEN OVER JOU" ver
   const customSection = customInstructions?.trim()
     ? `## CUSTOM INSTRUCTIES VAN GEBRUIKER
 
-${customInstructions.trim()}
-
----
-
-`
+${customInstructions.trim()}`
     : ''
 
-  return `${staticSections}
+  // STATIC: persona, kennis, profiel, custom-instructies, write-backs, tool-uitleg.
+  // Identiek tussen turns → cacheable prefix.
+  const systemStatic = [
+    staticSections,
+    customSection,
+    writeBackInstructions,
+    'Je ontvangt een DATA-CONTEXT blok met actuele gegevens. Gebruik deze data om je antwoorden te personaliseren.',
+  ]
+    .filter(Boolean)
+    .join('\n\n---\n\n')
 
----
+  // DYNAMIC: datum/dagdeel + schema/blessures/doelen. Verandert per turn/dag.
+  const systemDynamic = dynamicSections
 
-${customSection}${dynamicSections}
+  return { systemStatic, systemDynamic }
+}
 
----
-
-${writeBackInstructions}
-
----
-
-Je ontvangt een DATA-CONTEXT blok met actuele gegevens. Gebruik deze data om je antwoorden te personaliseren.`
+/**
+ * Back-compat: levert één samengevoegde system-prompt string.
+ * Gebruikt door surfaces die geen cache-splitsing doen (bv. context-preview).
+ */
+export function buildSystemPrompt(params: SystemPromptParams = {}): string {
+  const { systemStatic, systemDynamic } = buildSystemPromptBlocks(params)
+  return `${systemStatic}\n\n---\n\n${systemDynamic}`
 }
