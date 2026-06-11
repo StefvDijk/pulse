@@ -1817,6 +1817,7 @@ export type Database = {
           hevy_api_key: string | null
           last_apple_health_sync_at: string | null
           last_hevy_sync_at: string | null
+          last_strava_sync_at: string | null
           preferred_unit_system: string | null
           protein_target_per_kg: number | null
           strava_access_token: string | null
@@ -1840,6 +1841,7 @@ export type Database = {
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
+          last_strava_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
           strava_access_token?: string | null
@@ -1863,6 +1865,7 @@ export type Database = {
           hevy_api_key?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
+          last_strava_sync_at?: string | null
           preferred_unit_system?: string | null
           protein_target_per_kg?: number | null
           strava_access_token?: string | null
