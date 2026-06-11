@@ -136,13 +136,17 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .eq('user_id', userId)
         .eq('date', todayStr)
         .maybeSingle(),
+      // Latest row per metric. One row per (metric, date) exists, so a flat
+      // limit(3) could return three dates of the same metric if a cron run
+      // ever skipped one — fetch a window and let baselineFor pick the
+      // newest occurrence per metric.
       admin
         .from('metric_baselines')
         .select('metric, value_30d_avg, value_30d_stddev, sample_count_30d')
         .eq('user_id', userId)
         .in('metric', ['hrv_rmssd', 'resting_hr', 'sleep_minutes'])
         .order('date', { ascending: false })
-        .limit(3),
+        .limit(21),
       admin
         .from('workouts')
         .select('id', { count: 'exact', head: true })

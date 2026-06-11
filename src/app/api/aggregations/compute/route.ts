@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
+import { recomputeAcwrChain } from '@/lib/training/acwr'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
 import { checkGoalProgress } from '@/lib/goals/auto-track'
 
@@ -65,6 +66,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       case 'weekly': {
+        // The weekly row reads the persisted ACWR chain — refresh it first so
+        // a manual weekly recompute never stores a stale snapshot.
+        await recomputeAcwrChain(user.id)
         await computeWeeklyAggregation(user.id, body.week_start)
         // Pass admin client — SSR cookie-based client JWT not propagated to PostgREST
         const admin = createAdminClient()

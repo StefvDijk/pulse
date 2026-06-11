@@ -121,7 +121,7 @@ export function ratioFromChain(
  * to calling stepAcwrState with zero load `days` times.
  */
 export function decayAcwrState(state: AcwrChainState, days: number): AcwrChainState {
-  if (days <= 0) return state
+  if (days <= 0) return { ...state }
   const acuteDecay = Math.pow(1 - ACUTE_LAMBDA, days)
   const chronicDecay = Math.pow(1 - CHRONIC_LAMBDA, days)
   return {

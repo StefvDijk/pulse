@@ -26,6 +26,6 @@ export interface WorkloadData {
   windowEnd: string
   /** ISO date (YYYY-MM-DD) — first day of the rolling 28-day chronic window. */
   chronicStart: string
-  /** Last 6 ACWR snapshots, oldest → newest, spaced 7 days apart. */
+  /** Last 8 ACWR snapshots, oldest → newest, spaced 7 days apart. */
   trend: TrendPoint[]
 }
