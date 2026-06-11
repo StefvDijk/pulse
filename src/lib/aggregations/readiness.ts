@@ -1,7 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
-import type { ReadinessData, ReadinessLevel } from '@/types/readiness'
-import { calculateReadinessScore } from '@/lib/readiness/score'
+import type { ReadinessData } from '@/types/readiness'
+import {
+  calculateReadinessScore,
+  type BaselineStat,
+  type ReadinessScoreInput,
+} from '@/lib/readiness/score'
 import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
 
 interface ScheduleSession {
@@ -49,18 +53,23 @@ function getWorkoutForDay(sessions: ScheduleSession[], dayName: string): string 
   return match?.focus ?? null
 }
 
-export function calculateReadinessLevel(
-  acwr: number | null,
-  sleepMinutes: number | null,
-  recentSessions: number,
-  todayWorkout: string | null,
-): ReadinessLevel {
-  return calculateReadinessScore({
-    acwr,
-    sleepMinutes,
-    recentSessions,
-    todayWorkout,
-  }).level
+const EMPTY_BASELINE: BaselineStat = { avg: null, stddev: null, sampleCount: 0 }
+
+interface BaselineRowSlice {
+  metric: string
+  value_30d_avg: number | null
+  value_30d_stddev: number | null
+  sample_count_30d: number | null
+}
+
+function baselineFor(rows: BaselineRowSlice[], metric: string): BaselineStat {
+  const row = rows.find((r) => r.metric === metric)
+  if (!row) return EMPTY_BASELINE
+  return {
+    avg: row.value_30d_avg !== null ? Number(row.value_30d_avg) : null,
+    stddev: row.value_30d_stddev !== null ? Number(row.value_30d_stddev) : null,
+    sampleCount: row.sample_count_30d ?? 0,
+  }
 }
 
 export async function computeReadiness(userId: string): Promise<ReadinessData> {
@@ -87,14 +96,15 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
     activityYesterdayResult,
     sleepTodayResult,
     sleepYesterdayResult,
+    checkinResult,
+    baselinesResult,
     recentWorkoutsResult,
     recentRunsResult,
     recentPadelResult,
     schemaResult,
   ] =
     await Promise.all([
-      // Rollend venster t/m vandaag i.p.v. de lopende-week-rij uit
-      // weekly_aggregations (die vroeg in de week onterecht laag is).
+      // Canonical persisted EWMA chain (audit #11).
       computeRollingAcwr(userId),
       admin
         .from('daily_activity')
@@ -120,6 +130,19 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .eq('user_id', userId)
         .eq('date', yesterdayStr)
         .maybeSingle(),
+      admin
+        .from('daily_checkins')
+        .select('feeling, sleep_quality')
+        .eq('user_id', userId)
+        .eq('date', todayStr)
+        .maybeSingle(),
+      admin
+        .from('metric_baselines')
+        .select('metric, value_30d_avg, value_30d_stddev, sample_count_30d')
+        .eq('user_id', userId)
+        .in('metric', ['hrv_rmssd', 'resting_hr', 'sleep_minutes'])
+        .order('date', { ascending: false })
+        .limit(3),
       admin
         .from('workouts')
         .select('id', { count: 'exact', head: true })
@@ -147,6 +170,8 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   if (activityYesterdayResult.error) throw activityYesterdayResult.error
   if (sleepTodayResult.error) throw sleepTodayResult.error
   if (sleepYesterdayResult.error) throw sleepYesterdayResult.error
+  if (checkinResult.error) throw checkinResult.error
+  if (baselinesResult.error) throw baselinesResult.error
   if (recentWorkoutsResult.error) throw recentWorkoutsResult.error
   if (recentRunsResult.error) throw recentRunsResult.error
   if (recentPadelResult.error) throw recentPadelResult.error
@@ -167,10 +192,27 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
     sleepYesterdayResult.data?.total_sleep_minutes ??
     null
 
-  const level = calculateReadinessLevel(acwr, sleepMinutes, recentSessions, todayWorkout)
+  const baselineRows = (baselinesResult.data ?? []) as BaselineRowSlice[]
+
+  const scoreInput: ReadinessScoreInput = {
+    todayWorkout,
+    acwr,
+    hrv,
+    hrvBaseline: baselineFor(baselineRows, 'hrv_rmssd'),
+    restingHr: restingHR,
+    rhrBaseline: baselineFor(baselineRows, 'resting_hr'),
+    sleepMinutes,
+    sleepBaseline: baselineFor(baselineRows, 'sleep_minutes'),
+    feeling: checkinResult.data?.feeling ?? null,
+    sleepQuality: checkinResult.data?.sleep_quality ?? null,
+  }
+
+  const { level, score, components } = calculateReadinessScore(scoreInput)
 
   return {
     level,
+    score,
+    components,
     todayWorkout,
     tomorrowWorkout,
     acwr,

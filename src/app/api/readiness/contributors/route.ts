@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
 
 export interface Contributor {
   key: 'hrv' | 'sleep' | 'rhr' | 'acwr'
@@ -99,13 +100,9 @@ export async function GET() {
           .order('date', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        admin
-          .from('weekly_aggregations')
-          .select('acute_chronic_ratio')
-          .eq('user_id', user.id)
-          .order('week_start', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+        // Canonical persisted EWMA chain (audit #11) instead of the latest
+        // weekly row, which could lag behind today.
+        computeRollingAcwr(user.id),
       ])
 
     const activity = activityToday.data ?? activityYesterday.data
@@ -113,7 +110,7 @@ export async function GET() {
     const rhr = activity?.resting_heart_rate ?? null
     const sleepMinutes =
       sleepToday.data?.total_sleep_minutes ?? sleepYesterday.data?.total_sleep_minutes ?? null
-    const acwr = weekly.data?.acute_chronic_ratio ?? null
+    const acwr = weekly.ratio
 
     const hrvBase = hrvBaseline.data?.value_30d_avg ?? null
     const sleepBase = sleepBaseline.data?.value_30d_avg ?? null

@@ -5,10 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { READINESS_SUMMARY_SYSTEM, buildReadinessUserMessage } from '@/lib/ai/prompts/readiness-summary'
-import type { Json } from '@/types/database'
 import type { ReadinessLevel } from '@/types/readiness'
-import { calculateReadinessScore } from '@/lib/readiness/score'
-import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
+import { computeReadiness } from '@/lib/aggregations/readiness'
 
 export const maxDuration = 20
 
@@ -38,16 +36,6 @@ export interface ReadinessSummary {
   }
 }
 
-interface ScheduleSession {
-  day: string
-  focus: string
-}
-
-interface WeekBlock {
-  week: number
-  sessions: ScheduleSession[]
-}
-
 // ── In-memory cache ──────────────────────────────────────────────────────────
 
 interface CacheEntry {
@@ -64,43 +52,8 @@ function cacheKey(userId: string): string {
   return `${userId}:${today}`
 }
 
-// ── Helpers (mirrored from /api/readiness/route.ts) ──────────────────────────
-
-function getDayName(date: Date): string {
-  return date
-    .toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Europe/Amsterdam' })
-    .toLowerCase()
-}
-
 function toAmsterdamDate(date: Date): string {
   return date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
-}
-
-function extractSessions(schedule: Json): ScheduleSession[] {
-  if (!Array.isArray(schedule)) return []
-  const first = schedule[0]
-  if (!first || typeof first !== 'object' || first === null) return []
-
-  if ('sessions' in first) {
-    return (schedule as unknown as WeekBlock[])
-      .flatMap((block) => (Array.isArray(block.sessions) ? block.sessions : []))
-      .filter(
-        (s): s is ScheduleSession =>
-          typeof s === 'object' && s !== null && 'day' in s && 'focus' in s,
-      )
-  }
-
-  return schedule
-    .filter(
-      (s): s is Json & ScheduleSession =>
-        typeof s === 'object' && s !== null && 'day' in s && 'focus' in s,
-    )
-    .map((s) => ({ day: String(s.day), focus: String(s.focus) }))
-}
-
-function getWorkoutForDay(sessions: ScheduleSession[], dayName: string): string | null {
-  const match = sessions.find((s) => s.day.toLowerCase() === dayName)
-  return match?.focus ?? null
 }
 
 // Convert raw metric values to a 0-100 indicator. Without baselines (UXR-101)
@@ -164,14 +117,6 @@ export async function GET() {
   try {
     const admin = createAdminClient()
     const now = new Date()
-    const todayStr = toAmsterdamDate(now)
-    const todayDayName = getDayName(now)
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = toAmsterdamDate(yesterday)
-    const threeDaysAgo = new Date(now)
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-    const threeDaysAgoStr = toAmsterdamDate(threeDaysAgo)
 
     // Cold-start window: count distinct dates with any biometric (HRV or RHR)
     // in the last 21 days. HRV is preferred but many users only stream RHR.
@@ -179,69 +124,11 @@ export async function GET() {
     twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21)
     const twentyOneDaysAgoStr = toAmsterdamDate(twentyOneDaysAgo)
 
-    const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
-
-    const [
-      rollingAcwr,
-      activityToday,
-      activityYesterday,
-      sleepToday,
-      sleepYesterday,
-      recentWorkouts,
-      recentRuns,
-      recentPadel,
-      schema,
-      biometricHistory,
-    ] = await Promise.all([
-      // Rollend venster t/m vandaag i.p.v. de lopende-week-rij uit
-      // weekly_aggregations (die vroeg in de week onterecht laag is en zo de
-      // readiness-score én de AI-coach een te lage ACWR voedt).
-      computeRollingAcwr(user.id),
-      admin
-        .from('daily_activity')
-        .select('resting_heart_rate, hrv_average')
-        .eq('user_id', user.id)
-        .eq('date', todayStr)
-        .maybeSingle(),
-      admin
-        .from('daily_activity')
-        .select('resting_heart_rate, hrv_average')
-        .eq('user_id', user.id)
-        .eq('date', yesterdayStr)
-        .maybeSingle(),
-      admin
-        .from('sleep_logs')
-        .select('total_sleep_minutes')
-        .eq('user_id', user.id)
-        .eq('date', todayStr)
-        .maybeSingle(),
-      admin
-        .from('sleep_logs')
-        .select('total_sleep_minutes')
-        .eq('user_id', user.id)
-        .eq('date', yesterdayStr)
-        .maybeSingle(),
-      admin
-        .from('workouts')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('started_at', threeDaysAgoIso),
-      admin
-        .from('runs')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('started_at', threeDaysAgoIso),
-      admin
-        .from('padel_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('started_at', threeDaysAgoIso),
-      admin
-        .from('training_schemas')
-        .select('workout_schedule')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle(),
+    // Readiness v2 (audit #15): one source of truth for the score — z-scores
+    // vs own 30d baselines, ACWR from the canonical persisted EWMA chain,
+    // daily check-in included.
+    const [readiness, biometricHistory] = await Promise.all([
+      computeReadiness(user.id),
       admin
         .from('daily_activity')
         .select('date, hrv_average, resting_heart_rate')
@@ -261,23 +148,8 @@ export async function GET() {
       nightsRemaining: Math.max(0, COLD_START_THRESHOLD - biometricDays),
     }
 
-    const sessions = schema.data ? extractSessions(schema.data.workout_schedule) : []
-    const todayWorkout = getWorkoutForDay(sessions, todayDayName)
-    const activity = activityToday.data ?? activityYesterday.data
-    const acwr = rollingAcwr.ratio
-    const restingHR = activity?.resting_heart_rate ?? null
-    const hrv = activity?.hrv_average ?? null
-    const recentSessions =
-      (recentWorkouts.count ?? 0) + (recentRuns.count ?? 0) + (recentPadel.count ?? 0)
-    const sleepMinutes =
-      sleepToday.data?.total_sleep_minutes ?? sleepYesterday.data?.total_sleep_minutes ?? null
-
-    const { level, score } = calculateReadinessScore({
-      acwr,
-      sleepMinutes,
-      recentSessions,
-      todayWorkout,
-    })
+    const { level, score, todayWorkout, acwr, sleepMinutes, restingHR, hrv, recentSessions } =
+      readiness
     const breakdown = metricBreakdown(sleepMinutes, hrv, restingHR)
 
     // Generate the sentence via Haiku — fall back to a pre-canned line if it fails

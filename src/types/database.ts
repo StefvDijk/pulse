@@ -1046,6 +1046,7 @@ export type Database = {
           sample_count_60d: number
           user_id: string
           value_30d_avg: number | null
+          value_30d_stddev: number | null
           value_365d_avg: number | null
           value_60d_avg: number | null
         }
@@ -1058,6 +1059,7 @@ export type Database = {
           sample_count_60d?: number
           user_id: string
           value_30d_avg?: number | null
+          value_30d_stddev?: number | null
           value_365d_avg?: number | null
           value_60d_avg?: number | null
         }
@@ -1070,6 +1072,7 @@ export type Database = {
           sample_count_60d?: number
           user_id?: string
           value_30d_avg?: number | null
+          value_30d_stddev?: number | null
           value_365d_avg?: number | null
           value_60d_avg?: number | null
         }

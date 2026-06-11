@@ -18,6 +18,8 @@ export interface MetricBaselineRow {
   metric: BaselineMetric
   date: string
   value_30d_avg: number | null
+  /** Sample stddev over the 30d window; null when < 2 samples. */
+  value_30d_stddev: number | null
   value_60d_avg: number | null
   value_365d_avg: number | null
   sample_count_30d: number

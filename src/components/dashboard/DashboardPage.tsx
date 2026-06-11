@@ -21,7 +21,6 @@ import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { listContainer, listItem, springContent } from '@/lib/motion-presets'
 import Link from 'next/link'
 import { InboxBell } from '@/components/coach/InboxBell'
-import { calculateReadinessScore } from '@/lib/readiness/score'
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -92,14 +91,9 @@ export function DashboardPage() {
     )
   }
 
-  const fallbackScore = readiness
-    ? calculateReadinessScore({
-        acwr: readiness.acwr,
-        sleepMinutes: readiness.sleepMinutes,
-        recentSessions: readiness.recentSessions,
-        todayWorkout: readiness.todayWorkout,
-      }).score
-    : readinessScore(undefined)
+  // Readiness v2: the score is computed server-side (z-scores vs baselines);
+  // the client never recomputes it.
+  const fallbackScore = readiness?.score ?? readinessScore(undefined)
   const score = summary?.score ?? fallbackScore
   const readinessLevel = summary?.level ?? readiness?.level
   const { label: readinessLbl, tone } = readinessLabel(readinessLevel)
