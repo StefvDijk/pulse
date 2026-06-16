@@ -160,7 +160,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
   console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
 
-  const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
+  const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, activities: parsedActivities } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
   const parsedSleep = parseSleepData(payload)
   const parsedBodyWeight = parseBodyWeight(payload)
@@ -709,7 +709,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     errors,
     debug: {
       metricNames: payload.data.metrics.map((m) => m.name),
-      otherWorkouts: parsedOther.length,
+      activitiesParsed: parsedActivities.length,
       bodyCompParsed: parsedBodyComposition.length,
       bodyWeightParsed: parsedBodyWeight.length,
     },
