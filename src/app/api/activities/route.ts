@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sportMeta, type SportKey } from '@/lib/sports/registry'
+import { softRows } from '@/lib/supabase/soft-rows'
 
 /* ── Types ────────────────────────────────────────────────── */
 
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
     if (runsResult.error) throw runsResult.error
     if (padelResult.error) throw padelResult.error
     if (walksResult.error) throw walksResult.error
-    if (activitiesResult.error) throw activitiesResult.error
+    // activities is een optionele bron — laat een fout de feed niet helemaal breken (zie soft-rows).
 
     // Map gym workouts
     const gymActivities: ActivityItem[] = (workoutsResult.data ?? []).map((w) => {
@@ -194,7 +195,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Map generic activities (tennis, HIIT, voetbal, yoga, fietsen, ...)
-    const otherActivities: ActivityItem[] = (activitiesResult.data ?? []).map((a) => ({
+    const otherActivities: ActivityItem[] = softRows(activitiesResult, 'activities-feed').map((a) => ({
       id: a.id,
       type: a.sport_key as ActivityType,
       title: a.name ?? sportMeta(a.sport_key as SportKey).label,
