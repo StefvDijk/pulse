@@ -14,11 +14,53 @@ export interface ParsedSleepDay {
 
 const SLEEP_METRIC_NAMES = new Set(['sleep_analysis', 'sleepAnalysis'])
 
+// HAE `sleep_analysis` points carry the night's duration in one of these
+// fields, NOT in `qty` — so the old `point.qty`-only parser dropped every
+// point and imported zero sleep. Prefer an explicit total-asleep value, then
+// fall back to summing the asleep stages (deep + core + rem), then `qty`.
+const ASLEEP_TOTAL_FIELDS = ['asleep', 'totalSleep', 'sleepDuration', 'value']
+const ASLEEP_STAGE_FIELDS = ['deep', 'core', 'rem']
+
+function numField(point: Record<string, unknown>, key: string): number | undefined {
+  const v = point[key]
+  return typeof v === 'number' && v > 0 ? v : undefined
+}
+
 /**
- * Parse sleep data from Apple Health payload.
- * Groups `sleep_analysis` / `sleepAnalysis` data points by date and sums qty values.
- * Ignores `apple_sleeping_wrist_temperature` (temperature, not sleep).
- * Returns empty array when metric is absent — never throws.
+ * Convert a sleep value to minutes. HAE usually reports hours; use the metric
+ * units when given, otherwise disambiguate by magnitude — a night's sleep is a
+ * handful of hours (< 24) or a few hundred minutes (>= 24), which never overlap.
+ */
+function sleepToMinutes(value: number, units: string | undefined): number {
+  const u = units?.toLowerCase()
+  if (u === 'min' || u === 'minutes' || u === 'minute') return Math.round(value)
+  if (u === 'hr' || u === 'hour' || u === 'hours' || u === 'h') return Math.round(value * 60)
+  return value < 24 ? Math.round(value * 60) : Math.round(value)
+}
+
+function sleepMinutesFromPoint(
+  point: Record<string, unknown>,
+  units: string | undefined,
+): number | null {
+  let value: number | undefined
+  for (const f of ASLEEP_TOTAL_FIELDS) {
+    value = numField(point, f)
+    if (value !== undefined) break
+  }
+  if (value === undefined) {
+    const staged = ASLEEP_STAGE_FIELDS.reduce((sum, f) => sum + (numField(point, f) ?? 0), 0)
+    if (staged > 0) value = staged
+  }
+  if (value === undefined) value = numField(point, 'qty')
+  if (value === undefined) return null
+  return sleepToMinutes(value, units)
+}
+
+/**
+ * Parse sleep data from an Apple Health (HAE) payload.
+ * Reads the asleep duration from each `sleep_analysis` / `sleepAnalysis` point
+ * (asleep/stages in hours, not `qty`) and sums by night. Ignores
+ * `apple_sleeping_wrist_temperature`. Returns [] when absent — never throws.
  */
 export function parseSleepData(payload: RawHealthPayload): ParsedSleepDay[] {
   const byDate = new Map<string, number>()
@@ -27,10 +69,10 @@ export function parseSleepData(payload: RawHealthPayload): ParsedSleepDay[] {
     if (!SLEEP_METRIC_NAMES.has(metric.name)) continue
 
     for (const point of metric.data) {
-      if (point.qty === undefined) continue
+      const minutes = sleepMinutesFromPoint(point as Record<string, unknown>, metric.units)
+      if (minutes === null) continue
       const date = extractWallClockDate(point.date)
-      const existing = byDate.get(date) ?? 0
-      byDate.set(date, existing + point.qty)
+      byDate.set(date, (byDate.get(date) ?? 0) + minutes)
     }
   }
 
