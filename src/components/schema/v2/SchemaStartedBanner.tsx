@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
 const WINDOW_MS = 72 * 60 * 60 * 1000
@@ -20,12 +20,15 @@ export function SchemaStartedBanner({
   onUndo,
 }: SchemaStartedBannerProps) {
   const storageKey = `schema-net-gestart-dismissed:${schemaId}`
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem(storageKey) === '1'
-  })
+  // Read localStorage after mount to avoid an SSR/hydration mismatch
+  // (server has no localStorage, so initial render is always "not dismissed").
+  const [dismissed, setDismissed] = useState(false)
   const [undoing, setUndoing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (window.localStorage.getItem(storageKey) === '1') setDismissed(true)
+  }, [storageKey])
 
   const withinWindow = !!createdAt && Date.now() - new Date(createdAt).getTime() < WINDOW_MS
 

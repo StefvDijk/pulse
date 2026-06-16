@@ -2,7 +2,7 @@
 
 /**
  * SchemaBlockHeader — v2 design reference header for the Schema page.
- * Shows block title, week-of-block progress bar, and session counters.
+ * Shows block title and the week-of-block position bar.
  * Mirrors SchemaWeek header in screens/Other.jsx.
  */
 
@@ -11,8 +11,6 @@ interface SchemaBlockHeaderProps {
   weekLabel: string
   weekOfBlock: number
   totalWeeks: number
-  sessionsCompleted: number
-  sessionsPlanned: number
   phaseName?: string
 }
 
@@ -23,8 +21,6 @@ export function SchemaBlockHeader({
   weekLabel,
   weekOfBlock,
   totalWeeks,
-  sessionsCompleted,
-  sessionsPlanned,
   phaseName,
 }: SchemaBlockHeaderProps) {
   const progress = totalWeeks > 0 ? (weekOfBlock - 1) / totalWeeks : 0

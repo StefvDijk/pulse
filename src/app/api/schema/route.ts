@@ -252,7 +252,14 @@ export async function GET() {
             ? 'today'
             : 'planned'
         const item: DayItem = {
-          focus: r.state === 'done-extra' ? titleCase(r.title) : r.title,
+          // done-as-planned: use the schema focus (correct casing). Swaps/extras: the
+          // actual logged title (stored lowercased), title-cased. Planned: focus as-is.
+          focus:
+            r.state === 'done-as-planned' && r.plannedFocus
+              ? r.plannedFocus
+              : r.state.startsWith('done-')
+                ? titleCase(r.title)
+                : r.title,
           exercises: r.plannedExercises,
           status,
           plannedDate: r.plannedDate,

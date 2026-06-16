@@ -134,6 +134,10 @@ export function reconcileWeek(
   ).sort()
 
   // ── Step A: per-dag, zelfde-slot ──
+  // Sub-pass 1 claimt exacte kind+titel matches eerst (done-as-planned), zodat een
+  // titel-match altijd wint van een niet-matchende sessie diezelfde dag. Sub-pass 2
+  // koppelt resterende sessies aan een overgebleven slot (same-kind of cross-sport) =
+  // swap. KIND_ORDER maakt sub-pass 2 deterministisch (gym vóór run/padel).
   for (const date of dates) {
     const dayComps = comps
       .filter((c) => c.date === date)
@@ -142,15 +146,25 @@ export function reconcileWeek(
 
     for (const c of dayComps) {
       if (c.used) continue
+      const slot = daySlots.find(
+        (s) => !s.fulfilled && s.kind === c.kind && titlesMatch(s.focus, c.title),
+      )
+      if (slot) {
+        slot.fulfilled = true
+        c.used = true
+        items.push(makeDoneItem(slot, c, 'done-as-planned', date))
+      }
+    }
+
+    for (const c of dayComps) {
+      if (c.used) continue
       const slot =
-        daySlots.find((s) => !s.fulfilled && s.kind === c.kind && titlesMatch(s.focus, c.title)) ??
         daySlots.find((s) => !s.fulfilled && s.kind === c.kind) ??
         daySlots.find((s) => !s.fulfilled)
       if (slot) {
         slot.fulfilled = true
         c.used = true
-        const asPlanned = slot.kind === c.kind && titlesMatch(slot.focus, c.title)
-        items.push(makeDoneItem(slot, c, asPlanned ? 'done-as-planned' : 'done-swap', date))
+        items.push(makeDoneItem(slot, c, 'done-swap', date))
       }
     }
   }

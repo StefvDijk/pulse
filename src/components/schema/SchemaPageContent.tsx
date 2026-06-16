@@ -135,8 +135,6 @@ export function SchemaPageContent() {
         weekLabel={weekLabel}
         weekOfBlock={data.currentWeek}
         totalWeeks={data.totalWeeks}
-        sessionsCompleted={data.totalSessionsCompleted}
-        sessionsPlanned={data.totalSessionsPlanned}
       />
 
       <div className="flex flex-col gap-3 px-4">

@@ -121,3 +121,30 @@ describe('reconcileWeek — unmatched planned & extras', () => {
     expect(items[0]).toMatchObject({ state: 'done-as-planned', kind: 'run', displayDate: WED })
   })
 })
+
+describe('reconcileWeek — multiple completions on one day', () => {
+  test('gym matching the title consumes the plan, the rest are extra', () => {
+    const items = reconcileWeek(
+      [gymPlan(MON, 'Upper A')],
+      [gymDone(MON, 'Leg Day', 'g1'), gymDone(MON, 'Upper A', 'g2')],
+      opts,
+    )
+    const planned = items.find((i) => i.plannedDate === MON)
+    expect(planned).toMatchObject({ state: 'done-as-planned', completionId: 'g2', title: 'Upper A' })
+    const extras = items.filter((i) => i.state === 'done-extra')
+    expect(extras).toHaveLength(1)
+    expect(extras[0]).toMatchObject({ completionId: 'g1', title: 'Leg Day' })
+  })
+
+  test('with a gym plan, a same-day gym wins over a same-day run (kind order)', () => {
+    const items = reconcileWeek(
+      [gymPlan(MON, 'Upper A')],
+      [{ date: MON, kind: 'run', title: 'Hardlopen', id: 'r1' }, gymDone(MON, 'Bro Split', 'g1')],
+      opts,
+    )
+    const planned = items.find((i) => i.plannedDate === MON)
+    // The gym completion consumes the gym plan (as a swap, different title); run stays extra.
+    expect(planned).toMatchObject({ state: 'done-swap', kind: 'gym', completionId: 'g1' })
+    expect(items.find((i) => i.state === 'done-extra')).toMatchObject({ kind: 'run', completionId: 'r1' })
+  })
+})
