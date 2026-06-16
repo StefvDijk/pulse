@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { daysAgoAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
+import { calculateSleepScore } from '@/lib/sleep/score'
+import { computeSleepScore } from '@/lib/sleep/compute'
 
 const today = (): string => todayAmsterdam()
 const daysAgo = (n: number): string => daysAgoAmsterdam(n)
@@ -136,10 +138,10 @@ export async function getRecoveryScore(
   const admin = createAdminClient()
 
   // Parallel: sleep, HRV/RHR, recent training load
-  const [{ data: sleep }, { data: activity }, { data: recentActivity }, { data: recentWorkouts }] = await Promise.all([
+  const [{ data: sleep }, { data: activity }, { data: recentActivity }, { data: recentWorkouts }, { data: baselineRows }] = await Promise.all([
     admin
       .from('sleep_logs')
-      .select('total_sleep_minutes, deep_sleep_minutes, sleep_efficiency')
+      .select('total_sleep_minutes, deep_sleep_minutes, rem_sleep_minutes, sleep_efficiency, sleep_start')
       .eq('user_id', userId)
       .eq('date', targetDate)
       .maybeSingle(),
@@ -163,36 +165,48 @@ export async function getRecoveryScore(
       .eq('user_id', userId)
       .gte('started_at', `${daysAgo(3)}T00:00:00`)
       .lte('started_at', `${targetDate}T23:59:59`),
+    // Sleep baselines for the SleepScore (duration + bedtime).
+    admin
+      .from('metric_baselines')
+      .select('metric, value_30d_avg, sample_count_30d')
+      .eq('user_id', userId)
+      .in('metric', ['sleep_minutes', 'sleep_bedtime_minutes'])
+      .order('date', { ascending: false })
+      .limit(14),
   ])
 
   let score = 10
   const factors: string[] = []
 
-  // --- Sleep factor (0-3 points) ---
-  if (sleep) {
-    const hours = (sleep.total_sleep_minutes ?? 0) / 60
-    const deepPct = sleep.total_sleep_minutes
-      ? Math.round(((sleep.deep_sleep_minutes ?? 0) / sleep.total_sleep_minutes) * 100)
-      : 0
-
-    if (hours < 6) {
-      score -= 3
-      factors.push(`Slaap: ${hours.toFixed(1)}u (SLECHT, < 6u)`)
-    } else if (hours < 7) {
-      score -= 2
-      factors.push(`Slaap: ${hours.toFixed(1)}u (matig, < 7u)`)
-    } else if (hours < 7.5) {
-      score -= 1
-      factors.push(`Slaap: ${hours.toFixed(1)}u (ok)`)
-    } else {
-      factors.push(`Slaap: ${hours.toFixed(1)}u (goed)`)
+  // --- Sleep factor (0-3 points), via the Pulse SleepScore ---
+  // Uses the same SleepScore the user sees, so the coach never quotes a
+  // different sleep number. Replaces the old hours-threshold + an always-firing
+  // deep-sleep penalty (deep_sleep_minutes used to be NULL).
+  if (sleep && sleep.total_sleep_minutes) {
+    const baselineFor = (metric: string) => {
+      const row = (baselineRows ?? []).find((r) => r.metric === metric)
+      return {
+        avg: row?.value_30d_avg != null ? Number(row.value_30d_avg) : null,
+        sampleCount: row?.sample_count_30d ?? 0,
+      }
     }
+    const sleepScore = calculateSleepScore({
+      totalSleepMinutes: sleep.total_sleep_minutes,
+      sleepEfficiency: sleep.sleep_efficiency != null ? Number(sleep.sleep_efficiency) : null,
+      deepMinutes: sleep.deep_sleep_minutes,
+      remMinutes: sleep.rem_sleep_minutes,
+      sleepStart: sleep.sleep_start,
+      durationBaseline: baselineFor('sleep_minutes'),
+      bedtimeBaseline: baselineFor('sleep_bedtime_minutes'),
+    }).score
 
-    if (deepPct < 10) {
-      score -= 1
-      factors.push(`Deep sleep: ${deepPct}% (laag, < 10%)`)
+    if (sleepScore === null) {
+      factors.push('Slaap: geen score (onvoldoende data)')
     } else {
-      factors.push(`Deep sleep: ${deepPct}%`)
+      const penalty = sleepScore >= 85 ? 0 : sleepScore >= 70 ? 1 : sleepScore >= 50 ? 2 : 3
+      score -= penalty
+      const hours = (sleep.total_sleep_minutes / 60).toFixed(1)
+      factors.push(`Slaap: SleepScore ${sleepScore}/100 (${hours}u)`)
     }
   } else {
     factors.push('Slaap: geen data beschikbaar')
@@ -271,5 +285,43 @@ export async function getRecoveryScore(
     `\nAdvies: ${advice}`,
   ]
 
+  return lines.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// get_sleep_score
+// ---------------------------------------------------------------------------
+
+const SLEEP_COMPONENT_LABELS_NL: Record<string, string> = {
+  duration: 'Duur',
+  bedtime: 'Bedtijd',
+  interruptions: 'Onderbrekingen',
+  stages: 'Stadia',
+}
+
+const SLEEP_TIER_LABEL_NL: Record<number, string> = {
+  1: 'alleen slaapduur',
+  2: 'bedtijd-baseline wordt nog opgebouwd',
+  3: 'volledige score',
+}
+
+/**
+ * Returns the same SleepScore (0-100) the user sees on the home card, so the
+ * coach quotes one consistent number for "hoe heb ik geslapen?".
+ */
+export async function getSleepScore(userId: string, _input: { date?: string }): Promise<string> {
+  const data = await computeSleepScore(userId)
+  if (data.score === null) {
+    return 'Geen slaapdata beschikbaar. Sync Apple Health om een slaapscore te zien.'
+  }
+
+  const lines = [
+    `Slaapscore: ${data.score}/100 (nacht van ${data.date ?? 'onbekend'}, ${SLEEP_TIER_LABEL_NL[data.tier] ?? ''})`,
+    ...data.components.map((c) => {
+      const label = SLEEP_COMPONENT_LABELS_NL[c.key] ?? c.key
+      if (c.skipped) return `- ${label}: nog niet gemeten`
+      return `- ${label}: ${Math.round((c.scored / c.available) * 100)}% (${c.scored.toFixed(1)}/${c.available})`
+    }),
+  ]
   return lines.join('\n')
 }
