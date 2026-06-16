@@ -6,27 +6,73 @@ import { ExplainTrigger } from '@/components/explain/ExplainTrigger'
 import { ReadinessDrilldownSheet } from '@/components/home/ReadinessDrilldownSheet'
 import type { ReadinessData } from '@/types/readiness'
 import type { ReadinessSummary } from '@/app/api/readiness/summary/route'
+import type { ReadinessView } from './readiness-view'
 
 export interface ReadinessCardProps {
+  view: ReadinessView
   readiness: ReadinessData | null | undefined
   summary: ReadinessSummary | null | undefined
-  score: number
   label: string
   tone: 'good' | 'warn' | 'bad'
+  onRetry: () => void
 }
 
-export function ReadinessCard({
-  readiness,
-  summary,
-  score,
-  label,
-  tone,
-}: ReadinessCardProps) {
+const CARD_GRADIENT = 'linear-gradient(135deg, #1E2230 0%, #2A3340 100%)'
+
+export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }: ReadinessCardProps) {
   const [drilldownOpen, setDrilldownOpen] = useState(false)
 
-  const sleepHours = readiness?.sleepMinutes ? Math.floor(readiness.sleepMinutes / 60) : null
-  const sleepMins = readiness?.sleepMinutes ? readiness.sleepMinutes % 60 : null
+  if (view.status === 'loading') {
+    return (
+      <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
+        <div className="flex items-center gap-[18px]">
+          <div className="h-[108px] w-[108px] shrink-0 animate-pulse rounded-full bg-white/[0.06]" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-20 animate-pulse rounded bg-white/[0.06]" />
+            <div className="h-9 w-16 animate-pulse rounded bg-white/[0.08]" />
+            <div className="h-3 w-28 animate-pulse rounded bg-white/[0.06]" />
+          </div>
+        </div>
+      </Card>
+    )
+  }
 
+  if (view.status === 'unavailable') {
+    return (
+      <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
+        <div className="flex items-center gap-[18px]">
+          <div
+            className="flex h-[108px] w-[108px] shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]"
+            aria-hidden="true"
+          >
+            <span className="text-[28px] font-bold text-text-tertiary">—</span>
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] font-semibold uppercase tracking-[1.2px] text-text-tertiary">
+              Readiness
+            </div>
+            <div className="mt-1 text-[15px] font-semibold text-text-secondary">
+              Nog niet beschikbaar
+            </div>
+            <p className="mt-1 text-[12px] leading-snug text-text-tertiary">
+              Je herstelgegevens konden niet worden geladen. Zodra je biometrie
+              (HRV, slaap, rusthart) binnen is, verschijnt hier je score.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3.5 w-full rounded-lg border border-bg-border bg-white/[0.04] py-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-white/[0.06] focus-ring"
+        >
+          Opnieuw proberen
+        </button>
+      </Card>
+    )
+  }
+
+  // status === 'ready'
+  const score = view.score
   const toneClass =
     tone === 'good'
       ? 'text-[var(--color-status-good)]'
@@ -34,13 +80,13 @@ export function ReadinessCard({
         ? 'text-[var(--color-status-warn)]'
         : 'text-[var(--color-status-bad)]'
 
+  const sleepHours = readiness?.sleepMinutes ? Math.floor(readiness.sleepMinutes / 60) : null
+  const sleepMins = readiness?.sleepMinutes ? readiness.sleepMinutes % 60 : null
+
   return (
     <>
       <ExplainTrigger topic="readiness" ariaLabel="Open uitleg over readiness">
-        <Card
-          className="p-[18px]"
-          style={{ background: 'linear-gradient(135deg, #1E2230 0%, #2A3340 100%)' }}
-        >
+        <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
           <div className="flex items-center gap-[18px]">
             <ReadinessOrb value={score / 100} size={108} />
             <div className="flex-1">
@@ -55,9 +101,7 @@ export function ReadinessCard({
           </div>
 
           {summary?.sentence && (
-            <p className="mt-3 text-[13px] leading-snug text-text-secondary">
-              {summary.sentence}
-            </p>
+            <p className="mt-3 text-[13px] leading-snug text-text-secondary">{summary.sentence}</p>
           )}
 
           {summary?.coldStart?.active && (
@@ -104,10 +148,7 @@ export function ReadinessCard({
         </Card>
       </ExplainTrigger>
 
-      <ReadinessDrilldownSheet
-        open={drilldownOpen}
-        onClose={() => setDrilldownOpen(false)}
-      />
+      <ReadinessDrilldownSheet open={drilldownOpen} onClose={() => setDrilldownOpen(false)} />
     </>
   )
 }

@@ -14,6 +14,7 @@ import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
+import { deriveReadinessView } from '@/components/dashboard/v2/readiness-view'
 import { WeekGlance, WeekGlanceSkeleton } from '@/components/dashboard/v2/WeekGlance'
 import { RecentActivities } from '@/components/home/RecentActivities'
 import { CoachCard } from '@/components/dashboard/v2/CoachCard'
@@ -49,13 +50,6 @@ function weekNumber(d = new Date()): number {
 
 // ── Readiness helpers ────────────────────────────────────────────────────────
 
-function readinessScore(level: string | undefined): number {
-  if (level === 'good') return 86
-  if (level === 'normal') return 68
-  if (level === 'fatigued') return 48
-  return 38
-}
-
 function readinessLabel(level: string | undefined): {
   label: string
   tone: 'good' | 'warn' | 'bad'
@@ -75,8 +69,16 @@ export function DashboardPage() {
     isLoading: schemaLoading,
     refresh: refreshSchema,
   } = useSchemaWeek()
-  const { data: readiness } = useReadiness()
-  const { data: summary } = useReadinessSummary()
+  const {
+    data: readiness,
+    isLoading: readinessLoading,
+    refresh: refreshReadiness,
+  } = useReadiness()
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    refresh: refreshSummary,
+  } = useReadinessSummary()
   const { data: workload } = useWorkload()
   const { signal: coachSignal } = useCoachSignal()
 
@@ -91,12 +93,20 @@ export function DashboardPage() {
     )
   }
 
-  // Readiness v2: the score is computed server-side (z-scores vs baselines);
-  // the client never recomputes it.
-  const fallbackScore = readiness?.score ?? readinessScore(undefined)
-  const score = summary?.score ?? fallbackScore
-  const readinessLevel = summary?.level ?? readiness?.level
+  // Readiness v2: the score is computed server-side (z-scores vs baselines).
+  // The client never recomputes or fabricates it — when the endpoints return
+  // nothing we show an honest loading/unavailable state instead of a fake score.
+  const readinessView = deriveReadinessView({
+    summary,
+    readiness,
+    isLoading: (readinessLoading || summaryLoading) && !readiness && !summary,
+  })
+  const readinessLevel = readinessView.status === 'ready' ? readinessView.level : undefined
   const { label: readinessLbl, tone } = readinessLabel(readinessLevel)
+  const refreshReadinessCard = () => {
+    void refreshReadiness()
+    void refreshSummary()
+  }
   const ratio = workload?.ratio ?? readiness?.acwr ?? null
   const ratioPct = ratio !== null ? Math.max(0, Math.min(1, ratio / 2.0)) : 0.5
 
@@ -142,11 +152,12 @@ export function DashboardPage() {
       {/* ── Readiness card ────────────────────────────────────── */}
       <motion.div variants={listItem} transition={springContent}>
         <ReadinessCard
+          view={readinessView}
           readiness={readiness}
           summary={summary}
-          score={score}
           label={readinessLbl}
           tone={tone}
+          onRetry={refreshReadinessCard}
         />
       </motion.div>
 

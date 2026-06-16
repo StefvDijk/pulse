@@ -11,7 +11,7 @@ async function fetcher(url: string): Promise<ReadinessSummary> {
 }
 
 export function useReadinessSummary() {
-  const { data, error, isLoading } = useSWR<ReadinessSummary>(
+  const { data, error, isLoading, mutate } = useSWR<ReadinessSummary>(
     '/api/readiness/summary',
     fetcher,
     // Server caches for 4h; refresh hourly so a freshly-arrived sleep / HRV
@@ -19,5 +19,5 @@ export function useReadinessSummary() {
     { refreshInterval: 60 * 60 * 1000 },
   )
 
-  return { data, error: error as Error | undefined, isLoading }
+  return { data, error: error as Error | undefined, isLoading, refresh: () => mutate() }
 }
