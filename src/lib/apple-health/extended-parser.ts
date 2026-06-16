@@ -6,9 +6,26 @@ import { normaliseDate, extractWallClockDate } from '@/lib/apple-health/date-uti
 // ---------------------------------------------------------------------------
 
 export interface ParsedSleepDay {
-  /** YYYY-MM-DD — the calendar night (sleep START date) */
+  /**
+   * YYYY-MM-DD — the night as keyed by HAE (`point.date`, which is typically
+   * the wake-up morning). Kept identical to the legacy parser so existing
+   * lookups by date (readiness, aggregations) are never shifted by a day.
+   */
   date: string
+  /** UTC ISO timestamps; undefined when HAE omits them. */
+  sleepStart?: string
+  sleepEnd?: string
+  inBedStart?: string
+  inBedEnd?: string
   totalSleepMinutes: number
+  deepMinutes?: number
+  remMinutes?: number
+  /** HAE's "Core" stage maps to Pulse's `light_sleep_minutes` column. */
+  lightMinutes?: number
+  awakeMinutes?: number
+  inBedMinutes?: number
+  /** % of time in bed actually asleep (0-100); undefined when not derivable. */
+  sleepEfficiency?: number
   source: string
 }
 
@@ -26,6 +43,12 @@ function numField(point: Record<string, unknown>, key: string): number | undefin
   return typeof v === 'number' && v > 0 ? v : undefined
 }
 
+/** Normalise a HAE timestamp field to UTC ISO, or undefined when absent. */
+function tsField(point: Record<string, unknown>, key: string): string | undefined {
+  const v = point[key]
+  return typeof v === 'string' && v.trim() !== '' ? normaliseDate(v) : undefined
+}
+
 /**
  * Convert a sleep value to minutes. HAE usually reports hours; use the metric
  * units when given, otherwise disambiguate by magnitude — a night's sleep is a
@@ -36,6 +59,16 @@ function sleepToMinutes(value: number, units: string | undefined): number {
   if (u === 'min' || u === 'minutes' || u === 'minute') return Math.round(value)
   if (u === 'hr' || u === 'hour' || u === 'hours' || u === 'h') return Math.round(value * 60)
   return value < 24 ? Math.round(value * 60) : Math.round(value)
+}
+
+/** Minutes of a single sleep stage (deep/rem/core/awake), or undefined. */
+function stageMinutes(
+  point: Record<string, unknown>,
+  key: string,
+  units: string | undefined,
+): number | undefined {
+  const v = numField(point, key)
+  return v === undefined ? undefined : sleepToMinutes(v, units)
 }
 
 function sleepMinutesFromPoint(
@@ -56,31 +89,119 @@ function sleepMinutesFromPoint(
   return sleepToMinutes(value, units)
 }
 
+/** A night accumulated across one or more HAE points before finalisation. */
+interface SleepAccumulator {
+  date: string
+  sleepStart?: string
+  sleepEnd?: string
+  inBedStart?: string
+  inBedEnd?: string
+  totalSleepMinutes: number
+  deepMinutes?: number
+  remMinutes?: number
+  lightMinutes?: number
+  awakeMinutes?: number
+}
+
+const earliest = (a?: string, b?: string): string | undefined =>
+  a === undefined ? b : b === undefined ? a : a < b ? a : b
+const latest = (a?: string, b?: string): string | undefined =>
+  a === undefined ? b : b === undefined ? a : a > b ? a : b
+const addOptional = (a?: number, b?: number): number | undefined =>
+  a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0)
+
+/** Merge two same-night sessions (HAE may split a night into stage segments). */
+function mergeSessions(a: SleepAccumulator, b: SleepAccumulator): SleepAccumulator {
+  return {
+    date: a.date,
+    sleepStart: earliest(a.sleepStart, b.sleepStart),
+    sleepEnd: latest(a.sleepEnd, b.sleepEnd),
+    inBedStart: earliest(a.inBedStart, b.inBedStart),
+    inBedEnd: latest(a.inBedEnd, b.inBedEnd),
+    totalSleepMinutes: a.totalSleepMinutes + b.totalSleepMinutes,
+    deepMinutes: addOptional(a.deepMinutes, b.deepMinutes),
+    remMinutes: addOptional(a.remMinutes, b.remMinutes),
+    lightMinutes: addOptional(a.lightMinutes, b.lightMinutes),
+    awakeMinutes: addOptional(a.awakeMinutes, b.awakeMinutes),
+  }
+}
+
+/** Derive in-bed minutes + efficiency and freeze into a ParsedSleepDay. */
+function finaliseNight(s: SleepAccumulator): ParsedSleepDay {
+  const inBedMinutes =
+    s.inBedStart !== undefined && s.inBedEnd !== undefined
+      ? Math.max(0, Math.round((Date.parse(s.inBedEnd) - Date.parse(s.inBedStart)) / 60_000))
+      : undefined
+
+  // Efficiency needs a denominator that differs from time-asleep: the in-bed
+  // window if we have it, else asleep + awake. With neither, efficiency is
+  // unknown (don't fabricate a misleading 100%).
+  const denominator =
+    inBedMinutes !== undefined
+      ? inBedMinutes
+      : s.awakeMinutes !== undefined
+        ? s.totalSleepMinutes + s.awakeMinutes
+        : undefined
+  const sleepEfficiency =
+    denominator !== undefined && denominator > 0
+      ? Math.min(100, Math.round((s.totalSleepMinutes / denominator) * 10_000) / 100)
+      : undefined
+
+  return {
+    date: s.date,
+    sleepStart: s.sleepStart,
+    sleepEnd: s.sleepEnd,
+    inBedStart: s.inBedStart,
+    inBedEnd: s.inBedEnd,
+    totalSleepMinutes: Math.round(s.totalSleepMinutes),
+    deepMinutes: s.deepMinutes,
+    remMinutes: s.remMinutes,
+    lightMinutes: s.lightMinutes,
+    awakeMinutes: s.awakeMinutes,
+    inBedMinutes,
+    sleepEfficiency,
+    source: 'apple_health',
+  }
+}
+
 /**
  * Parse sleep data from an Apple Health (HAE) payload.
- * Reads the asleep duration from each `sleep_analysis` / `sleepAnalysis` point
- * (asleep/stages in hours, not `qty`) and sums by night. Ignores
- * `apple_sleeping_wrist_temperature`. Returns [] when absent — never throws.
+ * Reads each `sleep_analysis` / `sleepAnalysis` point's asleep duration, stage
+ * minutes (deep/rem/core→light), awake time, and the sleep/in-bed timestamps,
+ * then merges by night. Returns [] when absent — never throws.
  */
 export function parseSleepData(payload: RawHealthPayload): ParsedSleepDay[] {
-  const byDate = new Map<string, number>()
+  const byDate = new Map<string, SleepAccumulator>()
 
   for (const metric of payload.data.metrics) {
     if (!SLEEP_METRIC_NAMES.has(metric.name)) continue
+    const units = metric.units
 
-    for (const point of metric.data) {
-      const minutes = sleepMinutesFromPoint(point as Record<string, unknown>, metric.units)
-      if (minutes === null) continue
-      const date = extractWallClockDate(point.date)
-      byDate.set(date, (byDate.get(date) ?? 0) + minutes)
+    for (const raw of metric.data) {
+      const point = raw as unknown as Record<string, unknown>
+      const total = sleepMinutesFromPoint(point, units)
+      if (total === null) continue
+
+      const date = extractWallClockDate(raw.date)
+      const session: SleepAccumulator = {
+        date,
+        sleepStart: tsField(point, 'sleepStart'),
+        sleepEnd: tsField(point, 'sleepEnd'),
+        inBedStart: tsField(point, 'inBedStart'),
+        inBedEnd: tsField(point, 'inBedEnd'),
+        totalSleepMinutes: total,
+        deepMinutes: stageMinutes(point, 'deep', units),
+        remMinutes: stageMinutes(point, 'rem', units),
+        lightMinutes: stageMinutes(point, 'core', units),
+        awakeMinutes: stageMinutes(point, 'awake', units),
+      }
+
+      const prev = byDate.get(date)
+      byDate.set(date, prev ? mergeSessions(prev, session) : session)
     }
   }
 
-  return Array.from(byDate.entries()).map(([date, totalSleepMinutes]) => ({
-    date,
-    totalSleepMinutes: Math.round(totalSleepMinutes),
-    source: 'apple_health',
-  }))
+  return Array.from(byDate.values()).map(finaliseNight)
 }
 
 // ---------------------------------------------------------------------------
