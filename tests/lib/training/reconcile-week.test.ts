@@ -148,3 +148,24 @@ describe('reconcileWeek — multiple completions on one day', () => {
     expect(items.find((i) => i.state === 'done-extra')).toMatchObject({ kind: 'run', completionId: 'r1' })
   })
 })
+
+describe('reconcileWeek — run/padel match by sport, not title', () => {
+  test('a planned "Duurloop" run is fulfilled by a generic "Hardlopen" completion', () => {
+    const items = reconcileWeek(
+      [{ plannedDate: WED, focus: 'Duurloop', kind: 'run' }],
+      [{ date: WED, kind: 'run', title: 'Hardlopen', id: 'r1' }],
+      opts,
+    )
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ state: 'done-as-planned', kind: 'run', plannedFocus: 'Duurloop' })
+  })
+
+  test('a planned padel session is fulfilled by a padel completion regardless of title', () => {
+    const items = reconcileWeek(
+      [{ plannedDate: WED, focus: 'Padel met Jeroen', kind: 'padel' }],
+      [{ date: WED, kind: 'padel', title: 'Padel', id: 'p1' }],
+      opts,
+    )
+    expect(items[0]).toMatchObject({ state: 'done-as-planned', kind: 'padel' })
+  })
+})
