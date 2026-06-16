@@ -11,11 +11,11 @@ async function fetcher(url: string): Promise<ReadinessData> {
 }
 
 export function useReadiness() {
-  const { data, error, isLoading } = useSWR<ReadinessData>(
+  const { data, error, isLoading, mutate } = useSWR<ReadinessData>(
     '/api/readiness',
     fetcher,
     { refreshInterval: 300_000 },
   )
 
-  return { data, error: error as Error | undefined, isLoading }
+  return { data, error: error as Error | undefined, isLoading, refresh: () => mutate() }
 }
