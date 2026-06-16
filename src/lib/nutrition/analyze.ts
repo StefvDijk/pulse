@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { createJsonCompletion, MEMORY_MODEL } from '@/lib/ai/client'
+import { parseAiJson } from '@/lib/ai/parse-ai-json'
 import { NUTRITION_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts/nutrition-analysis'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
@@ -58,7 +59,9 @@ export async function analyzeNutrition(
     meta: { userId, feature: 'nutrition' },
   })
 
-  const analysis = NutritionAnalysisSchema.parse(JSON.parse(rawText))
+  // Haiku sometimes fences the JSON despite the prompt; parse defensively so a
+  // markdown wrapper can't turn a valid analysis into a 500.
+  const analysis = NutritionAnalysisSchema.parse(parseAiJson(rawText))
   const finalMealType = mealType ?? analysis.meal_type
 
   // Save to DB using admin client
