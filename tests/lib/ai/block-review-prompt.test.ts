@@ -56,6 +56,7 @@ const minimalData: BlockReviewData = {
     liftJourney: [],
     lifetimePRs: [],
     coachingMemory: [],
+    coachBeliefs: [],
     weeklyLessons: [],
     recentWeeklyReviews: [],
     userProfile: null,
@@ -130,6 +131,41 @@ describe('buildBlockReviewPrompt', () => {
       conversation: [],
     })
     expect(user).toMatch(/eerste beurt|nog geen gesprek/i)
+  })
+
+  it('injects coach_beliefs (working hypotheses) into the user prompt — audit #21', () => {
+    const withBeliefs = {
+      ...minimalData,
+      journey: {
+        ...minimalData.journey,
+        coachBeliefs: [
+          {
+            hypothesisText: 'Stef herstelt slecht van zware legday op dinsdag',
+            category: 'recovery',
+            confidence: 0.72,
+            status: 'active',
+          },
+        ],
+      },
+    } as unknown as BlockReviewData
+
+    const { user } = buildBlockReviewPrompt({
+      data: withBeliefs,
+      form: minimalForm,
+      conversation: [],
+    })
+    expect(user).toMatch(/werkende hypotheses/i)
+    expect(user).toMatch(/herstelt slecht van zware legday/)
+    expect(user).toMatch(/confidence 0\.72/)
+  })
+
+  it('shows a placeholder when there are no beliefs yet', () => {
+    const { user } = buildBlockReviewPrompt({
+      data: minimalData,
+      form: minimalForm,
+      conversation: [],
+    })
+    expect(user).toMatch(/nog geen hypotheses/i)
   })
 
   it('forces refinement turns to return only a complete proposal block', () => {

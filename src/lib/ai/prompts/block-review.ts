@@ -66,6 +66,13 @@ function buildJourneyBlock(data: BlockReviewData): string {
     .map((m) => `  - [${m.category}] ${m.value}`)
     .join('\n')
 
+  const beliefLines = j.coachBeliefs
+    .map((b) => {
+      const tag = b.status === 'confirmed' ? 'confirmed' : `confidence ${b.confidence.toFixed(2)}`
+      return `  - (${b.category}, ${tag}) ${b.hypothesisText}`
+    })
+    .join('\n')
+
   const lessonLines = j.weeklyLessons
     .slice(0, 8)
     .map((l) => `  - ${l.weekStart} [${l.category}]: ${l.lessonText}`)
@@ -122,6 +129,10 @@ ${lifetimePRsLine || "  (geen PR's)"}
 
 ## Coach-geheugen (recent, top 20)
 ${memoryLines || '  (geen)'}
+
+## Mijn werkende hypotheses over Stef (top 8)
+${beliefLines || '  (nog geen hypotheses)'}
+Toets of dit blok deze hypotheses bevestigt of weerlegt; benoem het wanneer je tegenbewijs ziet.
 
 ## Weekly lessons (laatste 8)
 ${lessonLines || '  (geen)'}

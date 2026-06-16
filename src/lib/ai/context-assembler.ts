@@ -2,6 +2,7 @@ export { classifyQuestion, type QuestionType } from './classifier'
 
 import { type QuestionType } from './classifier'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { buildMemoryReadBlock } from './coach-core'
 import {
   daysAgoAmsterdam,
   todayAmsterdam,
@@ -915,12 +916,17 @@ async function loadRecentPRs(userId: string): Promise<string | null> {
 
 // ---------------------------------------------------------------------------
 // Thin context assembler (for agentic tool-calling mode)
-// Only loads coaching memory + latest week stats — tools fill the rest.
+// Loads the canonical memory read-block (semantic memory + working
+// hypotheses) + recent PRs — tools fill the rest. Audit #21: uses
+// buildMemoryReadBlock so the coach actually SEES its own coach_beliefs, which
+// were written to the DB but never injected into any prompt. Sits in the
+// UNCACHED dynamic block (appended after the cached static system prompt), so
+// belief churn never invalidates Anthropic's prompt cache.
 // ---------------------------------------------------------------------------
 
 export async function assembleThinContext(userId: string): Promise<string> {
   const [memory, prs] = await Promise.allSettled([
-    loadCoachingMemory(userId),
+    buildMemoryReadBlock(userId),
     loadRecentPRs(userId),
   ])
 

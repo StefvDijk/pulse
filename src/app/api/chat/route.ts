@@ -553,16 +553,18 @@ export async function POST(request: Request) {
             }
           }
 
-          // Fire memory extraction after response is sent — non-blocking
-          extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+          // Fire memory + belief extraction after response is sent —
+          // non-blocking. Skip greetings: "hoi" carries no lifestyle signal,
+          // so running two paid Haiku extractors on it is pure waste (audit #21).
+          if (questionType !== 'simple_greeting') {
+            extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
 
-          // Fire belief extraction on the chat-turn — lifestyle/preference scope.
-          // Fire-and-forget; errors are logged inside the extractor.
-          runBeliefExtractor({
-            userId: user.id,
-            scope: 'lifestyle',
-            eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
-          }).catch(console.error)
+            runBeliefExtractor({
+              userId: user.id,
+              scope: 'lifestyle',
+              eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
+            }).catch(console.error)
+          }
 
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
