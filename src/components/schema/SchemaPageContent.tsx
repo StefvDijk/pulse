@@ -152,7 +152,7 @@ export function SchemaPageContent() {
       />
 
       <div className="flex flex-col gap-3 px-4">
-        {data.sourceBlockReviewId && (
+        {data.sourceBlockReviewId && data.currentWeek === 1 && (
           <div className="rounded-card-lg border border-status-warning/40 bg-status-warning/10 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>

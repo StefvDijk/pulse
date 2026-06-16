@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
+import { pairSessions } from '@/lib/schema/session-matching'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -199,13 +200,6 @@ export async function GET() {
       padelDates.add(dayKeyAmsterdam(p.started_at))
     }
 
-    function focusKind(focus: string): 'run' | 'padel' | 'gym' {
-      const f = focus.toLowerCase().trim()
-      if (f.includes('hardlopen') || f.includes('run')) return 'run'
-      if (f.includes('padel')) return 'padel'
-      return 'gym'
-    }
-
     // Enrich weeks with completion status
     const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Amsterdam' })
 
@@ -238,40 +232,11 @@ export async function GET() {
       for (const d of runDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'run', used: false })
       for (const d of padelDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'padel', used: false })
 
-      function findCompletion(kind: 'gym' | 'run' | 'padel', focusLower: string, dateConstraint?: string) {
-        return completions.find(
-          (c) =>
-            !c.used &&
-            c.kind === kind &&
-            (kind !== 'gym' || c.title === focusLower) &&
-            (dateConstraint === undefined || c.date === dateConstraint),
-        )
-      }
-
-      // Pass 1: exact-date pairing.
-      for (const r of planned) {
-        const kind = focusKind(r.focus)
-        const focusLower = r.focus.toLowerCase().trim()
-        const c = findCompletion(kind, focusLower, r.plannedDate)
-        if (c) {
-          c.used = true
-          r.actualDate = c.date
-          r.completed = true
-        }
-      }
-
-      // Pass 2: pair remaining planned with any in-week completion.
-      for (const r of planned) {
-        if (r.completed) continue
-        const kind = focusKind(r.focus)
-        const focusLower = r.focus.toLowerCase().trim()
-        const c = findCompletion(kind, focusLower)
-        if (c) {
-          c.used = true
-          r.actualDate = c.date
-          r.completed = true
-        }
-      }
+      // Soepel tellen: een afgeronde sessie telt voor een geplande sessie van
+      // hetzelfde soort die week — geen exacte titel-match nodig (lost de
+      // "0/5 sessies"-bug op: gym eiste eerst c.title === focus). Zie
+      // session-matching; muteert planned.completed/actualDate + completion.used.
+      pairSessions(planned, completions)
 
       type DayItem = {
         focus: string
