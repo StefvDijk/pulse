@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { sportMeta, type SportKey } from '@/lib/sports/registry'
+import { reconcileWeek, type PlannedSession, type CompletionInput, type ActivityKind } from '@/lib/training/reconcile-week'
+import { toTokens } from './to-tokens'
 import { softRows } from '@/lib/supabase/soft-rows'
 
 /* ── Types ─────────────────────────────────────────────────── */
@@ -166,10 +168,6 @@ function extractExercises(workout: WorkoutWithExercises): ExerciseData[] {
           rpe: s.rpe,
         })),
     }))
-}
-
-function titlesMatch(a: string, b: string): boolean {
-  return a.toLowerCase().trim() === b.toLowerCase().trim()
 }
 
 /* ── Route handler ─────────────────────────────────────────── */
@@ -358,8 +356,7 @@ export async function GET() {
       activitiesByDate.set(d, arr)
     }
 
-    // 3. Voor iedere dag: bepaal planned-item, dan tokens via merge.
-    const plannedTitles = new Set<string>() // titles die nog last-performance lookup nodig hebben
+    // 3. Voor iedere dag: bepaal planned-item, dan tokens via reconcileWeek + toTokens.
 
     interface DayEntry {
       date: string
@@ -378,113 +375,91 @@ export async function GET() {
       }
     }
 
-    const days: DayEntry[] = weekDates.map(({ date, dayName, dayLabel }) => {
-      const isToday = date === todayStr
-      const isPast = date < todayStr
-
-      // Bepaal planned (override > template, null = expliciete rust)
+    // Hergebruik de bestaande planned-bepaling (override > template > rust) per dag.
+    function plannedForDate(date: string, dayName: string): PlannedSession | null {
       let planned: ScheduleDay | null = null
-      let isExplicitRest = false
       if (date in overrides) {
         const overrideFocus = overrides[date]
-        if (overrideFocus === null) {
-          isExplicitRest = true
-        } else {
-          const templateEntry = Array.from(scheduleByDay.values()).find(
-            (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
-          )
-          planned = templateEntry ?? {
-            title: overrideFocus,
-            subtitle: '',
-            type: 'gym',
-            duration_min: 60,
-          }
-        }
+        if (overrideFocus === null) return null // expliciete rust
+        const templateEntry = Array.from(scheduleByDay.values()).find(
+          (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
+        )
+        planned = templateEntry ?? { title: overrideFocus, subtitle: '', type: 'gym', duration_min: 60 }
       } else {
         planned = scheduleByDay.get(dayName) ?? null
       }
+      if (!planned) return null
+      const rawSchedule = (schema!).workout_schedule as unknown
+      const exercises = Array.isArray(rawSchedule)
+        ? (rawSchedule as WorkoutSchedule).find((s) => s.day.toLowerCase() === dayName)?.exercises
+        : undefined
+      return {
+        plannedDate: date,
+        focus: planned.title,
+        kind: classifyByTitle(planned.title) as ActivityKind,
+        exercises,
+        subtitle: planned.subtitle || undefined,
+        durationMin: planned.duration_min,
+      }
+    }
 
-      const plannedType: ActivityType | null = planned ? classifyByTitle(planned.title) : null
+    const plannedSessions: PlannedSession[] = weekDates
+      .map(({ date, dayName }) => plannedForDate(date, dayName))
+      .filter((p): p is PlannedSession => p !== null)
 
-      // Verzamel actuals
-      const gyms = gymByDate.get(date) ?? []
-      const runs = runsByDate.get(date) ?? []
-      const padels = padelByDate.get(date) ?? []
-
-      const tokens: ActivityToken[] = []
-      let plannedConsumed = false
-
-      // Gym actuals
-      for (const gym of gyms) {
-        let state: TokenState = 'done-extra'
-        let swappedFrom: string | undefined
-        if (planned && plannedType === 'gym' && !plannedConsumed) {
-          state = titlesMatch(gym.title, planned.title) ? 'done-as-planned' : 'done-swap'
-          if (state === 'done-swap') swappedFrom = planned.title
-          plannedConsumed = true
-        }
-        tokens.push({
-          type: 'gym',
-          state,
-          title: gym.title,
-          swappedFrom,
-          actualId: gym.id,
-          actualDurationSeconds: gym.duration_seconds,
-          actualStartedAt: gym.started_at,
-          exercises: extractExercises(gym),
+    const completions: CompletionInput[] = []
+    for (const [date, gyms] of gymByDate) {
+      for (const g of gyms) {
+        completions.push({
+          date,
+          kind: 'gym',
+          title: g.title,
+          id: g.id,
+          durationSeconds: g.duration_seconds ?? undefined,
+          startedAt: g.started_at,
+          exercises: extractExercises(g),
         })
       }
-
-      // Run actuals
-      for (const run of runs) {
-        let state: TokenState = 'done-extra'
-        let title = 'Hardlopen'
-        let swappedFrom: string | undefined
-        if (planned && plannedType === 'run' && !plannedConsumed) {
-          state = 'done-as-planned'
-          title = planned.title
-          plannedConsumed = true
-        } else if (planned && plannedType === 'gym' && !plannedConsumed) {
-          // Gym gepland maar je liep — telt als swap (gym → run)
-          state = 'done-swap'
-          swappedFrom = planned.title
-          plannedConsumed = true
-        }
-        tokens.push({
-          type: 'run',
-          state,
-          title,
-          swappedFrom,
-          actualId: run.id,
-          actualDurationSeconds: run.duration_seconds,
-          actualStartedAt: run.started_at,
-          distanceMeters: run.distance_meters,
+    }
+    for (const [date, runs] of runsByDate) {
+      for (const r of runs) {
+        completions.push({
+          date,
+          kind: 'run',
+          title: 'Hardlopen',
+          id: r.id,
+          durationSeconds: r.duration_seconds,
+          startedAt: r.started_at,
+          distanceMeters: r.distance_meters,
         })
       }
-
-      // Padel actuals
-      for (const padel of padels) {
-        let state: TokenState = 'done-extra'
-        let swappedFrom: string | undefined
-        if (planned && plannedType === 'padel' && !plannedConsumed) {
-          state = 'done-as-planned'
-          plannedConsumed = true
-        } else if (planned && !plannedConsumed) {
-          // Andere sport gepland → swap
-          state = 'done-swap'
-          swappedFrom = planned.title
-          plannedConsumed = true
-        }
-        tokens.push({
-          type: 'padel',
-          state,
+    }
+    for (const [date, padels] of padelByDate) {
+      for (const p of padels) {
+        completions.push({
+          date,
+          kind: 'padel',
           title: 'Padel',
-          swappedFrom,
-          actualId: padel.id,
-          actualDurationSeconds: padel.duration_seconds,
-          actualStartedAt: padel.started_at,
+          id: p.id,
+          durationSeconds: p.duration_seconds,
+          startedAt: p.started_at,
         })
       }
+    }
+
+    const reconciled = reconcileWeek(plannedSessions, completions, { today: todayStr })
+
+    // Titels van nog-niet-gedane gym-plannen verzamelen voor de lastPerformance-lookup.
+    const plannedTitles = new Set<string>()
+    for (const r of reconciled) {
+      if ((r.state === 'planned' || r.state === 'planned-today') && r.kind === 'gym' && r.plannedFocus) {
+        plannedTitles.add(r.plannedFocus)
+      }
+    }
+
+    const days: DayEntry[] = weekDates.map(({ date, dayName, dayLabel }) => {
+      const isToday = date === todayStr
+      const tokens = toTokens(reconciled, date)
 
       // Walk actuals — nooit in het schema gepland, dus altijd done-extra.
       for (const walk of walksByDate.get(date) ?? []) {
@@ -510,39 +485,26 @@ export async function GET() {
         })
       }
 
-      // Plan dat niet "geconsumeerd" is door een actual:
-      // - in het verleden → missed (verbergen, conform Stef's keuze)
-      // - vandaag → planned-today
-      // - toekomst → planned
-      if (planned && !plannedConsumed && !isPast) {
-        tokens.push({
-          type: plannedType ?? 'gym',
-          state: isToday ? 'planned-today' : 'planned',
-          title: planned.title,
-          subtitle: planned.subtitle || undefined,
-          durationMin: planned.duration_min,
-        })
-        plannedTitles.add(planned.title)
-      }
-
-      // Backwards-compat afgeleide velden
       const firstDone = tokens.find((t) => t.state.startsWith('done-'))
-      const firstToken = tokens[0]
-      const status: DayEntry['status'] =
-        firstDone
-          ? 'completed'
-          : tokens.some((t) => t.state === 'planned-today')
-            ? 'today'
-            : tokens.some((t) => t.state === 'planned')
-              ? 'planned'
-              : isExplicitRest || tokens.length === 0
-                ? 'rest'
-                : 'planned'
+      const status: DayEntry['status'] = firstDone
+        ? 'completed'
+        : tokens.some((t) => t.state === 'planned-today')
+          ? 'today'
+          : tokens.some((t) => t.state === 'planned')
+            ? 'planned'
+            : 'rest'
 
-      // workout-veld: voor compat — geef de planned door als die er is, anders de done.
+      const plannedItem = reconciled.find(
+        (r) => r.displayDate === date && (r.state === 'planned' || r.state === 'planned-today'),
+      )
       let legacyWorkout: ScheduleDay | null = null
-      if (planned) {
-        legacyWorkout = planned
+      if (plannedItem) {
+        legacyWorkout = {
+          title: plannedItem.title,
+          subtitle: plannedItem.subtitle ?? '',
+          type: plannedItem.kind,
+          duration_min: plannedItem.durationMin ?? 60,
+        }
       } else if (firstDone) {
         legacyWorkout = {
           title: firstDone.title,
@@ -552,9 +514,7 @@ export async function GET() {
               : '',
           type: firstDone.type,
           duration_min:
-            firstDone.actualDurationSeconds != null
-              ? Math.round(firstDone.actualDurationSeconds / 60)
-              : 0,
+            firstDone.actualDurationSeconds != null ? Math.round(firstDone.actualDurationSeconds / 60) : 0,
         }
       }
 
