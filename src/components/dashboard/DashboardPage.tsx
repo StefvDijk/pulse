@@ -11,6 +11,7 @@ import { Card, ZoneBar } from '@/components/ui/v2'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { QuickCheckInBadge } from '@/components/home/QuickCheckInBadge'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
+import { SleepScoreCard } from '@/components/home/SleepScoreCard'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
@@ -159,6 +160,11 @@ export function DashboardPage() {
           tone={tone}
           onRetry={refreshReadinessCard}
         />
+      </motion.div>
+
+      {/* ── Sleep score (last night) — null until sleep is ingested ─ */}
+      <motion.div variants={listItem} transition={springContent}>
+        <SleepScoreCard />
       </motion.div>
 
       {/* ── Workload / strain bar (only when data is available) ── */}
