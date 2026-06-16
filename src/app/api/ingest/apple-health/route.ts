@@ -431,7 +431,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     const sleepInserts = parsedSleep.map((s) => ({
       user_id: userId,
       date: s.date,
+      sleep_start: s.sleepStart ?? null,
+      sleep_end: s.sleepEnd ?? null,
+      in_bed_start: s.inBedStart ?? null,
+      in_bed_end: s.inBedEnd ?? null,
+      in_bed_minutes: s.inBedMinutes ?? null,
       total_sleep_minutes: s.totalSleepMinutes,
+      deep_sleep_minutes: s.deepMinutes ?? null,
+      rem_sleep_minutes: s.remMinutes ?? null,
+      light_sleep_minutes: s.lightMinutes ?? null,
+      awake_minutes: s.awakeMinutes ?? null,
+      sleep_efficiency: s.sleepEfficiency ?? null,
       source: 'apple_health' as const,
     }))
 
