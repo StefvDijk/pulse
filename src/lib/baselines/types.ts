@@ -4,6 +4,7 @@
 
 export type BaselineMetric =
   | 'sleep_minutes'
+  | 'sleep_bedtime_minutes'
   | 'hrv_rmssd'
   | 'resting_hr'
   | 'weight_kg'
@@ -33,6 +34,10 @@ export interface MetricBaselineRow {
 // worse). Sleep / HRV / weight-during-cut go up = good. RHR going down = good.
 export const HIGHER_IS_BETTER: Record<BaselineMetric, boolean> = {
   sleep_minutes: true,
+  // Bedtime is consistency-based (closeness to your usual time), not
+  // directional. `false` = an earlier bedtime reads "positive" in the tag, the
+  // least-misleading default; the sleep score uses deviation, not this flag.
+  sleep_bedtime_minutes: false,
   hrv_rmssd: true,
   resting_hr: false,
   weight_kg: true, // assumes muscle-gain mode; UI can override per use-case

@@ -7,6 +7,7 @@ import {
   type ReadinessScoreInput,
 } from '@/lib/readiness/score'
 import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
+import { calculateSleepScore } from '@/lib/sleep/score'
 
 interface ScheduleSession {
   day: string
@@ -120,13 +121,13 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .maybeSingle(),
       admin
         .from('sleep_logs')
-        .select('total_sleep_minutes')
+        .select('total_sleep_minutes, sleep_efficiency, deep_sleep_minutes, rem_sleep_minutes, sleep_start')
         .eq('user_id', userId)
         .eq('date', todayStr)
         .maybeSingle(),
       admin
         .from('sleep_logs')
-        .select('total_sleep_minutes')
+        .select('total_sleep_minutes, sleep_efficiency, deep_sleep_minutes, rem_sleep_minutes, sleep_start')
         .eq('user_id', userId)
         .eq('date', yesterdayStr)
         .maybeSingle(),
@@ -144,7 +145,7 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .from('metric_baselines')
         .select('metric, value_30d_avg, value_30d_stddev, sample_count_30d')
         .eq('user_id', userId)
-        .in('metric', ['hrv_rmssd', 'resting_hr', 'sleep_minutes'])
+        .in('metric', ['hrv_rmssd', 'resting_hr', 'sleep_minutes', 'sleep_bedtime_minutes'])
         .order('date', { ascending: false })
         .limit(21),
       admin
@@ -191,12 +192,23 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   const hrv = activity?.hrv_average ?? null
   const recentSessions =
     (recentWorkoutsResult.count ?? 0) + (recentRunsResult.count ?? 0) + (recentPadelResult.count ?? 0)
-  const sleepMinutes =
-    sleepTodayResult.data?.total_sleep_minutes ??
-    sleepYesterdayResult.data?.total_sleep_minutes ??
-    null
+  const night = sleepTodayResult.data ?? sleepYesterdayResult.data ?? null
+  const sleepMinutes = night?.total_sleep_minutes ?? null
 
   const baselineRows = (baselinesResult.data ?? []) as BaselineRowSlice[]
+
+  // Sleep enters readiness via the SleepScore (richer than raw minutes).
+  const sleepScore = night
+    ? calculateSleepScore({
+        totalSleepMinutes: night.total_sleep_minutes,
+        sleepEfficiency: night.sleep_efficiency != null ? Number(night.sleep_efficiency) : null,
+        deepMinutes: night.deep_sleep_minutes,
+        remMinutes: night.rem_sleep_minutes,
+        sleepStart: night.sleep_start,
+        durationBaseline: baselineFor(baselineRows, 'sleep_minutes'),
+        bedtimeBaseline: baselineFor(baselineRows, 'sleep_bedtime_minutes'),
+      }).score
+    : null
 
   const scoreInput: ReadinessScoreInput = {
     todayWorkout,
@@ -205,8 +217,7 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
     hrvBaseline: baselineFor(baselineRows, 'hrv_rmssd'),
     restingHr: restingHR,
     rhrBaseline: baselineFor(baselineRows, 'resting_hr'),
-    sleepMinutes,
-    sleepBaseline: baselineFor(baselineRows, 'sleep_minutes'),
+    sleepScore,
     feeling: checkinResult.data?.feeling ?? null,
     sleepQuality: checkinResult.data?.sleep_quality ?? null,
   }
