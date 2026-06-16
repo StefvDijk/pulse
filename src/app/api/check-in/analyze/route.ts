@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createJsonCompletion, MODEL } from '@/lib/ai/client'
 import { buildCheckInAnalyzePrompt } from '@/lib/ai/prompts/checkin-analyze'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import type { SessionFeedbackEntry } from '@/lib/training/session-feedback'
 
 // ---------------------------------------------------------------------------
 // Exported response type
@@ -108,6 +109,30 @@ export async function POST(request: Request) {
 
     const coachingMemory = memoryRows ?? []
 
+    // Per-session feedback Stef left this week (skipped exercise, how it felt).
+    // reviewData is client-supplied, so only trust the week bounds if they are
+    // well-formed dates before letting them bound this admin-client query.
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+    const weekStart = reviewData.week?.weekStart
+    const weekEnd = reviewData.week?.weekEnd
+    const validWindow =
+      typeof weekStart === 'string' &&
+      DATE_RE.test(weekStart) &&
+      typeof weekEnd === 'string' &&
+      DATE_RE.test(weekEnd)
+    const feedbackRows = validWindow
+      ? (
+          await admin
+            .from('session_feedback')
+            .select('session_type, session_started_at, session_title, feedback_text')
+            .eq('user_id', user.id)
+            .gte('session_started_at', weekStart)
+            .lte('session_started_at', `${weekEnd}T23:59:59`)
+            .not('feedback_text', 'is', null)
+            .order('session_started_at', { ascending: true })
+        ).data
+      : null
+
     // Build prompt
     const { system, userMessage } = buildCheckInAnalyzePrompt({
       reviewData,
@@ -116,6 +141,7 @@ export async function POST(request: Request) {
       reflection: reflection ?? null,
       focusOutcome: focusOutcome ?? null,
       dialog: dialog ?? [],
+      sessionFeedback: (feedbackRows ?? []) as SessionFeedbackEntry[],
     })
 
     // Call Claude

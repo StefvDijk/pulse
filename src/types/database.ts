@@ -1517,6 +1517,45 @@ export type Database = {
           },
         ]
       }
+      session_feedback: {
+        Row: {
+          created_at: string
+          dismissed: boolean
+          feedback_text: string | null
+          id: string
+          session_id: string
+          session_started_at: string
+          session_title: string | null
+          session_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed?: boolean
+          feedback_text?: string | null
+          id?: string
+          session_id: string
+          session_started_at: string
+          session_title?: string | null
+          session_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed?: boolean
+          feedback_text?: string | null
+          id?: string
+          session_id?: string
+          session_started_at?: string
+          session_title?: string | null
+          session_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       skip_reasons: {
         Row: {
           created_at: string

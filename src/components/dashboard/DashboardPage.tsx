@@ -10,6 +10,7 @@ import { useCoachSignal } from '@/hooks/useCoachSignal'
 import { Card, ZoneBar } from '@/components/ui/v2'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { QuickCheckInBadge } from '@/components/home/QuickCheckInBadge'
+import { SessionFeedbackNudge } from '@/components/home/SessionFeedbackNudge'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
@@ -147,6 +148,11 @@ export function DashboardPage() {
       {/* ── Weekly check-in nudge (weekend/monday only) ───────── */}
       <motion.div variants={listItem} transition={springContent}>
         <CheckInBadge />
+      </motion.div>
+
+      {/* ── Post-session feedback nudge (only when a session awaits) ── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <SessionFeedbackNudge />
       </motion.div>
 
       {/* ── Readiness card ────────────────────────────────────── */}

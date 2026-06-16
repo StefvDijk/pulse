@@ -17,6 +17,13 @@ export interface SheetProps {
   grabber?: boolean
   children: ReactNode
   className?: string
+  /**
+   * Move focus to the first focusable child on open (default true). Set false to
+   * focus the sheet container instead — use when the first child is a text input
+   * you don't want to auto-focus (which would pop the mobile keyboard over the
+   * content the user needs to read first).
+   */
+  autoFocus?: boolean
 }
 
 /**
@@ -39,6 +46,7 @@ export function Sheet({
   grabber = true,
   children,
   className = '',
+  autoFocus = true,
 }: SheetProps) {
   useBodyScrollLock(open)
   // useEscapeKey takes (active: boolean, onEscape: () => void)
@@ -54,7 +62,7 @@ export function Sheet({
       const focusables = sheetRef.current?.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       )
-      if (focusables && focusables.length > 0) {
+      if (autoFocus && focusables && focusables.length > 0) {
         focusables[0].focus()
       } else {
         sheetRef.current?.focus()
@@ -63,7 +71,7 @@ export function Sheet({
       previousFocus.current.focus()
       previousFocus.current = null
     }
-  }, [open])
+  }, [open, autoFocus])
 
   // SSR guard for portal
   if (typeof window === 'undefined') return null
