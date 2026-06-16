@@ -6,9 +6,7 @@ import { listEvents } from '@/lib/google/calendar'
 import { getValidTokens } from '@/lib/google/oauth'
 import { analyzeConflicts } from '@/lib/google/conflicts'
 import type { WeekConflicts } from '@/lib/google/conflicts'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
-import { MODEL } from '@/lib/ai/client'
+import { createJsonCompletionFromMessages, MODEL } from '@/lib/ai/client'
 import { buildCheckInPlanRefinePrompt } from '@/lib/ai/prompts/checkin-plan'
 import { addDaysToKey } from '@/lib/time/amsterdam'
 import { computeACWR, projectACWR, type PlannedSessionLoad } from '@/lib/training/acwr'
@@ -142,14 +140,12 @@ export async function POST(request: Request) {
       userMessage: message,
     })
 
-    const { text: rawText } = await generateText({
-      model: anthropic(MODEL),
+    const rawText = await createJsonCompletionFromMessages({
       system,
-      messages: [
-        ...history,
-        { role: 'user', content: userMessage },
-      ],
+      messages: [...history, { role: 'user', content: userMessage }],
       maxOutputTokens: 2048,
+      model: MODEL,
+      meta: { feature: 'check_in_plan_refine', userId: user.id },
     })
 
     const aiPlan = PlanResponseSchema.parse(JSON.parse(extractJson(rawText)))

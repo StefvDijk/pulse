@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MODEL } from '@/lib/ai/client'
+import { createJsonCompletion, MODEL } from '@/lib/ai/client'
 import { buildCheckInAnalyzePrompt } from '@/lib/ai/prompts/checkin-analyze'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 
@@ -121,11 +119,12 @@ export async function POST(request: Request) {
     })
 
     // Call Claude
-    const { text } = await generateText({
-      model: anthropic(MODEL),
+    const text = await createJsonCompletion({
       system,
-      messages: [{ role: 'user', content: userMessage }],
+      userMessage,
       maxOutputTokens: 1024,
+      model: MODEL,
+      meta: { feature: 'check_in_analyze', userId: user.id },
     })
 
     // Parse response

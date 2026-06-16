@@ -12,6 +12,7 @@ import { CoachToneSection, type CoachTone } from './CoachToneSection'
 import { CoachingMemoryEditor } from './CoachingMemoryEditor'
 import { WeeklyLessonsTimeline } from './WeeklyLessonsTimeline'
 import { AIContextPreview } from './AIContextPreview'
+import { AiUsageSummary } from './AiUsageSummary'
 import { ProfileHeader } from './v2/ProfileHeader'
 import { FormSection } from './v2/FormSection'
 import { SyncButton } from '@/components/home/SyncButton'
@@ -536,6 +537,10 @@ export function SettingsPage() {
       <CoachingMemoryEditor />
 
       <WeeklyLessonsTimeline />
+
+      <FormSection title="AI-gebruik & kosten">
+        <AiUsageSummary />
+      </FormSection>
 
       <AIContextPreview />
     </div>
