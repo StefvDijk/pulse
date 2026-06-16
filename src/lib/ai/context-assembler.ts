@@ -4,6 +4,10 @@ import { type QuestionType } from './classifier'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildMemoryReadBlock } from './coach-core'
 import {
+  formatSessionFeedbackLines,
+  type SessionFeedbackEntry,
+} from '@/lib/training/session-feedback'
+import {
   daysAgoAmsterdam,
   todayAmsterdam,
   weekStartAmsterdam,
@@ -335,6 +339,7 @@ async function buildWeeklyReviewContext(userId: string): Promise<string[]> {
     { data: goals },
     { data: runs },
     { data: padelSessions },
+    { data: sessionFeedback },
   ] = await Promise.all([
     // Current week + previous 4
     supabase
@@ -387,6 +392,14 @@ async function buildWeeklyReviewContext(userId: string): Promise<string[]> {
       .eq('user_id', userId)
       .gte('started_at', ws)
       .order('started_at', { ascending: true }),
+    // This week's per-session feedback from Stef (skipped exercise, how it felt)
+    supabase
+      .from('session_feedback')
+      .select('session_type, session_started_at, session_title, feedback_text')
+      .eq('user_id', userId)
+      .gte('session_started_at', ws)
+      .not('feedback_text', 'is', null)
+      .order('session_started_at', { ascending: true }),
   ])
 
   const currentWeek = weeklyAggs?.[0]
@@ -465,6 +478,19 @@ async function buildWeeklyReviewContext(userId: string): Promise<string[]> {
       return `${formatDateShort(p.started_at)}: ${mins} min${cal}`
     })
     sections.push(['--- PADEL DEZE WEEK ---', ...lines].join('\n'))
+  }
+
+  // --- FEEDBACK PER SESSIE ---
+  if (sessionFeedback && sessionFeedback.length > 0) {
+    const lines = formatSessionFeedbackLines(sessionFeedback as SessionFeedbackEntry[])
+    if (lines.length > 0) {
+      sections.push(
+        [
+          '--- FEEDBACK PER SESSIE (eigen woorden van Stef) ---',
+          ...lines,
+        ].join('\n'),
+      )
+    }
   }
 
   // --- VOEDING DEZE WEEK ---
