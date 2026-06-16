@@ -69,7 +69,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
   const displayWorkouts = editing ? editGymWorkouts : gymWorkouts
 
   return (
-    <div className="rounded-2xl border border-bg-border bg-bg-surface overflow-hidden">
+    <div className="rounded-[22px] border-[0.5px] border-bg-border bg-bg-surface overflow-hidden">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded((prev) => !prev)}
