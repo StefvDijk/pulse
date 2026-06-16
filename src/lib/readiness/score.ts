@@ -7,7 +7,9 @@ import type { ReadinessLevel } from '@/types/readiness'
 // a normal 4x/week schedule by default). v2 weighs:
 // - HRV z-score      (strongest physiological recovery marker)
 // - RHR z-score      (inverted: elevated RHR = stress/illness signal)
-// - Sleep z-score    plus an absolute < 6h floor (sleep debt is absolute)
+// - SleepScore       (0-100 quality: duration + bedtime + interruptions +
+//                     stages — replaces the old raw-minutes z-score + 6h floor)
+// - Load×sleep       (heavy ACWR + a poor SleepScore = extra fatigue signal)
 // - ACWR corridor    (0.8-1.3 optimal per Gabbett; build-up phase = neutral)
 // - Daily check-in   (subjective wellness often outperforms objective markers,
 //                     Saw et al. 2016 — so "voelen" weighs heavily)
@@ -29,8 +31,8 @@ export interface ReadinessScoreInput {
   hrvBaseline: BaselineStat
   restingHr: number | null
   rhrBaseline: BaselineStat
-  sleepMinutes: number | null
-  sleepBaseline: BaselineStat
+  /** Pulse SleepScore (0-100) for last night, or null when no sleep data. */
+  sleepScore: number | null
   /** Daily check-in "voelen", 1-5. */
   feeling: number | null
   /** Daily check-in sleep quality, 1-5. */
@@ -38,7 +40,7 @@ export interface ReadinessScoreInput {
 }
 
 export interface ReadinessComponent {
-  key: 'hrv' | 'rhr' | 'sleep' | 'acwr' | 'feeling' | 'sleep_quality'
+  key: 'hrv' | 'rhr' | 'sleep' | 'load_x_sleep' | 'acwr' | 'feeling' | 'sleep_quality'
   /** Points added to (positive) or subtracted from (negative) the base score. */
   delta: number
 }
@@ -62,9 +64,16 @@ const Z_CLAMP = 2.5
 
 const HRV_WEIGHT = 8
 const RHR_WEIGHT = 6
-const SLEEP_WEIGHT = 5
-const SHORT_SLEEP_FLOOR_MINUTES = 360
-const SHORT_SLEEP_PENALTY = 6
+// Sleep enters via the SleepScore (0-100). Neutral at 70 (= BASE_SCORE), slope
+// 0.4, clamped to ±12 so the contribution stays in the same magnitude band as
+// the old raw-minutes term (no re-tune of the 10-98 scale needed).
+const SLEEP_NEUTRAL = 70
+const SLEEP_SLOPE = 0.4
+const SLEEP_DELTA_CLAMP = 12
+// Heavy load amplifies poor sleep: an extra fixed penalty when both fire.
+const LOAD_SLEEP_ACWR_THRESHOLD = 1.3
+const LOAD_SLEEP_SCORE_THRESHOLD = 60
+const LOAD_SLEEP_PENALTY = 6
 const FEELING_WEIGHT = 8 // per point away from neutral 3
 const SLEEP_QUALITY_WEIGHT = 2.5
 
@@ -103,13 +112,23 @@ export function calculateReadinessScore(input: ReadinessScoreInput): ReadinessSc
   const rhrZ = zScore(input.restingHr, input.rhrBaseline)
   add('rhr', rhrZ !== null ? -clampZ(rhrZ) * RHR_WEIGHT : null)
 
-  const sleepZ = zScore(input.sleepMinutes, input.sleepBaseline)
-  const shortSleep =
-    input.sleepMinutes !== null && input.sleepMinutes < SHORT_SLEEP_FLOOR_MINUTES
-      ? -SHORT_SLEEP_PENALTY
-      : 0
-  if (sleepZ !== null || shortSleep !== 0) {
-    add('sleep', (sleepZ !== null ? clampZ(sleepZ) * SLEEP_WEIGHT : 0) + shortSleep)
+  // Sleep quality (richer than raw hours) moves readiness around a neutral 70.
+  if (input.sleepScore !== null) {
+    const sleepDelta = Math.max(
+      -SLEEP_DELTA_CLAMP,
+      Math.min(SLEEP_DELTA_CLAMP, (input.sleepScore - SLEEP_NEUTRAL) * SLEEP_SLOPE),
+    )
+    add('sleep', sleepDelta)
+
+    // Heavy training load + a poor night = extra not-ready (the interaction
+    // pure addition misses).
+    if (
+      input.acwr !== null &&
+      input.acwr > LOAD_SLEEP_ACWR_THRESHOLD &&
+      input.sleepScore < LOAD_SLEEP_SCORE_THRESHOLD
+    ) {
+      add('load_x_sleep', -LOAD_SLEEP_PENALTY)
+    }
   }
 
   add('acwr', acwrDelta(input.acwr))
