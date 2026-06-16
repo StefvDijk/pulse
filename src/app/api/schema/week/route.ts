@@ -5,6 +5,7 @@ import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { sportMeta, type SportKey } from '@/lib/sports/registry'
 import { reconcileWeek, type PlannedSession, type CompletionInput, type ActivityKind } from '@/lib/training/reconcile-week'
 import { toTokens } from './to-tokens'
+import { softRows } from '@/lib/supabase/soft-rows'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -291,7 +292,7 @@ export async function GET() {
     if (padelResult.error) throw padelResult.error
     if (runsResult.error) throw runsResult.error
     if (walksResult.error) throw walksResult.error
-    if (activitiesResult.error) throw activitiesResult.error
+    // activities is een optionele bron — laat 'm de homepage niet slopen (zie soft-rows).
 
     const weekWorkouts = (workoutsResult.data ?? []) as unknown as WorkoutWithExercises[]
     const weekRuns = (runsResult.data ?? []) as Array<{
@@ -333,7 +334,7 @@ export async function GET() {
       started_at: string
       duration_seconds: number | null
     }>
-    const weekActivities = (activitiesResult.data ?? []) as Array<{
+    const weekActivities = softRows(activitiesResult, 'schema-week:activities') as Array<{
       id: string
       sport_key: string
       name: string | null
