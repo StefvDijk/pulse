@@ -86,12 +86,35 @@ describe('reconcileWeek — cross-day rescue (the bug)', () => {
     expect(items).toHaveLength(1)
     expect(items[0]).toMatchObject({ state: 'done-as-planned', displayDate: TUE, movedFromDate: MON })
   })
-  test('no rescue when the other-day gym is genuinely different', () => {
+  test('soepel: a different gym on another day fills an open gym slot as a moved swap', () => {
     const items = reconcileWeek([gymPlan(MON, 'Upper A')], [gymDone(TUE, 'Leg Day')], opts)
-    const missed = items.find((i) => i.state === 'missed')
-    const extra = items.find((i) => i.state === 'done-extra')
-    expect(missed).toMatchObject({ displayDate: MON, title: 'Upper A' })
-    expect(extra).toMatchObject({ displayDate: TUE, title: 'Leg Day' })
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({
+      state: 'done-swap',
+      kind: 'gym',
+      displayDate: TUE,
+      movedFromDate: MON,
+      swappedFrom: 'Upper A',
+      title: 'Leg Day',
+    })
+  })
+
+  test('soepel: title matches still claim their own slot before the lenient fallback', () => {
+    // Lower B (Tue) must land on the Lower B slot, not get grabbed by the Upper A slot.
+    const items = reconcileWeek(
+      [gymPlan(MON, 'Upper A'), gymPlan(WED, 'Lower B')],
+      [gymDone(TUE, 'Lower B'), gymDone('2026-06-19', 'Arm Day')],
+      opts,
+    )
+    const lowerB = items.find((i) => i.plannedDate === WED)
+    const upperA = items.find((i) => i.plannedDate === MON)
+    expect(lowerB).toMatchObject({ state: 'done-as-planned', title: 'Lower B', movedFromDate: WED })
+    expect(upperA).toMatchObject({ state: 'done-swap', title: 'Arm Day', swappedFrom: 'Upper A', movedFromDate: MON })
+  })
+
+  test('still missed when the sport was not done at all that week', () => {
+    const items = reconcileWeek([gymPlan(MON, 'Upper A')], [], opts)
+    expect(items[0]).toMatchObject({ state: 'missed', displayDate: MON })
   })
 })
 

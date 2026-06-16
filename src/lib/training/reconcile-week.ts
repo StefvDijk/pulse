@@ -171,7 +171,9 @@ export function reconcileWeek(
     }
   }
 
-  // ── Step B: cross-day rescue (gym, gelijke titel) ──
+  // ── Step B: cross-day rescue (soepel tellen op sport) ──
+  // Pass 1 (gym op gelijke titel) eerst, over alle slots, zodat titels netjes op hun
+  // eigen slot landen (geen vroege slot die andermans titel-match wegkaapt).
   for (const slot of slots) {
     if (slot.fulfilled || slot.kind !== 'gym') continue
     const c = comps.find((x) => !x.used && x.kind === 'gym' && titlesMatch(slot.focus, x.title))
@@ -179,6 +181,19 @@ export function reconcileWeek(
       slot.fulfilled = true
       c.used = true
       items.push(makeDoneItem(slot, c, 'done-as-planned', c.date, slot.plannedDate))
+    }
+  }
+  // Pass 2 (soepel): elke nog-open slot krijgt een nog-vrije sessie van hetzelfde
+  // soort, ergens in de week. Gym zonder titel-match = swap; run/padel = as-planned
+  // (hun titel is generiek). Zo telt elke kracht-sessie voor een geplande kracht-dag.
+  for (const slot of slots) {
+    if (slot.fulfilled) continue
+    const c = comps.find((x) => !x.used && x.kind === slot.kind)
+    if (c) {
+      slot.fulfilled = true
+      c.used = true
+      const asPlanned = slot.kind !== 'gym' || titlesMatch(slot.focus, c.title)
+      items.push(makeDoneItem(slot, c, asPlanned ? 'done-as-planned' : 'done-swap', c.date, slot.plannedDate))
     }
   }
 
