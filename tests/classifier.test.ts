@@ -2,9 +2,9 @@ import { describe, test, expect } from 'vitest'
 import { classifyQuestion } from '@/lib/ai/classifier'
 
 /**
- * Unit tests for the classifier. These complement the eval-harness
- * (scripts/eval-ai.ts) by isolating the keyword-boundary bug-fixes
- * that B2 introduced.
+ * Hand-picked classifier regression tests. The full golden-prompt eval over
+ * all fixtures lives in tests/lib/ai/ai-eval.test.ts; this file isolates the
+ * keyword-boundary bug-fixes that B2 introduced.
  */
 
 describe('B2 — word-prefix boundary regression', () => {
