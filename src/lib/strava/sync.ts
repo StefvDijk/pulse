@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { listActivities, type StravaSummaryActivity } from '@/lib/strava/api'
 import { deriveRunsFromStrava } from '@/lib/strava/derive-runs'
 import { deriveWalksFromStrava } from '@/lib/strava/derive-walks'
+import { deriveActivitiesFromStrava } from '@/lib/strava/derive-activities'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
@@ -27,6 +28,7 @@ export interface StravaSyncResult {
   synced: number
   derivedRuns: DeriveSummary | null
   derivedWalks: DeriveSummary | null
+  derivedActivities: DeriveSummary | null
   days: number
 }
 
@@ -111,7 +113,7 @@ export async function syncStravaActivities(
   if (allActivities.length === 0) {
     await touchLastSync(userId, admin)
     void recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: 0, errors: [] })
-    return { fetched: 0, synced: 0, derivedRuns: null, derivedWalks: null, days }
+    return { fetched: 0, synced: 0, derivedRuns: null, derivedWalks: null, derivedActivities: null, days }
   }
 
   const rows = allActivities.map((a) => mapToRow(userId, a))
@@ -145,6 +147,12 @@ export async function syncStravaActivities(
     derivedWalks = await deriveWalksFromStrava(userId, admin)
   } catch (deriveErr) {
     console.error('[strava/sync] derive walks failed:', deriveErr)
+  }
+  let derivedActivities: DeriveSummary | null = null
+  try {
+    derivedActivities = await deriveActivitiesFromStrava(userId, admin)
+  } catch (deriveErr) {
+    console.error('[strava/sync] derive activities failed:', deriveErr)
   }
 
   // Re-aggregate the days the synced activities fall on (Amsterdam wall-clock),
@@ -181,6 +189,7 @@ export async function syncStravaActivities(
     synced: data?.length ?? 0,
     derivedRuns,
     derivedWalks,
+    derivedActivities,
     days,
   }
 }

@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { Dumbbell, Footprints, Trophy, Clock, Flame, Heart, MapPin, Gauge, Mountain } from 'lucide-react'
+import { Trophy, Clock, Flame, Heart, MapPin } from 'lucide-react'
 import { MuscleGroupDot } from './MuscleGroupDot'
 import type { ActivityItem } from '@/hooks/useActivityFeed'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -44,49 +45,26 @@ function formatVolume(kg: number): string {
   return `${Math.round(kg).toLocaleString('nl-NL')} kg`
 }
 
-/* ── Sport config ────────────────────────────────────────── */
-
-const SPORT_CONFIG = {
-  gym: {
-    icon: Dumbbell,
-    color: 'text-[#0A84FF]',
-    bg: 'bg-[#0A84FF]/10',
-    border: 'border-[#0A84FF]/20',
-  },
-  run: {
-    icon: Footprints,
-    color: 'text-[var(--color-status-warn)]',
-    bg: 'bg-[var(--color-status-warn)]/10',
-    border: 'border-[var(--color-status-warn)]/20',
-  },
-  padel: {
-    icon: Gauge,
-    color: 'text-[var(--color-status-warn)]',
-    bg: 'bg-[var(--color-status-warn)]/10',
-    border: 'border-system-yellow/20',
-  },
-  walk: {
-    icon: Mountain,
-    color: 'text-text-secondary',
-    bg: 'bg-text-secondary/10',
-    border: 'border-bg-border',
-  },
-} as const
+const DISTANCE_TYPES: ReadonlySet<SportKey> = new Set(['run', 'walk', 'cycle'])
 
 /* ── Component ───────────────────────────────────────────── */
 
 export function ActivityCard({ activity }: { activity: ActivityItem }) {
-  const config = SPORT_CONFIG[activity.type]
-  const Icon = config.icon
+  const meta = sportMeta(activity.type as SportKey)
+  const Icon = meta.icon
   const hasPRs = activity.type === 'gym' && (activity.pr_count ?? 0) > 0
+  const showsDistance = DISTANCE_TYPES.has(activity.type as SportKey)
 
   const card = (
-    <div className={`rounded-2xl bg-bg-surface border ${config.border} border-bg-border p-4 transition-colors hover:border-bg-border`}>
+    <div className="rounded-2xl bg-bg-surface border border-bg-border p-4 transition-colors hover:border-bg-border">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.bg}`}>
-            <Icon size={16} className={config.color} />
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            style={{ background: meta.colorLight }}
+          >
+            <Icon size={16} color={meta.colorBase} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -116,14 +94,14 @@ export function ActivityCard({ activity }: { activity: ActivityItem }) {
           </span>
         )}
 
-        {/* Run / Walk distance + pace */}
-        {(activity.type === 'run' || activity.type === 'walk') && activity.distance_meters != null && (
-          <span className={`flex items-center gap-1 text-xs font-medium ${config.color}`}>
+        {/* Distance + pace (run / walk / cycle) */}
+        {showsDistance && activity.distance_meters != null && (
+          <span className="flex items-center gap-1 text-xs font-medium" style={{ color: meta.colorBase }}>
             <MapPin size={11} />
             {formatDistance(activity.distance_meters)}
           </span>
         )}
-        {(activity.type === 'run' || activity.type === 'walk') && activity.avg_pace_seconds_per_km != null && (
+        {showsDistance && activity.avg_pace_seconds_per_km != null && (
           <span className="text-xs tabular-nums text-text-secondary">
             {formatPace(activity.avg_pace_seconds_per_km)}
           </span>

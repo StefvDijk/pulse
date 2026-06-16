@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronRight, Dumbbell, Footprints, CircleDot, Mountain } from 'lucide-react'
-import { Card, SPORT_BASE, SPORT_LIGHT } from '@/components/ui/v2'
+import { ChevronRight } from 'lucide-react'
+import { Card } from '@/components/ui/v2'
 import { useActivityFeed, type ActivityItem } from '@/hooks/useActivityFeed'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
+import { sportMetric } from '@/lib/sports/metric'
 
 const MAX_ITEMS = 5
 
@@ -19,60 +21,29 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
 }
 
-function formatDistance(meters: number): string {
-  return `${(meters / 1000).toFixed(1).replace('.', ',')} km`
-}
-
-function formatPace(secondsPerKm: number): string {
-  const min = Math.floor(secondsPerKm / 60)
-  const sec = Math.round(secondsPerKm % 60)
-  return `${min}:${sec.toString().padStart(2, '0')}/km`
-}
-
-function formatVolume(kg: number): string {
-  return `${Math.round(kg).toLocaleString('nl-NL')} kg`
-}
-
-/** Kerngetal per sport: tonnage voor gym, afstand · pace voor run/walk. */
+/** Kerngetal per sport — gedelegeerd aan de sport-registry. */
 function metric(activity: ActivityItem): string | null {
-  if (activity.type === 'gym' && activity.total_volume_kg && activity.total_volume_kg > 0) {
-    return formatVolume(activity.total_volume_kg)
-  }
-  if (activity.type === 'run' || activity.type === 'walk') {
-    const parts: string[] = []
-    if (activity.distance_meters != null) parts.push(formatDistance(activity.distance_meters))
-    if (activity.avg_pace_seconds_per_km != null) parts.push(formatPace(activity.avg_pace_seconds_per_km))
-    return parts.length > 0 ? parts.join(' · ') : null
-  }
-  return null
+  return sportMetric(activity.type as SportKey, {
+    totalVolumeKg: activity.total_volume_kg,
+    distanceMeters: activity.distance_meters,
+    avgPaceSecondsPerKm: activity.avg_pace_seconds_per_km,
+    durationSeconds: activity.duration_seconds,
+    avgHeartRate: activity.avg_heart_rate,
+  })
 }
 
-/** Detailpagina, of null als die niet bestaat (padel/walk). */
+/** Detailpagina, of null als die niet bestaat (padel/walk/overige). */
 function activityHref(activity: ActivityItem): string | null {
   if (activity.type === 'gym') return `/workouts/${activity.id}`
   if (activity.type === 'run') return `/runs/${activity.id}`
   return null
 }
 
-const ICONS = {
-  gym: Dumbbell,
-  run: Footprints,
-  padel: CircleDot,
-  walk: Mountain,
-} as const
-
-function accent(type: ActivityItem['type']): { base: string; light: string } {
-  if (type === 'gym') return { base: SPORT_BASE.gym, light: SPORT_LIGHT.gym }
-  if (type === 'run') return { base: SPORT_BASE.run, light: SPORT_LIGHT.run }
-  if (type === 'padel') return { base: SPORT_BASE.padel, light: SPORT_LIGHT.padel }
-  return { base: '#A0A4B0', light: 'rgba(160,164,176,0.16)' }
-}
-
 // ── Row ──────────────────────────────────────────────────────────────────────
 
 function ActivityRow({ activity }: { activity: ActivityItem }) {
-  const Icon = ICONS[activity.type]
-  const { base, light } = accent(activity.type)
+  const meta = sportMeta(activity.type as SportKey)
+  const Icon = meta.icon
   const value = metric(activity)
   const href = activityHref(activity)
 
@@ -80,9 +51,9 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
     <div className="flex min-h-[44px] items-center gap-3 px-[14px] py-2.5">
       <div
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-        style={{ background: light }}
+        style={{ background: meta.colorLight }}
       >
-        <Icon size={15} strokeWidth={2.2} color={base} />
+        <Icon size={15} strokeWidth={2.2} color={meta.colorBase} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-medium text-text-primary">

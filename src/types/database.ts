@@ -34,6 +34,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          apple_health_id: string | null
+          avg_heart_rate: number | null
+          calories_burned: number | null
+          created_at: string
+          distance_meters: number | null
+          duration_seconds: number | null
+          elevation_gain_meters: number | null
+          ended_at: string | null
+          id: string
+          intensity: string | null
+          max_heart_rate: number | null
+          name: string | null
+          raw: Json | null
+          source: string
+          sport_key: string
+          started_at: string
+          strava_activity_id: number | null
+          user_id: string
+        }
+        Insert: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          intensity?: string | null
+          max_heart_rate?: number | null
+          name?: string | null
+          raw?: Json | null
+          source: string
+          sport_key: string
+          started_at: string
+          strava_activity_id?: number | null
+          user_id: string
+        }
+        Update: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          intensity?: string | null
+          max_heart_rate?: number | null
+          name?: string | null
+          raw?: Json | null
+          source?: string
+          sport_key?: string
+          started_at?: string
+          strava_activity_id?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_log: {
         Row: {
           cache_creation_tokens: number | null

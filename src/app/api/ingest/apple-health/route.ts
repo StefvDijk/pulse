@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseHealthPayload } from '@/lib/apple-health/types'
 import { parseWorkouts, parseActivitySummary } from '@/lib/apple-health/parser'
 import { parseSleepData, parseBodyWeight, parseBodyComposition, parseGymWorkouts } from '@/lib/apple-health/extended-parser'
-import { mapRun, mapPadelSession, mapWalk, mapDailyActivity } from '@/lib/apple-health/mappers'
+import { mapRun, mapPadelSession, mapWalk, mapDailyActivity, mapActivity } from '@/lib/apple-health/mappers'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
@@ -77,6 +77,7 @@ interface IngestResponse {
     walks: number
     padel: number
     activity: number
+    activities: number
     sleep: number
     bodyWeight: number
     bodyComposition: number
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
   console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
 
-  const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, other: parsedOther } = parseWorkouts(payload)
+  const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, activities: parsedActivities } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
   const parsedSleep = parseSleepData(payload)
   const parsedBodyWeight = parseBodyWeight(payload)
@@ -358,6 +359,57 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
         errors.push(`Walks insert failed: ${insertError.message}`)
       } else {
         walksProcessed += withoutId.length
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 6b. Upsert generic activities (tennis, HIIT, voetbal, yoga, fietsen, ...)
+  // ------------------------------------------------------------------
+  let activitiesProcessed = 0
+
+  if (parsedActivities.length > 0) {
+    const inserts = parsedActivities.map((a) => mapActivity(a, userId))
+
+    // Skip activities that already exist with the same started_at (cross-source
+    // / re-import dedup, same pattern as walks).
+    const startTimes = inserts.map((a) => a.started_at).filter(Boolean) as string[]
+    const { data: existingActivities } = await supabase
+      .from('activities')
+      .select('started_at')
+      .eq('user_id', userId)
+      .in('started_at', startTimes)
+    const existingStarts = new Set((existingActivities ?? []).map((a) => a.started_at))
+    const fresh = inserts.filter((a) => (a.apple_health_id ? true : !existingStarts.has(a.started_at)))
+
+    for (const a of fresh) {
+      if (a.started_at) touchedDays.add(dayKeyAmsterdam(a.started_at))
+    }
+
+    const withId = fresh.filter((a) => a.apple_health_id)
+    const withoutId = fresh.filter((a) => !a.apple_health_id)
+
+    if (withId.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('activities')
+        .upsert(withId, { onConflict: 'user_id,apple_health_id', ignoreDuplicates: false })
+      if (upsertError) {
+        console.error('apple-health ingest: activities upsert error', upsertError)
+        errors.push(`Activities upsert failed: ${upsertError.message}`)
+      } else {
+        activitiesProcessed += withId.length
+      }
+    }
+
+    if (withoutId.length > 0) {
+      const { error: insertError } = await supabase
+        .from('activities')
+        .insert(withoutId)
+      if (insertError) {
+        console.error('apple-health ingest: activities insert error', insertError)
+        errors.push(`Activities insert failed: ${insertError.message}`)
+      } else {
+        activitiesProcessed += withoutId.length
       }
     }
   }
@@ -626,7 +678,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   // 13. Re-aggregate every touched day (+ today) and their weeks, so even
   //     months-old backfilled batches rebuild the correct historical stats.
   // ------------------------------------------------------------------
-  const totalDataIngested = runsProcessed + walksProcessed + padelProcessed + activityProcessed
+  const totalDataIngested = runsProcessed + walksProcessed + padelProcessed + activityProcessed + activitiesProcessed
   if (touchedDays.size > 0) {
     // Today always stays in scope so the live dashboard reflects fresh data.
     touchedDays.add(todayAmsterdam())
@@ -680,6 +732,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     walksProcessed +
     padelProcessed +
     activityProcessed +
+    activitiesProcessed +
     sleepProcessed +
     bodyWeightProcessed +
     bodyCompositionProcessed +
@@ -701,6 +754,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
       walks: walksProcessed,
       padel: padelProcessed,
       activity: activityProcessed,
+      activities: activitiesProcessed,
       sleep: sleepProcessed,
       bodyWeight: bodyWeightProcessed,
       bodyComposition: bodyCompositionProcessed,
@@ -709,7 +763,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     errors,
     debug: {
       metricNames: payload.data.metrics.map((m) => m.name),
-      otherWorkouts: parsedOther.length,
+      activitiesParsed: parsedActivities.length,
       bodyCompParsed: parsedBodyComposition.length,
       bodyWeightParsed: parsedBodyWeight.length,
     },

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { SportKey } from '@/lib/sports/registry'
 
 // ---------------------------------------------------------------------------
 // Raw Health Auto Export schemas (parse defensively — format varies!)
@@ -127,6 +128,11 @@ export interface ParsedPadel extends ParsedWorkout {
 
 export interface ParsedWalk extends ParsedWorkout {
   category: 'walking'
+}
+
+export interface ParsedActivity extends ParsedWorkout {
+  /** Canonieke sport-key uit de registry (tennis/hiit/football/yoga/...). */
+  sportKey: SportKey
 }
 
 export interface ParsedDailyActivity {

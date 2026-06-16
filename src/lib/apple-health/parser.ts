@@ -4,10 +4,13 @@ import {
   type ParsedPadel,
   type ParsedWalk,
   type ParsedWorkout,
+  type ParsedActivity,
   type ParsedDailyActivity,
   categorizeWorkout,
   parseMetricValue,
 } from '@/lib/apple-health/types'
+import { classifySport } from '@/lib/sports/classify'
+import type { SportKey } from '@/lib/sports/registry'
 import { normaliseDate, extractWallClockDate } from '@/lib/apple-health/date-utils'
 
 // ---------------------------------------------------------------------------
@@ -127,28 +130,38 @@ export interface ParsedWorkouts {
   runs: ParsedRun[]
   walks: ParsedWalk[]
   padel: ParsedPadel[]
-  other: ParsedWorkout[]
+  activities: ParsedActivity[]
 }
 
 /**
- * Split all workouts from a payload into runs, padel sessions, and others.
+ * Split workouts from a payload into runs, walks, padel and generic activities,
+ * classified via the canonical sport-registry.
+ *
+ * Gym/strength workouts are intentionally dropped here: they are correlated to
+ * Hevy workouts separately (parseGymWorkouts) and must not become standalone
+ * activities. Everything that isn't run/walk/padel/gym lands in `activities`
+ * (tennis, squash, HIIT, voetbal, yoga, fietsen, zwemmen, ...) — no longer
+ * silently discarded.
  */
 export function parseWorkouts(payload: RawHealthPayload): ParsedWorkouts {
   return payload.data.workouts.reduce<ParsedWorkouts>(
     (acc, raw) => {
       const parsed = parseRawWorkout(raw)
-      switch (parsed.category) {
-        case 'running':
+      const key: SportKey = classifySport(parsed.name, 'apple')
+      switch (key) {
+        case 'run':
           return { ...acc, runs: [...acc.runs, parsed as ParsedRun] }
-        case 'walking':
+        case 'walk':
           return { ...acc, walks: [...acc.walks, parsed as ParsedWalk] }
         case 'padel':
           return { ...acc, padel: [...acc.padel, parsed as ParsedPadel] }
+        case 'gym':
+          return acc
         default:
-          return { ...acc, other: [...acc.other, parsed] }
+          return { ...acc, activities: [...acc.activities, { ...parsed, sportKey: key }] }
       }
     },
-    { runs: [], walks: [], padel: [], other: [] },
+    { runs: [], walks: [], padel: [], activities: [] },
   )
 }
 
