@@ -94,8 +94,12 @@ function extractCacheTokens(usage: unknown): {
  * Supports agentic tool calling — when tools are provided, the model can
  * call them in a loop up to maxSteps rounds before producing the final answer.
  * Returns an AI SDK streamText result — consume via result.textStream.
+ *
+ * Default maxOutputTokens matches block-review (8192): the coach can emit a
+ * full training schema as tool-call arguments, which at 4096 silently
+ * truncated mid-JSON.
  */
-export function streamChat({ system, systemDynamic, messages, tools, model, maxOutputTokens = 4096, maxSteps = 8, meta, onError }: StreamChatParams) {
+export function streamChat({ system, systemDynamic, messages, tools, model, maxOutputTokens = 8192, maxSteps = 8, meta, onError }: StreamChatParams) {
   // Split system prompt into a CACHED static block + an UNCACHED dynamic block.
   // The cache_control breakpoint sits at the end of the static block, so the
   // large, between-turns-stable coaching context is reused from Anthropic's
