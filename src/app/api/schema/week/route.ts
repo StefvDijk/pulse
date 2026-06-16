@@ -336,13 +336,7 @@ export async function GET() {
       started_at: string
       duration_seconds: number | null
     }>
-    const weekActivities = softRows(activitiesResult, 'schema-week:activities') as Array<{
-      id: string
-      sport_key: string
-      name: string | null
-      started_at: string
-      duration_seconds: number | null
-    }>
+    const weekActivities = softRows(activitiesResult, 'schema-week:activities')
     const walksByDate = new Map<string, typeof weekWalks>()
     for (const w of weekWalks) {
       const d = dayKeyAmsterdam(w.started_at)
