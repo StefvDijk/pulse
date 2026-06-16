@@ -61,6 +61,7 @@ export interface SchemaData {
   totalSessionsPlanned: number
   totalSessionsCompleted: number
   aiGenerated: boolean | null
+  createdAt: string | null
   updatedAt: string | null
   progressionRules?: unknown
   qualityAudit?: unknown
