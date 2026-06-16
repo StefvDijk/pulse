@@ -15,7 +15,34 @@ function sleepPayload(
 }
 
 describe('parseSleepData (HAE sleep_analysis)', () => {
-  it('reads the asleep duration in hours from a real HAE night (was dropped before)', () => {
+  it("handles Stef's real HAE payload: asleep=0, real total in totalSleep (hr)", () => {
+    // Verbatim sleep_analysis point from Stef's webhook.site capture (2026-06-16).
+    // asleep/inBed are 0 in his config; the real duration lives in totalSleep.
+    const out = parseSleepData(
+      sleepPayload([
+        {
+          sleepEnd: '2026-06-16 05:43:15 +0200',
+          sleepStart: '2026-06-15 22:43:34 +0200',
+          deep: 1.1755165269639756,
+          asleep: 0,
+          inBed: 0,
+          totalSleep: 6.9197772937350788,
+          core: 4.426984011332193,
+          inBedStart: '2026-06-15 22:43:34 +0200',
+          date: '2026-06-16 00:00:00 +0200',
+          source: 'Apple Watch van Stef',
+          rem: 1.3172767554389107,
+          awake: 0.075034764607747398,
+          inBedEnd: '2026-06-16 05:43:15 +0200',
+        },
+      ]),
+    )
+    expect(out).toEqual([
+      { date: '2026-06-16', totalSleepMinutes: 415, source: 'apple_health' },
+    ])
+  })
+
+  it('reads the asleep duration in hours from a HAE night where asleep is populated', () => {
     // Regression: HAE sleep_analysis points carry duration in `asleep`, not
     // `qty` — the old qty-only parser imported zero sleep.
     const out = parseSleepData(
