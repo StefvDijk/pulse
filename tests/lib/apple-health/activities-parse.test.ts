@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseWorkouts } from '@/lib/apple-health/parser'
+import { mapActivity } from '@/lib/apple-health/mappers'
 import type { RawHealthPayload } from '@/lib/apple-health/types'
 
 function payload(workouts: unknown[]): RawHealthPayload {
@@ -37,5 +38,26 @@ describe('parseWorkouts — generieke activities', () => {
     expect(p.walks).toHaveLength(1)
     expect(p.padel).toHaveLength(1)
     expect(p.activities).toHaveLength(0) // gym wordt apart via Hevy-correlatie afgehandeld
+  })
+})
+
+describe('mapActivity', () => {
+  it('mapt een ParsedActivity naar een activities Insert met intensiteit uit HR', () => {
+    const row = mapActivity(
+      {
+        appleHealthId: 't1', name: 'Tennis', category: 'other', sportKey: 'tennis',
+        startedAt: '2026-06-15T10:00:00Z', endedAt: '2026-06-15T11:30:00Z',
+        durationSeconds: 5400, distanceMeters: undefined, calories: 600,
+        avgHeartRate: 150, maxHeartRate: 175,
+      },
+      'user-1',
+    )
+    expect(row.user_id).toBe('user-1')
+    expect(row.sport_key).toBe('tennis')
+    expect(row.source).toBe('apple_health')
+    expect(row.apple_health_id).toBe('t1')
+    expect(row.duration_seconds).toBe(5400)
+    expect(row.avg_heart_rate).toBe(150)
+    expect(row.intensity).toBe('moderate')
   })
 })
