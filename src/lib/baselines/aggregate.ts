@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { bedtimeMinutesFromAnchor } from '@/lib/sleep/bedtime'
 import type { BaselineMetric, MetricBaselineRow } from './types'
 
 // ── Window helpers ───────────────────────────────────────────────────────────
@@ -87,6 +88,24 @@ const fetchSleepMinutes: Fetcher = async (userId, endDate) => {
     .map((r) => ({ date: r.date, value: Number(r.total_sleep_minutes) }))
 }
 
+const fetchSleepBedtimeMinutes: Fetcher = async (userId, endDate) => {
+  const from = daysBefore(endDate, 365)
+  const admin = createAdminClient()
+  // Reads sleep_start (UTC), expressed as minutes-after-18:00 Amsterdam local
+  // so the windowed mean is wrap-free. Defensive against an unpopulated column.
+  const { data, error } = await admin
+    .from('sleep_logs')
+    .select('date, sleep_start')
+    .eq('user_id', userId)
+    .gte('date', from)
+    .lte('date', endDate)
+    .not('sleep_start', 'is', null)
+  if (error) return []
+  return (data ?? [])
+    .map((r) => ({ date: r.date, value: bedtimeMinutesFromAnchor(r.sleep_start) }))
+    .filter((v): v is DatedValue => v.value !== null)
+}
+
 const fetchWeight: Fetcher = async (userId, endDate) => {
   const from = daysBefore(endDate, 365)
   const admin = createAdminClient()
@@ -147,6 +166,7 @@ const fetchAcwr: Fetcher = async (userId, endDate) => {
 
 const FETCHERS: Record<BaselineMetric, Fetcher> = {
   sleep_minutes: fetchSleepMinutes,
+  sleep_bedtime_minutes: fetchSleepBedtimeMinutes,
   hrv_rmssd: fetchHrv,
   resting_hr: fetchRhr,
   weight_kg: fetchWeight,
@@ -157,6 +177,7 @@ const FETCHERS: Record<BaselineMetric, Fetcher> = {
 
 const ALL_METRICS: BaselineMetric[] = [
   'sleep_minutes',
+  'sleep_bedtime_minutes',
   'hrv_rmssd',
   'resting_hr',
   'weight_kg',
