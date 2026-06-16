@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MEMORY_MODEL } from '@/lib/ai/client'
+import { createJsonCompletion, MEMORY_MODEL } from '@/lib/ai/client'
 import type { Json } from '@/types/database'
 import {
   addDaysToKey,
@@ -124,18 +122,18 @@ function fallbackSubtitle(type: TodayMoveType, title: string): string {
   }
 }
 
-async function generateSubtitle(type: TodayMoveType, title: string): Promise<string> {
+async function generateSubtitle(
+  type: TodayMoveType,
+  title: string,
+  userId: string,
+): Promise<string> {
   try {
-    const { text } = await generateText({
-      model: anthropic(MEMORY_MODEL),
+    const text = await createJsonCompletion({
       system: SUBTEXT_SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: `Type: ${type}\nTitel: ${title}\nGenereer één coachingzin.`,
-        },
-      ],
+      userMessage: `Type: ${type}\nTitel: ${title}\nGenereer één coachingzin.`,
       maxOutputTokens: 60,
+      model: MEMORY_MODEL,
+      meta: { feature: 'today_subtitle', userId },
     })
     const trimmed = text.trim().replace(/^["']|["']$/g, '')
     return trimmed || fallbackSubtitle(type, title)
@@ -192,7 +190,7 @@ export async function GET() {
     let move: TodayMove
 
     if (isCheckInWindow && !alreadyReviewedThisWeek) {
-      const subtitle = await generateSubtitle('check_in', 'Weekreview')
+      const subtitle = await generateSubtitle('check_in', 'Weekreview', user.id)
       move = {
         type: 'check_in',
         title: 'Tijd voor je weekreview',
@@ -215,7 +213,7 @@ export async function GET() {
       const today = sessions.find((s) => s.day.toLowerCase() === todayName)
 
       if (today) {
-        const subtitle = await generateSubtitle('training', today.focus)
+        const subtitle = await generateSubtitle('training', today.focus, user.id)
         move = {
           type: 'training',
           title: today.focus,
@@ -225,7 +223,7 @@ export async function GET() {
           cachedAt: new Date().toISOString(),
         }
       } else {
-        const subtitle = await generateSubtitle('rest', 'Rustdag')
+        const subtitle = await generateSubtitle('rest', 'Rustdag', user.id)
         move = {
           type: 'rest',
           title: 'Rustdag',

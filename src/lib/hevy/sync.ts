@@ -10,6 +10,7 @@ import {
   HevyWorkoutDeletedEventSchema,
 } from '@/lib/hevy/types'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
+import { buildTrainingEventSummary } from '@/lib/ai/extractor-summaries'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
@@ -554,10 +555,18 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   })
 
   // Fire-and-forget belief extraction on training-scope events.
-  // Only triggers when at least one workout was actually synced.
+  // Only triggers when at least one workout was actually synced. Feeds the
+  // extractor a REAL training summary (load, tonnage, PR's) instead of bare
+  // sync counters, which couldn't support a falsifiable hypothesis (audit #21).
   if (result.synced > 0) {
-    const summary = `Hevy sync klaar voor user ${userId}. Nieuw/geüpdatet: ${result.synced} workouts (${result.templatesSynced} templates, ${result.routinesSynced} routines). Errors: ${result.errors.length}.`
-    runBeliefExtractor({ userId, scope: 'training', eventSummary: summary }).catch(console.error)
+    void (async () => {
+      try {
+        const eventSummary = await buildTrainingEventSummary(admin, userId)
+        await runBeliefExtractor({ userId, scope: 'training', eventSummary })
+      } catch (err) {
+        console.error('[hevy/sync] belief-extractor failed:', err)
+      }
+    })()
   }
 
   return result

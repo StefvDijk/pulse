@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MODEL } from '@/lib/ai/client'
+import { createJsonCompletion, MODEL } from '@/lib/ai/client'
 import { buildCheckInDialogPrompt } from '@/lib/ai/prompts/checkin-dialog'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 
@@ -68,11 +66,12 @@ export async function POST(request: Request) {
       coachingMemory: memoryRows ?? [],
     })
 
-    const { text } = await generateText({
-      model: anthropic(MODEL),
+    const text = await createJsonCompletion({
       system,
-      messages: [{ role: 'user', content: userMessage }],
+      userMessage,
       maxOutputTokens: 512,
+      model: MODEL,
+      meta: { feature: 'check_in_dialog', userId: user.id },
     })
 
     const cleaned = stripFences(text)

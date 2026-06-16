@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "eval:ai": "tsx scripts/eval-ai.ts",
+    "eval:ai": "vitest run tests/lib/ai/ai-eval.test.ts",
     "seed:exercises": "tsx scripts/seed-exercises.ts",
     "seed:testdata": "tsx scripts/seed-test-data.ts",
     "seed:stef": "tsx scripts/seed-stef-data.ts",

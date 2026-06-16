@@ -4,6 +4,7 @@ import type { Database } from '@/types/database'
 import { useGoals } from './useGoals'
 import { useReadiness } from './useReadiness'
 import { useReadinessSummary } from './useReadinessSummary'
+import { useTodayCheckin } from './useTodayCheckin'
 
 type GoalRow = Database['public']['Tables']['goals']['Row']
 
@@ -24,6 +25,10 @@ interface UseCoachSignalResult {
 const SLEEP_SHORT_MIN = 360 // <6h
 const ACWR_LOW = 0.5
 const ACWR_HIGH = 1.5
+// A self-reported feeling of 1 ("Slecht") or 2 ("Matig") is the strongest
+// same-day signal the user can give us, so it outranks the quieter readiness
+// anomalies below.
+const FEELING_LOW = 2
 // Goal-progress fires once per ISO week (anchored to Monday) and only when the
 // gap is meaningful — within 5% of target we treat the goal as effectively met
 // so we don't nag the user during the final stretch.
@@ -92,6 +97,77 @@ function formatGoalText(goal: GoalRow, gap: number): string {
   return `Je zit nog ${amount} af van je doel: ${goal.title}.`
 }
 
+export interface CoachSignalInputs {
+  readiness: {
+    sleepMinutes: number | null
+    acwr: number | null
+    level: 'good' | 'normal' | 'fatigued' | 'rest_day'
+  }
+  summarySentence: string | undefined
+  goals: GoalRow[]
+  /** Today's self-reported feeling (1-5), or null when not checked in. */
+  checkinFeeling: number | null
+  date: string
+  isMonday: boolean
+  mondayAnchorDate: string
+}
+
+/**
+ * Pure decision: given today's readiness/check-in/goals, what (if anything)
+ * should the homescreen CoachCard say? Priority order is deliberate —
+ * subjective low feeling first, then objective anomalies, then level, then the
+ * Monday goal nudge. Returns null when nothing is worth surfacing (the card
+ * stays quiet rather than restating the Readiness card above).
+ */
+export function decideCoachSignal(input: CoachSignalInputs): CoachSignal | null {
+  const { readiness, summarySentence, goals, checkinFeeling, date } = input
+
+  if (checkinFeeling !== null && checkinFeeling <= FEELING_LOW) {
+    return {
+      signalId: `${date}:low-feeling`,
+      text:
+        summarySentence ??
+        'Je gaf aan je vandaag niet top te voelen. Wil je het er met de coach over hebben?',
+    }
+  }
+
+  if (readiness.sleepMinutes !== null && readiness.sleepMinutes < SLEEP_SHORT_MIN) {
+    const hours = (readiness.sleepMinutes / 60).toFixed(1)
+    return {
+      signalId: `${date}:sleep-short`,
+      text:
+        summarySentence ??
+        `Slechts ${hours}u slaap vannacht. Overweeg vandaag het volume omlaag te schroeven.`,
+    }
+  }
+
+  if (readiness.acwr !== null && (readiness.acwr < ACWR_LOW || readiness.acwr > ACWR_HIGH)) {
+    const kind = readiness.acwr < ACWR_LOW ? 'low' : 'high'
+    return {
+      signalId: `${date}:acwr-${kind}`,
+      text:
+        summarySentence ??
+        `Belasting staat op ${readiness.acwr.toFixed(2)}, ${kind === 'low' ? 'flink onder' : 'boven'} je gebruikelijke range.`,
+    }
+  }
+
+  if (summarySentence && (readiness.level === 'fatigued' || readiness.level === 'rest_day')) {
+    return { signalId: `${date}:level-${readiness.level}`, text: summarySentence }
+  }
+
+  if (input.isMonday) {
+    const pick = findGoalToNudge(goals)
+    if (pick) {
+      return {
+        signalId: `${input.mondayAnchorDate}:goal-progress:${pick.goal.id}`,
+        text: formatGoalText(pick.goal, pick.gap),
+      }
+    }
+  }
+
+  return null
+}
+
 // Decide whether the homescreen has anything worth surfacing right now. The
 // card is intentionally quiet — on a 'good' day with no anomaly and no pressing
 // goal we return null so the slot stays empty rather than restating what the
@@ -100,8 +176,9 @@ export function useCoachSignal(): UseCoachSignalResult {
   const { data: summary, isLoading: summaryLoading } = useReadinessSummary()
   const { data: readiness, isLoading: readinessLoading } = useReadiness()
   const { goals, isLoading: goalsLoading } = useGoals()
+  const { checkin, isLoading: checkinLoading } = useTodayCheckin()
 
-  if (summaryLoading || readinessLoading || goalsLoading) {
+  if (summaryLoading || readinessLoading || goalsLoading || checkinLoading) {
     return { signal: null, isLoading: true }
   }
 
@@ -109,63 +186,19 @@ export function useCoachSignal(): UseCoachSignalResult {
     return { signal: null, isLoading: false }
   }
 
-  const date = todayInAmsterdam()
-  const summarySentence = summary?.sentence
+  const signal = decideCoachSignal({
+    readiness: {
+      sleepMinutes: readiness.sleepMinutes,
+      acwr: readiness.acwr,
+      level: readiness.level,
+    },
+    summarySentence: summary?.sentence,
+    goals,
+    checkinFeeling: checkin?.feeling ?? null,
+    date: todayInAmsterdam(),
+    isMonday: isMondayInAmsterdam(),
+    mondayAnchorDate: mondayAnchor(),
+  })
 
-  // Anomaly triggers fire regardless of level — these always warrant attention.
-  // They reuse the AI-composed summary sentence; if for some reason the summary
-  // failed we still want the card to render with a fallback line.
-  if (readiness.sleepMinutes !== null && readiness.sleepMinutes < SLEEP_SHORT_MIN) {
-    const hours = (readiness.sleepMinutes / 60).toFixed(1)
-    return {
-      signal: {
-        signalId: `${date}:sleep-short`,
-        text:
-          summarySentence ??
-          `Slechts ${hours}u slaap vannacht. Overweeg vandaag het volume omlaag te schroeven.`,
-      },
-      isLoading: false,
-    }
-  }
-  if (readiness.acwr !== null && (readiness.acwr < ACWR_LOW || readiness.acwr > ACWR_HIGH)) {
-    const kind = readiness.acwr < ACWR_LOW ? 'low' : 'high'
-    return {
-      signal: {
-        signalId: `${date}:acwr-${kind}`,
-        text:
-          summarySentence ??
-          `Belasting staat op ${readiness.acwr.toFixed(2)}, ${kind === 'low' ? 'flink onder' : 'boven'} je gebruikelijke range.`,
-      },
-      isLoading: false,
-    }
-  }
-
-  // Level-driven: only show when there's actionable context. 'good' and
-  // 'normal' without anomalies have nothing the user doesn't already know.
-  if (
-    summarySentence &&
-    (readiness.level === 'fatigued' || readiness.level === 'rest_day')
-  ) {
-    return {
-      signal: { signalId: `${date}:level-${readiness.level}`, text: summarySentence },
-      isLoading: false,
-    }
-  }
-
-  // Weekly goal-progress nudge — Monday only, so it doesn't compete with daily
-  // readiness messages and matches the spec's "wekelijks coach-bericht".
-  if (isMondayInAmsterdam()) {
-    const pick = findGoalToNudge(goals)
-    if (pick) {
-      return {
-        signal: {
-          signalId: `${mondayAnchor()}:goal-progress:${pick.goal.id}`,
-          text: formatGoalText(pick.goal, pick.gap),
-        },
-        isLoading: false,
-      }
-    }
-  }
-
-  return { signal: null, isLoading: false }
+  return { signal, isLoading: false }
 }

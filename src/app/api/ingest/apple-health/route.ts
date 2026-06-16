@@ -7,6 +7,7 @@ import { mapRun, mapPadelSession, mapWalk, mapDailyActivity } from '@/lib/apple-
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
+import { buildRecoveryEventSummary } from '@/lib/ai/extractor-summaries'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
@@ -647,22 +648,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const recoveryDataIngested =
     sleepProcessed > 0 || bodyWeightProcessed > 0 || bodyCompositionProcessed > 0 || totalDataIngested > 0
   if (recoveryDataIngested) {
-    const summary = `Apple Health ingest voor user ${userId}. Ingested: ${JSON.stringify({
-      runs: runsProcessed,
-      walks: walksProcessed,
-      padel: padelProcessed,
-      activity: activityProcessed,
-      sleep: sleepProcessed,
-      bodyWeight: bodyWeightProcessed,
-      bodyComposition: bodyCompositionProcessed,
-    }).slice(0, 800)}.`
-    runBeliefExtractor({
-      userId,
-      scope: 'recovery',
-      eventSummary: summary,
-    }).catch((err: unknown) => {
-      console.error('[ingest/apple-health] belief-extractor failed:', err)
-    })
+    // Feed the extractor REAL recovery numbers (sleep hours, HRV, RHR, weight)
+    // from the last 7 days instead of bare ingest counts, which couldn't
+    // support a falsifiable recovery hypothesis (audit #21).
+    void (async () => {
+      try {
+        const eventSummary = await buildRecoveryEventSummary(supabase, userId)
+        await runBeliefExtractor({ userId, scope: 'recovery', eventSummary })
+      } catch (err: unknown) {
+        console.error('[ingest/apple-health] belief-extractor failed:', err)
+      }
+    })()
   }
 
   // ------------------------------------------------------------------

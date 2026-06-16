@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
-import { MEMORY_MODEL } from '@/lib/ai/client'
+import { createJsonCompletion, MEMORY_MODEL } from '@/lib/ai/client'
 import { createClient } from '@/lib/supabase/server'
 
 // Lightweight Anthropic API health check. Hits the cheapest model with a
@@ -22,10 +20,12 @@ export async function GET() {
 
   const start = Date.now()
   try {
-    const { text } = await generateText({
-      model: anthropic(MEMORY_MODEL),
-      messages: [{ role: 'user', content: 'Reply with just: ok' }],
+    const text = await createJsonCompletion({
+      system: '',
+      userMessage: 'Reply with just: ok',
       maxOutputTokens: 5,
+      model: MEMORY_MODEL,
+      meta: { feature: 'health_check', userId: user.id },
     })
     return NextResponse.json({
       ok: true,

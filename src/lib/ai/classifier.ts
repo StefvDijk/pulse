@@ -16,15 +16,21 @@
  * \b doesn't behave well across spaces/hyphens.
  */
 
-export type QuestionType =
-  | 'nutrition_log'
-  | 'nutrition_question'
-  | 'injury_report'
-  | 'schema_request'
-  | 'progress_question'
-  | 'weekly_review'
-  | 'general_chat'
-  | 'simple_greeting'
+// Single source of truth for the classifier's output space. The eval harness
+// (tests/lib/ai/ai-eval.test.ts) validates fixture `expected` values against
+// this exact tuple, so adding a type here automatically widens the eval.
+export const QUESTION_TYPES = [
+  'nutrition_log',
+  'nutrition_question',
+  'injury_report',
+  'schema_request',
+  'progress_question',
+  'weekly_review',
+  'general_chat',
+  'simple_greeting',
+] as const
+
+export type QuestionType = (typeof QUESTION_TYPES)[number]
 
 const GREETING_KEYWORDS = [
   'hoi', 'hey', 'hallo', 'hi', 'goedemorgen', 'goedemiddag', 'goedenavond',

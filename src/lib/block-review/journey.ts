@@ -64,6 +64,7 @@ export interface JourneyContext {
   liftJourney: LiftJourneyPoint[]
   lifetimePRs: Array<{ exercise: string; recordType: string; value: number; unit: string; achievedAt: string }>
   coachingMemory: Array<{ category: string; key: string; value: string; createdAt: string | null }>
+  coachBeliefs: Array<{ hypothesisText: string; category: string; confidence: number; status: string }>
   weeklyLessons: Array<{ category: string; lessonText: string; weekStart: string }>
   recentWeeklyReviews: Array<{ weekStart: string; previousFocusNote: string | null; previousFocusRating: string | null; highlights: Json | null }>
   userProfile: {
@@ -113,6 +114,7 @@ export async function buildJourneyContext(
     runTotalsRes,
     padelTotalsRes,
     exercisesRes,
+    beliefsRes,
   ] = await Promise.all([
     admin
       .from('training_schemas')
@@ -185,6 +187,16 @@ export async function buildJourneyContext(
       .from('workout_exercises')
       .select('id, exercise_definitions(name), workout_sets(weight_kg, reps), workouts!inner(user_id, started_at)')
       .eq('workouts.user_id', userId),
+    // Working hypotheses (audit #21): the coach's own beliefs were never read
+    // back into the block-review prompt. Surface the active/confirmed ones so
+    // the review can test or update them against a full block of data.
+    admin
+      .from('coach_beliefs')
+      .select('hypothesis_text, category, confidence, status')
+      .eq('user_id', userId)
+      .in('status', ['active', 'confirmed'])
+      .order('confidence', { ascending: false })
+      .limit(8),
   ])
 
   const summariesByScheme = new Map<string, NonNullable<typeof summariesRes.data>[number]>()
@@ -339,6 +351,12 @@ export async function buildJourneyContext(
       key: m.key as string,
       value: m.value as string,
       createdAt: m.created_at as string | null,
+    })),
+    coachBeliefs: (beliefsRes.data ?? []).map((b) => ({
+      hypothesisText: b.hypothesis_text as string,
+      category: b.category as string,
+      confidence: Number(b.confidence),
+      status: b.status as string,
     })),
     weeklyLessons: (lessonsRes.data ?? []).map((l) => ({
       category: l.category as string,

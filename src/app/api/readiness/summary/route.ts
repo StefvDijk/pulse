@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
-import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { MEMORY_MODEL } from '@/lib/ai/client'
+import { createJsonCompletion, MEMORY_MODEL } from '@/lib/ai/client'
 import { READINESS_SUMMARY_SYSTEM, buildReadinessUserMessage } from '@/lib/ai/prompts/readiness-summary'
 import type { ReadinessLevel } from '@/types/readiness'
 import { computeReadiness } from '@/lib/aggregations/readiness'
@@ -155,25 +153,21 @@ export async function GET() {
     // Generate the sentence via Haiku — fall back to a pre-canned line if it fails
     let sentence: string
     try {
-      const { text } = await generateText({
-        model: anthropic(MEMORY_MODEL),
+      const text = await createJsonCompletion({
         system: READINESS_SUMMARY_SYSTEM,
-        messages: [
-          {
-            role: 'user',
-            content: buildReadinessUserMessage({
-              level,
-              todayWorkout,
-              acwr,
-              sleepMinutes,
-              restingHR,
-              hrv,
-              recentSessions,
-              score,
-            }),
-          },
-        ],
+        userMessage: buildReadinessUserMessage({
+          level,
+          todayWorkout,
+          acwr,
+          sleepMinutes,
+          restingHR,
+          hrv,
+          recentSessions,
+          score,
+        }),
         maxOutputTokens: 80,
+        model: MEMORY_MODEL,
+        meta: { feature: 'readiness_summary', userId: user.id },
       })
       sentence = text.trim().replace(/^["']|["']$/g, '') || fallbackSentence(level, todayWorkout)
     } catch (err) {
