@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -57,7 +58,7 @@ interface WorkoutWithExercises {
 
 /* ── Token model (plan-vs-realiteit) ───────────────────────── */
 
-export type ActivityType = 'gym' | 'run' | 'padel'
+export type ActivityType = SportKey
 export type TokenState =
   | 'done-as-planned' // gepland + gedaan, zelfde titel
   | 'done-swap'        // gepland iets anders, gedaan iets anders (gym)
@@ -253,8 +254,8 @@ export async function GET() {
     const weekStart = weekDates[0].date
     const weekEnd = weekDates[6].date
 
-    // 2. All workouts, padel sessions, and runs this week (in parallel)
-    const [workoutsResult, padelResult, runsResult] = await Promise.all([
+    // 2. Alle actuals deze week (in parallel): gym, padel, runs, walks, activities
+    const [workoutsResult, padelResult, runsResult, walksResult, activitiesResult] = await Promise.all([
       admin
         .from('workouts')
         .select(WORKOUT_SELECT)
@@ -274,11 +275,25 @@ export async function GET() {
         .eq('user_id', user.id)
         .gte('started_at', `${weekStart}T00:00:00Z`)
         .lte('started_at', `${weekEnd}T23:59:59Z`),
+      admin
+        .from('walks')
+        .select('id, started_at, duration_seconds, distance_meters')
+        .eq('user_id', user.id)
+        .gte('started_at', `${weekStart}T00:00:00Z`)
+        .lte('started_at', `${weekEnd}T23:59:59Z`),
+      admin
+        .from('activities')
+        .select('id, sport_key, name, started_at, duration_seconds')
+        .eq('user_id', user.id)
+        .gte('started_at', `${weekStart}T00:00:00Z`)
+        .lte('started_at', `${weekEnd}T23:59:59Z`),
     ])
 
     if (workoutsResult.error) throw workoutsResult.error
     if (padelResult.error) throw padelResult.error
     if (runsResult.error) throw runsResult.error
+    if (walksResult.error) throw walksResult.error
+    if (activitiesResult.error) throw activitiesResult.error
 
     const weekWorkouts = (workoutsResult.data ?? []) as unknown as WorkoutWithExercises[]
     const weekRuns = (runsResult.data ?? []) as Array<{
@@ -314,6 +329,32 @@ export async function GET() {
       const arr = padelByDate.get(d) ?? []
       arr.push(p)
       padelByDate.set(d, arr)
+    }
+    const weekWalks = (walksResult.data ?? []) as Array<{
+      id: string
+      started_at: string
+      duration_seconds: number | null
+    }>
+    const weekActivities = (activitiesResult.data ?? []) as Array<{
+      id: string
+      sport_key: string
+      name: string | null
+      started_at: string
+      duration_seconds: number | null
+    }>
+    const walksByDate = new Map<string, typeof weekWalks>()
+    for (const w of weekWalks) {
+      const d = dayKeyAmsterdam(w.started_at)
+      const arr = walksByDate.get(d) ?? []
+      arr.push(w)
+      walksByDate.set(d, arr)
+    }
+    const activitiesByDate = new Map<string, typeof weekActivities>()
+    for (const a of weekActivities) {
+      const d = dayKeyAmsterdam(a.started_at)
+      const arr = activitiesByDate.get(d) ?? []
+      arr.push(a)
+      activitiesByDate.set(d, arr)
     }
 
     // 3. Voor iedere dag: bepaal planned-item, dan tokens via merge.
@@ -441,6 +482,30 @@ export async function GET() {
           actualId: padel.id,
           actualDurationSeconds: padel.duration_seconds,
           actualStartedAt: padel.started_at,
+        })
+      }
+
+      // Walk actuals — nooit in het schema gepland, dus altijd done-extra.
+      for (const walk of walksByDate.get(date) ?? []) {
+        tokens.push({
+          type: 'walk',
+          state: 'done-extra',
+          title: 'Wandeling',
+          actualId: walk.id,
+          actualDurationSeconds: walk.duration_seconds,
+          actualStartedAt: walk.started_at,
+        })
+      }
+
+      // Generieke activity actuals (tennis, HIIT, voetbal, yoga, ...) → done-extra.
+      for (const act of activitiesByDate.get(date) ?? []) {
+        tokens.push({
+          type: act.sport_key as ActivityType,
+          state: 'done-extra',
+          title: act.name ?? sportMeta(act.sport_key as SportKey).label,
+          actualId: act.id,
+          actualDurationSeconds: act.duration_seconds,
+          actualStartedAt: act.started_at,
         })
       }
 
