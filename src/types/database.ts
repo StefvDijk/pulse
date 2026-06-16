@@ -1551,6 +1551,9 @@ export type Database = {
           date: string
           deep_sleep_minutes: number | null
           id: string
+          in_bed_end: string | null
+          in_bed_minutes: number | null
+          in_bed_start: string | null
           light_sleep_minutes: number | null
           rem_sleep_minutes: number | null
           sleep_efficiency: number | null
@@ -1567,6 +1570,9 @@ export type Database = {
           date: string
           deep_sleep_minutes?: number | null
           id?: string
+          in_bed_end?: string | null
+          in_bed_minutes?: number | null
+          in_bed_start?: string | null
           light_sleep_minutes?: number | null
           rem_sleep_minutes?: number | null
           sleep_efficiency?: number | null
@@ -1583,6 +1589,9 @@ export type Database = {
           date?: string
           deep_sleep_minutes?: number | null
           id?: string
+          in_bed_end?: string | null
+          in_bed_minutes?: number | null
+          in_bed_start?: string | null
           light_sleep_minutes?: number | null
           rem_sleep_minutes?: number | null
           sleep_efficiency?: number | null
