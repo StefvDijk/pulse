@@ -43,7 +43,7 @@ export function SchemaBlockHeader({
         {phaseName ? ` · ${phaseName}` : ''}
       </p>
 
-      {/* Progress bar */}
+      {/* Progress bar — blok-positie (week van blok) */}
       <div className="mt-3.5 h-[6px] rounded-full overflow-hidden bg-white/[0.06]">
         <div
           className="h-full rounded-full"
@@ -53,12 +53,9 @@ export function SchemaBlockHeader({
           }}
         />
       </div>
-      <div className="mt-1.5 flex justify-between text-[11px] text-text-tertiary">
-        <span className="tabular-nums">
-          {sessionsCompleted} / {sessionsPlanned} sessies
-        </span>
-        {daysLeft > 0 && <span>{daysLeft} dagen te gaan</span>}
-      </div>
+      {daysLeft > 0 && (
+        <div className="mt-1.5 text-[11px] text-text-tertiary">{daysLeft} dagen te gaan</div>
+      )}
     </div>
   )
 }
