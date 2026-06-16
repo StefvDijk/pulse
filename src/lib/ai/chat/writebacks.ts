@@ -34,22 +34,31 @@ export interface ParsedWritebacks {
 }
 
 function extractTag(text: string, tag: string): { inner: string | null; stripped: string } {
-  const match = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i').exec(text)
-  if (!match) return { inner: null, stripped: text }
-  return { inner: match[1].trim(), stripped: text.replace(match[0], '').trim() }
+  const first = new RegExp(`<${tag}\\s*>([\\s\\S]*?)</${tag}\\s*>`, 'i').exec(text)
+  if (!first) return { inner: null, stripped: text }
+  // Strip ALL occurrences from the displayed/saved text (mirrors the stream
+  // stripper's global strip) so a second same-type tag can't leak into the
+  // saved message; the first payload is the one we apply.
+  const stripped = text.replace(new RegExp(`<${tag}\\s*>[\\s\\S]*?</${tag}\\s*>`, 'gi'), '').trim()
+  return { inner: first[1].trim(), stripped }
 }
 
-/** Pull the write-back tags out of the raw response and return clean text. */
+/**
+ * Pull the write-back tags out of the raw response and return clean text.
+ * Containers first (schema_*), then the small tags: a schema JSON payload may
+ * legitimately contain a string that looks like another tag, so we remove the
+ * whole schema block before scanning for the smaller tags.
+ */
 export function parseWritebacks(rawText: string): ParsedWritebacks {
   let text = rawText
-  const nutrition = extractTag(text, 'nutrition_log')
-  text = nutrition.stripped
-  const injury = extractTag(text, 'injury_log')
-  text = injury.stripped
   const schemaGen = extractTag(text, 'schema_generation')
   text = schemaGen.stripped
   const schemaUpd = extractTag(text, 'schema_update')
   text = schemaUpd.stripped
+  const nutrition = extractTag(text, 'nutrition_log')
+  text = nutrition.stripped
+  const injury = extractTag(text, 'injury_log')
+  text = injury.stripped
 
   let citedMemories: string[] = []
   const cited = extractTag(text, 'cited_memories')

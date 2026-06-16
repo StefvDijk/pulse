@@ -153,6 +153,17 @@ export async function applySchemaUpdate(
 
   const updatedSchedule = applyUpdateToSchedule(schedule, update)
 
+  // No-op guard (review fix): the day exists but the target exercise/day-pair
+  // didn't resolve (e.g. replace_exercise on an exercise that isn't there), so
+  // applyUpdateToSchedule returned the schedule unchanged. Report applied:false
+  // so the route appends an honest correction instead of a false "aangepast".
+  if (JSON.stringify(updatedSchedule) === JSON.stringify(schedule)) {
+    return {
+      applied: false,
+      description: `Niets gewijzigd — de oefening of dag uit de aanpassing stond niet in "${update.day}".`,
+    }
+  }
+
   await admin
     .from('training_schemas')
     .update({ workout_schedule: updatedSchedule as unknown as Json })

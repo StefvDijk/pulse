@@ -30,7 +30,10 @@ export function createStreamTagStripper(tagNames: string[]): StreamTagStripper {
   function stripComplete(s: string): string {
     let out = s
     for (const t of tagNames) {
-      out = out.replace(new RegExp(`<${t}>[\\s\\S]*?</${t}>`, 'gi'), '')
+      // Tolerate stray whitespace before '>' (e.g. a model emitting
+      // '</schema_generation >') so a minor typo doesn't leave the tag
+      // unclosed and swallow the prose after it.
+      out = out.replace(new RegExp(`<${t}\\s*>[\\s\\S]*?</${t}\\s*>`, 'gi'), '')
     }
     return out
   }
@@ -64,8 +67,8 @@ export function createStreamTagStripper(tagNames: string[]): StreamTagStripper {
       // (from its '<' onward) so a truncated payload never leaks.
       let out = stripComplete(buffer)
       for (const t of tagNames) {
-        const open = out.toLowerCase().indexOf(`<${t}>`)
-        if (open !== -1) out = out.slice(0, open)
+        const m = new RegExp(`<${t}\\s*>`, 'i').exec(out)
+        if (m) out = out.slice(0, m.index)
       }
       buffer = ''
       return out

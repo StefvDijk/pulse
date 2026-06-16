@@ -70,27 +70,43 @@ interface JsonCompletionFromMessagesParams {
 // ---------------------------------------------------------------------------
 
 /**
- * Pull cache read/write counts off the AI SDK usage object. Lets us verify
- * prompt-cache effectiveness from ai_usage_log: cacheRead > 0 means the static
- * system block was served from cache; cacheCreation > 0 means it was (re)written.
+ * Break an AI SDK usage object into the four DISJOINT billing categories we
+ * store in ai_usage_log, so the cost estimate (lib/ai/pricing.ts) is a plain
+ * sum with no double-counting.
  *
- * AI SDK v6 exposes these as `cachedInputTokens` / `cacheCreationInputTokens`.
- * Read defensively so a minor-version field rename can't crash usage logging.
+ * Critical subtlety (verified against ai@6 / @ai-sdk/anthropic@3): the public
+ * `usage.inputTokens` is the TOTAL — it already includes cache-read and
+ * cache-write tokens. Billing them again at the cache rate (which pricing.ts
+ * does, correctly) would double-count, so we log the NON-cached input from
+ * `inputTokenDetails.noCacheTokens` instead. cacheRead/cacheWrite come from the
+ * same details block (`cachedInputTokens`/`cacheCreationInputTokens` are not on
+ * the flat public usage). Read defensively against field renames.
  */
-function extractCacheTokens(usage: unknown): {
+export function extractUsageForLog(usage: unknown): {
+  inputTokens: number | null
   cacheRead: number | null
   cacheCreation: number | null
 } {
   const u = usage as {
+    inputTokens?: number
     cachedInputTokens?: number
     cacheCreationInputTokens?: number
-    inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number }
+    inputTokenDetails?: {
+      noCacheTokens?: number
+      cacheReadTokens?: number
+      cacheWriteTokens?: number
+    }
   }
-  return {
-    cacheRead: u.cachedInputTokens ?? u.inputTokenDetails?.cacheReadTokens ?? null,
-    cacheCreation:
-      u.cacheCreationInputTokens ?? u.inputTokenDetails?.cacheWriteTokens ?? null,
-  }
+  const cacheRead = u.cachedInputTokens ?? u.inputTokenDetails?.cacheReadTokens ?? null
+  const cacheCreation =
+    u.cacheCreationInputTokens ?? u.inputTokenDetails?.cacheWriteTokens ?? null
+  // Prefer the explicit non-cached count; otherwise back it out of the total.
+  const noCache =
+    u.inputTokenDetails?.noCacheTokens ??
+    (u.inputTokens !== undefined
+      ? u.inputTokens - (cacheRead ?? 0) - (cacheCreation ?? 0)
+      : null)
+  return { inputTokens: noCache, cacheRead, cacheCreation }
 }
 
 // ---------------------------------------------------------------------------
@@ -144,13 +160,13 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
     void (async () => {
       try {
         const u = await result.usage
-        const { cacheRead, cacheCreation } = extractCacheTokens(u)
+        const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(u)
         logAiUsage({
           userId: meta.userId,
           feature: meta.feature,
           model: resolvedModel,
           usage: {
-            inputTokens: u.inputTokens ?? null,
+            inputTokens,
             outputTokens: u.outputTokens ?? null,
             cacheReadTokens: cacheRead,
             cacheCreationTokens: cacheCreation,
@@ -195,13 +211,13 @@ async function loggedGenerateText(
       maxOutputTokens,
     })
     if (meta) {
-      const { cacheRead, cacheCreation } = extractCacheTokens(usage)
+      const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(usage)
       logAiUsage({
         userId: meta.userId,
         feature: meta.feature,
         model,
         usage: {
-          inputTokens: usage.inputTokens ?? null,
+          inputTokens,
           outputTokens: usage.outputTokens ?? null,
           cacheReadTokens: cacheRead,
           cacheCreationTokens: cacheCreation,

@@ -39,6 +39,25 @@ describe('parseWritebacks', () => {
     expect(parsed.schemaUpdateRaw).toBe('{not json')
     expect(parsed.cleanText).toBe('ok')
   })
+
+  it('strips a duplicate same-type tag so it cannot leak into the saved message', () => {
+    const raw =
+      'en<nutrition_log>{"input":"a"}</nutrition_log><nutrition_log>{"input":"b"}</nutrition_log>'
+    const parsed = parseWritebacks(raw)
+    expect(parsed.cleanText).toBe('en')
+    expect(parsed.nutritionRaw).toBe('{"input":"a"}')
+  })
+
+  it('does not corrupt a schema payload that contains a nested tag-like string', () => {
+    const raw =
+      '<schema_generation>{"note":"<injury_log>{}</injury_log>"}</schema_generation>ok'
+    const parsed = parseWritebacks(raw)
+    // schema_generation is extracted whole first, so the inner string survives
+    // and no phantom injury_log is produced.
+    expect(parsed.schemaGenerationRaw).toBe('{"note":"<injury_log>{}</injury_log>"}')
+    expect(parsed.injuryRaw).toBeNull()
+    expect(parsed.cleanText).toBe('ok')
+  })
 })
 
 describe('Zod write-back contracts', () => {
@@ -137,6 +156,17 @@ describe('applyUpdateToSchedule', () => {
       day: 'friday',
       exercise_name: 'Bench Press',
     })
+    expect(next).toEqual(schedule)
+  })
+
+  it('returns the unchanged schedule when the target exercise is absent', () => {
+    const next = applyUpdateToSchedule(schedule, {
+      action: 'replace_exercise',
+      day: 'monday',
+      old_exercise: 'Deadlift', // not on monday
+      new_exercise: { name: 'X' },
+    })
+    // Same content → the DB layer detects the no-op and reports applied:false.
     expect(next).toEqual(schedule)
   })
 })
