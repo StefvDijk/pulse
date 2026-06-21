@@ -9,6 +9,7 @@ import { SchemaOverview } from './SchemaOverview'
 import { SchemaCalendar } from './SchemaCalendar'
 import { PlanWeekModal } from './PlanWeekModal'
 import { SchemaBlockHeader, SchemaCoachNudge } from './v2'
+import { SportCoachLauncher } from '@/components/coach/SportCoachLauncher'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -152,6 +153,9 @@ export function SchemaPageContent() {
       />
 
       <div className="flex flex-col gap-3 px-4">
+        {/* Sport coach — the Schema tab's specialist lives here */}
+        <SportCoachLauncher />
+
         {data.sourceBlockReviewId && data.currentWeek === 1 && (
           <div className="rounded-card-lg border border-status-warning/40 bg-status-warning/10 p-3">
             <div className="flex items-center justify-between gap-3">

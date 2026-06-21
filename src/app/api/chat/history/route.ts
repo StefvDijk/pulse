@@ -18,6 +18,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('session_id')
+    // Scope the "most recent session" lookup to one coach so specialists keep
+    // their own thread. Explicit session_id is already coach-scoped via the row.
+    const coachId = searchParams.get('coach_id') ?? 'manager'
 
     if (sessionId) {
       // Fetch messages for specific session
@@ -39,6 +42,7 @@ export async function GET(request: Request) {
       .from('chat_sessions')
       .select('id, title, started_at, last_message_at, message_count')
       .eq('user_id', user.id)
+      .eq('coach_id', coachId)
       .order('last_message_at', { ascending: false })
       .limit(1)
       .maybeSingle()

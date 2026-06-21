@@ -39,11 +39,17 @@ function getDayBasedFallback(): string[] {
 export interface ChatSuggestionsProps {
   onSelect: (suggestion: string) => void
   visible: boolean
+  /**
+   * Static suggestion override. When provided, the AI suggestions fetch is
+   * skipped — used by specialist coaches that have a fixed, in-domain prompt
+   * set (e.g. the sport coach) instead of the manager's day-based mix.
+   */
+  suggestions?: string[]
 }
 
-export function ChatSuggestions({ onSelect, visible }: ChatSuggestionsProps) {
+export function ChatSuggestions({ onSelect, visible, suggestions: override }: ChatSuggestionsProps) {
   const { data } = useSWR<SuggestionsResponse>(
-    visible ? '/api/chat/suggestions' : null,
+    visible && !override ? '/api/chat/suggestions' : null,
     fetcher,
     {
       refreshInterval: 5 * 60 * 1000, // 5 min
@@ -54,7 +60,7 @@ export function ChatSuggestions({ onSelect, visible }: ChatSuggestionsProps) {
 
   if (!visible) return null
 
-  const suggestions = data?.suggestions ?? getDayBasedFallback()
+  const suggestions = override ?? data?.suggestions ?? getDayBasedFallback()
 
   return (
     <div className="flex gap-2 overflow-x-auto px-1 pb-2 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
