@@ -5,6 +5,7 @@ import { NUTRITION_ANALYSIS_SYSTEM_PROMPT } from '@/lib/ai/prompts/nutrition-ana
 import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { recomputeDailyNutritionSummary } from './summary'
+import { validateMeal } from './macros'
 
 const NutritionAnalysisSchema = z.object({
   calories: z.number().nonnegative(),
@@ -64,6 +65,19 @@ export async function analyzeNutrition(
   const analysis = NutritionAnalysisSchema.parse(parseAiJson(rawText))
   const finalMealType = mealType ?? analysis.meal_type
 
+  // Deterministic guardrail: a logged meal's calories must be consistent with
+  // its macros (Atwater). When the LLM's kcal drifts we reconcile to the
+  // macro-derived value and downgrade confidence, so the log is never
+  // internally contradictory.
+  const check = validateMeal({
+    calories: analysis.calories,
+    protein_g: analysis.protein_g,
+    carbs_g: analysis.carbs_g,
+    fat_g: analysis.fat_g,
+  })
+  const calories = check.reconciledCalories
+  const confidence = check.ok ? analysis.confidence : 'low'
+
   // Save to DB using admin client
   const supabase = createAdminClient()
 
@@ -73,13 +87,13 @@ export async function analyzeNutrition(
       user_id: userId,
       date: logDate,
       raw_input: input,
-      estimated_calories: Math.round(analysis.calories),
+      estimated_calories: calories,
       estimated_protein_g: Math.round(analysis.protein_g * 10) / 10,
       estimated_carbs_g: Math.round(analysis.carbs_g * 10) / 10,
       estimated_fat_g: Math.round(analysis.fat_g * 10) / 10,
       estimated_fiber_g: Math.round(analysis.fiber_g * 10) / 10,
       meal_type: finalMealType,
-      confidence: analysis.confidence,
+      confidence,
       ai_analysis: JSON.stringify(analysis.food_items),
     })
     .select('id')
@@ -93,6 +107,6 @@ export async function analyzeNutrition(
 
   return {
     success: true,
-    data: { ...analysis, meal_type: finalMealType, id: logData.id },
+    data: { ...analysis, calories, confidence, meal_type: finalMealType, id: logData.id },
   }
 }
