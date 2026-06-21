@@ -68,4 +68,18 @@ describe('sport coach config', () => {
     const managerSystem = buildCoachRequest(getCoachConfig('manager'), seededInput()).system
     expect(managerSystem).not.toContain('Sportcoach')
   })
+
+  it('surfaces the block-review as its flagship block-design tool (chat reachability)', () => {
+    const sportSystem = buildCoachRequest(getCoachConfig('sport'), seededInput()).system
+    // The sport coach owns the block-review ("block-ontwerp") skill: when Stef
+    // wants to design a new block, the coach points him to the deterministic,
+    // validated wizard from the chat. The deep-link makes that reachable in-chat.
+    expect(sportSystem).toMatch(/block.?review/i)
+    expect(sportSystem).toContain('/block-review')
+  })
+
+  it('does not surface the block-review tool to the manager', () => {
+    const managerSystem = buildCoachRequest(getCoachConfig('manager'), seededInput()).system
+    expect(managerSystem).not.toContain('/block-review')
+  })
 })

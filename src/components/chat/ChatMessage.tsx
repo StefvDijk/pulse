@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import Link from 'next/link'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CoachOrb } from '@/components/shared/CoachOrb'
@@ -40,6 +41,25 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   li: ({ children }) => <li className="text-subhead">{children}</li>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  a: ({ href, children }) => {
+    const target = href ?? '#'
+    // Internal deep-links (e.g. a coach pointing to /block-review) navigate
+    // client-side; external links open in a new tab. Accented so coach CTAs
+    // read as tappable actions, not raw URLs.
+    const className = 'font-medium underline decoration-text-tertiary/50 underline-offset-2 text-brand-claude'
+    if (target.startsWith('/')) {
+      return (
+        <Link href={target} className={className}>
+          {children}
+        </Link>
+      )
+    }
+    return (
+      <a href={target} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    )
+  },
   code: ({ children }) => (
     <code className="rounded px-1 py-0.5 text-caption1 bg-white/[0.08] text-[#0A84FF] font-mono">
       {children}
