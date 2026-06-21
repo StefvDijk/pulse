@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
-import { buildSystemPromptBlocks } from '@/lib/ai/prompts/chat-system'
+import type { CoachTone } from '@/lib/ai/prompts/chat-system'
 import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { selectSkills, extractContextHints } from '@/lib/ai/skills/router'
-import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
+import { runCoach } from '@/lib/ai/coaches/run-coach'
+import { getCoachConfig } from '@/lib/ai/coaches/registry'
+import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -26,47 +26,6 @@ const RequestSchema = z.object({
    *  first AI message in the thread, then the user's reply continues from there. */
   seed_assistant: z.string().min(1).max(4000).optional(),
 })
-
-// ── Error classification ──────────────────────────────────────────────────────
-
-interface StreamErrorEvent {
-  __error: true
-  code: 'AI_AUTH_ERROR' | 'AI_RATE_LIMIT' | 'AI_TIMEOUT' | 'AI_GENERIC_ERROR'
-  message: string
-}
-
-function classifyStreamError(err: unknown): StreamErrorEvent {
-  const e = err as { name?: string; statusCode?: number; message?: string }
-  if (e?.name === 'AI_APICallError') {
-    if (e.statusCode === 401 || e.statusCode === 403) {
-      return {
-        __error: true,
-        code: 'AI_AUTH_ERROR',
-        message:
-          'AI is tijdelijk niet bereikbaar (auth-fout). Beheerder is gewaarschuwd — probeer het later opnieuw.',
-      }
-    }
-    if (e.statusCode === 429) {
-      return {
-        __error: true,
-        code: 'AI_RATE_LIMIT',
-        message: 'Te veel verzoeken naar de AI. Probeer het over 30 seconden opnieuw.',
-      }
-    }
-  }
-  if (e?.name === 'AbortError' || /timeout/i.test(e?.message ?? '')) {
-    return {
-      __error: true,
-      code: 'AI_TIMEOUT',
-      message: 'AI-antwoord duurde te lang. Probeer een kortere vraag.',
-    }
-  }
-  return {
-    __error: true,
-    code: 'AI_GENERIC_ERROR',
-    message: 'Er ging iets mis bij het genereren van het antwoord. Probeer het opnieuw.',
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -239,25 +198,6 @@ export async function POST(request: Request) {
           // DYNAMIC system block = datum/dagdeel/schema/blessures/doelen +
           // coaching-geheugen (thinContext) + skills. Verandert per turn, dus
           // ná de breakpoint zodat het de cache van het statische deel niet breekt.
-          const { systemStatic, systemDynamic } = buildSystemPromptBlocks({
-            activeSchema,
-            activeInjuries: injuriesResult.data ?? [],
-            activeGoals: goalsResult.data ?? [],
-            customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
-            coachTone: (settingsResult.data?.coach_tone ?? 'direct') as 'direct' | 'friendly' | 'scientific',
-            profileBlock: renderProfileBlock(profile),
-          })
-
-          let dynamicBlock = systemDynamic + thinContext
-
-          const skills = selectSkills(questionType, message, extractContextHints(thinContext))
-          if (skills.length > 0) {
-            dynamicBlock += '\n\n' + skills.join('\n\n')
-          }
-
-          const isSimple = questionType === 'simple_greeting'
-          const tools = isSimple ? undefined : createToolsForUser(user.id)
-
           // For a freshly seeded thread the parallel history fetch races the
           // seed insert above — we can't rely on it picking up the seed turn.
           // Inline it so Claude sees the same conversation the user does.
@@ -269,13 +209,22 @@ export async function POST(request: Request) {
               ]
             : [...historyMessages, { role: 'user' as const, content: message }]
 
-          const result = streamChat({
-            system: systemStatic,
-            systemDynamic: dynamicBlock,
-            messages: conversation,
-            tools,
-            ...(isSimple ? { model: MEMORY_MODEL } : {}),
-            meta: { userId: user.id, feature: isSimple ? 'chat_greeting' : 'chat' },
+          // Run the request through the coach engine. Home = the manager coach
+          // (all tools); specialists slot in via their own routes in later slices.
+          const result = runCoach(getCoachConfig('manager'), {
+            userId: user.id,
+            questionType,
+            message,
+            conversation,
+            thinContext,
+            systemData: {
+              activeSchema,
+              activeInjuries: injuriesResult.data ?? [],
+              activeGoals: goalsResult.data ?? [],
+              customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+              coachTone: (settingsResult.data?.coach_tone ?? 'direct') as CoachTone,
+              profileBlock: renderProfileBlock(profile),
+            },
           })
 
           // Strip write-back tags from the DISPLAYED stream so the user never
