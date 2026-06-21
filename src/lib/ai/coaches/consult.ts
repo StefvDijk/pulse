@@ -17,9 +17,14 @@ export interface CoachTake {
  * schakelaar wordt, geen herbouw.
  */
 export async function consultCoach(
-  _coachId: CoachId,
-  _question: string,
-  _context?: string,
+  coachId: CoachId,
+  question: string,
+  context?: string,
 ): Promise<CoachTake | null> {
+  // Fase A: dormant. De argumenten horen bij het fase-C-contract maar worden
+  // pas gebruikt zodra echte orkestratie landt.
+  void coachId
+  void question
+  void context
   return null
 }
