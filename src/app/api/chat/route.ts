@@ -12,7 +12,7 @@ import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { runCoach } from '@/lib/ai/coaches/run-coach'
 import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
-import { planConsultation } from '@/lib/ai/coaches/consult'
+import { planConsultation, orchestrateConsultation, renderTakesBlock } from '@/lib/ai/coaches/consult'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
@@ -109,6 +109,11 @@ export async function POST(request: Request) {
       }
       sessionId = newSession.id
     }
+
+    // Manager hub (#40/#44): classify the question's scope. In fase C a `cross`
+    // scope escalates to real parallel specialist orchestration below; also
+    // surfaced as the X-Coach-Scope header.
+    const managerPlan = effectiveCoachId === 'manager' ? planConsultation(message) : null
 
     // Stream starts IMMEDIATELY — client sees typing bubble within ~50ms
     // instead of waiting 800-1500ms for context queries to resolve. All
@@ -229,6 +234,19 @@ export async function POST(request: Request) {
               ]
             : [...historyMessages, { role: 'user' as const, content: message }]
 
+          // Fase C orchestration (#44): for a cross-domain manager question,
+          // consult the relevant specialists IN PARALLEL and fold their takes
+          // into the manager's context, so it streams ONE synthesised mixed
+          // answer. Non-cross questions skip this entirely.
+          let coachThinContext = thinContext
+          if (managerPlan?.scope === 'cross') {
+            const { takes } = await orchestrateConsultation(message, {
+              userId: user.id,
+              context: thinContext,
+            })
+            coachThinContext += renderTakesBlock(takes)
+          }
+
           // Run the request through the coach engine. The owning coach (manager
           // by default, a specialist when its tab sends coach_id) decides the
           // persona + scoped toolset; the engine seam is identical for all.
@@ -237,7 +255,7 @@ export async function POST(request: Request) {
             questionType,
             message,
             conversation,
-            thinContext,
+            thinContext: coachThinContext,
             systemData: {
               activeSchema,
               activeInjuries: injuriesResult.data ?? [],
@@ -367,12 +385,6 @@ export async function POST(request: Request) {
         }
       },
     })
-
-    // Manager hub (#40): classify the question's scope so fase C (#44) can later
-    // escalate cross-domain questions to real specialist orchestration. In fase A
-    // the manager still answers itself with the full toolset — one mixed answer.
-    // Surfaced as a header for observability; the specialists are already scoped.
-    const managerPlan = effectiveCoachId === 'manager' ? planConsultation(message) : null
 
     return new Response(readable, {
       headers: {
