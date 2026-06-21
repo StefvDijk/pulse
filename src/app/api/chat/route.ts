@@ -12,6 +12,7 @@ import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { runCoach } from '@/lib/ai/coaches/run-coach'
 import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
+import { planConsultation } from '@/lib/ai/coaches/consult'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
@@ -367,12 +368,19 @@ export async function POST(request: Request) {
       },
     })
 
+    // Manager hub (#40): classify the question's scope so fase C (#44) can later
+    // escalate cross-domain questions to real specialist orchestration. In fase A
+    // the manager still answers itself with the full toolset — one mixed answer.
+    // Surfaced as a header for observability; the specialists are already scoped.
+    const managerPlan = effectiveCoachId === 'manager' ? planConsultation(message) : null
+
     return new Response(readable, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'X-Session-Id': sessionId,
+        ...(managerPlan ? { 'X-Coach-Scope': managerPlan.scope } : {}),
       },
     })
   } catch (error) {

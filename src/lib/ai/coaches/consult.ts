@@ -1,4 +1,5 @@
 import type { CoachId } from './types'
+import { classifyScope, type CoachScope } from './scope'
 
 /**
  * Een gestructureerde "take" van een specialist op een vraag van de manager.
@@ -7,6 +8,25 @@ import type { CoachId } from './types'
 export interface CoachTake {
   coachId: CoachId
   take: string
+}
+
+/**
+ * Het plan dat de manager-hub volgt voor een binnenkomende vraag (issue #40):
+ * de geclassificeerde scope plus welke specialisten geraadpleegd worden.
+ */
+export interface ConsultationPlan {
+  scope: CoachScope
+  consult: CoachId[]
+}
+
+/**
+ * Bepaalt hoe de manager een vraag aanpakt. Fase A: classificeer de scope maar
+ * raadpleeg niemand — de manager antwoordt zelf met de volledige toolset (één
+ * gemengd antwoord). Fase C (#44) vult `consult` voor scope `cross` zodat dit
+ * een schakelaar wordt, geen herbouw.
+ */
+export function planConsultation(message: string): ConsultationPlan {
+  return { scope: classifyScope(message), consult: [] }
 }
 
 /**

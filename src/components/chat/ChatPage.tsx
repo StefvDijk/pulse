@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { SquarePen } from 'lucide-react'
 import { ChatInterface } from './ChatInterface'
 import { CoachOrb } from '@/components/shared/CoachOrb'
+import { getCoachConfig } from '@/lib/ai/coaches/registry'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -28,8 +29,8 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
         style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.14) 0%, var(--color-bg-glass-nav) 100%)' }}
       >
         <div className="flex h-14 items-center gap-3 px-4">
-          {/* Leading: CoachOrb + text */}
-          <CoachOrb size={40} />
+          {/* Leading: CoachOrb + text — the manager's coral face from the registry */}
+          <CoachOrb size={40} color={getCoachConfig('manager').identity.color} />
           <div className="flex-1 min-w-0">
             <div className="text-[18px] font-bold leading-[22px] tracking-[-0.3px] text-text-primary">
               Pulse Coach
