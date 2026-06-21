@@ -5,6 +5,7 @@
     { "path": "/api/cron/strava-sync", "schedule": "30 6 * * *" },
     { "path": "/api/cron/daily-aggregate", "schedule": "0 2 * * *" },
     { "path": "/api/cron/weekly-aggregate", "schedule": "0 3 * * 1" },
-    { "path": "/api/cron/belief-sweep", "schedule": "0 22 * * 0" }
+    { "path": "/api/cron/belief-sweep", "schedule": "0 22 * * 0" },
+    { "path": "/api/cron/nudges", "schedule": "0 5 * * *" }
   ]
 }

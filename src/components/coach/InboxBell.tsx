@@ -6,6 +6,7 @@ import { Bell } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { InboxList } from './InboxList'
 import type { CoachInboxResponse } from './types'
+import type { NudgesResponse } from './nudge-types'
 
 async function fetcher(url: string): Promise<CoachInboxResponse> {
   const response = await fetch(url)
@@ -13,13 +14,24 @@ async function fetcher(url: string): Promise<CoachInboxResponse> {
   return response.json() as Promise<CoachInboxResponse>
 }
 
+async function nudgeFetcher(url: string): Promise<NudgesResponse> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('Nudges konden niet laden')
+  return response.json() as Promise<NudgesResponse>
+}
+
 export function InboxBell() {
   const [open, setOpen] = useState(false)
   const { data, error, isLoading, mutate } = useSWR<CoachInboxResponse>('/api/coach-inbox', fetcher, {
     refreshInterval: 60_000,
   })
+  // Shares the '/api/nudges' SWR cache key with NudgeList, so dismissing a nudge
+  // updates this badge automatically.
+  const { data: nudgeData } = useSWR<NudgesResponse>('/api/nudges', nudgeFetcher, {
+    refreshInterval: 60_000,
+  })
   useBodyScrollLock(open)
-  const unread = data?.unreadCount ?? 0
+  const unread = (data?.unreadCount ?? 0) + (nudgeData?.nudges.length ?? 0)
 
   return (
     <div className="relative z-[55]">

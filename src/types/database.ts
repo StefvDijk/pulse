@@ -447,6 +447,56 @@ export type Database = {
           },
         ]
       }
+      nudges: {
+        Row: {
+          body: string
+          coach_id: string
+          created_at: string | null
+          cta_href: string | null
+          cta_label: string | null
+          dedupe_key: string
+          id: string
+          severity: string
+          status: string
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          coach_id: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          coach_id?: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key?: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nudges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_beliefs: {
         Row: {
           category: string
