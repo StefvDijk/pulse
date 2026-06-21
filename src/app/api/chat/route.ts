@@ -11,7 +11,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { runCoach } from '@/lib/ai/coaches/run-coach'
-import { getCoachConfig } from '@/lib/ai/coaches/registry'
+import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
@@ -21,6 +21,10 @@ export const maxDuration = 60
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
+  /** Owning coach for this thread. Defaults to the manager (Home / general
+   *  chat). Specialists send their own id from their tab. Validated against the
+   *  live coaches; nutrition/health widen LIVE_COACH_IDS in later slices. */
+  coach_id: z.enum(LIVE_COACH_IDS).default('manager'),
   /** Optional assistant message persisted as the opening turn of a new session.
    *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
    *  first AI message in the thread, then the user's reply continues from there. */
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { message, session_id, seed_assistant } = parsed.data
+    const { message, session_id, coach_id, seed_assistant } = parsed.data
     // Seed is only persisted on a brand-new session — once the session has any
     // history it's a no-op so a stale client can't inject a fake AI turn.
     const isNewSession = !session_id
@@ -70,14 +74,29 @@ export async function POST(request: Request) {
     // Resolve sessionId BEFORE stream construction so we can set X-Session-Id
     // on the response headers (frontend reads it). When a session already
     // exists this is free; new-session creation costs ~50ms.
+    // A thread's coach is fixed at creation. For a new session we stamp the
+    // requested coach; for an existing one we trust the stored coach_id (not the
+    // request body) so a thread can never be answered by the wrong specialist.
     let sessionId: string
+    let effectiveCoachId: LiveCoachId = coach_id
     if (session_id) {
       sessionId = session_id
+      const { data: sessionRow } = await admin
+        .from('chat_sessions')
+        .select('coach_id')
+        .eq('id', session_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const stored = sessionRow?.coach_id
+      if (stored && (LIVE_COACH_IDS as readonly string[]).includes(stored)) {
+        effectiveCoachId = stored as LiveCoachId
+      }
     } else {
       const { data: newSession, error: sessionError } = await admin
         .from('chat_sessions')
         .insert({
           user_id: user.id,
+          coach_id,
           title: message.slice(0, 50),
           started_at: new Date().toISOString(),
           last_message_at: new Date().toISOString(),
@@ -209,9 +228,10 @@ export async function POST(request: Request) {
               ]
             : [...historyMessages, { role: 'user' as const, content: message }]
 
-          // Run the request through the coach engine. Home = the manager coach
-          // (all tools); specialists slot in via their own routes in later slices.
-          const result = runCoach(getCoachConfig('manager'), {
+          // Run the request through the coach engine. The owning coach (manager
+          // by default, a specialist when its tab sends coach_id) decides the
+          // persona + scoped toolset; the engine seam is identical for all.
+          const result = runCoach(getCoachConfig(effectiveCoachId), {
             userId: user.id,
             questionType,
             message,

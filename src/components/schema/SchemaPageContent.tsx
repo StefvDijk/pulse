@@ -8,6 +8,7 @@ import { SchemaOverview } from './SchemaOverview'
 import { SchemaCalendar } from './SchemaCalendar'
 import { PlanWeekModal } from './PlanWeekModal'
 import { SchemaBlockHeader, SchemaCoachNudge, SchemaStartedBanner } from './v2'
+import { SportCoachLauncher } from '@/components/coach/SportCoachLauncher'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -138,6 +139,9 @@ export function SchemaPageContent() {
       />
 
       <div className="flex flex-col gap-3 px-4">
+        {/* Sport coach — the Schema tab's specialist lives here */}
+        <SportCoachLauncher />
+
         <SchemaStartedBanner
           schemaId={data.id}
           createdAt={data.createdAt}

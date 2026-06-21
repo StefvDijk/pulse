@@ -5,6 +5,7 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
+import type { LiveCoachId } from '@/lib/ai/coaches/registry'
 
 interface Message {
   id: string
@@ -32,6 +33,13 @@ export interface ChatInterfaceProps {
   seededAssistant?: string
   /** Called whenever the loading/streaming state changes so parent can disable UI (e.g. "Nieuwe chat" button). */
   onLoadingChange?: (loading: boolean) => void
+  /** Owning coach for this thread. Scopes the request + history to one coach so
+   *  specialists keep their own conversation line. Defaults to the manager. */
+  coachId?: LiveCoachId
+  /** Static in-domain suggestions for a specialist coach (skips the AI mix). */
+  suggestions?: string[]
+  /** Empty-state prompt shown before the first message. */
+  emptyState?: string
 }
 
 const NEAR_BOTTOM_PX = 120
@@ -42,6 +50,9 @@ export function ChatInterface({
   initialMessage,
   seededAssistant,
   onLoadingChange,
+  coachId = 'manager',
+  suggestions,
+  emptyState,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [streamingContent, setStreamingContent] = useState('')
@@ -93,7 +104,7 @@ export function ChatInterface({
 
     const url = sessionId
       ? `/api/chat/history?session_id=${sessionId}`
-      : '/api/chat/history'
+      : `/api/chat/history?coach_id=${coachId}`
 
     fetch(url)
       .then((r) => r.json() as Promise<ChatHistoryResponse>)
@@ -122,7 +133,7 @@ export function ChatInterface({
         console.error('[ChatInterface] Failed to load history:', err)
       })
       .finally(() => setIsInitializing(false))
-  }, [sessionId, seededAssistant, isFreshSession])
+  }, [sessionId, seededAssistant, isFreshSession, coachId])
 
   // Smooth scroll only when a new message arrives — not on every streamed token.
   useEffect(() => {
@@ -222,6 +233,7 @@ export function ChatInterface({
           body: JSON.stringify({
             message,
             session_id: sessionId,
+            coach_id: coachId,
             ...(seedForRequest ? { seed_assistant: seedForRequest } : {}),
           }),
         })
@@ -346,7 +358,7 @@ export function ChatInterface({
         setIsLoading(false)
       }
     },
-    [isLoading, sessionId, seededAssistant, startSmoothReveal],
+    [isLoading, sessionId, seededAssistant, startSmoothReveal, coachId],
   )
 
   // Auto-send initialMessage once history has loaded and there are no existing messages
@@ -383,7 +395,7 @@ export function ChatInterface({
         {messages.length === 0 && !isLoading && (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <p className="text-subhead text-text-tertiary">
-              Stel een vraag of log een maaltijd
+              {emptyState ?? 'Stel een vraag of log een maaltijd'}
             </p>
           </div>
         )}
@@ -424,7 +436,7 @@ export function ChatInterface({
             </button>
           </div>
         )}
-        <ChatSuggestions onSelect={handleSend} visible={showSuggestions} />
+        <ChatSuggestions onSelect={handleSend} visible={showSuggestions} suggestions={suggestions} />
         <ChatInput onSend={handleSend} isLoading={isLoading} />
       </div>
     </div>

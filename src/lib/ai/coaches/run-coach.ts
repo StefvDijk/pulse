@@ -68,6 +68,8 @@ export function buildCoachRequest(coach: CoachConfig, input: CoachRequestInput):
     customInstructions: input.systemData.customInstructions,
     coachTone: input.systemData.coachTone,
     profileBlock: input.systemData.profileBlock,
+    coachPersona: coach.persona ?? null,
+    coachKnowledge: coach.domainKnowledge ?? null,
   })
 
   let dynamicBlock = systemDynamic + input.thinContext

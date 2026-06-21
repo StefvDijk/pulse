@@ -28,4 +28,15 @@ export interface CoachConfig {
    * (de manager). Specialisten krijgen in latere slices een expliciete subset.
    */
   toolset?: PulseToolName[]
+  /**
+   * Specialist-persona (de "stem"), bovenop de gedeelde coach-core. `undefined`
+   * = de manager, die volledig op de gedeelde coach-core leunt. Statisch →
+   * landt in het cacheable system-blok.
+   */
+  persona?: string
+  /**
+   * Diepe domeinkennis + playbook(s) van deze specialist (laag 1 + laag 3).
+   * Ook statisch en cacheable.
+   */
+  domainKnowledge?: string
 }
