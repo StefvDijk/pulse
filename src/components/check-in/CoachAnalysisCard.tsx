@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Send, SkipForward } from 'lucide-react'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { CoachOrb } from '@/components/shared/CoachOrb'
+import { getCheckInCoach } from '@/lib/check-in/coach'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { AnalyzeResponse } from '@/app/api/check-in/analyze/route'
 import type { DialogResponse } from '@/app/api/check-in/dialog/route'
@@ -219,12 +220,16 @@ export function CoachAnalysisCard({
   // ─── DONE — show analysis ────────────────────────────────────────────
   if (!analysis) return null
 
+  const coach = getCheckInCoach()
+
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded-2xl border border-bg-border bg-bg-surface p-5">
         <div className="mb-3 flex items-center gap-2">
-          <CoachOrb size={16} />
-          <h3 className="text-subhead font-semibold text-text-primary">Coach analyse</h3>
+          <CoachOrb size={16} color={coach.identity.color} />
+          <h3 className="text-subhead font-semibold text-text-primary">
+            {coach.identity.name} · analyse
+          </h3>
         </div>
 
         <p className="mb-4 text-sm leading-relaxed text-text-secondary">{analysis.summary}</p>
@@ -259,10 +264,11 @@ export function CoachAnalysisCard({
 // ---------------------------------------------------------------------------
 
 function CoachBubble({ text }: { text: string }) {
+  const coach = getCheckInCoach()
   return (
     <div className="flex items-start gap-2">
       <div className="mt-0.5 shrink-0">
-        <CoachOrb size={20} />
+        <CoachOrb size={20} color={coach.identity.color} />
       </div>
       <div className="rounded-2xl rounded-tl-md border border-bg-border bg-bg-surface px-4 py-3">
         <p className="text-[15px] leading-relaxed text-text-primary">{text}</p>
