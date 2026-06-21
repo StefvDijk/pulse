@@ -16,6 +16,7 @@ import { SleepScoreCard } from '@/components/home/SleepScoreCard'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
+import { DailyBriefing } from '@/components/dashboard/v2/DailyBriefing'
 import { deriveReadinessView } from '@/components/dashboard/v2/readiness-view'
 import { WeekGlance, WeekGlanceSkeleton } from '@/components/dashboard/v2/WeekGlance'
 import { RecentActivities } from '@/components/home/RecentActivities'
@@ -139,6 +140,11 @@ export function DashboardPage() {
             <CoachOrb size={32} />
           </Link>
         </div>
+      </motion.div>
+
+      {/* ── Morning briefing — top cross-coach nudges (#43) ───── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <DailyBriefing />
       </motion.div>
 
       {/* ── Daily quick check-in (30 sec) ─────────────────────── */}
