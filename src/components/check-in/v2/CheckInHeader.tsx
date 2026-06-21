@@ -2,6 +2,8 @@
 
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { CoachOrb } from '@/components/shared/CoachOrb'
+import { getCheckInCoach } from '@/lib/check-in/coach'
 
 interface CheckInHeaderProps {
   weekNumber: number
@@ -35,10 +37,19 @@ export function CheckInHeader({ weekNumber, dateRange, step, onBack }: CheckInHe
       </Link>
     )
 
+  const coach = getCheckInCoach()
+
   return (
     <div className="px-4 pt-[60px] pb-2">
       {backEl}
-      <h1 className="mt-2 text-[34px] font-bold tracking-[-0.8px] text-text-primary">
+      {/* The weekly check-in is the manager's ritual — its face is Pulse. */}
+      <div className="mt-2 flex items-center gap-1.5">
+        <CoachOrb size={16} color={coach.identity.color} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+          {coach.identity.name}
+        </span>
+      </div>
+      <h1 className="mt-1 text-[34px] font-bold tracking-[-0.8px] text-text-primary">
         Check-in
       </h1>
       <p className="mt-1 text-[13px] text-text-tertiary">
