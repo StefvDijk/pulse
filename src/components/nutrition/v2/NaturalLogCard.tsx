@@ -5,6 +5,7 @@
  */
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { NutritionInput, type NutritionInputProps } from '@/components/nutrition/NutritionInput'
+import { getCoachConfig } from '@/lib/ai/coaches/registry'
 
 export interface NaturalLogCardProps {
   onSuccess: NutritionInputProps['onSuccess']
@@ -20,9 +21,9 @@ export function NaturalLogCard({ onSuccess, date }: NaturalLogCardProps) {
         border: '0.5px solid rgba(255,255,255,0.10)',
       }}
     >
-      {/* Eyebrow */}
+      {/* Eyebrow — the diëtist owns natural-language logging on the Eten tab */}
       <div className="mb-2 flex items-center gap-2">
-        <CoachOrb size={20} />
+        <CoachOrb size={20} color={getCoachConfig('nutrition').identity.color} />
         <span
           className="text-[11px] font-semibold uppercase tracking-[1.2px]"
           style={{ color: 'rgba(255,255,255,0.80)' }}

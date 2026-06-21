@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import useSWR from 'swr'
 import { NaturalLogCard, NutritionHeader, MacroCard, MealsCard } from './v2'
+import { NutritionCoachLauncher } from '@/components/coach/NutritionCoachLauncher'
 import { SkeletonCard, SkeletonRect, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import type { NutritionSummaryData } from '@/app/api/nutrition/summary/route'
@@ -109,6 +110,9 @@ export function NutritionPage() {
       />
 
       <div className="flex flex-col gap-3 px-4">
+        {/* Diëtist — the Eten tab's specialist lives here */}
+        <NutritionCoachLauncher />
+
         {/* v2 AI input with CoachOrb eyebrow */}
         <NaturalLogCard onSuccess={handleSuccess} date={selectedDate} />
 
