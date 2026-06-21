@@ -1,6 +1,8 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
+import { CoachOrb } from '@/components/shared/CoachOrb'
+import { getBlockReviewCoach } from '@/lib/block-review/coach'
 
 interface StepShellProps {
   title: string
@@ -25,9 +27,17 @@ export function StepShell({
   nextDisabled,
   children,
 }: StepShellProps) {
+  const coach = getBlockReviewCoach()
   return (
     <div className="flex flex-col min-h-dvh bg-bg-base pb-44">
       <div className="sticky top-0 z-10 px-4 pt-[64px] pb-3 bg-bg-base/95 backdrop-blur">
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <CoachOrb size={16} color={coach.identity.color} />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+            {coach.identity.name}
+          </span>
+          <span className="text-[10px] text-text-tertiary">· Block Review</span>
+        </div>
         <div className="flex items-center gap-2 text-[12px] text-text-tertiary">
           {onBack && (
             <button onClick={onBack} aria-label="Terug" className="-ml-1 p-1">

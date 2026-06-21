@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { ChatInterface } from '@/components/chat/ChatInterface'
 import { CoachIdentity } from './CoachIdentity'
+import { BlockDesignCallout } from './BlockDesignCallout'
 import { getCoachConfig } from '@/lib/ai/coaches/registry'
 
 // In-domain openers — the sport coach never offers nutrition/recovery prompts.
@@ -52,7 +53,10 @@ export function SportCoachSheet({ open, onClose }: SportCoachSheetProps) {
             </button>
           }
         />
-        <div className="min-h-0 flex-1 border-t-[0.5px] border-bg-border">
+        <div className="border-t-[0.5px] border-bg-border px-4 pt-3">
+          <BlockDesignCallout />
+        </div>
+        <div className="min-h-0 flex-1">
           <ChatInterface
             coachId="sport"
             suggestions={SPORT_SUGGESTIONS}
