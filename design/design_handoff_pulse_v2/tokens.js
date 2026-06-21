@@ -32,6 +32,7 @@ window.PulseTokens = {
   // the specialists get their own accent so each coach is recognisable.
   coach: {
     nutrition: { base: '#5BD16F', light: 'rgba(91,209,111,0.18)', glow: 'rgba(91,209,111,0.5)', dark: '#1C5226' },
+    health:    { base: '#818CF8', light: 'rgba(129,140,248,0.18)', glow: 'rgba(129,140,248,0.5)', dark: '#272A5C' },
   },
   // Hero gradients — Apple Fitness+ inspired aurora
   gradients: {

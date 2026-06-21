@@ -8,6 +8,7 @@ import { SchemaOverview } from './SchemaOverview'
 import { SchemaCalendar } from './SchemaCalendar'
 import { PlanWeekModal } from './PlanWeekModal'
 import { SchemaBlockHeader, SchemaCoachNudge, SchemaStartedBanner } from './v2'
+import { SchemaSubNav } from './SchemaSubNav'
 import { SportCoachLauncher } from '@/components/coach/SportCoachLauncher'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
@@ -137,6 +138,10 @@ export function SchemaPageContent() {
         weekOfBlock={data.currentWeek}
         totalWeeks={data.totalWeeks}
       />
+
+      <div className="pb-2">
+        <SchemaSubNav />
+      </div>
 
       <div className="flex flex-col gap-3 px-4">
         {/* Sport coach — the Schema tab's specialist lives here */}

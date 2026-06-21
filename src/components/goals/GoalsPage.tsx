@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { ChevronLeft } from 'lucide-react'
 import { NavBar } from '@/components/ui/NavBar'
 import { useGoals } from '@/hooks/useGoals'
 import { GoalCard } from './GoalCard'
@@ -77,6 +79,16 @@ export function GoalsPage() {
     <>
       <NavBar
         variant="inline"
+        leading={
+          <Link
+            href="/schema"
+            className="flex items-center gap-0.5 text-[#0A84FF] active:opacity-60 transition-opacity"
+            aria-label="Terug naar Schema"
+          >
+            <ChevronLeft size={20} strokeWidth={2.5} />
+            <span className="text-[17px] tracking-[-0.2px]">Schema</span>
+          </Link>
+        }
         title="Doelen"
         trailing={<AddButton onClick={() => setShowForm(true)} />}
       />

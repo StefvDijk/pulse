@@ -23,12 +23,12 @@ export function WorkloadPage() {
         variant="inline"
         leading={
           <Link
-            href="/"
+            href="/schema"
             className="flex items-center gap-0.5 text-[#0A84FF] active:opacity-60 transition-opacity"
-            aria-label="Terug naar home"
+            aria-label="Terug naar Schema"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
-            <span className="text-[17px] tracking-[-0.2px]">Terug</span>
+            <span className="text-[17px] tracking-[-0.2px]">Schema</span>
           </Link>
         }
         title="Belasting"
