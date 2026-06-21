@@ -5,8 +5,13 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createJsonCompletion, MODEL } from '@/lib/ai/client'
 import { buildCheckInAnalyzePrompt } from '@/lib/ai/prompts/checkin-analyze'
+import { orchestrateConsultation, renderTakesContext } from '@/lib/ai/coaches/consult'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { SessionFeedbackEntry } from '@/lib/training/session-feedback'
+
+// Specialist consultation (parallel Haiku) runs before the Sonnet synthesis,
+// so allow the longer agentic budget (matches the chat route).
+export const maxDuration = 60
 
 // ---------------------------------------------------------------------------
 // Exported response type
@@ -144,10 +149,32 @@ export async function POST(request: Request) {
       sessionFeedback: (feedbackRows ?? []) as SessionFeedbackEntry[],
     })
 
+    // Fase C orchestration (#44): the weekly check-in is a canonical cross-domain
+    // task, so consult the specialists in parallel and fold their takes into the
+    // synthesis prompt. Non-fatal — a consultation failure never blocks the review.
+    // Context is intentionally light (the reflection): the takes are a lightweight
+    // cross-domain lens; the main synthesis below still has the full reviewData.
+    let consultContext = ''
+    try {
+      const { takes } = await orchestrateConsultation(
+        'Hoe was mijn week qua training, voeding en herstel, en wat is de focus voor volgende week?',
+        { userId: user.id, context: reflection ?? undefined },
+      )
+      consultContext = renderTakesContext(takes)
+    } catch (consultErr) {
+      console.error('[check-in analyze] consultation failed (non-fatal):', consultErr)
+    }
+
+    // Keep the "output as JSON" directive LAST so the specialist context lands in
+    // the data section and never contaminates the structured-output contract.
+    const userMessageWithConsult = consultContext
+      ? userMessage.replace(/Geef je analyse als JSON\.$/, `${consultContext.trim()}\n\nGeef je analyse als JSON.`)
+      : userMessage
+
     // Call Claude
     const text = await createJsonCompletion({
       system,
-      userMessage,
+      userMessage: userMessageWithConsult,
       maxOutputTokens: 1024,
       model: MODEL,
       meta: { feature: 'check_in_analyze', userId: user.id },
