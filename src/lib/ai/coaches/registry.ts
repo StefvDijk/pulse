@@ -1,6 +1,14 @@
 import type { CoachConfig, CoachId } from './types'
 
 /**
+ * De coaches die vandaag live zijn. Eén bron van waarheid voor request-validatie
+ * in de chat-route, de history-route en de chat-client. Verbreed deze zodra de
+ * nutrition/health-slices landen — de registry blijft autoritatief.
+ */
+export const LIVE_COACH_IDS = ['manager', 'sport'] as const
+export type LiveCoachId = (typeof LIVE_COACH_IDS)[number]
+
+/**
  * Registry van coach-configuraties. In fase 0 (issue #35) bevat deze alleen de
  * manager; de specialisten (sport/nutrition/health) komen in latere slices.
  */
@@ -23,6 +31,11 @@ const coaches: Partial<Record<CoachId, CoachConfig>> = {
     // Afgebakend tot het trainingsdomein: schema, progressie, belasting, runs,
     // blessures (sturen de programmering) en lichaamssamenstelling (training-doel).
     // Bewust GEEN voedings-tools (diëtist) of vitals/herstel-tools (gezondheidscoach).
+    //
+    // Bekende trade-off: `get_weekly_aggregations` is de bron voor belasting/ACWR
+    // (kern-domein), maar bundelt ook slaap/voeding/rusthart. De persona stuurt de
+    // coach die cijfers naar de juiste collega; een training-only aggregatie-view
+    // is een follow-up voor de nutrition/health-slices.
     toolset: [
       'get_workout_history',
       'get_exercise_stats',

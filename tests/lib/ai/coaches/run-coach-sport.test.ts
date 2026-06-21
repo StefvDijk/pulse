@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // tests in run-coach.test.ts.
 const { streamChatMock } = vi.hoisted(() => ({
   streamChatMock: vi.fn(() => ({
-    textStream: [],
+    textStream: [] as string[],
     usage: Promise.resolve({ outputTokens: 0 }),
   })),
 }))
@@ -45,7 +45,9 @@ function seededInput(message: string): CoachRequestInput {
 }
 
 function lastStreamParams() {
-  const calls = streamChatMock.mock.calls
+  // Untyped mock args come back as empty tuples; cast to an indexable shape
+  // before reading the recorded stream params we assert on.
+  const calls = streamChatMock.mock.calls as unknown as unknown[][]
   return calls[calls.length - 1][0] as { tools?: Record<string, unknown>; system: string }
 }
 

@@ -5,6 +5,7 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
+import type { LiveCoachId } from '@/lib/ai/coaches/registry'
 
 interface Message {
   id: string
@@ -34,7 +35,7 @@ export interface ChatInterfaceProps {
   onLoadingChange?: (loading: boolean) => void
   /** Owning coach for this thread. Scopes the request + history to one coach so
    *  specialists keep their own conversation line. Defaults to the manager. */
-  coachId?: 'manager' | 'sport'
+  coachId?: LiveCoachId
   /** Static in-domain suggestions for a specialist coach (skips the AI mix). */
   suggestions?: string[]
   /** Empty-state prompt shown before the first message. */

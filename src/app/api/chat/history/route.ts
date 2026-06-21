@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { LIVE_COACH_IDS } from '@/lib/ai/coaches/registry'
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +21,13 @@ export async function GET(request: Request) {
     const sessionId = searchParams.get('session_id')
     // Scope the "most recent session" lookup to one coach so specialists keep
     // their own thread. Explicit session_id is already coach-scoped via the row.
-    const coachId = searchParams.get('coach_id') ?? 'manager'
+    // Validate against the live coaches (same set as the POST route); fall back
+    // to the manager on anything unexpected.
+    const requestedCoach = searchParams.get('coach_id')
+    const coachId =
+      requestedCoach && (LIVE_COACH_IDS as readonly string[]).includes(requestedCoach)
+        ? requestedCoach
+        : 'manager'
 
     if (sessionId) {
       // Fetch messages for specific session

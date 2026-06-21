@@ -11,7 +11,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { runCoach } from '@/lib/ai/coaches/run-coach'
-import { getCoachConfig } from '@/lib/ai/coaches/registry'
+import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
@@ -22,9 +22,9 @@ const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
   /** Owning coach for this thread. Defaults to the manager (Home / general
-   *  chat). Specialists send their own id from their tab. Only the live coaches
-   *  are accepted; nutrition/health widen this enum in later slices. */
-  coach_id: z.enum(['manager', 'sport']).default('manager'),
+   *  chat). Specialists send their own id from their tab. Validated against the
+   *  live coaches; nutrition/health widen LIVE_COACH_IDS in later slices. */
+  coach_id: z.enum(LIVE_COACH_IDS).default('manager'),
   /** Optional assistant message persisted as the opening turn of a new session.
    *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
    *  first AI message in the thread, then the user's reply continues from there. */
@@ -74,9 +74,23 @@ export async function POST(request: Request) {
     // Resolve sessionId BEFORE stream construction so we can set X-Session-Id
     // on the response headers (frontend reads it). When a session already
     // exists this is free; new-session creation costs ~50ms.
+    // A thread's coach is fixed at creation. For a new session we stamp the
+    // requested coach; for an existing one we trust the stored coach_id (not the
+    // request body) so a thread can never be answered by the wrong specialist.
     let sessionId: string
+    let effectiveCoachId: LiveCoachId = coach_id
     if (session_id) {
       sessionId = session_id
+      const { data: sessionRow } = await admin
+        .from('chat_sessions')
+        .select('coach_id')
+        .eq('id', session_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const stored = sessionRow?.coach_id
+      if (stored && (LIVE_COACH_IDS as readonly string[]).includes(stored)) {
+        effectiveCoachId = stored as LiveCoachId
+      }
     } else {
       const { data: newSession, error: sessionError } = await admin
         .from('chat_sessions')
@@ -217,7 +231,7 @@ export async function POST(request: Request) {
           // Run the request through the coach engine. The owning coach (manager
           // by default, a specialist when its tab sends coach_id) decides the
           // persona + scoped toolset; the engine seam is identical for all.
-          const result = runCoach(getCoachConfig(coach_id), {
+          const result = runCoach(getCoachConfig(effectiveCoachId), {
             userId: user.id,
             questionType,
             message,
