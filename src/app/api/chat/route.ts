@@ -21,6 +21,10 @@ export const maxDuration = 60
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
+  /** Owning coach for this thread. Defaults to the manager (Home / general
+   *  chat). Specialists send their own id from their tab. Only the live coaches
+   *  are accepted; nutrition/health widen this enum in later slices. */
+  coach_id: z.enum(['manager', 'sport']).default('manager'),
   /** Optional assistant message persisted as the opening turn of a new session.
    *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
    *  first AI message in the thread, then the user's reply continues from there. */
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { message, session_id, seed_assistant } = parsed.data
+    const { message, session_id, coach_id, seed_assistant } = parsed.data
     // Seed is only persisted on a brand-new session — once the session has any
     // history it's a no-op so a stale client can't inject a fake AI turn.
     const isNewSession = !session_id
@@ -78,6 +82,7 @@ export async function POST(request: Request) {
         .from('chat_sessions')
         .insert({
           user_id: user.id,
+          coach_id,
           title: message.slice(0, 50),
           started_at: new Date().toISOString(),
           last_message_at: new Date().toISOString(),
@@ -209,9 +214,10 @@ export async function POST(request: Request) {
               ]
             : [...historyMessages, { role: 'user' as const, content: message }]
 
-          // Run the request through the coach engine. Home = the manager coach
-          // (all tools); specialists slot in via their own routes in later slices.
-          const result = runCoach(getCoachConfig('manager'), {
+          // Run the request through the coach engine. The owning coach (manager
+          // by default, a specialist when its tab sends coach_id) decides the
+          // persona + scoped toolset; the engine seam is identical for all.
+          const result = runCoach(getCoachConfig(coach_id), {
             userId: user.id,
             questionType,
             message,

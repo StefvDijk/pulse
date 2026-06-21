@@ -408,6 +408,7 @@ export type Database = {
       }
       chat_sessions: {
         Row: {
+          coach_id: string
           created_at: string | null
           id: string
           last_message_at: string | null
@@ -417,6 +418,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coach_id?: string
           created_at?: string | null
           id?: string
           last_message_at?: string | null
@@ -426,6 +428,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coach_id?: string
           created_at?: string | null
           id?: string
           last_message_at?: string | null
