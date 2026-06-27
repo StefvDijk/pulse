@@ -27,6 +27,8 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
     setSessionKey((k) => k + 1)
   }, [])
 
+  const handleCloseHistory = useCallback(() => setHistoryOpen(false), [])
+
   return (
     <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
       <header
@@ -79,7 +81,7 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
 
       <ChatHistoryPanel
         open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
+        onClose={handleCloseHistory}
         onSelect={handleSelectSession}
         onNewChat={handleNewChat}
       />
