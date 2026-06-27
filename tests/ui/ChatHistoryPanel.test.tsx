@@ -49,3 +49,13 @@ it('deletes a session without selecting the row', async () => {
   expect(fetch).toHaveBeenCalledWith('/api/chat/sessions/s1', { method: 'DELETE' })
   expect(onSelect).not.toHaveBeenCalled()
 })
+
+it('shows an error message when sessions fail to load', async () => {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({ error: 'x', code: 'INTERNAL_ERROR' }) })) as unknown as typeof fetch)
+  render(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, shouldRetryOnError: false }}>
+      <ChatHistoryPanel open onClose={vi.fn()} onSelect={vi.fn()} onNewChat={vi.fn()} />
+    </SWRConfig>,
+  )
+  expect(await screen.findByText('Kon gesprekken niet laden.')).toBeTruthy()
+})
