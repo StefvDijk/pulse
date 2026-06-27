@@ -2,16 +2,8 @@ import { test, expect } from '@playwright/test'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Chat history panel — clock-icon trigger, panel open, new-chat reset
-// ──────────────────────────────────────────────────────────────────────────────
-
-test.describe('Chat history panel (public)', () => {
-  test('GET /chat requires authentication', async ({ request }) => {
-    const res = await request.get('/chat', { maxRedirects: 0 })
-    expect(res.status()).toBe(307)
-  })
-})
-
-// ──────────────────────────────────────────────────────────────────────────────
+//
+// Public /chat auth-redirect is already covered in tests/contextual-coach.spec.ts.
 // Authenticated tests — skipped without TEST_EMAIL/TEST_PASSWORD
 // ──────────────────────────────────────────────────────────────────────────────
 

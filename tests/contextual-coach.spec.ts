@@ -87,7 +87,7 @@ test.describe('R-023: Contextual coach (authenticated)', () => {
     await page.goto('/chat?context=exercise&name=Squat&workout=Lower+Body')
     await expect(page.getByText('Coach')).toBeVisible()
     // Click new session
-    await page.getByRole('button', { name: 'Nieuwe sessie' }).click()
+    await page.getByRole('button', { name: 'Nieuwe chat' }).click()
     // After reset, no messages from the old context
     // The input should be empty and ready
     await expect(page.locator('textarea')).toBeVisible()
