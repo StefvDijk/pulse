@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { it, expect, vi, beforeEach } from 'vitest'
 import { mockAdmin, mockServerClient } from '../../helpers/supabase-mock'
 
 const createClient = vi.fn()

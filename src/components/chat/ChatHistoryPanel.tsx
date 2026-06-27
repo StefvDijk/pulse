@@ -16,7 +16,11 @@ interface SessionsResponse {
   sessions: SessionRow[]
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json() as Promise<SessionsResponse>)
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to load sessions: ${res.status}`)
+  return res.json() as Promise<SessionsResponse>
+}
 
 function relativeDate(iso: string | null): string {
   if (!iso) return ''
@@ -36,7 +40,7 @@ export interface ChatHistoryPanelProps {
 }
 
 export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHistoryPanelProps) {
-  const { data, mutate } = useSWR(open ? '/api/chat/sessions' : null, fetcher)
+  const { data, error, mutate } = useSWR(open ? '/api/chat/sessions' : null, fetcher)
   const sessions = data?.sessions ?? []
 
   function select(id: string) {
@@ -76,7 +80,11 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
           <SquarePen size={16} strokeWidth={1.75} /> Nieuwe chat
         </button>
 
-        {sessions.length === 0 ? (
+        {error ? (
+          <p className="px-3 py-6 text-center text-body-s text-text-tertiary">
+            Kon gesprekken niet laden.
+          </p>
+        ) : sessions.length === 0 ? (
           <p className="px-3 py-6 text-center text-body-s text-text-tertiary">
             Nog geen eerdere gesprekken.
           </p>
