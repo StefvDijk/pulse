@@ -1,5 +1,4 @@
 import { Navigation } from '@/components/layout/Navigation'
-import { MiniChat } from '@/components/layout/MiniChat'
 import { OnboardingCheck } from '@/components/settings/OnboardingCheck'
 import { TimeOfDayTheme } from '@/components/shared/TimeOfDayTheme'
 import { SWRProvider } from '@/components/providers/SWRProvider'
@@ -18,7 +17,6 @@ export default function AppLayout({
       <main className="lg:pl-56 pb-[var(--nav-height)] min-h-[100dvh] pt-safe pl-safe pr-safe">
         {children}
       </main>
-      <MiniChat />
       <OnboardingCheck />
       <InstallPrompt />
     </SWRProvider>
