@@ -1,0 +1,168 @@
+<style>
+  body { background: #15171F; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .compare-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+  .variant { background: #0E1018; border-radius: 24px; overflow: hidden; cursor: pointer; transition: transform .15s, outline .15s; outline: 2px solid transparent; }
+  .variant:hover { transform: translateY(-2px); }
+  .variant.selected { outline-color: #00E5C7; }
+  .variant-label { padding: 12px 16px; background: rgba(255,255,255,0.04); border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+  .variant-label .badge { display: inline-block; background: #00E5C7; color: #0A4F45; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: 0.4px; margin-bottom: 6px; }
+  .variant-label h4 { margin: 0; font-size: 16px; font-weight: 700; }
+  .variant-label p { margin: 4px 0 0; font-size: 12px; color: rgba(245,245,247,0.66); }
+  .phone-frame { padding: 16px; min-height: 520px; position: relative; }
+
+  /* ===== Variant A: Minimal — current Pulse v2, only adopt iOS 26 type/spacing/transitions ===== */
+  .vA { background: #15171F; }
+  .vA .card { background: #1E2230; border: 0.5px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 16px; margin-bottom: 10px; }
+  .vA .hero { background: linear-gradient(135deg, rgba(0,229,199,0.18), rgba(124,58,237,0.10)); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 18px; margin-bottom: 10px; }
+  .vA .tabbar { background: #1E2230; border-top: 0.5px solid rgba(255,255,255,0.12); }
+
+  /* ===== Variant B: Selective Glass — flat content cards, glass for nav/sheets/overlays ===== */
+  .vB { background: linear-gradient(180deg, #15171F 0%, #1A1D2A 100%); }
+  .vB .card { background: #1E2230; border: 0.5px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 16px; margin-bottom: 10px; }
+  .vB .hero { background: linear-gradient(135deg, rgba(0,229,199,0.22), rgba(124,58,237,0.14)); border: 0.5px solid rgba(255,255,255,0.10); border-radius: 22px; padding: 18px; margin-bottom: 10px; }
+  .vB .tabbar { background: rgba(30,34,48,0.72); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); border-top: 0.5px solid rgba(255,255,255,0.14); }
+  .vB .nav-blob { position: absolute; top: 8px; left: 16px; right: 16px; background: rgba(30,34,48,0.55); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 0.5px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 8px 14px; font-size: 11px; color: rgba(245,245,247,0.66); display: flex; justify-content: space-between; }
+
+  /* ===== Variant C: Maximal Liquid Glass — translucent cards over a gradient bg ===== */
+  .vC { background: radial-gradient(circle at 0% 0%, rgba(124,58,237,0.30), transparent 50%), radial-gradient(circle at 100% 100%, rgba(0,229,199,0.20), transparent 60%), #0E1018; }
+  .vC .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); border: 0.5px solid rgba(255,255,255,0.14); border-radius: 24px; padding: 16px; margin-bottom: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+  .vC .hero { background: linear-gradient(135deg, rgba(255,94,58,0.30), rgba(124,58,237,0.20)); backdrop-filter: blur(32px) saturate(200%); -webkit-backdrop-filter: blur(32px) saturate(200%); border: 0.5px solid rgba(255,255,255,0.18); border-radius: 24px; padding: 18px; margin-bottom: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+  .vC .tabbar { background: rgba(30,34,48,0.50); backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%); border-top: 0.5px solid rgba(255,255,255,0.16); }
+
+  /* shared inner content */
+  .h-readiness { display: flex; align-items: baseline; gap: 12px; }
+  .h-readiness .big { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; color: #22D67A; line-height: 1; font-variant-numeric: tabular-nums; }
+  .h-readiness .lbl { font-size: 13px; color: rgba(245,245,247,0.66); }
+  .h-stats { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: rgba(245,245,247,0.46); }
+  .h-stats span b { color: #F5F5F7; font-weight: 600; font-size: 13px; display: block; }
+  .hero-title { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; color: rgba(245,245,247,0.66); text-transform: uppercase; margin-bottom: 6px; }
+  .hero-name { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 2px; }
+  .hero-meta { font-size: 12px; color: rgba(245,245,247,0.66); margin-bottom: 12px; }
+  .hero-btn { background: #FFFFFF; color: #15171F; font-size: 13px; font-weight: 700; padding: 10px 16px; border-radius: 14px; display: inline-block; }
+  .week-strip { display: flex; gap: 4px; justify-content: space-between; }
+  .week-pill { flex: 1; text-align: center; padding: 8px 0; font-size: 10px; color: rgba(245,245,247,0.66); border-radius: 10px; }
+  .week-pill.today { background: rgba(0,229,199,0.15); color: #00E5C7; }
+  .week-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #00E5C7; margin: 4px auto 0; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 18px; display: flex; justify-content: space-around; font-size: 10px; color: rgba(245,245,247,0.46); }
+  .tabbar .active { color: #F5F5F7; }
+  .header-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .header-row h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
+  .header-row p { font-size: 11px; color: rgba(245,245,247,0.46); margin: 2px 0 0; }
+  .coach-orb { width: 28px; height: 28px; border-radius: 50%; background: #D97757; box-shadow: 0 2px 8px rgba(217,119,87,0.35); }
+</style>
+
+<h2>Hoeveel Liquid Glass willen we overnemen?</h2>
+<p class="subtitle">iOS 26 leunt zwaar op translucentie. Pulse v2 is nu juist heel flat. Klik op de variant die je intuïtief het beste vindt passen bij Pulse.</p>
+
+<div class="compare-grid">
+  <!-- Variant A -->
+  <div class="variant" data-choice="a" onclick="toggleSelect(this)">
+    <div class="variant-label">
+      <span class="badge" style="background: #4FC3F7; color: #082F44;">A · MINIMAL</span>
+      <h4>Flat behouden, alleen taal lenen</h4>
+      <p>Pulse v2 zoals nu. Glass alleen impliciet via type/spacing.</p>
+    </div>
+    <div class="phone-frame vA">
+      <div class="header-row"><div><h2>Vandaag</h2><p>Wo · 13 mei</p></div><div class="coach-orb"></div></div>
+      <div class="card">
+        <div class="h-readiness"><div class="big">84</div><div class="lbl">Klaar om te<br>trainen</div></div>
+        <div class="h-stats"><span><b>62</b>HRV</span><span><b>7.8u</b>Slaap</span><span><b>52</b>RHR</span></div>
+      </div>
+      <div class="hero">
+        <div class="hero-title">VANDAAG · UPPER A</div>
+        <div class="hero-name">Bench + Pull</div>
+        <div class="hero-meta">6 oefeningen · 65 min</div>
+        <span class="hero-btn">Start workout →</span>
+      </div>
+      <div class="card">
+        <div class="week-strip">
+          <div class="week-pill">Ma<div class="dot"></div></div>
+          <div class="week-pill">Di</div>
+          <div class="week-pill today">Wo<div class="dot"></div></div>
+          <div class="week-pill">Do</div>
+          <div class="week-pill">Vr<div class="dot" style="background:#FF5E3A"></div></div>
+          <div class="week-pill">Za</div>
+          <div class="week-pill">Zo</div>
+        </div>
+      </div>
+      <div class="tabbar"><span class="active">Home</span><span>Schema</span><span>Progressie</span><span>Voeding</span><span>Coach</span></div>
+    </div>
+  </div>
+
+  <!-- Variant B -->
+  <div class="variant" data-choice="b" onclick="toggleSelect(this)">
+    <div class="variant-label">
+      <span class="badge" style="background: #00E5C7; color: #0A4F45;">B · SELECTIVE</span>
+      <h4>Glass voor nav/sheets, content blijft flat</h4>
+      <p>Tab bar, header, modals: Liquid Glass. Cards blijven solide.</p>
+    </div>
+    <div class="phone-frame vB">
+      <div class="header-row" style="position: relative; z-index: 1;"><div><h2>Vandaag</h2><p>Wo · 13 mei</p></div><div class="coach-orb"></div></div>
+      <div class="card">
+        <div class="h-readiness"><div class="big">84</div><div class="lbl">Klaar om te<br>trainen</div></div>
+        <div class="h-stats"><span><b>62</b>HRV</span><span><b>7.8u</b>Slaap</span><span><b>52</b>RHR</span></div>
+      </div>
+      <div class="hero">
+        <div class="hero-title">VANDAAG · UPPER A</div>
+        <div class="hero-name">Bench + Pull</div>
+        <div class="hero-meta">6 oefeningen · 65 min</div>
+        <span class="hero-btn">Start workout →</span>
+      </div>
+      <div class="card">
+        <div class="week-strip">
+          <div class="week-pill">Ma<div class="dot"></div></div>
+          <div class="week-pill">Di</div>
+          <div class="week-pill today">Wo<div class="dot"></div></div>
+          <div class="week-pill">Do</div>
+          <div class="week-pill">Vr<div class="dot" style="background:#FF5E3A"></div></div>
+          <div class="week-pill">Za</div>
+          <div class="week-pill">Zo</div>
+        </div>
+      </div>
+      <div class="tabbar"><span class="active">Home</span><span>Schema</span><span>Progressie</span><span>Voeding</span><span>Coach</span></div>
+    </div>
+  </div>
+
+  <!-- Variant C -->
+  <div class="variant" data-choice="c" onclick="toggleSelect(this)">
+    <div class="variant-label">
+      <span class="badge" style="background: #D97757;">C · MAXIMAL</span>
+      <h4>Liquid Glass overal: translucente cards</h4>
+      <p>Gradient background, alle cards glass + inner highlight.</p>
+    </div>
+    <div class="phone-frame vC">
+      <div class="header-row"><div><h2>Vandaag</h2><p>Wo · 13 mei</p></div><div class="coach-orb"></div></div>
+      <div class="card">
+        <div class="h-readiness"><div class="big">84</div><div class="lbl">Klaar om te<br>trainen</div></div>
+        <div class="h-stats"><span><b>62</b>HRV</span><span><b>7.8u</b>Slaap</span><span><b>52</b>RHR</span></div>
+      </div>
+      <div class="hero">
+        <div class="hero-title">VANDAAG · UPPER A</div>
+        <div class="hero-name">Bench + Pull</div>
+        <div class="hero-meta">6 oefeningen · 65 min</div>
+        <span class="hero-btn">Start workout →</span>
+      </div>
+      <div class="card">
+        <div class="week-strip">
+          <div class="week-pill">Ma<div class="dot"></div></div>
+          <div class="week-pill">Di</div>
+          <div class="week-pill today">Wo<div class="dot"></div></div>
+          <div class="week-pill">Do</div>
+          <div class="week-pill">Vr<div class="dot" style="background:#FF5E3A"></div></div>
+          <div class="week-pill">Za</div>
+          <div class="week-pill">Zo</div>
+        </div>
+      </div>
+      <div class="tabbar"><span class="active">Home</span><span>Schema</span><span>Progressie</span><span>Voeding</span><span>Coach</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 28px;">
+  <h3>Mijn aanbeveling: B · Selective</h3>
+  <p style="font-size: 14px; color: rgba(245,245,247,0.66); line-height: 1.6;">
+    Pulse is een <b>data-dichte app</b>. Maximal glass (C) zorgt voor leesbaarheidsproblemen bij grafieken, getallen en heatmaps — backdrop-blur achter charts is een bekend probleem (achtergrond bloedt door). Minimal (A) laat de iOS 26 upgrade onbenut.<br><br>
+    Selective (B) geeft je <b>de "iOS 26 feel"</b> op de plekken die het belangrijkste zijn — tab bar die over content heen drijft, modals/sheets die translucent zijn, eventueel een sticky header — maar houdt content-cards leesbaar en consistent met de huidige v2.<br><br>
+    <i>Performance bonus:</i> backdrop-filter is duur op web. Selectief inzetten houdt het soepel.
+  </p>
+</div>

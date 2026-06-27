@@ -1,0 +1,4 @@
+{"type":"server-started","port":65151,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:65151","screen_dir":"/Users/stef/Code/pulse/.superpowers/brainstorm/29318-1778696264/content","state_dir":"/Users/stef/Code/pulse/.superpowers/brainstorm/29318-1778696264/state"}
+{"type":"screen-added","file":"/Users/stef/Code/pulse/.superpowers/brainstorm/29318-1778696264/content/liquid-glass-intensity.html"}
+{"type":"screen-added","file":"/Users/stef/Code/pulse/.superpowers/brainstorm/29318-1778696264/content/waiting-1.html"}
+{"type":"server-stopped","reason":"idle timeout"}
