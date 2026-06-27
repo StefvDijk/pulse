@@ -6,6 +6,7 @@ import { ChatHistoryPanel } from '@/components/chat/ChatHistoryPanel'
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(() =>
     Promise.resolve({
+      ok: true,
       json: () => Promise.resolve({ sessions: [
         { id: 's1', title: 'Schema blok 4', last_message_at: new Date().toISOString(), message_count: 14 },
       ] }),
@@ -38,4 +39,13 @@ it('fires onNewChat from the new-chat row', async () => {
   renderPanel({ onNewChat })
   fireEvent.click(await screen.findByText('Nieuwe chat'))
   expect(onNewChat).toHaveBeenCalled()
+})
+
+it('deletes a session without selecting the row', async () => {
+  const onSelect = vi.fn()
+  renderPanel({ onSelect })
+  await screen.findByText('Schema blok 4')
+  fireEvent.click(screen.getByLabelText('Verwijder gesprek'))
+  expect(fetch).toHaveBeenCalledWith('/api/chat/sessions/s1', { method: 'DELETE' })
+  expect(onSelect).not.toHaveBeenCalled()
 })

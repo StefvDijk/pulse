@@ -46,8 +46,13 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
 
   async function remove(e: MouseEvent, id: string) {
     e.stopPropagation()
-    await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE' })
-    void mutate()
+    try {
+      const res = await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE' })
+      if (res.ok) void mutate()
+      else console.error('Failed to delete session:', res.status)
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+    }
   }
 
   function onRowKey(e: KeyboardEvent, id: string) {
