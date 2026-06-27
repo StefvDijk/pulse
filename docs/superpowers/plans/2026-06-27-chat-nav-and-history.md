@@ -735,7 +735,7 @@ git commit -m "feat(chat): history panel + resume/new wiring in ChatPage"
 - `GET /api/chat/sessions` → Task 2. ✓
 - `DELETE /api/chat/sessions/[id]` → Task 3. ✓
 - History panel (open in conversation, clock icon, resume, delete, "Nieuwe chat") → Tasks 4 + 5. ✓
-- Opens-in-conversation default → unchanged `ChatInterface` mount in Task 5 (no `sessionId` → loads latest). ✓
+- Opens-in-conversation default → **CORRECTION (post whole-branch review):** `ChatInterface` with no `sessionId` takes the `isFreshSession` path and renders an **empty** composer — it does NOT auto-load the latest session. So the Coach tab currently opens empty, not in the last conversation. This is pre-existing `ChatInterface` behaviour (untouched by this plan, not a regression) but it does NOT satisfy spec §3.2 ("opent in de actieve/laatste sessie"). **Deferred to Plan 2** (which already reworks the empty state): add "load latest session on open" so the tab opens in the ongoing conversation, with the rich empty state shown only for a genuinely new chat. Resume-via-history-panel and "Nieuwe chat" both work correctly today.
 - Nudge session-anchoring (UX-09) → explicitly deferred to Plan 2 (noted in File Structure). ✓ (not a gap — out of this plan's scope by design)
 - `attachments` migration, cards, suggestions removal → Plans 2/3 (out of scope). ✓
 
