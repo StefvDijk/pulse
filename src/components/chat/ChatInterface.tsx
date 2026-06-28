@@ -408,6 +408,10 @@ export function ChatInterface({
       {/* Message list */}
       <div
         ref={scrollContainerRef}
+        role="log"
+        aria-live="polite"
+        aria-atomic="false"
+        aria-label="Gesprek"
         className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}
       >
         {messages.length === 0 && !isLoading && (
