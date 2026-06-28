@@ -58,6 +58,7 @@
 
 **Deleted:**
 - `src/components/chat/ChatSuggestions.tsx`
+- `src/app/api/chat/suggestions/route.ts`
 
 ---
 
@@ -89,10 +90,10 @@ import {
 describe('parseCards', () => {
   it('extracts a valid workout_card', () => {
     const raw =
-      'Goed werk! <workout_card>{"name":"Squat Day","date":"2026-06-28","sport":"gym","sets":5,"duration_min":65,"highlights":["PR 120kg"]}</workout_card>'
+      'Goed werk! <workout_card>{"title":"Squat Day","date":"2026-06-28","sport":"gym","duration_min":65,"rpe":7,"exercises":[{"name":"Squat","sets":4,"reps":"6","weight_kg":80}],"highlights":["PR 80kg"]}</workout_card>'
     const cards = parseCards(raw)
     expect(cards).toHaveLength(1)
-    expect(cards[0]).toMatchObject({ type: 'workout_card', name: 'Squat Day', sport: 'gym' })
+    expect(cards[0]).toMatchObject({ type: 'workout', title: 'Squat Day', sport: 'gym' })
   })
 
   it('extracts a valid weekplan_card', () => {
@@ -116,13 +117,13 @@ describe('parseCards', () => {
   })
 
   it('silently drops a card that fails Zod validation (missing required sport)', () => {
-    const raw = '<workout_card>{"name":"Squat Day","date":"2026-06-28"}</workout_card>'
+    const raw = '<workout_card>{"title":"Squat Day","date":"2026-06-28"}</workout_card>'
     expect(parseCards(raw)).toHaveLength(0)
   })
 
   it('extracts multiple card types from one response', () => {
     const raw =
-      '<workout_card>{"name":"Squat","date":"2026-06-28","sport":"gym"}</workout_card>' +
+      '<workout_card>{"title":"Squat","date":"2026-06-28","sport":"gym"}</workout_card>' +
       '<stat_card>{"label":"Volume","value":"14000","unit":"kg"}</stat_card>'
     expect(parseCards(raw)).toHaveLength(2)
   })
@@ -181,13 +182,20 @@ import { z } from 'zod'
 // ---------------------------------------------------------------------------
 
 export const WorkoutCardSchema = z.object({
-  type: z.literal('workout_card'),
-  name: z.string().min(1).max(120),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  sport: z.enum(['gym', 'run', 'padel', 'cycle']),
-  sets: z.number().int().positive().optional(),
-  duration_min: z.number().positive().optional(),
-  highlights: z.array(z.string().max(100)).max(4).optional(),
+  type: z.literal('workout'),
+  title: z.string(),
+  date: z.string(),               // ISO date or relative label, e.g. "morgen"
+  sport: z.string(),              // e.g. "gym", "run", "padel"
+  duration_min: z.number().optional(),
+  rpe: z.number().optional(),
+  exercises: z.array(z.object({
+    name: z.string(),
+    sets: z.number().optional(),
+    reps: z.string().optional(),   // "6" or "8-10"
+    weight_kg: z.number().optional(),
+    note: z.string().optional(),
+  })).optional(),
+  highlights: z.array(z.string()).optional(),
 })
 export type WorkoutCardData = z.infer<typeof WorkoutCardSchema>
 
@@ -272,7 +280,7 @@ export function parseCards(rawText: string): AnyCard[] {
     const raw =
       typeof json === 'object' && json !== null ? (json as Record<string, unknown>) : {}
     let result: ReturnType<typeof WorkoutCardSchema.safeParse>
-    if (tag === 'workout_card') result = WorkoutCardSchema.safeParse({ ...raw, type: tag })
+    if (tag === 'workout_card') result = WorkoutCardSchema.safeParse({ ...raw, type: 'workout' })
     else if (tag === 'weekplan_card') result = WeekplanCardSchema.safeParse({ ...raw, type: tag })
     else result = StatCardSchema.safeParse({ ...raw, type: tag })
     if (result.success) {
@@ -312,7 +320,7 @@ export function stripCardTagsFromText(text: string): string {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run tests/lib/chat/cards.test.ts`
-Expected: PASS (9 tests).
+Expected: PASS (11 tests).
 
 - [ ] **Step 5: Add card-tag test to strip-stream-tags test file**
 
@@ -322,7 +330,7 @@ Append one `it()` inside the existing `describe('createStreamTagStripper', ...)`
 it('strips workout_card when included in tag list', () => {
   const s = createStreamTagStripper(['workout_card'])
   let out = ''
-  out += s.feed('<workout_card>{"name":"Squat Day","date":"2026-06-28","sport":"gym"}</workout_card>')
+  out += s.feed('<workout_card>{"title":"Squat Day","date":"2026-06-28","sport":"gym"}</workout_card>')
   out += s.feed('Goed werk!')
   out += s.flush()
   expect(out).toBe('Goed werk!')
@@ -574,9 +582,22 @@ afterEach(() => { cleanup() })
 
 describe('CardRenderer', () => {
   it('renders WorkoutCard for workout_card', () => {
-    const card: AnyCard = { type: 'workout_card', name: 'Squat Day', date: '2026-06-28', sport: 'gym' }
+    const card: AnyCard = { type: 'workout', title: 'Squat Day', date: '2026-06-28', sport: 'gym' }
     const { getByText } = render(<CardRenderer card={card} />)
     expect(getByText('Squat Day')).toBeTruthy()
+  })
+
+  it('renders exercise row with sets × reps and weight', () => {
+    const card: AnyCard = {
+      type: 'workout',
+      title: 'Push Day',
+      date: '2026-06-28',
+      sport: 'gym',
+      exercises: [{ name: 'Bench Press', sets: 4, reps: '6', weight_kg: 80 }],
+    }
+    const { getByText } = render(<CardRenderer card={card} />)
+    expect(getByText('4 × 6')).toBeTruthy()
+    expect(getByText('@ 80kg')).toBeTruthy()
   })
 
   it('renders WeekplanCard for weekplan_card', () => {
@@ -635,21 +656,39 @@ export function WorkoutCard({ data }: WorkoutCardProps) {
     SPORT_STYLES[data.sport] ?? 'text-text-secondary bg-white/[0.06] border-white/[0.1]'
   return (
     <div className="mt-2 rounded-[13px] border-[0.5px] border-white/[0.08] bg-white/[0.04] px-3 py-2.5">
+      {/* Header: sport badge · title · optional duration · optional RPE */}
       <div className="flex items-center gap-2">
         <span
-          className={`rounded-full border-[0.5px] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] ${sportStyle}`}
+          className={`shrink-0 rounded-full border-[0.5px] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] ${sportStyle}`}
         >
           {SPORT_LABELS[data.sport] ?? data.sport}
         </span>
-        <span className="text-caption1 text-text-tertiary">{data.date}</span>
+        <span className="flex-1 truncate text-body font-semibold text-text-primary">{data.title}</span>
         {data.duration_min != null && (
-          <span className="ml-auto text-caption1 text-text-tertiary">{data.duration_min} min</span>
+          <span className="shrink-0 text-caption1 text-text-tertiary">{data.duration_min} min</span>
+        )}
+        {data.rpe != null && (
+          <span className="shrink-0 text-caption1 text-text-tertiary">RPE {data.rpe}</span>
         )}
       </div>
-      <p className="mt-1 text-body font-semibold text-text-primary">{data.name}</p>
-      {data.sets != null && (
-        <p className="mt-0.5 text-caption1 text-text-secondary">{data.sets} sets</p>
+      <p className="mt-0.5 text-caption1 text-text-tertiary">{data.date}</p>
+      {/* Exercise rows: name · sets × reps · @ weight_kg kg */}
+      {data.exercises && data.exercises.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {data.exercises.map((ex, i) => (
+            <div key={i} className="flex items-baseline gap-2 text-caption1">
+              <span className="flex-1 truncate text-text-secondary">{ex.name}</span>
+              {ex.sets != null && ex.reps != null && (
+                <span className="shrink-0 text-text-tertiary">{ex.sets} × {ex.reps}</span>
+              )}
+              {ex.weight_kg != null && (
+                <span className="shrink-0 text-text-tertiary">@ {ex.weight_kg}kg</span>
+              )}
+            </div>
+          ))}
+        </div>
       )}
+      {/* Highlights */}
       {data.highlights && data.highlights.length > 0 && (
         <ul className="mt-1.5 space-y-0.5">
           {data.highlights.map((h, i) => (
@@ -780,7 +819,7 @@ export interface CardRendererProps {
 }
 
 export function CardRenderer({ card }: CardRendererProps) {
-  if (card.type === 'workout_card') return <WorkoutCard data={card} />
+  if (card.type === 'workout') return <WorkoutCard data={card} />
   if (card.type === 'weekplan_card') return <WeekplanCard data={card} />
   if (card.type === 'stat_card') return <StatCard data={card} />
   if (card.type === 'writeback_card') return <WritebackCard data={card} />
@@ -802,7 +841,7 @@ export { WritebackCard } from './WritebackCard'
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `pnpm vitest run tests/ui/CardRenderer.test.tsx`
-Expected: PASS (4 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -1115,6 +1154,54 @@ Expected: output includes `chat-rich-ui.spec.ts` with 2 tests.
 ```bash
 git add src/components/chat/ChatMessage.tsx src/components/chat/ChatInterface.tsx src/lib/ai/prompts/chat-system.ts tests/chat-rich-ui.spec.ts
 git commit -m "feat(chat): wire __card SSE to ChatInterface/ChatMessage; add card-tag contract to system prompt"
+```
+
+---
+
+### Task A5: Remove dead chat-suggestions API route and hooks
+
+**Files:**
+- Delete: `src/app/api/chat/suggestions/route.ts`
+- Modify: any files in `src/components/chat`, `src/hooks`, or `src/app/api` that still reference chat suggestions after Task C1
+
+**Interfaces:**
+- Consumes: nothing new.
+- Produces: the suggestions API route and all dangling client-side chat-suggestions imports/hooks are gone.
+
+> **Ordering note:** Task C1 deletes `ChatSuggestions.tsx` and removes its imports/state from `ChatInterface.tsx`. Run A5 **after C1** to avoid touching those files twice. If following strict phase order (A → B → C), defer A5 until after Phase C Task C1 is complete.
+
+- [ ] **Step 1: Delete the suggestions API route**
+
+```bash
+git rm src/app/api/chat/suggestions/route.ts
+```
+
+- [ ] **Step 2: Find and remove remaining chat-suggestions references**
+
+```bash
+grep -rn "suggestions" src/app/api src/components/chat src/hooks
+```
+
+Review the output. Remove any imports, hooks (`useChatSuggestions`, etc.), or references that are related to **chat suggestions specifically** — do NOT touch unrelated "suggestions" (e.g. check-in suggestions, coach feature proposals, or any other domain feature named "suggestions").
+
+- [ ] **Step 3: Verify**
+
+```bash
+grep -rn "suggestions" src/app/api src/components/chat src/hooks
+```
+
+Expected: no chat-suggestions entries remain (unrelated uses are fine).
+
+Run: `pnpm typecheck`
+Expected: PASS — no dangling imports.
+
+Run: `pnpm test`
+Expected: green.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "chore(chat): remove dead chat-suggestions API route and hooks"
 ```
 
 ---
@@ -1838,6 +1925,8 @@ git add src/components/chat/ChatInterface.tsx src/components/chat/ChatPage.tsx
 git commit -m "feat(chat): open-in-last-session default + forceNew prop for Nieuwe chat (spec §3.2)"
 ```
 
+> **Architecture note — home-header CoachOrb shortcut:** The CoachOrb button in the home header navigates to `/chat` and requires **no change**. After Phase C, a bare `/chat` mount auto-loads the last session via `forceNew=false` (the new default). The "Nieuwe chat" (pencil/SquarePen) button in the chat header remains the only entry point for starting a fresh chat.
+
 ---
 
 ## Phase D — Entry polish
@@ -1982,8 +2071,9 @@ git commit -m "fix(chat): AI-01 wrap fire-and-forget extractors in after() for V
 | Rich empty hero | §3.3 | Task C1 |
 | Time-separators | §3.3 | Task B1 |
 | Card-tag contract in system prompt | §3.4 | Task A4 |
+| Chat-suggestions API + hook removal | — | Task A5 |
 
-**Out of scope (Plan 3):** `§3.5` photo attachments, `POST /api/chat/attachments`, `chat-attachments` migration, multimodal image blocks. **Also out of scope:** `/api/chat/suggestions` route cleanup (YAGNI, can be removed in a separate chore PR).
+**Out of scope (Plan 3):** `§3.5` photo attachments, `POST /api/chat/attachments`, `chat-attachments` migration, multimodal image blocks.
 
 ### 2. Placeholder scan
 
@@ -2007,6 +2097,7 @@ Tasks must be applied in phase order. Within a phase, tasks are independent **ex
 - C2 requires C1 (both modify `ChatInterface`).
 - D1 requires C2 (`signalId` prop and `handleSessionCreated` already exist in `ChatPage`).
 - D2 is already done in A2; only verification is needed.
+- A5 requires C1 (C1 deletes `ChatSuggestions.tsx` and removes its imports; A5 handles the remaining API route + hook cleanup). Although labelled Phase A, run A5 after C1.
 
 ### 5. Database note
 
