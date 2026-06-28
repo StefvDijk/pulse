@@ -6,11 +6,15 @@ import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import type { LiveCoachId } from '@/lib/ai/coaches/registry'
+import { AnyCardSchema } from '@/lib/ai/chat/cards'
+import type { AnyCard } from '@/lib/ai/chat/cards'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  created_at?: string | null
+  cards?: AnyCard[]
 }
 
 interface ChatHistoryResponse {
@@ -257,6 +261,7 @@ export function ChatInterface({
         const decoder = new TextDecoder()
         let accumulated = ''
         let errorEvent: { code: string; message: string } | null = null
+        let pendingCards: AnyCard[] = []
 
         while (true) {
           const { done, value } = await reader.read()
@@ -294,6 +299,15 @@ export function ChatInterface({
                   code: e.code ?? 'AI_GENERIC_ERROR',
                   message: e.message ?? 'Er ging iets mis bij het genereren van het antwoord.',
                 }
+              } else if (
+                parsed &&
+                typeof parsed === 'object' &&
+                '__card' in parsed
+              ) {
+                const cardResult = AnyCardSchema.safeParse(
+                  (parsed as { __card: unknown }).__card,
+                )
+                if (cardResult.success) pendingCards.push(cardResult.data)
               }
             } catch {
               // skip malformed
@@ -317,6 +331,8 @@ export function ChatInterface({
             id: `assistant-${Date.now()}`,
             role: 'assistant',
             content: accumulated,
+            created_at: new Date().toISOString(),
+            cards: pendingCards.length > 0 ? [...pendingCards] : undefined,
           }
           setMessages((prev) => [...prev, assistantMsg])
         }
@@ -401,7 +417,13 @@ export function ChatInterface({
         )}
 
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
+          <ChatMessage
+            key={msg.id}
+            role={msg.role}
+            content={msg.content}
+            timestamp={msg.created_at}
+            cards={msg.cards}
+          />
         ))}
 
         {/* Streaming message — show empty bubble with typing indicator
