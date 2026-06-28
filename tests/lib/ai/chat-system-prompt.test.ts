@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt } from '@/lib/ai/prompts/chat-system'
+import { parseCards } from '@/lib/ai/chat/cards'
 
 describe('buildSystemPrompt (chat)', () => {
   it('includes coach-core persona (wijze expert)', () => {
@@ -50,5 +51,31 @@ describe('buildSystemPrompt (chat)', () => {
     expect(() =>
       buildSystemPrompt({ coachTone: 'scientific' }),
     ).not.toThrow()
+  })
+
+  it('documents the informational card-tag contract', () => {
+    const text = buildSystemPrompt({})
+    expect(text).toMatch(/<workout_card>/)
+    expect(text).toMatch(/<weekplan_card>/)
+    expect(text).toMatch(/<stat_card>/)
+  })
+
+  it('card-tag examples parse against the live Zod schemas (contract alignment)', () => {
+    // The examples embedded in the prompt MUST round-trip through the same
+    // parser the route uses, or the coach will emit cards that silently fail
+    // safeParse and never render. Guards the field-name contract (e.g. workout
+    // uses `title` + `exercises[]`, not a top-level `name`/`sets`).
+    const text = buildSystemPrompt({})
+    const cards = parseCards(text)
+    const types = cards.map((c) => c.type).sort()
+    expect(types).toEqual(['stat_card', 'weekplan_card', 'workout'])
+  })
+
+  it('workout_card example uses the schema field names (title + exercises, no top-level sets)', () => {
+    const text = buildSystemPrompt({})
+    const example = text.match(/<workout_card>([\s\S]*?)<\/workout_card>/)?.[1] ?? ''
+    expect(example).toContain('"title"')
+    expect(example).toContain('"exercises"')
+    expect(example).not.toMatch(/"name"\s*:\s*"Naam/)
   })
 })

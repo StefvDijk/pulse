@@ -37,7 +37,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   }
 
   return (
-    <div className="flex items-end gap-2 rounded-card-lg bg-bg-surface border-[0.5px] border-bg-border px-4 py-2 min-h-[44px]">
+    <div className="flex items-end gap-2 rounded-card-lg bg-bg-surface border-[0.5px] border-bg-border px-4 py-2 min-h-[44px] focus-within:ring-2 focus-within:ring-[var(--color-sport-gym-base)]/60 transition-shadow">
       <textarea
         ref={textareaRef}
         value={value}
@@ -45,14 +45,15 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         onKeyDown={handleKeyDown}
         onInput={handleInput}
         placeholder="Stel een vraag of log een maaltijd..."
+        aria-label="Bericht aan coach"
         rows={1}
         disabled={isLoading}
         enterKeyHint="send"
         className="flex-1 resize-none bg-transparent text-body text-text-primary outline-none placeholder:text-text-tertiary py-1.5"
         style={{ maxHeight: '160px' }}
-        autoFocus
       />
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"

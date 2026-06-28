@@ -10,6 +10,7 @@ import {
 import { writeBlockSummary } from '@/lib/training/write-block-summary'
 import { insertProgramSchema, validateProgramProposalForUser } from '@/lib/training/program-save'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
+import { makeWritebackCard, type WritebackCardData } from './cards'
 
 // ---------------------------------------------------------------------------
 // Chat write-backs (audit #22 + #40).
@@ -85,6 +86,8 @@ export interface WritebackOutcome {
   ok: boolean
   /** A line to append to the answer when the write failed or was blocked. */
   correction?: string
+  /** Confirmation card sent to the frontend after a successful write. */
+  card?: WritebackCardData
 }
 
 async function applyNutrition(userId: string, raw: string): Promise<WritebackOutcome> {
@@ -95,7 +98,7 @@ async function applyNutrition(userId: string, raw: string): Promise<WritebackOut
   }
   try {
     await analyzeNutrition({ userId, input: parsed.data.input })
-    return { kind: 'nutrition', ok: true }
+    return { kind: 'nutrition', ok: true, card: makeWritebackCard('nutrition') }
   } catch (err) {
     console.error('[chat] nutrition write-back failed:', err)
     return { kind: 'nutrition', ok: false, correction: 'Het loggen van je voeding ging mis — probeer het opnieuw.' }
@@ -120,7 +123,7 @@ async function applyInjury(admin: Admin, userId: string, raw: string): Promise<W
     console.error('[chat] injury insert failed:', error)
     return { kind: 'injury', ok: false, correction: 'Het vastleggen van je blessure ging mis — probeer het opnieuw.' }
   }
-  return { kind: 'injury', ok: true }
+  return { kind: 'injury', ok: true, card: makeWritebackCard('injury') }
 }
 
 async function applySchemaGeneration(
@@ -185,7 +188,7 @@ async function applySchemaGeneration(
         console.error('[chat] block summary write failed:', err),
       )
     }
-    return { kind: 'schema_generation', ok: true }
+    return { kind: 'schema_generation', ok: true, card: makeWritebackCard('schema_generation') }
   } catch (err) {
     console.error('[chat] schema generation write-back failed:', err)
     return { kind: 'schema_generation', ok: false, correction: 'Het opslaan van het schema ging mis — probeer het opnieuw.' }
@@ -207,7 +210,7 @@ async function applySchemaUpdateWriteback(
     if (!result.applied) {
       return { kind: 'schema_update', ok: false, correction: `Schema-aanpassing niet doorgevoerd: ${result.description}` }
     }
-    return { kind: 'schema_update', ok: true }
+    return { kind: 'schema_update', ok: true, card: makeWritebackCard('schema_update') }
   } catch (err) {
     console.error('[chat] schema update write-back failed:', err)
     return { kind: 'schema_update', ok: false, correction: 'De schema-aanpassing ging mis — probeer het opnieuw.' }

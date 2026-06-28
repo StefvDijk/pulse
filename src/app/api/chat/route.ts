@@ -13,6 +13,9 @@ import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
+import { after } from 'next/server'
+import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
+import { classifyStreamError, type StreamErrorEvent } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -26,47 +29,6 @@ const RequestSchema = z.object({
    *  first AI message in the thread, then the user's reply continues from there. */
   seed_assistant: z.string().min(1).max(4000).optional(),
 })
-
-// ── Error classification ──────────────────────────────────────────────────────
-
-interface StreamErrorEvent {
-  __error: true
-  code: 'AI_AUTH_ERROR' | 'AI_RATE_LIMIT' | 'AI_TIMEOUT' | 'AI_GENERIC_ERROR'
-  message: string
-}
-
-function classifyStreamError(err: unknown): StreamErrorEvent {
-  const e = err as { name?: string; statusCode?: number; message?: string }
-  if (e?.name === 'AI_APICallError') {
-    if (e.statusCode === 401 || e.statusCode === 403) {
-      return {
-        __error: true,
-        code: 'AI_AUTH_ERROR',
-        message:
-          'AI is tijdelijk niet bereikbaar (auth-fout). Beheerder is gewaarschuwd — probeer het later opnieuw.',
-      }
-    }
-    if (e.statusCode === 429) {
-      return {
-        __error: true,
-        code: 'AI_RATE_LIMIT',
-        message: 'Te veel verzoeken naar de AI. Probeer het over 30 seconden opnieuw.',
-      }
-    }
-  }
-  if (e?.name === 'AbortError' || /timeout/i.test(e?.message ?? '')) {
-    return {
-      __error: true,
-      code: 'AI_TIMEOUT',
-      message: 'AI-antwoord duurde te lang. Probeer een kortere vraag.',
-    }
-  }
-  return {
-    __error: true,
-    code: 'AI_GENERIC_ERROR',
-    message: 'Er ging iets mis bij het genereren van het antwoord. Probeer het opnieuw.',
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -281,7 +243,7 @@ export async function POST(request: Request) {
           // Strip write-back tags from the DISPLAYED stream so the user never
           // sees `<schema_generation>{...}</schema_generation>` type out, while
           // fullResponse keeps the raw text for post-stream write-back parsing.
-          const stripper = createStreamTagStripper(CHAT_WRITEBACK_TAGS)
+          const stripper = createStreamTagStripper([...CHAT_WRITEBACK_TAGS, ...CHAT_CARD_TAGS])
           for await (const chunk of result.textStream) {
             fullResponse += chunk
             const visible = stripper.feed(chunk)
@@ -292,7 +254,11 @@ export async function POST(request: Request) {
 
           // Process write-backs after full response
           const parsed = parseWritebacks(fullResponse)
-          const { cleanText, citedMemories } = parsed
+          const infoCards = parseCards(fullResponse)
+          // Strip card tags from cleanText before DB save (the stream stripper already
+          // removed them from the displayed stream; here we fix the stored copy).
+          const cleanText = stripCardTagsFromText(parsed.cleanText)
+          const { citedMemories } = parsed
 
           // Save assistant message (clean text).
           // [B9] usage fetch must not block the DB save: if Anthropic returns
@@ -364,17 +330,31 @@ export async function POST(request: Request) {
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', sessionId)
 
+          // Emit card events: write-back confirmations + informational cards.
+          // Must precede [DONE] so the frontend receives them in the same read loop.
+          const confirmCards = outcomes
+            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } => o.ok && o.card !== undefined)
+            .map((o) => o.card)
+          for (const card of [...infoCards, ...confirmCards]) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`),
+            )
+          }
+
           // Fire memory + belief extraction after response is sent —
           // non-blocking. Skip greetings: "hoi" carries no lifestyle signal,
           // so running two paid Haiku extractors on it is pure waste (audit #21).
           if (questionType !== 'simple_greeting') {
-            extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
-
-            runBeliefExtractor({
-              userId: user.id,
-              scope: 'lifestyle',
-              eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
-            }).catch(console.error)
+            after(async () => {
+              await extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+            })
+            after(async () => {
+              await runBeliefExtractor({
+                userId: user.id,
+                scope: 'lifestyle',
+                eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
+              }).catch(console.error)
+            })
           }
 
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))

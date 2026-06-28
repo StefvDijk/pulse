@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
+import { TimeSeparator } from './TimeSeparator'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
+import { parseCardEvent } from '@/lib/ai/chat/cards'
+import type { AnyCard } from '@/lib/ai/chat/cards'
+import { dayKeyAmsterdam, todayAmsterdam, diffDayKeys } from '@/lib/time/amsterdam'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  created_at?: string | null
+  cards?: AnyCard[]
 }
 
 interface ChatHistoryResponse {
@@ -35,6 +41,17 @@ export interface ChatInterfaceProps {
 }
 
 const NEAR_BOTTOM_PX = 120
+
+export function messageDateLabel(iso: string): string {
+  const diff = diffDayKeys(dayKeyAmsterdam(iso), todayAmsterdam())
+  if (diff === 0) return 'Vandaag'
+  if (diff === 1) return 'Gisteren'
+  return new Intl.DateTimeFormat('nl-NL', {
+    timeZone: 'Europe/Amsterdam',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(iso))
+}
 
 export function ChatInterface({
   sessionId: initialSessionId,
@@ -84,7 +101,7 @@ export function ChatInterface({
     if (isFreshSession) {
       // Show empty state immediately; seed assistant nudge if provided.
       if (seededAssistant) {
-        setMessages([{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }])
+        setMessages([{ id: 'seed-assistant', role: 'assistant', content: seededAssistant, created_at: new Date().toISOString() }])
         setShowSuggestions(false)
       }
       setIsInitializing(false)
@@ -103,6 +120,7 @@ export function ChatInterface({
           id: m.id,
           role: m.role as 'user' | 'assistant',
           content: m.content,
+          created_at: m.created_at,
         }))
         // Seed a fresh thread with the coach nudge as the first AI message.
         // Skipped when history already exists so we don't duplicate after reload.
@@ -111,6 +129,7 @@ export function ChatInterface({
             id: 'seed-assistant',
             role: 'assistant',
             content: seededAssistant,
+            created_at: new Date().toISOString(),
           })
         }
         setMessages(loaded)
@@ -202,6 +221,7 @@ export function ChatInterface({
         id: `user-${Date.now()}`,
         role: 'user',
         content: message,
+        created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, userMsg])
       setStreamingContent('')
@@ -245,6 +265,7 @@ export function ChatInterface({
         const decoder = new TextDecoder()
         let accumulated = ''
         let errorEvent: { code: string; message: string } | null = null
+        const pendingCards: AnyCard[] = []
 
         while (true) {
           const { done, value } = await reader.read()
@@ -282,6 +303,13 @@ export function ChatInterface({
                   code: e.code ?? 'AI_GENERIC_ERROR',
                   message: e.message ?? 'Er ging iets mis bij het genereren van het antwoord.',
                 }
+              } else if (
+                parsed &&
+                typeof parsed === 'object' &&
+                '__card' in parsed
+              ) {
+                const card = parseCardEvent(parsed)
+                if (card) pendingCards.push(card)
               }
             } catch {
               // skip malformed
@@ -305,6 +333,8 @@ export function ChatInterface({
             id: `assistant-${Date.now()}`,
             role: 'assistant',
             content: accumulated,
+            created_at: new Date().toISOString(),
+            cards: pendingCards.length > 0 ? [...pendingCards] : undefined,
           }
           setMessages((prev) => [...prev, assistantMsg])
         }
@@ -378,6 +408,10 @@ export function ChatInterface({
       {/* Message list */}
       <div
         ref={scrollContainerRef}
+        role="log"
+        aria-live="polite"
+        aria-atomic="false"
+        aria-label="Gesprek"
         className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}
       >
         {messages.length === 0 && !isLoading && (
@@ -388,9 +422,26 @@ export function ChatInterface({
           </div>
         )}
 
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
-        ))}
+        {messages.map((msg, i) => {
+          const prev = i > 0 ? messages[i - 1] : null
+          const showSeparator =
+            msg.created_at != null &&
+            (prev?.created_at == null ||
+              dayKeyAmsterdam(msg.created_at) !== dayKeyAmsterdam(prev.created_at))
+          return (
+            <Fragment key={msg.id}>
+              {showSeparator && (
+                <TimeSeparator dateLabel={messageDateLabel(msg.created_at!)} />
+              )}
+              <ChatMessage
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.created_at}
+                cards={msg.cards}
+              />
+            </Fragment>
+          )
+        })}
 
         {/* Streaming message — show empty bubble with typing indicator
             the instant the server flushes its __thinking event, even
