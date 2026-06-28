@@ -183,12 +183,35 @@ Gebruik de id-prefixes (eerste 8 chars) zoals ze in "MIJN GEHEUGEN OVER JOU" ver
 ${customInstructions.trim()}`
     : ''
 
+  const cardInstructions = `### Informatiekaarten (optioneel — gebruik spaarzaam)
+Gebruik de volgende tags om een gestructureerde kaart mee te sturen naast je antwoord.
+De app stript ze uit de zichtbare tekst en toont ze als kaarten onder je bericht.
+Gebruik ze alleen als de kaart echt meer waarde toevoegt dan proza, en vul alleen bekende waarden in.
+
+\`\`\`
+<workout_card>{"name":"Naam van de training","date":"YYYY-MM-DD","sport":"gym|run|padel|cycle","sets":<n>,"duration_min":<n>,"highlights":["key insight"]}</workout_card>
+\`\`\`
+Gebruik voor: een specifieke workout samenvatten of uitlichten.
+
+\`\`\`
+<weekplan_card>{"week":"YYYY-W##","sessions":[{"day":"monday","focus":"Upper A","duration_min":55}],"note":"optionele toelichting"}</weekplan_card>
+\`\`\`
+Gebruik voor: een weekoverzicht van het trainingsplan tonen.
+
+\`\`\`
+<stat_card>{"label":"Bench 1RM","value":"92.5","unit":"kg","trend":"up","context":"+2.5kg vs vorige blok"}</stat_card>
+\`\`\`
+Gebruik voor: één concrete statistiek uitlichten (PR, volume, gewicht, trend).
+
+Regels: één tag per type per antwoord · \`trend\` alleen als je het echt weet · nooit schatten.`
+
   // STATIC: persona, kennis, profiel, custom-instructies, write-backs, tool-uitleg.
   // Identiek tussen turns → cacheable prefix.
   const systemStatic = [
     staticSections,
     customSection,
     writeBackInstructions,
+    cardInstructions,
     'Je ontvangt een DATA-CONTEXT blok met actuele gegevens. Gebruik deze data om je antwoorden te personaliseren.',
   ]
     .filter(Boolean)

@@ -4,40 +4,30 @@ import { memo } from 'react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CoachOrb } from '@/components/shared/CoachOrb'
+import { CardRenderer } from '@/components/chat/cards/CardRenderer'
+import type { AnyCard } from '@/lib/ai/chat/cards'
 
 export interface ChatMessageProps {
   role: 'user' | 'assistant'
   content: string
   isStreaming?: boolean
+  timestamp?: string | null
+  cards?: AnyCard[]
 }
 
-// Module-level so react-markdown sees a stable reference across renders.
-// Inline objects break memoization and re-create render functions on every chunk.
 const MARKDOWN_COMPONENTS: Components = {
   h1: ({ children }) => (
-    <h1 className="mb-2 mt-3 text-headline font-semibold text-text-primary">
-      {children}
-    </h1>
+    <h1 className="mb-2 mt-3 text-headline font-semibold text-text-primary">{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-1.5 mt-3 text-subhead font-semibold text-text-primary">
-      {children}
-    </h2>
+    <h2 className="mb-1.5 mt-3 text-subhead font-semibold text-text-primary">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mb-1 mt-2 text-subhead font-medium text-text-secondary">
-      {children}
-    </h3>
+    <h3 className="mb-1 mt-2 text-subhead font-medium text-text-secondary">{children}</h3>
   ),
-  p: ({ children }) => (
-    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-  ),
-  ul: ({ children }) => (
-    <ul className="mb-2 ml-4 list-disc space-y-0.5">{children}</ul>
-  ),
-  ol: ({ children }) => (
-    <ol className="mb-2 ml-4 list-decimal space-y-0.5">{children}</ol>
-  ),
+  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
   li: ({ children }) => <li className="text-subhead">{children}</li>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   code: ({ children }) => (
@@ -54,9 +44,7 @@ const MARKDOWN_COMPONENTS: Components = {
     <thead className="border-b border-bg-border">{children}</thead>
   ),
   th: ({ children }) => (
-    <th className="px-2 py-1 text-left font-medium text-text-secondary">
-      {children}
-    </th>
+    <th className="px-2 py-1 text-left font-medium text-text-secondary">{children}</th>
   ),
   td: ({ children }) => (
     <td className="px-2 py-1 border-b border-bg-border">{children}</td>
@@ -66,43 +54,83 @@ const MARKDOWN_COMPONENTS: Components = {
 
 const REMARK_PLUGINS = [remarkGfm]
 
-function ChatMessageImpl({ role, content, isStreaming }: ChatMessageProps) {
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
+function ChatMessageImpl({ role, content, isStreaming, timestamp, cards }: ChatMessageProps) {
   const isUser = role === 'user'
 
   if (isUser) {
     return (
-      <div className="flex justify-end">
-        <div
-          className="max-w-[80%] bg-bg-elevated text-text-primary text-subhead px-4 py-2.5"
-          style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) 6px var(--radius-card-md)' }}
-        >
-          <p className="whitespace-pre-wrap">{content}</p>
+      <div className="flex flex-col items-end">
+        <div className="flex justify-end">
+          <div
+            className="max-w-[80%] bg-bg-elevated text-text-primary text-subhead px-4 py-2.5"
+            style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) 6px var(--radius-card-md)' }}
+          >
+            <p className="whitespace-pre-wrap">{content}</p>
+          </div>
         </div>
+        {timestamp && !isStreaming && (
+          <time
+            dateTime={timestamp}
+            className="mt-0.5 pr-1 text-[10px] text-text-tertiary"
+          >
+            {formatTime(timestamp)}
+          </time>
+        )}
       </div>
     )
   }
 
-  // Assistant bubble — CoachOrb avatar on the left
+  // Assistant bubble
   return (
-    <div className="flex items-end gap-2">
-      <CoachOrb size={20} state={isStreaming ? 'streaming' : 'idle'} className="mb-0.5 shrink-0 self-end" />
-      <div
-        className="max-w-[85%] bg-gradient-coach text-text-primary text-subhead px-4 py-2.5 border-[0.5px] border-white/[0.08]"
-        style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) var(--radius-card-md) 6px' }}
-      >
-        <div className="max-w-none">
-          <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
-            {content}
-          </Markdown>
-          {isStreaming && content.length === 0 && (
-            <span className="inline-flex gap-1 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:300ms]" />
-            </span>
+    <div className="flex flex-col">
+      <div className="flex items-end gap-2">
+        <CoachOrb
+          size={20}
+          state={isStreaming ? 'streaming' : 'idle'}
+          className="mb-0.5 shrink-0 self-end"
+        />
+        <div
+          className="max-w-[85%] bg-gradient-coach text-text-primary text-subhead px-4 py-2.5 border-[0.5px] border-white/[0.08]"
+          style={{ borderRadius: 'var(--radius-card-md) var(--radius-card-md) var(--radius-card-md) 6px' }}
+        >
+          <div className="max-w-none">
+            <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+              {content}
+            </Markdown>
+            {isStreaming && content.length === 0 && (
+              <span className="inline-flex gap-1 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary animate-bounce [animation-delay:300ms]" />
+              </span>
+            )}
+          </div>
+          {/* Cards render below prose, inside the bubble */}
+          {cards && cards.length > 0 && (
+            <div className="mt-1">
+              {cards.map((card, i) => (
+                <CardRenderer key={`${card.type}-${i}`} card={card} />
+              ))}
+            </div>
           )}
         </div>
       </div>
+      {timestamp && !isStreaming && (
+        <time
+          dateTime={timestamp}
+          className="mt-0.5 ml-7 text-[10px] text-text-tertiary"
+        >
+          {formatTime(timestamp)}
+        </time>
+      )}
     </div>
   )
 }
