@@ -15,6 +15,7 @@ import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coach
 import { planConsultation, orchestrateConsultation, renderTakesBlock } from '@/lib/ai/coaches/consult'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 import { runAfterResponse } from '@/lib/runtime/after-response'
+import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -270,7 +271,7 @@ export async function POST(request: Request) {
           // Strip write-back tags from the DISPLAYED stream so the user never
           // sees `<schema_generation>{...}</schema_generation>` type out, while
           // fullResponse keeps the raw text for post-stream write-back parsing.
-          const stripper = createStreamTagStripper(CHAT_WRITEBACK_TAGS)
+          const stripper = createStreamTagStripper([...CHAT_WRITEBACK_TAGS, ...CHAT_CARD_TAGS])
           for await (const chunk of result.textStream) {
             fullResponse += chunk
             const visible = stripper.feed(chunk)
@@ -281,7 +282,11 @@ export async function POST(request: Request) {
 
           // Process write-backs after full response
           const parsed = parseWritebacks(fullResponse)
-          const { cleanText, citedMemories } = parsed
+          const infoCards = parseCards(fullResponse)
+          // Strip card tags from cleanText before DB save (the stream stripper already
+          // removed them from the displayed stream; here we fix the stored copy).
+          const cleanText = stripCardTagsFromText(parsed.cleanText)
+          const { citedMemories } = parsed
 
           // Save assistant message (clean text).
           // [B9] usage fetch must not block the DB save: if Anthropic returns
@@ -362,6 +367,17 @@ export async function POST(request: Request) {
             .from('chat_sessions')
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', sessionId)
+
+          // Emit card events: write-back confirmations + informational cards.
+          // Must precede [DONE] so the frontend receives them in the same read loop.
+          const confirmCards = outcomes
+            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } => o.ok && o.card !== undefined)
+            .map((o) => o.card)
+          for (const card of [...infoCards, ...confirmCards]) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`),
+            )
+          }
 
           // Fire memory + belief extraction after response is sent —
           // non-blocking. Skip greetings: "hoi" carries no lifestyle signal,
