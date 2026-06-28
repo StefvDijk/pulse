@@ -13,6 +13,8 @@ import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
+import { after } from 'next/server'
+import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -281,7 +283,7 @@ export async function POST(request: Request) {
           // Strip write-back tags from the DISPLAYED stream so the user never
           // sees `<schema_generation>{...}</schema_generation>` type out, while
           // fullResponse keeps the raw text for post-stream write-back parsing.
-          const stripper = createStreamTagStripper(CHAT_WRITEBACK_TAGS)
+          const stripper = createStreamTagStripper([...CHAT_WRITEBACK_TAGS, ...CHAT_CARD_TAGS])
           for await (const chunk of result.textStream) {
             fullResponse += chunk
             const visible = stripper.feed(chunk)
@@ -292,7 +294,11 @@ export async function POST(request: Request) {
 
           // Process write-backs after full response
           const parsed = parseWritebacks(fullResponse)
-          const { cleanText, citedMemories } = parsed
+          const infoCards = parseCards(fullResponse)
+          // Strip card tags from cleanText before DB save (the stream stripper already
+          // removed them from the displayed stream; here we fix the stored copy).
+          const cleanText = stripCardTagsFromText(parsed.cleanText)
+          const { citedMemories } = parsed
 
           // Save assistant message (clean text).
           // [B9] usage fetch must not block the DB save: if Anthropic returns
@@ -364,17 +370,31 @@ export async function POST(request: Request) {
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', sessionId)
 
+          // Emit card events: write-back confirmations + informational cards.
+          // Must precede [DONE] so the frontend receives them in the same read loop.
+          const confirmCards = outcomes
+            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } => o.ok && o.card !== undefined)
+            .map((o) => o.card)
+          for (const card of [...infoCards, ...confirmCards]) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`),
+            )
+          }
+
           // Fire memory + belief extraction after response is sent —
           // non-blocking. Skip greetings: "hoi" carries no lifestyle signal,
           // so running two paid Haiku extractors on it is pure waste (audit #21).
           if (questionType !== 'simple_greeting') {
-            extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
-
-            runBeliefExtractor({
-              userId: user.id,
-              scope: 'lifestyle',
-              eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
-            }).catch(console.error)
+            after(async () => {
+              await extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+            })
+            after(async () => {
+              await runBeliefExtractor({
+                userId: user.id,
+                scope: 'lifestyle',
+                eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
+              }).catch(console.error)
+            })
           }
 
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))

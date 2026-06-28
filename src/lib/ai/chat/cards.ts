@@ -104,7 +104,11 @@ export function parseCards(rawText: string): AnyCard[] {
       }
       const raw =
         typeof json === 'object' && json !== null ? (json as Record<string, unknown>) : {}
-      let result: ReturnType<typeof WorkoutCardSchema.safeParse>
+      type SafeParseResult =
+        | ReturnType<typeof WorkoutCardSchema.safeParse>
+        | ReturnType<typeof WeekplanCardSchema.safeParse>
+        | ReturnType<typeof StatCardSchema.safeParse>
+      let result: SafeParseResult
       if (tag === 'workout_card') result = WorkoutCardSchema.safeParse({ ...raw, type: 'workout' })
       else if (tag === 'weekplan_card') result = WeekplanCardSchema.safeParse({ ...raw, type: tag })
       else result = StatCardSchema.safeParse({ ...raw, type: tag })
