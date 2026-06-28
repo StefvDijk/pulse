@@ -186,6 +186,16 @@
   /* Brand — Anthropic coral, used for CoachOrb */
   --color-brand-claude: #D97757;
 
+  /* Coach accents — specialist faces (manager = brand-claude, sport = gym-teal) */
+  --color-coach-nutrition-base:  #5BD16F;
+  --color-coach-nutrition-light: rgba(91,209,111,0.18);
+  --color-coach-nutrition-glow:  rgba(91,209,111,0.50);
+  --color-coach-nutrition-dark:  #1C5226;
+  --color-coach-health-base:     #818CF8;
+  --color-coach-health-light:    rgba(129,140,248,0.18);
+  --color-coach-health-glow:     rgba(129,140,248,0.50);
+  --color-coach-health-dark:     #272A5C;
+
   /* Hero gradients — accent backgrounds only, never on card body */
   --gradient-aurora: linear-gradient(135deg, #FF5E3A 0%, #FF2D87 35%, #7C3AED 70%, #00E5C7 100%);
   --gradient-fire:   linear-gradient(135deg, #FFB020 0%, #FF5E3A 50%, #FF2D87 100%);

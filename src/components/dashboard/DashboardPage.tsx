@@ -10,10 +10,13 @@ import { useCoachSignal } from '@/hooks/useCoachSignal'
 import { Card, ZoneBar } from '@/components/ui/v2'
 import { CheckInBadge } from '@/components/home/CheckInBadge'
 import { QuickCheckInBadge } from '@/components/home/QuickCheckInBadge'
+import { SessionFeedbackNudge } from '@/components/home/SessionFeedbackNudge'
 import { DailyHealthBar } from '@/components/home/DailyHealthBar'
+import { SleepScoreCard } from '@/components/home/SleepScoreCard'
 import { BodyCompositionCard } from '@/components/home/BodyCompositionCard'
 import { MuscleMapCard } from '@/components/dashboard/MuscleMapCard'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
+import { DailyBriefing } from '@/components/dashboard/v2/DailyBriefing'
 import { deriveReadinessView } from '@/components/dashboard/v2/readiness-view'
 import { WeekGlance, WeekGlanceSkeleton } from '@/components/dashboard/v2/WeekGlance'
 import { RecentActivities } from '@/components/home/RecentActivities'
@@ -139,6 +142,11 @@ export function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* ── Morning briefing — top cross-coach nudges (#43) ───── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <DailyBriefing />
+      </motion.div>
+
       {/* ── Daily quick check-in (30 sec) ─────────────────────── */}
       <motion.div variants={listItem} transition={springContent}>
         <QuickCheckInBadge />
@@ -147,6 +155,11 @@ export function DashboardPage() {
       {/* ── Weekly check-in nudge (weekend/monday only) ───────── */}
       <motion.div variants={listItem} transition={springContent}>
         <CheckInBadge />
+      </motion.div>
+
+      {/* ── Post-session feedback nudge (only when a session awaits) ── */}
+      <motion.div variants={listItem} transition={springContent}>
+        <SessionFeedbackNudge />
       </motion.div>
 
       {/* ── Readiness card ────────────────────────────────────── */}
@@ -159,6 +172,11 @@ export function DashboardPage() {
           tone={tone}
           onRetry={refreshReadinessCard}
         />
+      </motion.div>
+
+      {/* ── Sleep score (last night) — null until sleep is ingested ─ */}
+      <motion.div variants={listItem} transition={springContent}>
+        <SleepScoreCard />
       </motion.div>
 
       {/* ── Workload / strain bar (only when data is available) ── */}

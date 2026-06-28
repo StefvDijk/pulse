@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
-import { Card, SPORT_BASE, type Sport } from '@/components/ui/v2'
+import { Card } from '@/components/ui/v2'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
 import type { SchemaWeekDay, ActivityToken } from '@/hooks/useSchemaWeek'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -15,8 +15,8 @@ function isDoneToken(t: ActivityToken): boolean {
   )
 }
 
-function tokenSport(t: ActivityToken): Sport {
-  return t.type as Sport
+function tokenSport(t: ActivityToken): SportKey {
+  return t.type as SportKey
 }
 
 /** Detail-pagina voor een afgeronde activiteit, of null als die niet bestaat. */
@@ -32,14 +32,12 @@ function SportGlyph({
   size = 12,
   color,
 }: {
-  sport: Sport
+  sport: SportKey
   size?: number
   color: string
 }) {
-  const props = { size, strokeWidth: 2.4, color }
-  if (sport === 'run') return <Footprints {...props} />
-  if (sport === 'padel') return <CircleDot {...props} />
-  return <Dumbbell {...props} />
+  const Icon = sportMeta(sport).icon
+  return <Icon size={size} strokeWidth={2.4} color={color} />
 }
 
 const PILL_SIZE = 26
@@ -55,7 +53,7 @@ function TokenPill({ token }: { token: ActivityToken }) {
       style={{
         width: PILL_SIZE,
         height: PILL_SIZE,
-        background: SPORT_BASE[sport],
+        background: sportMeta(sport).colorBase,
       }}
       aria-label={token.title}
     >

@@ -14,8 +14,7 @@ const NEUTRAL: ReadinessScoreInput = {
   hrvBaseline: NO_BASELINE,
   restingHr: null,
   rhrBaseline: NO_BASELINE,
-  sleepMinutes: null,
-  sleepBaseline: NO_BASELINE,
+  sleepScore: null,
   feeling: null,
   sleepQuality: null,
 }
@@ -76,8 +75,7 @@ describe('calculateReadinessScore (v2)', () => {
       hrvBaseline: { avg: 55, stddev: 8, sampleCount: 30 },
       restingHr: 62,
       rhrBaseline: { avg: 54, stddev: 3, sampleCount: 30 },
-      sleepMinutes: 330,
-      sleepBaseline: { avg: 440, stddev: 40, sampleCount: 30 },
+      sleepScore: 45,
     })
     expect(bad.score).toBeLessThan(55)
     expect(bad.level).toBe('fatigued')
@@ -110,20 +108,24 @@ describe('calculateReadinessScore (v2)', () => {
     expect(great.score).toBeGreaterThanOrEqual(85)
   })
 
-  it('applies an absolute short-sleep penalty on top of the z-score', () => {
-    const baseline = { avg: 380, stddev: 60, sampleCount: 30 }
-    const shortNight = calculateReadinessScore({
-      ...NEUTRAL,
-      sleepMinutes: 350, // z = -0.5, but also under the 6h absolute floor
-      sleepBaseline: baseline,
-    })
-    const sameZNoFloor = calculateReadinessScore({
-      ...NEUTRAL,
-      sleepMinutes: 425, // z = +0.75 — above floor
-      sleepBaseline: baseline,
-    })
-    expect(shortNight.score).toBeLessThan(sameZNoFloor.score)
-    expect(shortNight.score).toBeLessThan(70 - 5)
+  it('feeds the SleepScore into readiness around a neutral 70', () => {
+    const good = calculateReadinessScore({ ...NEUTRAL, sleepScore: 95 })
+    const poor = calculateReadinessScore({ ...NEUTRAL, sleepScore: 40 })
+    expect(good.score).toBe(80) // (95-70)*0.4 = +10
+    expect(poor.score).toBe(58) // (40-70)*0.4 = -12 (clamped)
+  })
+
+  it('adds an extra penalty when heavy load meets poor sleep', () => {
+    const poorHeavy = calculateReadinessScore({ ...NEUTRAL, sleepScore: 40, acwr: 1.6 })
+    const goodHeavy = calculateReadinessScore({ ...NEUTRAL, sleepScore: 95, acwr: 1.6 })
+    // Only poor sleep under heavy load triggers the interaction term.
+    expect(poorHeavy.components.some((c) => c.key === 'load_x_sleep')).toBe(true)
+    expect(goodHeavy.components.some((c) => c.key === 'load_x_sleep')).toBe(false)
+    // The interaction widens the gap beyond the pure additive difference.
+    const additiveGap =
+      calculateReadinessScore({ ...NEUTRAL, sleepScore: 95 }).score -
+      calculateReadinessScore({ ...NEUTRAL, sleepScore: 40 }).score
+    expect(goodHeavy.score - poorHeavy.score).toBeGreaterThan(additiveGap)
   })
 
   it('reports which components contributed, for the drilldown UI', () => {
@@ -146,8 +148,7 @@ describe('calculateReadinessScore (v2)', () => {
       hrvBaseline: { avg: 55, stddev: 5, sampleCount: 30 },
       restingHr: 70,
       rhrBaseline: { avg: 54, stddev: 3, sampleCount: 30 },
-      sleepMinutes: 240,
-      sleepBaseline: { avg: 440, stddev: 30, sampleCount: 30 },
+      sleepScore: 10,
       feeling: 1,
       sleepQuality: 1,
     })

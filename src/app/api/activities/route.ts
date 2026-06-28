@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Sport } from '@/lib/constants'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
+import { softRows } from '@/lib/supabase/soft-rows'
 
 /* ── Types ────────────────────────────────────────────────── */
 
-export type ActivityType = Sport | 'walk'
+export type ActivityType = SportKey
 
 export interface ActivityItem {
   id: string
@@ -51,8 +52,8 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(req.nextUrl.searchParams.get('page') ?? '1', 10))
     const admin = createAdminClient()
 
-    // Fetch all four activity types in parallel
-    const [workoutsResult, runsResult, padelResult, walksResult] = await Promise.all([
+    // Fetch all activity sources in parallel
+    const [workoutsResult, runsResult, padelResult, walksResult, activitiesResult] = await Promise.all([
       admin
         .from('workouts')
         .select(
@@ -86,12 +87,19 @@ export async function GET(req: NextRequest) {
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
         .limit(50),
+      admin
+        .from('activities')
+        .select('id, sport_key, name, started_at, duration_seconds, distance_meters, calories_burned, avg_heart_rate, max_heart_rate, elevation_gain_meters, intensity')
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(50),
     ])
 
     if (workoutsResult.error) throw workoutsResult.error
     if (runsResult.error) throw runsResult.error
     if (padelResult.error) throw padelResult.error
     if (walksResult.error) throw walksResult.error
+    // activities is een optionele bron — laat een fout de feed niet helemaal breken (zie soft-rows).
 
     // Map gym workouts
     const gymActivities: ActivityItem[] = (workoutsResult.data ?? []).map((w) => {
@@ -186,8 +194,23 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // Map generic activities (tennis, HIIT, voetbal, yoga, fietsen, ...)
+    const otherActivities: ActivityItem[] = softRows(activitiesResult, 'activities-feed').map((a) => ({
+      id: a.id,
+      type: a.sport_key as ActivityType,
+      title: a.name ?? sportMeta(a.sport_key as SportKey).label,
+      started_at: a.started_at,
+      duration_seconds: a.duration_seconds ?? null,
+      calories_burned: a.calories_burned != null ? Number(a.calories_burned) : null,
+      avg_heart_rate: a.avg_heart_rate ?? null,
+      max_heart_rate: a.max_heart_rate ?? null,
+      distance_meters: a.distance_meters != null ? Number(a.distance_meters) : null,
+      elevation_gain_meters: a.elevation_gain_meters != null ? Number(a.elevation_gain_meters) : null,
+      intensity: a.intensity ?? null,
+    }))
+
     // Merge + sort + paginate
-    const all = [...gymActivities, ...runActivities, ...padelActivities, ...walkActivities]
+    const all = [...gymActivities, ...runActivities, ...padelActivities, ...walkActivities, ...otherActivities]
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
 
     const total = all.length

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Card, ReadinessOrb, MicroStat } from '@/components/ui/v2'
+import { CoachOrb } from '@/components/shared/CoachOrb'
+import { getCoachConfig } from '@/lib/ai/coaches/registry'
 import { ExplainTrigger } from '@/components/explain/ExplainTrigger'
 import { ReadinessDrilldownSheet } from '@/components/home/ReadinessDrilldownSheet'
 import type { ReadinessData } from '@/types/readiness'
@@ -101,7 +103,16 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
           </div>
 
           {summary?.sentence && (
-            <p className="mt-3 text-[13px] leading-snug text-text-secondary">{summary.sentence}</p>
+            <div className="mt-3">
+              {/* The readiness calc now has a recognisable sender: the health coach. */}
+              <div className="mb-1 flex items-center gap-1.5">
+                <CoachOrb size={16} color={getCoachConfig('health').identity.color} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+                  {getCoachConfig('health').identity.name}
+                </span>
+              </div>
+              <p className="text-[13px] leading-snug text-text-secondary">{summary.sentence}</p>
+            </div>
           )}
 
           {summary?.coldStart?.active && (

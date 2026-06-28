@@ -5,45 +5,15 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  LayoutGrid,
-  TrendingUp,
-  ClipboardList,
-  MessageCircle,
   LogOut,
   Settings as SettingsIcon,
-  Apple,
   MoreHorizontal,
   ChevronRight,
-  Activity,
-  Target,
-  LineChart,
-  CalendarCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-
-interface NavItem {
-  href: string
-  label: string
-  icon: React.ElementType
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: 'Home', icon: LayoutGrid },
-  { href: '/schema', label: 'Schema', icon: ClipboardList },
-  { href: '/progress', label: 'Progressie', icon: TrendingUp },
-  { href: '/nutrition', label: 'Voeding', icon: Apple },
-  { href: '/chat', label: 'Coach', icon: MessageCircle },
-]
-
-const MORE_ITEMS: NavItem[] = [
-  { href: '/belasting', label: 'Belasting', icon: Activity },
-  { href: '/goals', label: 'Doelen', icon: Target },
-  { href: '/trends', label: 'Trends', icon: LineChart },
-  { href: '/check-in/history', label: 'Check-in historie', icon: CalendarCheck },
-  { href: '/settings', label: 'Instellingen', icon: SettingsIcon },
-]
+import { NAV_ITEMS, MORE_ITEMS, isNavItemActive } from './nav-items'
 
 export function Navigation() {
   const pathname = usePathname()
@@ -79,7 +49,7 @@ export function Navigation() {
         aria-label="Hoofdnavigatie"
       >
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href
+          const isActive = isNavItemActive(pathname, href)
           return (
             <Link
               key={href}
@@ -231,7 +201,7 @@ export function Navigation() {
 
         <nav className="flex-1 px-3 py-4 space-y-1" aria-label="Hoofdnavigatie">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href
+            const isActive = isNavItemActive(pathname, href)
             return (
               <Link
                 key={href}

@@ -34,6 +34,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          apple_health_id: string | null
+          avg_heart_rate: number | null
+          calories_burned: number | null
+          created_at: string
+          distance_meters: number | null
+          duration_seconds: number | null
+          elevation_gain_meters: number | null
+          ended_at: string | null
+          id: string
+          intensity: string | null
+          max_heart_rate: number | null
+          name: string | null
+          raw: Json | null
+          source: string
+          sport_key: string
+          started_at: string
+          strava_activity_id: number | null
+          user_id: string
+        }
+        Insert: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          intensity?: string | null
+          max_heart_rate?: number | null
+          name?: string | null
+          raw?: Json | null
+          source: string
+          sport_key: string
+          started_at: string
+          strava_activity_id?: number | null
+          user_id: string
+        }
+        Update: {
+          apple_health_id?: string | null
+          avg_heart_rate?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          ended_at?: string | null
+          id?: string
+          intensity?: string | null
+          max_heart_rate?: number | null
+          name?: string | null
+          raw?: Json | null
+          source?: string
+          sport_key?: string
+          started_at?: string
+          strava_activity_id?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_log: {
         Row: {
           cache_creation_tokens: number | null
@@ -345,6 +408,7 @@ export type Database = {
       }
       chat_sessions: {
         Row: {
+          coach_id: string
           created_at: string | null
           id: string
           last_message_at: string | null
@@ -354,6 +418,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coach_id?: string
           created_at?: string | null
           id?: string
           last_message_at?: string | null
@@ -363,6 +428,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coach_id?: string
           created_at?: string | null
           id?: string
           last_message_at?: string | null
@@ -374,6 +440,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "chat_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nudges: {
+        Row: {
+          body: string
+          coach_id: string
+          created_at: string | null
+          cta_href: string | null
+          cta_label: string | null
+          dedupe_key: string
+          id: string
+          severity: string
+          status: string
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          coach_id: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          coach_id?: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key?: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nudges_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1516,6 +1632,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      session_feedback: {
+        Row: {
+          created_at: string
+          dismissed: boolean
+          feedback_text: string | null
+          id: string
+          session_id: string
+          session_started_at: string
+          session_title: string | null
+          session_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed?: boolean
+          feedback_text?: string | null
+          id?: string
+          session_id: string
+          session_started_at: string
+          session_title?: string | null
+          session_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed?: boolean
+          feedback_text?: string | null
+          id?: string
+          session_id?: string
+          session_started_at?: string
+          session_title?: string | null
+          session_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       skip_reasons: {
         Row: {

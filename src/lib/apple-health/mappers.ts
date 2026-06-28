@@ -1,10 +1,11 @@
 import type { Database } from '@/types/database'
-import type { ParsedRun, ParsedPadel, ParsedWalk, ParsedDailyActivity } from '@/lib/apple-health/types'
+import type { ParsedRun, ParsedPadel, ParsedWalk, ParsedActivity, ParsedDailyActivity } from '@/lib/apple-health/types'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelSessionInsert = Database['public']['Tables']['padel_sessions']['Insert']
 type WalkInsert = Database['public']['Tables']['walks']['Insert']
 type DailyActivityInsert = Database['public']['Tables']['daily_activity']['Insert']
+type ActivityInsert = Database['public']['Tables']['activities']['Insert']
 
 // ---------------------------------------------------------------------------
 // Intensity classification
@@ -156,5 +157,29 @@ export function mapDailyActivity(
     active_minutes: null,
     stand_hours: null,
     hrv_average: parsed.hrv != null ? Math.round(parsed.hrv * 10) / 10 : null,
+  }
+}
+
+/**
+ * Map a parsed generic activity (tennis, HIIT, voetbal, yoga, ...) to an
+ * activities table Insert object. Intensity is derived from average heart rate.
+ */
+export function mapActivity(parsed: ParsedActivity, userId: string): ActivityInsert {
+  return {
+    user_id: userId,
+    sport_key: parsed.sportKey,
+    source: 'apple_health',
+    apple_health_id: parsed.appleHealthId ?? null,
+    strava_activity_id: null,
+    name: parsed.name,
+    started_at: parsed.startedAt,
+    ended_at: parsed.endedAt ?? null,
+    duration_seconds: parsed.durationSeconds != null ? Math.round(parsed.durationSeconds) : null,
+    distance_meters: parsed.distanceMeters ?? null,
+    calories_burned: parsed.calories != null ? Math.round(parsed.calories) : null,
+    avg_heart_rate: parsed.avgHeartRate != null ? Math.round(parsed.avgHeartRate) : null,
+    max_heart_rate: parsed.maxHeartRate != null ? Math.round(parsed.maxHeartRate) : null,
+    elevation_gain_meters: null,
+    intensity: classifyIntensity(parsed.avgHeartRate),
   }
 }

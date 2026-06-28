@@ -53,20 +53,21 @@ test.describe('Dashboard cleanup — authenticated', () => {
     await expect(page.locator('text=Workload ratio')).not.toBeVisible()
   })
 
-  test('R-005: navigation has exactly 4 main items', async ({ page }) => {
-    // Check mobile nav (bottom bar)
+  test('R-005: navigation has exactly 4 main items (coach-team tabs)', async ({ page }) => {
+    // Check mobile nav (bottom bar) — each primary tab is one coach's home (#39)
     const mobileNav = page.locator('nav').first()
     const navLinks = mobileNav.locator('a')
-    // 4 nav links (Home, Schema, Progressie, Coach)
+    // 4 nav links (Home, Schema, Gezondheid, Eten)
     await expect(navLinks).toHaveCount(4)
 
     // Verify labels
     await expect(mobileNav.locator('text=Home')).toBeVisible()
     await expect(mobileNav.locator('text=Schema')).toBeVisible()
-    await expect(mobileNav.locator('text=Progressie')).toBeVisible()
-    await expect(mobileNav.locator('text=Coach')).toBeVisible()
+    await expect(mobileNav.locator('text=Gezondheid')).toBeVisible()
+    await expect(mobileNav.locator('text=Eten')).toBeVisible()
 
-    // Verify removed items
-    await expect(mobileNav.locator('text=Voeding')).not.toBeVisible()
+    // Verify removed items: the generic Coach tab and Progressie are gone
+    await expect(mobileNav.locator('text=Coach')).not.toBeVisible()
+    await expect(mobileNav.locator('text=Progressie')).not.toBeVisible()
   })
 })

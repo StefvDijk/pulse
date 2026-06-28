@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { periodToDates } from '@/lib/time/periods'
+import { proteinTargetGrams } from '@/lib/nutrition/macros'
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -92,7 +93,7 @@ export async function getMacroTargets(userId: string): Promise<string> {
 
   const weight = profile?.weight_kg ? Number(profile.weight_kg) : null
   const protPerKg = settings?.protein_target_per_kg ? Number(settings.protein_target_per_kg) : 1.8
-  const proteinTarget = weight ? Math.round(weight * protPerKg) : null
+  const proteinTarget = weight ? proteinTargetGrams(weight, protPerKg) : null
 
   const lines: string[] = ['Macro targets:\n']
   lines.push(`Calorieën: ~2100 kcal/dag (trainingsdagen), ~1800 kcal/dag (rustdagen)`)

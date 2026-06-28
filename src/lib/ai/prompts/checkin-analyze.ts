@@ -1,4 +1,8 @@
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
+import {
+  formatSessionFeedbackLines,
+  type SessionFeedbackEntry,
+} from '@/lib/training/session-feedback'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +30,8 @@ interface CheckInAnalyzeParams {
   reflection?: string | null
   focusOutcome?: FocusOutcomeInput | null
   dialog?: DialogTurn[]
+  /** Free-text notes Stef left per training session this week. */
+  sessionFeedback?: SessionFeedbackEntry[]
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +150,7 @@ function buildDataBlock(data: CheckInReviewData): string {
 // ---------------------------------------------------------------------------
 
 export function buildCheckInAnalyzePrompt(params: CheckInAnalyzeParams): { system: string; userMessage: string } {
-  const { reviewData, manualAdditions, coachingMemory, reflection, focusOutcome, dialog } = params
+  const { reviewData, manualAdditions, coachingMemory, reflection, focusOutcome, dialog, sessionFeedback } = params
 
   const system = `Je bent Pulse Coach, Stef's persoonlijke trainer.
 Je geeft een wekelijkse analyse die kort, concreet, en BRUIKBAAR is.
@@ -258,6 +264,17 @@ Antwoord in EXACT dit JSON-formaat (geen markdown fences, puur JSON):
     parts.push('### Reflectie van Stef')
     parts.push(`"${reflection.trim()}"`)
     parts.push('')
+  }
+
+  // Per-sessie feedback van Stef (skipte oefening, hoe het voelde, pijntje)
+  if (sessionFeedback && sessionFeedback.length > 0) {
+    const lines = formatSessionFeedbackLines(sessionFeedback)
+    if (lines.length > 0) {
+      parts.push('### Per-sessie feedback van Stef (eigen woorden)')
+      parts.push(...lines)
+      parts.push('Dit is kwalitatieve nuance per training — verwerk relevante signalen (pijn, energie, overgeslagen werk) expliciet.')
+      parts.push('')
+    }
   }
 
   // Coach-vragen + Stef's antwoorden (uit conversational stap 2)

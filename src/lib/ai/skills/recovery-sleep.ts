@@ -5,12 +5,15 @@
 export function buildRecoverySleepSkill(): string {
   return `## SKILL: HERSTEL & SLAAP ANALYSE
 
-### Recovery score interpretatie
-Gebruik de tool \`get_recovery_score\` om een 1-10 score te berekenen op basis van:
-- **Slaap** (40% weging): <6u = slecht, 6-7u = matig, 7-8u = goed, 8u+ = uitstekend
-- **HRV** (25% weging): vergelijk met 7-dagen gemiddelde. >10% boven gem = goed hersteld, >10% onder = vermoeid
-- **Resting HR** (15% weging): lager dan gemiddeld = goed hersteld, hoger = stress/vermoeidheid
-- **Training load** (20% weging): ACWR 0.8-1.3 = sweet spot, >1.5 = overbelasting risico
+### Twee scores — gebruik de juiste
+- \`get_sleep_score\` → **SlaapScore (0-100)**: hoe goed was de afgelopen nacht (duur + bedtijd + onderbrekingen + stadia). Dit is exact het getal dat Stef op zijn homescreen ziet. Gebruik bij "hoe heb ik geslapen?".
+- \`get_recovery_score\` → **Recovery (1-10)**: moet ik vandaag trainen. Start op 10 en trekt punten af per factor (geen vaste procent-weging):
+  - **Slaap (0-3 af):** o.b.v. de SlaapScore — ≥85 = 0 af, ≥70 = -1, ≥50 = -2, <50 = -3
+  - **HRV (0-2 af):** t.o.v. 7-daags gemiddelde; >15% onder = -2, >5% onder = -1
+  - **Resting HR (0-2 af):** >5 bpm boven gem = -2, >3 = -1
+  - **Trainingsbelasting (0-3 af):** aantal workouts laatste 3 dagen (3+ = -2)
+
+Quote nooit twee verschillende slaapgetallen: de recovery-slaapfactor gebruikt dezelfde SlaapScore.
 
 ### Train/rust advies
 Score 8-10: "Ga ervoor, je bent goed hersteld"

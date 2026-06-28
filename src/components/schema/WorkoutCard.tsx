@@ -4,9 +4,6 @@ import { useState } from 'react'
 import {
   Check,
   ChevronDown,
-  CircleDot,
-  Dumbbell,
-  Footprints,
   MessageCircle,
   Plus,
 } from 'lucide-react'
@@ -17,6 +14,7 @@ import type {
   ExerciseData,
   SchemaWeekDay,
 } from '@/hooks/useSchemaWeek'
+import { sportMeta, type SportKey } from '@/lib/sports/registry'
 
 interface WorkoutCardProps {
   day: SchemaWeekDay
@@ -53,44 +51,8 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
 }
 
 function SportIcon({ type, size = 14 }: { type: ActivityType; size?: number }) {
-  switch (type) {
-    case 'gym':
-      return <Dumbbell size={size} strokeWidth={2.5} />
-    case 'run':
-      return <Footprints size={size} strokeWidth={2.5} />
-    case 'padel':
-      return <CircleDot size={size} strokeWidth={2.5} />
-  }
-}
-
-function sportBgClass(type: ActivityType): string {
-  switch (type) {
-    case 'gym':
-      return 'text-black'
-    case 'run':
-      return 'text-black'
-    case 'padel':
-      return 'text-black'
-  }
-}
-
-function sportBgColor(type: ActivityType): string {
-  switch (type) {
-    case 'gym': return 'var(--color-sport-gym-base)'
-    case 'run': return 'var(--color-sport-run-base)'
-    case 'padel': return 'var(--color-sport-padel-base)'
-  }
-}
-
-function sportTextClass(type: ActivityType): string {
-  switch (type) {
-    case 'gym':
-      return 'text-[var(--color-sport-gym-base)]'
-    case 'run':
-      return 'text-[var(--color-sport-run-base)]'
-    case 'padel':
-      return 'text-[var(--color-sport-padel-base)]'
-  }
+  const Icon = sportMeta(type as SportKey).icon
+  return <Icon size={size} strokeWidth={2.5} />
 }
 
 function tokenSubtitle(token: ActivityToken): string {
@@ -129,7 +91,7 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
   const subtitle = tokenSubtitle(token)
   const duration = durationLabel(token)
 
-  const sportColor = sportBgColor(token.type)
+  const sportColor = sportMeta(token.type as SportKey).colorBase
 
   return (
     <div
@@ -150,17 +112,15 @@ export function WorkoutCard({ day, token }: WorkoutCardProps) {
         <div
           className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
             isDone
-              ? sportBgClass(token.type)
+              ? 'text-black'
               : isToday
                 ? 'text-white'
-                : `border-2 border-bg-border bg-transparent ${sportTextClass(token.type)}`
+                : 'border-2 border-bg-border bg-transparent'
           }`}
           style={
-            isDone
+            isDone || isToday
               ? { background: sportColor }
-              : isToday
-                ? { background: sportColor }
-                : undefined
+              : { color: sportColor }
           }
         >
           {isDone ? <Check size={16} strokeWidth={3} /> : <SportIcon type={token.type} />}

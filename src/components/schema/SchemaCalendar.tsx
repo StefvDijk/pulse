@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Dumbbell, Footprints, CircleDot, ChevronLeft, ChevronRight, MoreHorizontal, ArrowRight, Calendar, Pencil } from 'lucide-react'
+import { Check, Dumbbell, Footprints, CircleDot, MoreHorizontal, ArrowRight, Calendar, Pencil } from 'lucide-react'
 import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { EditWeekModal } from './EditWeekModal'
 import { DayDetailSheet } from './DayDetailSheet'
@@ -247,43 +247,64 @@ export function SchemaCalendar({
 
   return (
     <div className="rounded-[22px] border-[0.5px] border-bg-border bg-bg-surface overflow-hidden">
-      {/* Week selector header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-bg-border">
-        <button
-          onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-          disabled={selectedWeek <= 1}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-white/[0.06] disabled:opacity-30"
-        >
-          <ChevronLeft size={18} />
-        </button>
+      {/* Week-kiezer — klikbare blokjes met per-week fill */}
+      <div className="flex gap-1 px-4 pt-3">
+        {weeks.map((w) => {
+          const isSel = w.weekNumber === selectedWeek
+          const fill = w.sessionsPlanned > 0
+            ? Math.round((w.sessionsCompleted / w.sessionsPlanned) * 100)
+            : 0
+          return (
+            <button
+              key={w.weekNumber}
+              onClick={() => setSelectedWeek(w.weekNumber)}
+              className="flex-1 flex flex-col gap-1"
+              aria-label={`Week ${w.weekNumber}`}
+              aria-current={isSel ? 'true' : undefined}
+            >
+              <div
+                className="h-1.5 rounded-full overflow-hidden"
+                style={{ background: isSel ? 'rgba(0,229,199,0.18)' : 'rgba(255,255,255,0.06)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${fill}%`,
+                    background: isSel ? '#00E5C7' : fill === 100 ? 'rgba(0,229,199,0.60)' : 'rgba(0,229,199,0.30)',
+                  }}
+                />
+              </div>
+              <span
+                className="text-[10px] text-center tabular-nums"
+                style={{
+                  fontWeight: isSel ? 600 : 400,
+                  color: isSel ? 'var(--color-sport-gym-base)' : 'var(--color-text-tertiary)',
+                }}
+              >
+                W{w.weekNumber}
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
-        <div className="text-center">
-          <h3 className="text-[14px] font-semibold text-text-primary">
-            Week {selectedWeek}
-            {selectedWeek === currentWeek && (
-              <span className="ml-1.5 text-[10px] font-normal text-[var(--color-sport-gym-base)]">(huidige)</span>
-            )}
-          </h3>
-          <p className="text-[11px] text-text-tertiary mt-0.5">
-            {formatDateRange(week.days)}
-            {' · '}
-            {week.sessionsCompleted}/{week.sessionsPlanned} sessies
-          </p>
-          <button
-            onClick={() => setEditingWeek(true)}
-            className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-text-secondary hover:bg-white/[0.08]"
-          >
-            <Pencil size={10} />
-            Aanpassen
-          </button>
-        </div>
-
+      {/* Week-header (navigatie zit in de week-kiezer hierboven) */}
+      <div className="px-4 py-3 border-b border-bg-border text-center">
+        <h3 className="text-[14px] font-semibold text-text-primary">
+          Week {selectedWeek}
+          {selectedWeek === currentWeek && (
+            <span className="ml-1.5 text-[10px] font-normal text-[var(--color-sport-gym-base)]">(huidige)</span>
+          )}
+        </h3>
+        <p className="text-[11px] text-text-tertiary mt-0.5">
+          {formatDateRange(week.days)} · {week.sessionsCompleted}/{week.sessionsPlanned} sessies
+        </p>
         <button
-          onClick={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
-          disabled={selectedWeek >= weeks.length}
-          className="p-1 rounded-lg text-text-tertiary hover:bg-white/[0.06] disabled:opacity-30"
+          onClick={() => setEditingWeek(true)}
+          className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-text-secondary hover:bg-white/[0.08]"
         >
-          <ChevronRight size={18} />
+          <Pencil size={10} />
+          Aanpassen
         </button>
       </div>
 
@@ -305,25 +326,6 @@ export function SchemaCalendar({
             isCurrentWeek={selectedWeek === currentWeek}
             onOpenMenu={() => setRescheduleDay(day)}
             onOpenDetail={() => setDetailDay(day)}
-          />
-        ))}
-      </div>
-
-      {/* Week dots navigation */}
-      <div className="flex items-center justify-center gap-1.5 py-3 border-t border-bg-border">
-        {weeks.map((w) => (
-          <button
-            key={w.weekNumber}
-            onClick={() => setSelectedWeek(w.weekNumber)}
-            className="h-2 rounded-full transition-all"
-            style={{
-              width: w.weekNumber === selectedWeek ? 16 : 8,
-              background: w.weekNumber === selectedWeek
-                ? 'var(--color-sport-gym-base)'
-                : w.isComplete
-                  ? 'rgba(0,229,199,0.40)'
-                  : 'rgba(255,255,255,0.06)',
-            }}
           />
         ))}
       </div>

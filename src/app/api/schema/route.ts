@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
+import { reconcileWeek, type PlannedSession, type CompletionInput } from '@/lib/training/reconcile-week'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -81,6 +82,10 @@ function isOverrideObject(val: OverrideValue): val is OverrideObject {
   return val !== null && typeof val === 'object' && 'focus' in val
 }
 
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, (m) => m.toUpperCase())
+}
+
 function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], overrides: Record<string, OverrideValue>): Array<{
   date: string
   dayName: string
@@ -123,7 +128,7 @@ export async function GET() {
 
     const { data: schema, error } = await admin
       .from('training_schemas')
-      .select('id, title, description, schema_type, start_date, end_date, weeks_planned, current_week, workout_schedule, scheduled_overrides, progression_rules, quality_audit, planned_weekly_load, source_block_review_id, ai_generated, updated_at')
+      .select('id, title, description, schema_type, start_date, end_date, weeks_planned, current_week, workout_schedule, scheduled_overrides, progression_rules, quality_audit, planned_weekly_load, source_block_review_id, ai_generated, created_at, updated_at')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .maybeSingle()
@@ -212,113 +217,58 @@ export async function GET() {
     const enrichedWeeks = weeks.map((week) => {
       const weekDates = new Set(week.days.map((d) => d.date))
 
-      type ExerciseList = Array<{ name: string; sets?: number; reps?: string; notes?: string }>
-      type PlannedRecord = {
-        plannedDate: string
-        focus: string
-        exercises?: ExerciseList
-        actualDate?: string
-        completed: boolean
-      }
-
-      const planned: PlannedRecord[] = []
+      const planned: PlannedSession[] = []
       for (const d of week.days) {
-        if (d.workoutFocus) {
-          const exercises = d.exercises ?? schedule.find((s) => s.day.toLowerCase() === d.dayName)?.exercises
-          planned.push({ plannedDate: d.date, focus: d.workoutFocus, exercises, completed: false })
-        }
+        if (!d.workoutFocus) continue
+        const exercises = d.exercises ?? schedule.find((s) => s.day.toLowerCase() === d.dayName)?.exercises
+        planned.push({ plannedDate: d.date, focus: d.workoutFocus, kind: focusKind(d.workoutFocus), exercises })
       }
 
-      type Completion = { date: string; kind: 'gym' | 'run' | 'padel'; title?: string; used: boolean }
-      const completions: Completion[] = []
+      const completions: CompletionInput[] = []
       for (const [date, titles] of workoutsByDate) {
         if (!weekDates.has(date)) continue
-        for (const t of titles) completions.push({ date, kind: 'gym', title: t, used: false })
+        for (const t of titles) completions.push({ date, kind: 'gym', title: t })
       }
-      for (const d of runDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'run', used: false })
-      for (const d of padelDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'padel', used: false })
+      for (const d of runDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'run', title: 'Hardlopen' })
+      for (const d of padelDates) if (weekDates.has(d)) completions.push({ date: d, kind: 'padel', title: 'Padel' })
 
-      function findCompletion(kind: 'gym' | 'run' | 'padel', focusLower: string, dateConstraint?: string) {
-        return completions.find(
-          (c) =>
-            !c.used &&
-            c.kind === kind &&
-            (kind !== 'gym' || c.title === focusLower) &&
-            (dateConstraint === undefined || c.date === dateConstraint),
-        )
-      }
-
-      // Pass 1: exact-date pairing.
-      for (const r of planned) {
-        const kind = focusKind(r.focus)
-        const focusLower = r.focus.toLowerCase().trim()
-        const c = findCompletion(kind, focusLower, r.plannedDate)
-        if (c) {
-          c.used = true
-          r.actualDate = c.date
-          r.completed = true
-        }
-      }
-
-      // Pass 2: pair remaining planned with any in-week completion.
-      for (const r of planned) {
-        if (r.completed) continue
-        const kind = focusKind(r.focus)
-        const focusLower = r.focus.toLowerCase().trim()
-        const c = findCompletion(kind, focusLower)
-        if (c) {
-          c.used = true
-          r.actualDate = c.date
-          r.completed = true
-        }
-      }
+      const reconciled = reconcileWeek(planned, completions, { today: todayStr })
 
       type DayItem = {
         focus: string
-        exercises?: ExerciseList
+        exercises?: PlannedSession['exercises']
         status: 'completed' | 'today' | 'planned'
         plannedDate?: string
         actualDate?: string
         unplanned?: boolean
       }
+
       const itemsByDate = new Map<string, DayItem[]>()
-      for (const r of planned) {
-        const displayDate = r.actualDate ?? r.plannedDate
-        const status: DayItem['status'] = r.completed
+      for (const r of reconciled) {
+        if (r.state === 'missed') continue // verbergen, conform keuze Stef
+        const status: DayItem['status'] = r.state.startsWith('done-')
           ? 'completed'
-          : displayDate === todayStr
+          : r.state === 'planned-today'
             ? 'today'
             : 'planned'
         const item: DayItem = {
-          focus: r.focus,
-          exercises: r.exercises,
+          // done-as-planned: use the schema focus (correct casing). Swaps/extras: the
+          // actual logged title (stored lowercased), title-cased. Planned: focus as-is.
+          focus:
+            r.state === 'done-as-planned' && r.plannedFocus
+              ? r.plannedFocus
+              : r.state.startsWith('done-')
+                ? titleCase(r.title)
+                : r.title,
+          exercises: r.plannedExercises,
           status,
           plannedDate: r.plannedDate,
           actualDate: r.actualDate,
+          unplanned: r.state === 'done-extra' || undefined,
         }
-        const arr = itemsByDate.get(displayDate) ?? []
+        const arr = itemsByDate.get(r.displayDate) ?? []
         arr.push(item)
-        itemsByDate.set(displayDate, arr)
-      }
-
-      // Add unplanned completions (e.g. unscheduled padel/run/gym workout) as extra chips.
-      function focusLabel(c: Completion): string {
-        if (c.kind === 'run') return 'Hardlopen'
-        if (c.kind === 'padel') return 'Padel'
-        if (!c.title) return 'Workout'
-        return c.title.replace(/\b\w/g, (m) => m.toUpperCase())
-      }
-      for (const c of completions) {
-        if (c.used) continue
-        const item: DayItem = {
-          focus: focusLabel(c),
-          status: 'completed',
-          actualDate: c.date,
-          unplanned: true,
-        }
-        const arr = itemsByDate.get(c.date) ?? []
-        arr.push(item)
-        itemsByDate.set(c.date, arr)
+        itemsByDate.set(r.displayDate, arr)
       }
 
       const enrichedDays = week.days.map((day) => {
@@ -342,7 +292,7 @@ export async function GET() {
       })
 
       const sessionsPlanned = planned.length
-      const sessionsCompleted = planned.filter((r) => r.completed).length
+      const sessionsCompleted = reconciled.filter((r) => r.state.startsWith('done-') && r.plannedDate).length
 
       return {
         ...week,
@@ -372,6 +322,7 @@ export async function GET() {
       totalSessionsPlanned,
       totalSessionsCompleted,
       aiGenerated: schema.ai_generated,
+      createdAt: schema.created_at,
       updatedAt: schema.updated_at,
       progressionRules: schema.progression_rules,
       qualityAudit: schema.quality_audit,

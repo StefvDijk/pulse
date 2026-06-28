@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Brain, RefreshCcw, X } from 'lucide-react'
 import { InboxCard } from './InboxCard'
+import { NudgeList } from './NudgeList'
 import type { CoachInboxItem } from './types'
 
 interface Props {
@@ -72,6 +73,10 @@ export function InboxList({ items, isLoading = false, isError = false, onClose, 
             <X size={18} />
           </button>
         </div>
+        {/* Proactive nudges from all coaches land here too (issue #42). */}
+        <div className="mb-2 empty:mb-0">
+          <NudgeList />
+        </div>
         {isLoading ? (
           <div className="flex items-center gap-2 px-1 py-4 text-xs text-white/50">
             <RefreshCcw size={14} className="animate-spin" />
@@ -82,7 +87,7 @@ export function InboxList({ items, isLoading = false, isError = false, onClose, 
             Coach-inbox kon niet laden.
           </div>
         ) : sorted.length === 0 ? (
-          <p className="px-1 py-4 text-xs text-white/50">Geen coach-meldingen.</p>
+          <p className="px-1 py-4 text-xs text-white/50">Geen openstaande coach-vragen.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {sorted.map((item) => (

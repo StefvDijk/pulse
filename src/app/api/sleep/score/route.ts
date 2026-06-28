@@ -1,0 +1,28 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { computeSleepScore } from '@/lib/sleep/compute'
+
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }, { status: 401 })
+    }
+
+    const data = await computeSleepScore(user.id)
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      },
+    })
+  } catch (error) {
+    console.error('Sleep score API error:', error)
+    return NextResponse.json(
+      { error: 'Failed to load sleep score', code: 'INTERNAL_ERROR' },
+      { status: 500 },
+    )
+  }
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, fireEvent, cleanup } from '@testing-library/react'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
+import type { ReadinessSummary } from '@/app/api/readiness/summary/route'
 
 afterEach(() => cleanup())
 
@@ -58,5 +59,22 @@ describe('ReadinessCard honest states', () => {
     )
     expect(getByText('98')).toBeTruthy()
     expect(getByText('Goed hersteld')).toBeTruthy()
+  })
+
+  it('attributes the readiness summary to the gezondheidscoach (issue #39)', () => {
+    const summary = { sentence: 'Goede HRV en slaap — ga ervoor.' } as unknown as ReadinessSummary
+    const { getByText } = render(
+      <ReadinessCard
+        view={{ status: 'ready', score: 80, level: 'good' }}
+        readiness={null}
+        summary={summary}
+        label="Goed hersteld"
+        tone="good"
+        onRetry={noop}
+      />,
+    )
+    expect(getByText('Goede HRV en slaap — ga ervoor.')).toBeTruthy()
+    // The same readiness calc now has a recognisable sender.
+    expect(getByText('Gezondheidscoach')).toBeTruthy()
   })
 })

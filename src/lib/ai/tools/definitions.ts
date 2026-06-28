@@ -4,7 +4,7 @@ import { getWorkoutHistory, getExerciseStats, searchExercises, comparePeriods } 
 import { getRunningHistory } from './handlers/running-tools'
 import { getHealthMetrics } from './handlers/health-tools'
 import { getNutritionLog, getMacroTargets } from './handlers/nutrition-tools'
-import { calculateProgressiveOverload, getRecoveryScore } from './handlers/analysis-tools'
+import { calculateProgressiveOverload, getRecoveryScore, getSleepScore } from './handlers/analysis-tools'
 import {
   getBodyComposition,
   getActiveSchema,
@@ -58,6 +58,10 @@ const progressiveOverloadSchema = z.object({
 
 const recoveryScoreSchema = z.object({
   date: z.string().optional().describe('ISO datum waarvoor de score te berekenen. Default: vandaag'),
+})
+
+const sleepScoreSchema = z.object({
+  date: z.string().optional().describe('ISO datum. Default: de meest recente nacht'),
 })
 
 const searchExercisesSchema = z.object({
@@ -140,6 +144,14 @@ Combineert: slaap kwaliteit, HRV trend, resting HR, en trainingsvolume afgelopen
 Returns: score 1-10, breakdown per factor, en advies (train hard / train licht / rust).`,
       inputSchema: recoveryScoreSchema,
       execute: async (input) => getRecoveryScore(userId, input),
+    }),
+
+    get_sleep_score: tool({
+      description: `Haal de Pulse slaapscore (0-100) op voor de laatste nacht — dezelfde score die Stef op zijn homescreen ziet. Gebruik bij "hoe heb ik geslapen?" of vragen over slaapkwaliteit.
+Breakdown per component: duur, bedtijd, onderbrekingen, stadia (met graceful degradation als data ontbreekt).
+Returns: score 0-100, tier, en per-component percentage.`,
+      inputSchema: sleepScoreSchema,
+      execute: async (input) => getSleepScore(userId, input),
     }),
 
     search_exercises: tool({

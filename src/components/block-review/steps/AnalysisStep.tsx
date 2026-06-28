@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StepShell } from '../StepShell'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { RichText } from '@/components/shared/RichText'
+import { getBlockReviewCoach } from '@/lib/block-review/coach'
 import { stripStructuredTags, parseProposalFromStream } from '../parse-utils'
 import type { BlockReviewData } from '@/lib/block-review/aggregator'
 import type { BlockReviewFormState, BlockReviewMessage, ProgramAudit } from '../types'
@@ -234,15 +235,16 @@ export function AnalysisStep({
 }
 
 function LoadingBubble({ initial }: { initial: boolean }) {
+  const coach = getBlockReviewCoach()
   return (
     <div className="rounded-card-lg bg-bg-surface border border-bg-border p-4">
       <div className="flex items-center gap-2 mb-2">
-        <CoachOrb size={18} />
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
+        <CoachOrb size={18} color={coach.identity.color} />
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">{coach.identity.name}</span>
         <span className="text-[10px] text-text-tertiary ml-1">...</span>
       </div>
       <div className="text-[13px] text-text-tertiary">
-        {initial ? 'Aan het analyseren — kan 10-30 seconden duren.' : 'Coach denkt na...'}
+        {initial ? 'Aan het analyseren — kan 10-30 seconden duren.' : `${coach.identity.name} denkt na...`}
       </div>
     </div>
   )
@@ -258,6 +260,7 @@ function MessageBubble({
   streaming?: boolean
 }) {
   const isAssistant = role === 'assistant'
+  const coach = getBlockReviewCoach()
   return (
     <div
       className={`rounded-card-lg p-3.5 border ${
@@ -268,8 +271,8 @@ function MessageBubble({
     >
       {isAssistant && (
         <div className="flex items-center gap-1.5 mb-2">
-          <CoachOrb size={18} />
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">Coach</span>
+          <CoachOrb size={18} color={coach.identity.color} />
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-text-secondary">{coach.identity.name}</span>
           {streaming && <span className="text-[10px] text-text-tertiary ml-1">...</span>}
         </div>
       )}

@@ -28,6 +28,10 @@ interface SystemPromptParams {
   coachTone?: CoachTone | null
   /** Markdown block from user_profile, built via lib/profile/build-profile-block. */
   profileBlock?: string | null
+  /** Specialist persona laid on top of the shared coach-core (per-coach voice). */
+  coachPersona?: string | null
+  /** Deep per-coach domain knowledge + playbook(s). */
+  coachKnowledge?: string | null
 }
 
 /**
@@ -45,7 +49,8 @@ export function buildSystemPromptBlocks(params: SystemPromptParams = {}): {
   systemStatic: string
   systemDynamic: string
 } {
-  const { activeSchema, activeInjuries, activeGoals, customInstructions, profileBlock } = params
+  const { activeSchema, activeInjuries, activeGoals, customInstructions, profileBlock, coachPersona, coachKnowledge } =
+    params
   const ctx = currentDateContext()
 
   const persona = buildCoachPersona()
@@ -85,9 +90,14 @@ Je hebt directe toegang tot Stefs trainingsdata via tools:
 - Communiceer in het Nederlands`
 
   const profileFromDb = profileBlock?.trim()
+  // De specialist-persona en -kennis liggen direct bovenop de gedeelde coach-core,
+  // zodat de coach zijn eigen stem heeft vóór profiel/gedragsregels. `undefined`
+  // (manager) valt schoon weg via filter(Boolean).
   const staticSections = [
     persona,
+    coachPersona?.trim(),
     knowledge,
+    coachKnowledge?.trim(),
     profileFromDb,
     irregularActivities,
     motivationSection,

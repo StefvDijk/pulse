@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamChat, MEMORY_MODEL } from '@/lib/ai/client'
-import { buildSystemPromptBlocks } from '@/lib/ai/prompts/chat-system'
+import type { CoachTone } from '@/lib/ai/prompts/chat-system'
 import { loadUserProfile, renderProfileBlock } from '@/lib/profile/build-profile-block'
 import { classifyQuestion, assembleThinContext } from '@/lib/ai/context-assembler'
 import { extractAndUpdateMemory } from '@/lib/ai/memory-extractor'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { selectSkills, extractContextHints } from '@/lib/ai/skills/router'
-import { createToolsForUser } from '@/lib/ai/tools'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { after } from 'next/server'
 import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
-import { classifyStreamError, type StreamErrorEvent } from '@/lib/ai/chat/stream-errors'
+import { runCoach } from '@/lib/ai/coaches/run-coach'
+import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
+import { planConsultation, orchestrateConsultation, renderTakesBlock } from '@/lib/ai/coaches/consult'
+import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -24,6 +24,10 @@ export const maxDuration = 60
 const RequestSchema = z.object({
   message: z.string().min(1).max(4000),
   session_id: z.string().uuid().optional(),
+  /** Owning coach for this thread. Defaults to the manager (Home / general
+   *  chat). Specialists send their own id from their tab. Validated against the
+   *  live coaches; nutrition/health widen LIVE_COACH_IDS in later slices. */
+  coach_id: z.enum(LIVE_COACH_IDS).default('manager'),
   /** Optional assistant message persisted as the opening turn of a new session.
    *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
    *  first AI message in the thread, then the user's reply continues from there. */
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { message, session_id, seed_assistant } = parsed.data
+    const { message, session_id, coach_id, seed_assistant } = parsed.data
     // Seed is only persisted on a brand-new session — once the session has any
     // history it's a no-op so a stale client can't inject a fake AI turn.
     const isNewSession = !session_id
@@ -73,14 +77,29 @@ export async function POST(request: Request) {
     // Resolve sessionId BEFORE stream construction so we can set X-Session-Id
     // on the response headers (frontend reads it). When a session already
     // exists this is free; new-session creation costs ~50ms.
+    // A thread's coach is fixed at creation. For a new session we stamp the
+    // requested coach; for an existing one we trust the stored coach_id (not the
+    // request body) so a thread can never be answered by the wrong specialist.
     let sessionId: string
+    let effectiveCoachId: LiveCoachId = coach_id
     if (session_id) {
       sessionId = session_id
+      const { data: sessionRow } = await admin
+        .from('chat_sessions')
+        .select('coach_id')
+        .eq('id', session_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const stored = sessionRow?.coach_id
+      if (stored && (LIVE_COACH_IDS as readonly string[]).includes(stored)) {
+        effectiveCoachId = stored as LiveCoachId
+      }
     } else {
       const { data: newSession, error: sessionError } = await admin
         .from('chat_sessions')
         .insert({
           user_id: user.id,
+          coach_id,
           title: message.slice(0, 50),
           started_at: new Date().toISOString(),
           last_message_at: new Date().toISOString(),
@@ -92,6 +111,11 @@ export async function POST(request: Request) {
       }
       sessionId = newSession.id
     }
+
+    // Manager hub (#40/#44): classify the question's scope. In fase C a `cross`
+    // scope escalates to real parallel specialist orchestration below; also
+    // surfaced as the X-Coach-Scope header.
+    const managerPlan = effectiveCoachId === 'manager' ? planConsultation(message) : null
 
     // Stream starts IMMEDIATELY — client sees typing bubble within ~50ms
     // instead of waiting 800-1500ms for context queries to resolve. All
@@ -201,25 +225,6 @@ export async function POST(request: Request) {
           // DYNAMIC system block = datum/dagdeel/schema/blessures/doelen +
           // coaching-geheugen (thinContext) + skills. Verandert per turn, dus
           // ná de breakpoint zodat het de cache van het statische deel niet breekt.
-          const { systemStatic, systemDynamic } = buildSystemPromptBlocks({
-            activeSchema,
-            activeInjuries: injuriesResult.data ?? [],
-            activeGoals: goalsResult.data ?? [],
-            customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
-            coachTone: (settingsResult.data?.coach_tone ?? 'direct') as 'direct' | 'friendly' | 'scientific',
-            profileBlock: renderProfileBlock(profile),
-          })
-
-          let dynamicBlock = systemDynamic + thinContext
-
-          const skills = selectSkills(questionType, message, extractContextHints(thinContext))
-          if (skills.length > 0) {
-            dynamicBlock += '\n\n' + skills.join('\n\n')
-          }
-
-          const isSimple = questionType === 'simple_greeting'
-          const tools = isSimple ? undefined : createToolsForUser(user.id)
-
           // For a freshly seeded thread the parallel history fetch races the
           // seed insert above — we can't rely on it picking up the seed turn.
           // Inline it so Claude sees the same conversation the user does.
@@ -231,13 +236,36 @@ export async function POST(request: Request) {
               ]
             : [...historyMessages, { role: 'user' as const, content: message }]
 
-          const result = streamChat({
-            system: systemStatic,
-            systemDynamic: dynamicBlock,
-            messages: conversation,
-            tools,
-            ...(isSimple ? { model: MEMORY_MODEL } : {}),
-            meta: { userId: user.id, feature: isSimple ? 'chat_greeting' : 'chat' },
+          // Fase C orchestration (#44): for a cross-domain manager question,
+          // consult the relevant specialists IN PARALLEL and fold their takes
+          // into the manager's context, so it streams ONE synthesised mixed
+          // answer. Non-cross questions skip this entirely.
+          let coachThinContext = thinContext
+          if (managerPlan?.scope === 'cross') {
+            const { takes } = await orchestrateConsultation(message, {
+              userId: user.id,
+              context: thinContext,
+            })
+            coachThinContext += renderTakesBlock(takes)
+          }
+
+          // Run the request through the coach engine. The owning coach (manager
+          // by default, a specialist when its tab sends coach_id) decides the
+          // persona + scoped toolset; the engine seam is identical for all.
+          const result = runCoach(getCoachConfig(effectiveCoachId), {
+            userId: user.id,
+            questionType,
+            message,
+            conversation,
+            thinContext: coachThinContext,
+            systemData: {
+              activeSchema,
+              activeInjuries: injuriesResult.data ?? [],
+              activeGoals: goalsResult.data ?? [],
+              customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+              coachTone: (settingsResult.data?.coach_tone ?? 'direct') as CoachTone,
+              profileBlock: renderProfileBlock(profile),
+            },
           })
 
           // Strip write-back tags from the DISPLAYED stream so the user never
@@ -384,6 +412,7 @@ export async function POST(request: Request) {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'X-Session-Id': sessionId,
+        ...(managerPlan ? { 'X-Coach-Scope': managerPlan.scope } : {}),
       },
     })
   } catch (error) {

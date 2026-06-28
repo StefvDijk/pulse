@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { mutate as globalMutate } from 'swr'
 import { useSchema } from '@/hooks/useSchema'
 import { useSettings } from '@/hooks/useSettings'
-import { SchemaProgress } from './SchemaProgress'
 import { SchemaOverview } from './SchemaOverview'
 import { SchemaCalendar } from './SchemaCalendar'
 import { PlanWeekModal } from './PlanWeekModal'
-import { SchemaBlockHeader, SchemaCoachNudge } from './v2'
+import { SchemaBlockHeader, SchemaCoachNudge, SchemaStartedBanner } from './v2'
+import { SchemaSubNav } from './SchemaSubNav'
+import { SportCoachLauncher } from '@/components/coach/SportCoachLauncher'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -54,8 +55,6 @@ export function SchemaPageContent() {
   const { data, error, isLoading, mutate } = useSchema()
   const { data: settings } = useSettings()
   const [calendarModalOpen, setCalendarModalOpen] = useState(false)
-  const [undoing, setUndoing] = useState(false)
-  const [undoError, setUndoError] = useState<string | null>(null)
 
   const calendarConnected = !!settings?.settings.google_calendar_email
 
@@ -111,21 +110,13 @@ export function SchemaPageContent() {
   }
 
   async function handleUndoBlockReview() {
-    setUndoing(true)
-    setUndoError(null)
-    try {
-      const res = await fetch('/api/block-review/undo', { method: 'POST' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Terugdraaien mislukt')
-      }
-      await mutate()
-      refreshSchemaWeek()
-    } catch (err) {
-      setUndoError((err as Error).message)
-    } finally {
-      setUndoing(false)
+    const res = await fetch('/api/block-review/undo', { method: 'POST' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error ?? 'Terugdraaien mislukt')
     }
+    await mutate()
+    refreshSchemaWeek()
   }
 
   // Derive ISO week number from the current week's first day
@@ -141,58 +132,28 @@ export function SchemaPageContent() {
 
   return (
     <div className="flex flex-col pb-24">
-      {/* v2 header — title, week label, block progress bar */}
       <SchemaBlockHeader
         title={data.title}
         weekLabel={weekLabel}
         weekOfBlock={data.currentWeek}
         totalWeeks={data.totalWeeks}
-        sessionsCompleted={data.totalSessionsCompleted}
-        sessionsPlanned={data.totalSessionsPlanned}
       />
 
+      <div className="pb-2">
+        <SchemaSubNav />
+      </div>
+
       <div className="flex flex-col gap-3 px-4">
-        {data.sourceBlockReviewId && (
-          <div className="rounded-card-lg border border-status-warning/40 bg-status-warning/10 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[13px] font-medium text-text-primary">Net gestart</div>
-                <div className="text-[12px] text-text-secondary">Niet wat je bedoelde?</div>
-              </div>
-              <button
-                type="button"
-                onClick={handleUndoBlockReview}
-                disabled={undoing}
-                className="rounded-full border border-status-warning/60 px-3 py-1.5 text-[12px] text-status-warning disabled:opacity-40"
-              >
-                {undoing ? 'Bezig...' : 'Ongedaan maken'}
-              </button>
-            </div>
-            {undoError && <div className="mt-2 text-[12px] text-status-danger">{undoError}</div>}
-          </div>
-        )}
+        {/* Sport coach — the Schema tab's specialist lives here */}
+        <SportCoachLauncher />
 
-        {/* Block-level progress segments */}
-        <SchemaProgress
-          title={data.title}
-          totalWeeks={data.totalWeeks}
-          currentWeek={data.currentWeek}
-          completedWeeks={data.completedWeeks}
-          totalSessionsPlanned={data.totalSessionsPlanned}
-          totalSessionsCompleted={data.totalSessionsCompleted}
-          weeks={data.weeks}
-          startDate={data.startDate}
+        <SchemaStartedBanner
+          schemaId={data.id}
+          createdAt={data.createdAt}
+          sourceBlockReviewId={data.sourceBlockReviewId}
+          onUndo={handleUndoBlockReview}
         />
 
-        {/* Schema overview (collapsible workout template list) */}
-        <SchemaOverview
-          title={data.title}
-          schemaType={data.schemaType}
-          schedule={data.schedule}
-          onSave={handleSaveSchedule}
-        />
-
-        {/* Calendar / Agenda */}
         <SchemaCalendar
           weeks={data.weeks}
           currentWeek={data.currentWeek}
@@ -206,17 +167,20 @@ export function SchemaPageContent() {
           }}
         />
 
-        {/* Coach nudge card */}
+        <SchemaOverview
+          title={data.title}
+          schemaType={data.schemaType}
+          schedule={data.schedule}
+          onSave={handleSaveSchedule}
+        />
+
         <SchemaCoachNudge
           message={isLastWeek ? 'Blok klaar — start Block Review' : nudgeMessage}
           href={isLastWeek ? '/block-review' : undefined}
         />
       </div>
 
-      {/* Google Calendar modal — fetches its own week data on mount */}
-      {calendarModalOpen && (
-        <PlanWeekModal onClose={() => setCalendarModalOpen(false)} />
-      )}
+      {calendarModalOpen && <PlanWeekModal onClose={() => setCalendarModalOpen(false)} />}
     </div>
   )
 }

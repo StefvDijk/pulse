@@ -1,5 +1,6 @@
 import useSWR from 'swr'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
+import type { SportKey } from '@/lib/sports/registry'
 
 /* ── Response types from GET /api/schema/week ──────────────── */
 
@@ -24,7 +25,7 @@ export interface ScheduleDay {
   duration_min: number
 }
 
-export type ActivityType = 'gym' | 'run' | 'padel'
+export type ActivityType = SportKey
 export type TokenState =
   | 'done-as-planned'
   | 'done-swap'

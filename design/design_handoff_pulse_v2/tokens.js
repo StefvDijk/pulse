@@ -28,6 +28,12 @@ window.PulseTokens = {
     warn: '#FFB020',
     bad: '#FF4D6D',
   },
+  // Coach faces — manager = brand coral (#D97757), sport = gym-teal (#00E5C7);
+  // the specialists get their own accent so each coach is recognisable.
+  coach: {
+    nutrition: { base: '#5BD16F', light: 'rgba(91,209,111,0.18)', glow: 'rgba(91,209,111,0.5)', dark: '#1C5226' },
+    health:    { base: '#818CF8', light: 'rgba(129,140,248,0.18)', glow: 'rgba(129,140,248,0.5)', dark: '#272A5C' },
+  },
   // Hero gradients — Apple Fitness+ inspired aurora
   gradients: {
     aurora: 'linear-gradient(135deg, #FF5E3A 0%, #FF2D87 35%, #7C3AED 70%, #00E5C7 100%)',
