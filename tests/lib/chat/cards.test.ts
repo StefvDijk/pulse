@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   parseCards,
   makeWritebackCard,
@@ -30,13 +30,17 @@ describe('parseCards', () => {
   })
 
   it('silently drops a card with invalid JSON', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const raw = '<workout_card>{not valid json}</workout_card>Goed werk.'
     expect(parseCards(raw)).toHaveLength(0)
+    spy.mockRestore()
   })
 
   it('silently drops a card that fails Zod validation (missing required sport)', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const raw = '<workout_card>{"title":"Squat Day","date":"2026-06-28"}</workout_card>'
     expect(parseCards(raw)).toHaveLength(0)
+    spy.mockRestore()
   })
 
   it('extracts multiple card types from one response', () => {
@@ -44,6 +48,16 @@ describe('parseCards', () => {
       '<workout_card>{"title":"Squat","date":"2026-06-28","sport":"gym"}</workout_card>' +
       '<stat_card>{"label":"Volume","value":"14000","unit":"kg"}</stat_card>'
     expect(parseCards(raw)).toHaveLength(2)
+  })
+
+  it('extracts multiple stat_card blocks of the same type in order', () => {
+    const raw =
+      '<stat_card>{"label":"Bench 1RM","value":"92.5","unit":"kg"}</stat_card>' +
+      '<stat_card>{"label":"Squat 1RM","value":"140","unit":"kg"}</stat_card>'
+    const cards = parseCards(raw)
+    expect(cards).toHaveLength(2)
+    expect(cards[0]).toMatchObject({ type: 'stat_card', label: 'Bench 1RM' })
+    expect(cards[1]).toMatchObject({ type: 'stat_card', label: 'Squat 1RM' })
   })
 
   it('returns [] when no card tags are present', () => {
