@@ -84,4 +84,14 @@ describe('createStreamTagStripper', () => {
       'Sterkte. <cited_memories>aaaa</cited_memories>'
     expect(stripChunks([text])).toBe('Genoteerd. Sterkte. ')
   })
+
+  it('strips workout_card when included in tag list', () => {
+    const s = createStreamTagStripper(['workout_card'])
+    let out = ''
+    out += s.feed('<workout_card>{"title":"Squat Day","date":"2026-06-28","sport":"gym"}</workout_card>')
+    out += s.feed('Goed werk!')
+    out += s.flush()
+    expect(out).toBe('Goed werk!')
+    expect(out).not.toContain('<workout_card>')
+  })
 })
