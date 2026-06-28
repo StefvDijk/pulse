@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
+import { TimeSeparator } from './TimeSeparator'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import type { LiveCoachId } from '@/lib/ai/coaches/registry'
 import { parseCardEvent } from '@/lib/ai/chat/cards'
@@ -47,6 +48,17 @@ export interface ChatInterfaceProps {
 }
 
 const NEAR_BOTTOM_PX = 120
+
+function messageDateLabel(isoString: string): string {
+  const date = new Date(isoString)
+  const now = new Date()
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const msgMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+  const diffDays = Math.round((todayMidnight - msgMidnight) / 86_400_000)
+  if (diffDays === 0) return 'Vandaag'
+  if (diffDays === 1) return 'Gisteren'
+  return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })
+}
 
 export function ChatInterface({
   sessionId: initialSessionId,
@@ -118,6 +130,7 @@ export function ChatInterface({
           id: m.id,
           role: m.role as 'user' | 'assistant',
           content: m.content,
+          created_at: m.created_at,
         }))
         // Seed a fresh thread with the coach nudge as the first AI message.
         // Skipped when history already exists so we don't duplicate after reload.
@@ -126,6 +139,7 @@ export function ChatInterface({
             id: 'seed-assistant',
             role: 'assistant',
             content: seededAssistant,
+            created_at: new Date().toISOString(),
           })
         }
         setMessages(loaded)
@@ -217,6 +231,7 @@ export function ChatInterface({
         id: `user-${Date.now()}`,
         role: 'user',
         content: message,
+        created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, userMsg])
       setStreamingContent('')
@@ -414,15 +429,27 @@ export function ChatInterface({
           </div>
         )}
 
-        {messages.map((msg) => (
-          <ChatMessage
-            key={msg.id}
-            role={msg.role}
-            content={msg.content}
-            timestamp={msg.created_at}
-            cards={msg.cards}
-          />
-        ))}
+        {messages.map((msg, i) => {
+          const prev = i > 0 ? messages[i - 1] : null
+          const showSeparator =
+            msg.created_at != null &&
+            (prev?.created_at == null ||
+              new Date(msg.created_at).toDateString() !==
+                new Date(prev.created_at).toDateString())
+          return (
+            <Fragment key={msg.id}>
+              {showSeparator && (
+                <TimeSeparator dateLabel={messageDateLabel(msg.created_at!)} />
+              )}
+              <ChatMessage
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.created_at}
+                cards={msg.cards}
+              />
+            </Fragment>
+          )
+        })}
 
         {/* Streaming message — show empty bubble with typing indicator
             the instant the server flushes its __thinking event, even
