@@ -10,10 +10,9 @@ it('textarea has aria-label "Bericht aan coach"', () => {
   expect(textarea.getAttribute('aria-label')).toBe('Bericht aan coach')
 })
 
-it('textarea does not have autoFocus attribute', () => {
+it('textarea is not focused on mount', () => {
   const { getByRole } = render(<ChatInput onSend={vi.fn()} isLoading={false} />)
-  const textarea = getByRole('textbox')
-  expect(textarea.hasAttribute('autofocus')).toBe(false)
+  expect(document.activeElement).not.toBe(getByRole('textbox'))
 })
 
 it('wrapper div has focus-within ring class', () => {
