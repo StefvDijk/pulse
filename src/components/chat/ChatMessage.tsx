@@ -5,6 +5,7 @@ import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { CardRenderer } from '@/components/chat/cards/CardRenderer'
+import { formatTime } from '@/lib/time/amsterdam'
 import type { AnyCard } from '@/lib/ai/chat/cards'
 
 export interface ChatMessageProps {
@@ -53,14 +54,6 @@ const MARKDOWN_COMPONENTS: Components = {
 }
 
 const REMARK_PLUGINS = [remarkGfm]
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return ''
-  }
-}
 
 // Stable-ish React key: type + a discriminating field per card, plus index as
 // a tiebreaker (the coach may emit multiples of one type in a single answer).

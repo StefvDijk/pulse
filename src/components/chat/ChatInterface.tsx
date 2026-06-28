@@ -265,7 +265,7 @@ export function ChatInterface({
         const decoder = new TextDecoder()
         let accumulated = ''
         let errorEvent: { code: string; message: string } | null = null
-        let pendingCards: AnyCard[] = []
+        const pendingCards: AnyCard[] = []
 
         while (true) {
           const { done, value } = await reader.read()
