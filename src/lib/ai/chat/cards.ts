@@ -75,9 +75,9 @@ export const CHAT_CARD_TAGS = ['workout_card', 'weekplan_card', 'stat_card'] as 
 
 // ---- Helpers -----------------------------------------------------------------
 
-function extractTagInner(text: string, tag: string): string | null {
-  const m = new RegExp(`<${tag}\\s*>([\\s\\S]*?)</${tag}\\s*>`, 'i').exec(text)
-  return m ? m[1].trim() : null
+function extractAllTagInners(text: string, tag: string): string[] {
+  const re = new RegExp(`<${tag}\\s*>([\\s\\S]*?)</${tag}\\s*>`, 'gi')
+  return [...text.matchAll(re)].map((m) => m[1].trim())
 }
 
 function safeJson(raw: string): unknown {
@@ -95,23 +95,24 @@ function safeJson(raw: string): unknown {
 export function parseCards(rawText: string): AnyCard[] {
   const cards: AnyCard[] = []
   for (const tag of CHAT_CARD_TAGS) {
-    const inner = extractTagInner(rawText, tag)
-    if (!inner) continue
-    const json = safeJson(inner)
-    if (json === undefined) {
-      console.error(`[chat/cards] malformed JSON in <${tag}>`)
-      continue
-    }
-    const raw =
-      typeof json === 'object' && json !== null ? (json as Record<string, unknown>) : {}
-    let result: ReturnType<typeof WorkoutCardSchema.safeParse>
-    if (tag === 'workout_card') result = WorkoutCardSchema.safeParse({ ...raw, type: 'workout' })
-    else if (tag === 'weekplan_card') result = WeekplanCardSchema.safeParse({ ...raw, type: tag })
-    else result = StatCardSchema.safeParse({ ...raw, type: tag })
-    if (result.success) {
-      cards.push(result.data as AnyCard)
-    } else {
-      console.error(`[chat/cards] invalid <${tag}> payload:`, result.error.message)
+    for (const inner of extractAllTagInners(rawText, tag)) {
+      if (!inner) continue
+      const json = safeJson(inner)
+      if (json === undefined) {
+        console.error(`[chat/cards] malformed JSON in <${tag}>`)
+        continue
+      }
+      const raw =
+        typeof json === 'object' && json !== null ? (json as Record<string, unknown>) : {}
+      let result: ReturnType<typeof WorkoutCardSchema.safeParse>
+      if (tag === 'workout_card') result = WorkoutCardSchema.safeParse({ ...raw, type: 'workout' })
+      else if (tag === 'weekplan_card') result = WeekplanCardSchema.safeParse({ ...raw, type: tag })
+      else result = StatCardSchema.safeParse({ ...raw, type: tag })
+      if (result.success) {
+        cards.push(result.data as AnyCard)
+      } else {
+        console.error(`[chat/cards] invalid <${tag}> payload:`, result.error.message)
+      }
     }
   }
   return cards
