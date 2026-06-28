@@ -145,3 +145,14 @@ export function stripCardTagsFromText(text: string): string {
   }
   return out
 }
+
+/**
+ * Narrow a parsed SSE event payload to a validated card. Returns the card when
+ * the event is a well-formed `{ __card: <AnyCard> }` envelope, else `null`.
+ * Kept pure (no side effects) so the ChatInterface SSE branch stays unit-testable.
+ */
+export function parseCardEvent(parsed: unknown): AnyCard | null {
+  if (!parsed || typeof parsed !== 'object' || !('__card' in parsed)) return null
+  const result = AnyCardSchema.safeParse((parsed as { __card: unknown }).__card)
+  return result.success ? result.data : null
+}

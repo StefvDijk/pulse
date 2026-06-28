@@ -6,7 +6,7 @@ import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import type { LiveCoachId } from '@/lib/ai/coaches/registry'
-import { AnyCardSchema } from '@/lib/ai/chat/cards'
+import { parseCardEvent } from '@/lib/ai/chat/cards'
 import type { AnyCard } from '@/lib/ai/chat/cards'
 
 interface Message {
@@ -304,10 +304,8 @@ export function ChatInterface({
                 typeof parsed === 'object' &&
                 '__card' in parsed
               ) {
-                const cardResult = AnyCardSchema.safeParse(
-                  (parsed as { __card: unknown }).__card,
-                )
-                if (cardResult.success) pendingCards.push(cardResult.data)
+                const card = parseCardEvent(parsed)
+                if (card) pendingCards.push(card)
               }
             } catch {
               // skip malformed

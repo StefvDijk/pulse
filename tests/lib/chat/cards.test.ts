@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   parseCards,
+  parseCardEvent,
   makeWritebackCard,
   stripCardTagsFromText,
 } from '@/lib/ai/chat/cards'
@@ -91,5 +92,56 @@ describe('stripCardTagsFromText', () => {
 
   it('returns text unchanged when no card tags present', () => {
     expect(stripCardTagsFromText('Goed zo!')).toBe('Goed zo!')
+  })
+})
+
+describe('parseCardEvent (ChatInterface __card SSE branch)', () => {
+  it('returns the validated card from a well-formed __card envelope', () => {
+    const event = {
+      __card: {
+        type: 'stat_card',
+        label: 'Bench 1RM',
+        value: '92.5',
+        unit: 'kg',
+        trend: 'up',
+      },
+    }
+    const card = parseCardEvent(event)
+    expect(card).toMatchObject({ type: 'stat_card', label: 'Bench 1RM', trend: 'up' })
+  })
+
+  it('parses a workout card envelope (discriminated union)', () => {
+    const event = {
+      __card: {
+        type: 'workout',
+        title: 'Squat Day',
+        date: '2026-06-28',
+        sport: 'gym',
+        exercises: [{ name: 'Squat', sets: 4, reps: '6', weight_kg: 80 }],
+      },
+    }
+    const card = parseCardEvent(event)
+    expect(card).toMatchObject({ type: 'workout', title: 'Squat Day' })
+  })
+
+  it('returns null when the envelope payload fails Zod validation', () => {
+    // missing required `sport`
+    const event = { __card: { type: 'workout', title: 'X', date: '2026-06-28' } }
+    expect(parseCardEvent(event)).toBeNull()
+  })
+
+  it('returns null when the discriminator type is unknown', () => {
+    const event = { __card: { type: 'mystery', foo: 'bar' } }
+    expect(parseCardEvent(event)).toBeNull()
+  })
+
+  it('returns null for a non-card event (e.g. a __thinking signal)', () => {
+    expect(parseCardEvent({ __thinking: true })).toBeNull()
+  })
+
+  it('returns null for non-object inputs', () => {
+    expect(parseCardEvent('hello')).toBeNull()
+    expect(parseCardEvent(null)).toBeNull()
+    expect(parseCardEvent(undefined)).toBeNull()
   })
 })
