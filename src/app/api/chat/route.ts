@@ -15,6 +15,7 @@ import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { after } from 'next/server'
 import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
+import { classifyStreamError, type StreamErrorEvent } from '@/lib/ai/chat/stream-errors'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -28,47 +29,6 @@ const RequestSchema = z.object({
    *  first AI message in the thread, then the user's reply continues from there. */
   seed_assistant: z.string().min(1).max(4000).optional(),
 })
-
-// ── Error classification ──────────────────────────────────────────────────────
-
-interface StreamErrorEvent {
-  __error: true
-  code: 'AI_AUTH_ERROR' | 'AI_RATE_LIMIT' | 'AI_TIMEOUT' | 'AI_GENERIC_ERROR'
-  message: string
-}
-
-function classifyStreamError(err: unknown): StreamErrorEvent {
-  const e = err as { name?: string; statusCode?: number; message?: string }
-  if (e?.name === 'AI_APICallError') {
-    if (e.statusCode === 401 || e.statusCode === 403) {
-      return {
-        __error: true,
-        code: 'AI_AUTH_ERROR',
-        message:
-          'AI is tijdelijk niet bereikbaar (auth-fout). Beheerder is gewaarschuwd — probeer het later opnieuw.',
-      }
-    }
-    if (e.statusCode === 429) {
-      return {
-        __error: true,
-        code: 'AI_RATE_LIMIT',
-        message: 'Te veel verzoeken naar de AI. Probeer het over 30 seconden opnieuw.',
-      }
-    }
-  }
-  if (e?.name === 'AbortError' || /timeout/i.test(e?.message ?? '')) {
-    return {
-      __error: true,
-      code: 'AI_TIMEOUT',
-      message: 'AI-antwoord duurde te lang. Probeer een kortere vraag.',
-    }
-  }
-  return {
-    __error: true,
-    code: 'AI_GENERIC_ERROR',
-    message: 'Er ging iets mis bij het genereren van het antwoord. Probeer het opnieuw.',
-  }
-}
 
 export async function POST(request: Request) {
   try {
