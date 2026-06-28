@@ -8,6 +8,7 @@ import { TimeSeparator } from './TimeSeparator'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { parseCardEvent } from '@/lib/ai/chat/cards'
 import type { AnyCard } from '@/lib/ai/chat/cards'
+import { dayKeyAmsterdam, todayAmsterdam, diffDayKeys } from '@/lib/time/amsterdam'
 
 interface Message {
   id: string
@@ -41,15 +42,15 @@ export interface ChatInterfaceProps {
 
 const NEAR_BOTTOM_PX = 120
 
-function messageDateLabel(isoString: string): string {
-  const date = new Date(isoString)
-  const now = new Date()
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const msgMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
-  const diffDays = Math.round((todayMidnight - msgMidnight) / 86_400_000)
-  if (diffDays === 0) return 'Vandaag'
-  if (diffDays === 1) return 'Gisteren'
-  return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })
+export function messageDateLabel(iso: string): string {
+  const diff = diffDayKeys(dayKeyAmsterdam(iso), todayAmsterdam())
+  if (diff === 0) return 'Vandaag'
+  if (diff === 1) return 'Gisteren'
+  return new Intl.DateTimeFormat('nl-NL', {
+    timeZone: 'Europe/Amsterdam',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(iso))
 }
 
 export function ChatInterface({
@@ -422,8 +423,7 @@ export function ChatInterface({
           const showSeparator =
             msg.created_at != null &&
             (prev?.created_at == null ||
-              new Date(msg.created_at).toDateString() !==
-                new Date(prev.created_at).toDateString())
+              dayKeyAmsterdam(msg.created_at) !== dayKeyAmsterdam(prev.created_at))
           return (
             <Fragment key={msg.id}>
               {showSeparator && (
