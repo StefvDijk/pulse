@@ -62,6 +62,21 @@ function formatTime(iso: string): string {
   }
 }
 
+// Stable-ish React key: type + a discriminating field per card, plus index as
+// a tiebreaker (the coach may emit multiples of one type in a single answer).
+function cardKey(card: AnyCard, index: number): string {
+  switch (card.type) {
+    case 'workout':
+      return `workout-${card.title}-${index}`
+    case 'weekplan_card':
+      return `weekplan-${card.week}-${index}`
+    case 'stat_card':
+      return `stat-${card.label}-${index}`
+    case 'writeback_card':
+      return `writeback-${card.kind}-${index}`
+  }
+}
+
 function ChatMessageImpl({ role, content, isStreaming, timestamp, cards }: ChatMessageProps) {
   const isUser = role === 'user'
 
@@ -117,7 +132,7 @@ function ChatMessageImpl({ role, content, isStreaming, timestamp, cards }: ChatM
           {cards && cards.length > 0 && (
             <div className="mt-1">
               {cards.map((card, i) => (
-                <CardRenderer key={`${card.type}-${i}`} card={card} />
+                <CardRenderer key={cardKey(card, i)} card={card} />
               ))}
             </div>
           )}

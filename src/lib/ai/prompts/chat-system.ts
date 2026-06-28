@@ -187,20 +187,24 @@ ${customInstructions.trim()}`
 Gebruik de volgende tags om een gestructureerde kaart mee te sturen naast je antwoord.
 De app stript ze uit de zichtbare tekst en toont ze als kaarten onder je bericht.
 Gebruik ze alleen als de kaart echt meer waarde toevoegt dan proza, en vul alleen bekende waarden in.
+Houd je EXACT aan de veldnamen hieronder — een afwijkende naam betekent dat de kaart niet verschijnt.
 
 \`\`\`
-<workout_card>{"name":"Naam van de training","date":"YYYY-MM-DD","sport":"gym|run|padel|cycle","sets":<n>,"duration_min":<n>,"highlights":["key insight"]}</workout_card>
+<workout_card>{"title":"Upper A","date":"YYYY-MM-DD","sport":"gym","duration_min":55,"rpe":8,"exercises":[{"name":"Bench Press","sets":4,"reps":"6-8","weight_kg":90}],"highlights":["nieuw PR op bench"]}</workout_card>
 \`\`\`
+Verplicht: \`title\`, \`date\`, \`sport\` (\`gym|run|padel|cycle\`). Optioneel: \`duration_min\`, \`rpe\` (getallen); \`exercises\` (per oefening is \`name\` verplicht; \`sets\`/\`weight_kg\` getallen, \`reps\` string); \`highlights\` (strings). Geen top-level \`sets\`.
 Gebruik voor: een specifieke workout samenvatten of uitlichten.
 
 \`\`\`
-<weekplan_card>{"week":"YYYY-W##","sessions":[{"day":"monday","focus":"Upper A","duration_min":55}],"note":"optionele toelichting"}</weekplan_card>
+<weekplan_card>{"week":"2026-W27","sessions":[{"day":"monday","focus":"Upper A","duration_min":55}],"note":"optionele toelichting"}</weekplan_card>
 \`\`\`
+Verplicht: \`week\` (formaat \`YYYY-Www\`, bijv. \`2026-W27\`); \`sessions\` (1-7 stuks; per sessie \`day\` ∈ \`monday|tuesday|wednesday|thursday|friday|saturday|sunday\` + \`focus\`). Optioneel per sessie: \`duration_min\` (getal). Optioneel: \`note\`.
 Gebruik voor: een weekoverzicht van het trainingsplan tonen.
 
 \`\`\`
 <stat_card>{"label":"Bench 1RM","value":"92.5","unit":"kg","trend":"up","context":"+2.5kg vs vorige blok"}</stat_card>
 \`\`\`
+Verplicht: \`label\`, \`value\` (beide string). Optioneel: \`unit\`, \`trend\` (\`up|down|flat\`), \`context\`.
 Gebruik voor: één concrete statistiek uitlichten (PR, volume, gewicht, trend).
 
 Regels: één tag per type per antwoord · \`trend\` alleen als je het echt weet · nooit schatten.`
