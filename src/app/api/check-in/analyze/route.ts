@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createJsonCompletion, MODEL } from '@/lib/ai/client'
 import { buildCheckInAnalyzePrompt } from '@/lib/ai/prompts/checkin-analyze'
 import { orchestrateConsultation, renderTakesContext } from '@/lib/ai/coaches/consult'
+import { startOfDayUtcIso, addDaysToKey } from '@/lib/time/amsterdam'
 import type { CheckInReviewData } from '@/app/api/check-in/review/route'
 import type { SessionFeedbackEntry } from '@/lib/training/session-feedback'
 
@@ -131,8 +132,8 @@ export async function POST(request: Request) {
             .from('session_feedback')
             .select('session_type, session_started_at, session_title, feedback_text')
             .eq('user_id', user.id)
-            .gte('session_started_at', weekStart)
-            .lte('session_started_at', `${weekEnd}T23:59:59`)
+            .gte('session_started_at', startOfDayUtcIso(weekStart))
+            .lt('session_started_at', startOfDayUtcIso(addDaysToKey(weekEnd, 1)))
             .not('feedback_text', 'is', null)
             .order('session_started_at', { ascending: true })
         ).data

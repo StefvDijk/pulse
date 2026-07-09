@@ -299,6 +299,16 @@ export async function POST(request: Request) {
             finalText += line
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(line)}\n\n`))
           }
+          // A tag that opened but never closed means the answer was cut off
+          // mid-write (maxOutputTokens). The debris is already stripped from
+          // cleanText; tell the user honestly so they can retry instead of
+          // assuming it was saved.
+          if (parsed.truncatedTags.length > 0) {
+            const line =
+              '\n\n⚠️ Een deel van mijn antwoord kwam onvolledig door en is niet opgeslagen. Vraag me het opnieuw te doen.'
+            finalText += line
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(line)}\n\n`))
+          }
 
           let outputTokens = 0
           try {

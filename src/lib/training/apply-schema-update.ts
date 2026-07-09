@@ -164,10 +164,18 @@ export async function applySchemaUpdate(
     }
   }
 
-  await admin
+  const { error: updateError } = await admin
     .from('training_schemas')
     .update({ workout_schedule: updatedSchedule as unknown as Json })
     .eq('id', schema.id)
+
+  // Never claim success on a failed write: without this check the coach told
+  // the user "aangepast" and logged it as fact in coaching_memory while the DB
+  // was unchanged. Report applied:false so the honest correction path kicks in.
+  if (updateError) {
+    console.error('[apply-schema-update] schema update failed:', updateError)
+    return { applied: false, description: 'Het aanpassen van het schema ging mis. Probeer het opnieuw.' }
+  }
 
   const description = formatSchemaUpdateDescription(update)
   await admin.from('coaching_memory').upsert(

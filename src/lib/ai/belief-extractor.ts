@@ -92,11 +92,20 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
       durationMs: Date.now() - startedAt,
     })
 
+    // Extract the JSON array even when the model wraps it in prose — a bare
+    // JSON.parse(text) silently failed in production whenever Haiku prefixed a
+    // sentence, so coach_beliefs never got populated. Mirrors memory-extractor.
+    const match = /\[[\s\S]*\]/.exec(text)
+    if (!match) {
+      console.error('[belief-extractor] No JSON array in Haiku output; raw length:', text.length)
+      return
+    }
+
     let actions: ExtractorAction[]
     try {
-      actions = JSON.parse(text)
-    } catch {
-      console.warn('[belief-extractor] non-JSON output:', text.slice(0, 200))
+      actions = JSON.parse(match[0]) as ExtractorAction[]
+    } catch (parseErr) {
+      console.error('[belief-extractor] JSON.parse failed:', parseErr)
       return
     }
     if (!Array.isArray(actions) || actions.length === 0) return

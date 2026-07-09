@@ -78,6 +78,22 @@ describe('runBeliefExtractor', () => {
     expect(call.hypothesis_text).toContain('Ochtendsessies')
   })
 
+  it('extracts the JSON array even when the model prefixes prose', async () => {
+    // Regression: in productie zette Haiku vaak een zin vóór de JSON, waardoor
+    // een kale JSON.parse faalde en beliefs stil nooit werden opgeslagen.
+    generateTextMock.mockResolvedValue({
+      text: `Op basis van de gebeurtenis zie ik één hypothese:\n[{"action":"create","hypothesis_text":"Weinig slaap verlaagt bench-prestatie","category":"recovery","evidence":{"kind":"for","observation":"5u slaap, bench zwaar","source":"chat-turn"}}]`,
+      usage: { inputTokens: 90, outputTokens: 40 },
+    })
+
+    await runBeliefExtractor({ userId: 'user-1', scope: 'recovery', eventSummary: 'Slaap 5u' })
+
+    expect(adminInsert).toHaveBeenCalledTimes(1)
+    const call = adminInsert.mock.calls[0]?.[0] as Record<string, unknown>
+    expect(call.category).toBe('recovery')
+    expect(call.hypothesis_text).toContain('slaap')
+  })
+
   it('does nothing on empty array', async () => {
     generateTextMock.mockResolvedValue({
       text: '[]',

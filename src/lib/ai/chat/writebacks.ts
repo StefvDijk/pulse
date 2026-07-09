@@ -31,16 +31,30 @@ export interface ParsedWritebacks {
   injuryRaw: string | null
   schemaGenerationRaw: string | null
   schemaUpdateRaw: string | null
+  /** Tags whose opening was present but never closed (truncated output). */
+  truncatedTags: string[]
 }
 
-function extractTag(text: string, tag: string): { inner: string | null; stripped: string } {
+function extractTag(
+  text: string,
+  tag: string,
+): { inner: string | null; stripped: string; truncated: boolean } {
   const first = new RegExp(`<${tag}\\s*>([\\s\\S]*?)</${tag}\\s*>`, 'i').exec(text)
-  if (!first) return { inner: null, stripped: text }
+  if (!first) {
+    // No complete tag. An opening tag without a matching close means the model
+    // was cut off mid-tag (e.g. maxOutputTokens). Drop the dangling fragment so
+    // raw tag debris never reaches the saved message, and flag truncation so
+    // the route can add an honest "kwam onvolledig door"-correction instead of
+    // silently skipping the write.
+    const open = new RegExp(`<${tag}\\s*>`, 'i').exec(text)
+    if (open) return { inner: null, stripped: text.slice(0, open.index).trim(), truncated: true }
+    return { inner: null, stripped: text, truncated: false }
+  }
   // Strip ALL occurrences from the displayed/saved text (mirrors the stream
   // stripper's global strip) so a second same-type tag can't leak into the
   // saved message; the first payload is the one we apply.
   const stripped = text.replace(new RegExp(`<${tag}\\s*>[\\s\\S]*?</${tag}\\s*>`, 'gi'), '').trim()
-  return { inner: first[1].trim(), stripped }
+  return { inner: first[1].trim(), stripped, truncated: false }
 }
 
 /**
@@ -51,18 +65,21 @@ function extractTag(text: string, tag: string): { inner: string | null; stripped
  */
 export function parseWritebacks(rawText: string): ParsedWritebacks {
   let text = rawText
-  const schemaGen = extractTag(text, 'schema_generation')
-  text = schemaGen.stripped
-  const schemaUpd = extractTag(text, 'schema_update')
-  text = schemaUpd.stripped
-  const nutrition = extractTag(text, 'nutrition_log')
-  text = nutrition.stripped
-  const injury = extractTag(text, 'injury_log')
-  text = injury.stripped
+  const truncatedTags: string[] = []
+  const scan = (tag: string) => {
+    const res = extractTag(text, tag)
+    text = res.stripped
+    if (res.truncated) truncatedTags.push(tag)
+    return res
+  }
+
+  const schemaGen = scan('schema_generation')
+  const schemaUpd = scan('schema_update')
+  const nutrition = scan('nutrition_log')
+  const injury = scan('injury_log')
 
   let citedMemories: string[] = []
-  const cited = extractTag(text, 'cited_memories')
-  text = cited.stripped
+  const cited = scan('cited_memories')
   if (cited.inner) {
     citedMemories = cited.inner
       .split(',')
@@ -77,6 +94,7 @@ export function parseWritebacks(rawText: string): ParsedWritebacks {
     injuryRaw: injury.inner,
     schemaGenerationRaw: schemaGen.inner,
     schemaUpdateRaw: schemaUpd.inner,
+    truncatedTags,
   }
 }
 

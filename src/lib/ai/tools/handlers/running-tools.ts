@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { periodToDates } from '@/lib/time/periods'
+import { startOfDayUtcIso, addDaysToKey } from '@/lib/time/amsterdam'
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -26,8 +27,8 @@ export async function getRunningHistory(
     .from('runs')
     .select('started_at, duration_seconds, distance_meters, avg_pace_seconds_per_km, avg_heart_rate, max_heart_rate, calories_burned, run_type, notes')
     .eq('user_id', userId)
-    .gte('started_at', `${start}T00:00:00`)
-    .lte('started_at', `${end}T23:59:59`)
+    .gte('started_at', startOfDayUtcIso(start))
+    .lt('started_at', startOfDayUtcIso(addDaysToKey(end, 1)))
     .order('started_at', { ascending: false })
     .limit(30)
 
