@@ -20,21 +20,24 @@ function muscleColor(group: string | null | undefined): string {
 interface SetRowProps {
   set: WorkoutSet
   prevSet?: WorkoutSet
-  index: number
+  /** 1-based working-set number shown in the label (ignored for warmup/dropset). */
+  displayNumber: number
+  /** First rendered row of the exercise — no top divider. */
+  isFirst: boolean
 }
 
-function SetRow({ set, prevSet, index }: SetRowProps) {
+function SetRow({ set, prevSet, displayNumber, isFirst }: SetRowProps) {
   const isWarmup = set.set_type === 'warmup'
   const isDropset = set.set_type === 'dropset'
   const improved = prevSet?.weight_kg && set.weight_kg && set.weight_kg > prevSet.weight_kg
 
   return (
     <div
-      className={`flex items-center gap-3 py-1.5 ${index > 0 ? 'border-t-[0.5px] border-bg-border' : ''}`}
+      className={`flex items-center gap-3 py-1.5 ${!isFirst ? 'border-t-[0.5px] border-bg-border' : ''}`}
       style={{ opacity: isWarmup ? 0.5 : 1 }}
     >
       <div className="w-4 text-center text-[11px] font-semibold text-text-tertiary">
-        {isWarmup ? 'W' : isDropset ? 'D' : index}
+        {isWarmup ? 'W' : isDropset ? 'D' : displayNumber}
       </div>
       <div className="flex flex-1 items-baseline gap-1.5">
         {set.weight_kg != null && (
@@ -131,7 +134,8 @@ export function ExerciseCard({ exercise, prevExercise }: ExerciseCardProps) {
               key={set.set_order}
               set={set}
               prevSet={prevSet}
-              index={i === 0 ? 0 : workingIndex >= 0 ? workingIndex + 1 : i + 1}
+              displayNumber={workingIndex + 1}
+              isFirst={i === 0}
             />
           )
         })}

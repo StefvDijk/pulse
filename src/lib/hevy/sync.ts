@@ -207,7 +207,21 @@ export async function upsertSingleWorkout(
 
   for (const item of mapped.exercises) {
     if (!item.exerciseDefinitionId) {
-      // Skip exercises with no matching definition — already warned in mapper
+      // No matching exercise_definition → we can't insert (FK is NOT NULL), so
+      // the exercise + its sets are dropped. Record the name so it's visible and
+      // fixable instead of silently skewing tonnage/PR/ACWR (audit v2 DATA-H2).
+      const { error: unmatchedError } = await admin.from('unmatched_exercises').upsert(
+        {
+          user_id: userId,
+          hevy_exercise_name: item.hevyExerciseName,
+          last_hevy_workout_id: hevyWorkout.id,
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,hevy_exercise_name' },
+      )
+      if (unmatchedError) {
+        console.error('[hevy-sync] failed to log unmatched exercise:', unmatchedError.message)
+      }
       continue
     }
 

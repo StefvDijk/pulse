@@ -2033,6 +2033,36 @@ export type Database = {
         }
         Relationships: []
       }
+      unmatched_exercises: {
+        Row: {
+          first_seen_at: string
+          hevy_exercise_name: string
+          id: string
+          last_hevy_workout_id: string | null
+          last_seen_at: string
+          resolved: boolean
+          user_id: string
+        }
+        Insert: {
+          first_seen_at?: string
+          hevy_exercise_name: string
+          id?: string
+          last_hevy_workout_id?: string | null
+          last_seen_at?: string
+          resolved?: boolean
+          user_id: string
+        }
+        Update: {
+          first_seen_at?: string
+          hevy_exercise_name?: string
+          id?: string
+          last_hevy_workout_id?: string | null
+          last_seen_at?: string
+          resolved?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           ai_custom_instructions: string | null
