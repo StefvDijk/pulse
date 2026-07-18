@@ -1041,8 +1041,60 @@ export type Database = {
           },
         ]
       }
+      exercise_catalog: {
+        Row: {
+          attribution: string
+          body_part: string
+          created_at: string | null
+          equipment: string
+          gif_path: string | null
+          id: string
+          image_path: string | null
+          instruction_steps: string[]
+          media_id: string | null
+          muscle_group: string
+          name: string
+          normalized_name: string
+          secondary_muscles: string[]
+          target: string
+        }
+        Insert: {
+          attribution: string
+          body_part: string
+          created_at?: string | null
+          equipment: string
+          gif_path?: string | null
+          id: string
+          image_path?: string | null
+          instruction_steps?: string[]
+          media_id?: string | null
+          muscle_group: string
+          name: string
+          normalized_name?: string
+          secondary_muscles?: string[]
+          target: string
+        }
+        Update: {
+          attribution?: string
+          body_part?: string
+          created_at?: string | null
+          equipment?: string
+          gif_path?: string | null
+          id?: string
+          image_path?: string | null
+          instruction_steps?: string[]
+          media_id?: string | null
+          muscle_group?: string
+          name?: string
+          normalized_name?: string
+          secondary_muscles?: string[]
+          target?: string
+        }
+        Relationships: []
+      }
       exercise_definitions: {
         Row: {
+          catalog_id: string | null
           category: string | null
           created_at: string | null
           equipment: string | null
@@ -1057,6 +1109,7 @@ export type Database = {
           sport_specificity: string[] | null
         }
         Insert: {
+          catalog_id?: string | null
           category?: string | null
           created_at?: string | null
           equipment?: string | null
@@ -1071,6 +1124,7 @@ export type Database = {
           sport_specificity?: string[] | null
         }
         Update: {
+          catalog_id?: string | null
           category?: string | null
           created_at?: string | null
           equipment?: string | null
@@ -1084,7 +1138,15 @@ export type Database = {
           secondary_muscle_groups?: string[] | null
           sport_specificity?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "exercise_definitions_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goals: {
         Row: {
