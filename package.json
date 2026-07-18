@@ -15,6 +15,7 @@
     "db:reset:local": "tsx scripts/supabase-local.ts reset",
     "db:migrate:local": "tsx scripts/supabase-local.ts migrate",
     "seed:exercises": "tsx --env-file=.env.test.local scripts/seed-exercises.ts",
+    "import:catalog": "tsx --env-file=.env.test.local scripts/import-exercise-catalog.ts",
     "seed:testdata": "tsx --env-file=.env.test.local scripts/seed-test-data.ts",
     "seed:stef": "tsx --env-file=.env.test.local scripts/seed-stef-data.ts",
     "seed:history": "tsx --env-file=.env.test.local scripts/seed-historical-data.ts",

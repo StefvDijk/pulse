@@ -48,3 +48,6 @@ next-env.d.ts
 
 # local tooling
 .claude/
+
+# One-time local clone of the exercises dataset (see import:catalog)
+vendor/
