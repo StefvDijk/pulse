@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, fireEvent, cleanup } from '@testing-library/react'
+import { render, fireEvent, cleanup, screen } from '@testing-library/react'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
 import type { ReadinessSummary } from '@/app/api/readiness/summary/route'
 
@@ -59,6 +59,26 @@ describe('ReadinessCard honest states', () => {
     )
     expect(getByText('98')).toBeTruthy()
     expect(getByText('Goed hersteld')).toBeTruthy()
+  })
+
+  it('keeps the drilldown action outside the explain button semantics', () => {
+    render(
+      <ReadinessCard
+        view={{ status: 'ready', score: 98, level: 'good' }}
+        readiness={null}
+        summary={null}
+        label="Goed hersteld"
+        tone="good"
+        onRetry={noop}
+      />,
+    )
+
+    const explainTrigger = screen.getByRole('button', {
+      name: 'Open uitleg over readiness',
+    })
+    const drilldown = screen.getByRole('button', { name: 'Wat bepaalt dit? →' })
+
+    expect(explainTrigger.contains(drilldown)).toBe(false)
   })
 
   it('attributes the readiness summary to the gezondheidscoach (issue #39)', () => {

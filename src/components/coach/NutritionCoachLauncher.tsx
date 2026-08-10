@@ -30,7 +30,7 @@ export function NutritionCoachLauncher() {
         <span className="flex-1">
           <span className="block text-[13px] font-semibold text-text-primary">Praat met je Diëtist</span>
           <span className="block text-[12px] text-text-secondary">
-            Log een maaltijd of vraag naar je macro's
+            Log een maaltijd of vraag naar je macro&apos;s
           </span>
         </span>
         <span className="text-[18px] text-text-tertiary">›</span>
