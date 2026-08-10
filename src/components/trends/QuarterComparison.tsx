@@ -6,6 +6,8 @@ type MonthlyRow = Database['public']['Tables']['monthly_aggregations']['Row']
 
 export interface QuarterComparisonProps {
   months: MonthlyRow[]
+  /** Current-quarter totals are incomplete and must not show full-quarter deltas. */
+  currentIsPartial?: boolean
 }
 
 function getQuarterMonths(year: number, quarter: number): number[] {
@@ -43,16 +45,24 @@ interface MetricRowProps {
   previous: number
   unit: string
   decimals?: number
+  showDelta?: boolean
 }
 
-function MetricRow({ label, current, previous, unit, decimals = 0 }: MetricRowProps) {
+function MetricRow({
+  label,
+  current,
+  previous,
+  unit,
+  decimals = 0,
+  showDelta = true,
+}: MetricRowProps) {
   const fmt = (v: number) => `${v.toFixed(decimals)}${unit ? ' ' + unit : ''}`
   return (
     <div className="flex items-center justify-between gap-2 py-2 border-b border-bg-border">
       <span className="text-sm text-text-tertiary">{label}</span>
       <div className="flex items-center gap-3">
         <span className="text-xs text-text-tertiary">{fmt(previous)}</span>
-        <Delta current={current} previous={previous} />
+        {showDelta ? <Delta current={current} previous={previous} /> : null}
         <span className="min-w-[60px] text-right text-sm font-medium text-text-primary">
           {fmt(current)}
         </span>
@@ -61,7 +71,10 @@ function MetricRow({ label, current, previous, unit, decimals = 0 }: MetricRowPr
   )
 }
 
-export function QuarterComparison({ months }: QuarterComparisonProps) {
+export function QuarterComparison({
+  months,
+  currentIsPartial = false,
+}: QuarterComparisonProps) {
   const now = new Date()
   const currentYear = now.getUTCFullYear()
   const currentQuarter = Math.ceil((now.getUTCMonth() + 1) / 3)
@@ -82,7 +95,7 @@ export function QuarterComparison({ months }: QuarterComparisonProps) {
     { label: 'Gem. calorieën', current: Math.round(avgField(currentRows, 'avg_daily_calories') ?? 0), previous: Math.round(avgField(prevRows, 'avg_daily_calories') ?? 0), unit: 'kcal' },
   ]
 
-  const currentQLabel = `Q${currentQuarter} ${currentYear}`
+  const currentQLabel = `Q${currentQuarter} ${currentYear}${currentIsPartial ? ' · t/m vandaag' : ''}`
   const prevQLabel = `Q${prevQuarter} ${prevQuarterYear}`
 
   return (
@@ -95,7 +108,7 @@ export function QuarterComparison({ months }: QuarterComparisonProps) {
         </div>
       </div>
       {metrics.map((m) => (
-        <MetricRow key={m.label} {...m} />
+        <MetricRow key={m.label} {...m} showDelta={!currentIsPartial} />
       ))}
     </div>
   )

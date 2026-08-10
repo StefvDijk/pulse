@@ -23,7 +23,18 @@ export function ExplainTrigger({ topic, params, ariaLabel, children, className }
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setOpen(true)}
+        onClick={(e) => {
+          // Nested actions own their click, while ordinary card content still
+          // activates this trigger when it bubbles to the wrapper.
+          const nestedAction =
+            e.target instanceof Element
+              ? e.target.closest(
+                  'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [contenteditable="true"]',
+                )
+              : null
+          if (nestedAction && nestedAction !== e.currentTarget) return
+          setOpen(true)
+        }}
         onKeyDown={(e) => {
           // Interactive descendants own their keyboard events. Without this
           // guard Enter/Space on an inner action also opened this sheet.

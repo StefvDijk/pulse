@@ -48,4 +48,28 @@ describe('ExplainTrigger', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+
+  it('does not intercept clicks from an interactive child', () => {
+    render(
+      <ExplainTrigger topic="readiness" ariaLabel="Leg readiness uit">
+        <button type="button">Kaartactie</button>
+      </ExplainTrigger>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kaartactie' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens when ordinary nested card content is clicked', () => {
+    render(
+      <ExplainTrigger topic="readiness" ariaLabel="Leg readiness uit">
+        <span>Kaartinhoud</span>
+      </ExplainTrigger>,
+    )
+
+    fireEvent.click(screen.getByText('Kaartinhoud'))
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Uitleg geopend')
+  })
 })

@@ -90,8 +90,8 @@ export function TrendsPage() {
             />
           </SectionCard>
 
-          <SectionCard title="Kwartaal" sub="Totaal volume per maand">
-            <QuarterComparison months={data.months} />
+          <SectionCard title="Kwartaal" sub="Dit kwartaal toont totalen tot en met vandaag">
+            <QuarterComparison months={data.months} currentIsPartial />
           </SectionCard>
 
           <SectionCard title="Een jaar geleden" yearAgo>
