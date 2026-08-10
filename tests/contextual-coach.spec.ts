@@ -24,14 +24,14 @@ test.describe('R-023: Contextual coach (public)', () => {
 })
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Authenticated tests — skipped without TEST_EMAIL/TEST_PASSWORD
+// Authenticated tests — require the shared E2E test user
 // ──────────────────────────────────────────────────────────────────────────────
 
-const email = process.env.TEST_EMAIL
-const password = process.env.TEST_PASSWORD
+const email = process.env.TEST_USER_EMAIL
+const password = process.env.TEST_USER_PASSWORD
 
 test.describe('R-023: Contextual coach (authenticated)', () => {
-  test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set')
+  test.skip(!email || !password, 'TEST_USER_EMAIL / TEST_USER_PASSWORD not set')
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/auth/login')

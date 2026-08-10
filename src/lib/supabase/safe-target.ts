@@ -1,4 +1,7 @@
+import { z } from 'zod'
+
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]'])
+const SupabaseTargetSchema = z.url()
 
 /**
  * Refuse data-mutating development operations unless their Supabase endpoint is
@@ -13,12 +16,12 @@ export function assertLocalSupabaseTarget(
     throw new Error(`Refusing ${operation}: Supabase URL is missing.`)
   }
 
-  let url: URL
-  try {
-    url = new URL(target)
-  } catch {
+  const parsed = SupabaseTargetSchema.safeParse(target)
+  if (!parsed.success) {
     throw new Error(`Refusing ${operation}: Supabase URL is invalid.`)
   }
+
+  const url = new URL(parsed.data)
 
   if (!LOOPBACK_HOSTS.has(url.hostname)) {
     throw new Error(

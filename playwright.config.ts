@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
+import { existsSync } from 'node:fs'
+import { loadEnvFile } from 'node:process'
 import { assertLocalSupabaseTarget } from './src/lib/supabase/safe-target'
+
+if (existsSync('.env.test.local')) loadEnvFile('.env.test.local')
 
 function requireE2eEnv(name: string): string {
   const value = process.env[name]
@@ -16,6 +20,9 @@ const e2eServerEnv = {
   SUPABASE_SERVICE_ROLE_KEY: requireE2eEnv('PULSE_E2E_SUPABASE_SERVICE_ROLE_KEY'),
   PULSE_USER_ID: requireE2eEnv('PULSE_E2E_USER_ID'),
 }
+
+requireE2eEnv('TEST_USER_EMAIL')
+requireE2eEnv('TEST_USER_PASSWORD')
 
 export default defineConfig({
   testDir: './tests',
@@ -45,7 +52,9 @@ export default defineConfig({
     command: 'pnpm dev',
     env: e2eServerEnv,
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    // Never attach to a manually started app: it may have loaded `.env.local`
+    // and point at production instead of the validated test target above.
+    reuseExistingServer: false,
     timeout: 30000,
   },
 })

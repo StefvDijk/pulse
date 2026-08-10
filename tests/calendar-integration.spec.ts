@@ -60,14 +60,14 @@ test.describe('R-021: Calendar events API', () => {
 })
 
 // ──────────────────────────────────────────────────────────────────────────────
-// R-022: Plan-je-week UI (authenticated — skipped without TEST_EMAIL/TEST_PASSWORD)
+// R-022: Plan-je-week UI (authenticated — requires the shared E2E test user)
 // ──────────────────────────────────────────────────────────────────────────────
 
-const email = process.env.TEST_EMAIL
-const password = process.env.TEST_PASSWORD
+const email = process.env.TEST_USER_EMAIL
+const password = process.env.TEST_USER_PASSWORD
 
 test.describe('R-022: Plan-je-week modal (authenticated)', () => {
-  test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set')
+  test.skip(!email || !password, 'TEST_USER_EMAIL / TEST_USER_PASSWORD not set')
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/auth/login')
