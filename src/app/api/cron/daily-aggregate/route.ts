@@ -12,6 +12,21 @@ import {
   todayAmsterdam,
   weekStartAmsterdam,
 } from '@/lib/time/amsterdam'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+import {
+  CRON_USER_CONCURRENCY,
+  CRON_USER_QUERY_LIMIT,
+  takeCronCapacity,
+} from '@/lib/runtime/cron-capacity'
+
+interface DailyAggregateResult {
+  userId: string
+  daily: 'ok' | 'error'
+  weekly?: 'ok' | 'error' | 'skipped'
+  monthly?: 'ok' | 'error' | 'skipped'
+  baselines?: 'ok' | 'error'
+  errors: string[]
+}
 
 /**
  * GET /api/cron/daily-aggregate
@@ -60,6 +75,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data: profiles, error: profilesError } = await admin
     .from('profiles')
     .select('id')
+    .order('id', { ascending: true })
+    .limit(CRON_USER_QUERY_LIMIT)
 
   if (profilesError) {
     console.error('[GET /api/cron/daily-aggregate] Failed to fetch users:', profilesError)
@@ -69,16 +86,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const results: Array<{
-    userId: string
-    daily: 'ok' | 'error'
-    weekly?: 'ok' | 'error' | 'skipped'
-    monthly?: 'ok' | 'error' | 'skipped'
-    baselines?: 'ok' | 'error'
-    errors: string[]
-  }> = []
-
-  for (const { id: userId } of profiles ?? []) {
+  const { items: users, truncated } = takeCronCapacity(profiles ?? [])
+  const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ id: userId }) => {
     const userErrors: string[] = []
     let dailyStatus: 'ok' | 'error' = 'ok'
     let weeklyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
@@ -134,24 +143,42 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       userErrors.push(`baselines: ${message}`)
     }
 
-    results.push({
+    return {
       userId,
       daily: dailyStatus,
       weekly: weeklyStatus,
       monthly: monthlyStatus,
       baselines: baselinesStatus,
       errors: userErrors,
-    })
-  }
+    } satisfies DailyAggregateResult
+  })
+
+  const results: DailyAggregateResult[] = settled.map((result, index) =>
+    result.status === 'fulfilled'
+      ? result.value
+      : {
+          userId: users[index]?.id ?? 'unknown',
+          daily: 'error',
+          weekly: 'error',
+          monthly: 'error',
+          baselines: 'error',
+          errors: [result.reason instanceof Error ? result.reason.message : String(result.reason)],
+        },
+  )
 
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json({
-    date: yesterdayStr,
-    processed: results.length,
-    triggeredWeekly: isMonday,
-    triggeredMonthly: isFirstOfMonth,
-    totalErrors: totalErrors.length,
-    results,
-  })
+  return NextResponse.json(
+    {
+      date: yesterdayStr,
+      processed: results.length,
+      triggeredWeekly: isMonday,
+      triggeredMonthly: isFirstOfMonth,
+      truncated,
+      capacity: users.length,
+      totalErrors: totalErrors.length,
+      results,
+    },
+    { status: totalErrors.length > 0 || truncated ? 503 : 200 },
+  )
 }

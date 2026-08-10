@@ -6,6 +6,12 @@ import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { runAfterResponse } from '@/lib/runtime/after-response'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+import {
+  CRON_USER_CONCURRENCY,
+  CRON_USER_QUERY_LIMIT,
+  takeCronCapacity,
+} from '@/lib/runtime/cron-capacity'
 
 export const maxDuration = 300
 
@@ -33,6 +39,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .from('user_settings')
     .select('user_id')
     .not('hevy_api_key', 'is', null)
+    .order('user_id', { ascending: true })
+    .limit(CRON_USER_QUERY_LIMIT)
 
   if (queryError) {
     console.error('[GET /api/cron/hevy-sync] Failed to query users:', queryError)
@@ -44,10 +52,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const todayStr = todayAmsterdam()
   const weekMonday = weekStartAmsterdam()
-  const results: Array<{ userId: string; synced: number; errors: string[] }> = []
+  const { items: users, truncated } = takeCronCapacity(usersWithKey ?? [])
+  const analysisQueue: Array<{
+    userId: string
+    syncResult: Awaited<ReturnType<typeof syncHevyWorkouts>>
+  }> = []
 
-  // Sync each user independently — one failure does not block others
-  for (const { user_id } of usersWithKey ?? []) {
+  // Sync users with bounded concurrency — one failure does not block others.
+  const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ user_id }) => {
     try {
       const result = await syncHevyWorkouts(user_id)
 
@@ -61,29 +73,50 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         result.errors.push(`Re-aggregation: ${msg}`)
       }
 
-      runAfterResponse('scheduled Hevy sync analysis', () =>
-        analyzeAfterSync({
-          userId: user_id,
-          syncSource: 'hevy',
-          syncResult: result,
-        }),
-      )
-
-      results.push({ userId: user_id, ...result })
+      analysisQueue.push({ userId: user_id, syncResult: result })
+      return { userId: user_id, ...result }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error(`[GET /api/cron/hevy-sync] Failed for user ${user_id}:`, error)
-      results.push({ userId: user_id, synced: 0, errors: [message] })
+      return { userId: user_id, synced: 0, errors: [message] }
     }
+  })
+  const results = settled.map((result, index) =>
+    result.status === 'fulfilled'
+      ? result.value
+      : {
+          userId: users[index]?.user_id ?? 'unknown',
+          synced: 0,
+          errors: [result.reason instanceof Error ? result.reason.message : String(result.reason)],
+        },
+  )
+
+  // Register one post-response task, then keep its own fan-out bounded.
+  if (analysisQueue.length > 0) {
+    runAfterResponse('scheduled Hevy sync analysis batch', async () => {
+      const analyses = await runInBatches(analysisQueue, CRON_USER_CONCURRENCY, ({ userId, syncResult }) =>
+        analyzeAfterSync({ userId, syncSource: 'hevy', syncResult }),
+      )
+      analyses.forEach((analysis, index) => {
+        if (analysis.status === 'rejected') {
+          console.error(`[hevy-sync] analysis failed for ${analysisQueue[index]?.userId ?? index}:`, analysis.reason)
+        }
+      })
+    })
   }
 
   const totalSynced = results.reduce((sum, r) => sum + r.synced, 0)
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json({
-    processed: results.length,
-    totalSynced,
-    totalErrors: totalErrors.length,
-    results,
-  })
+  return NextResponse.json(
+    {
+      processed: results.length,
+      truncated,
+      capacity: users.length,
+      totalSynced,
+      totalErrors: totalErrors.length,
+      results,
+    },
+    { status: totalErrors.length > 0 || truncated ? 503 : 200 },
+  )
 }

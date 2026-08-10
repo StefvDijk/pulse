@@ -6,6 +6,20 @@ import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { addDaysToKey, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { extractWeeklyLessons } from '@/lib/ai/lessons-extractor'
 import { extractSportInsight } from '@/lib/ai/sport-insight-extractor'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+import {
+  CRON_USER_CONCURRENCY,
+  CRON_USER_QUERY_LIMIT,
+  takeCronCapacity,
+} from '@/lib/runtime/cron-capacity'
+
+interface WeeklyAggregateResult {
+  userId: string
+  status: 'ok' | 'error'
+  error?: string
+  lessonsInserted?: number
+  sportInsightWritten?: boolean
+}
 
 /**
  * GET /api/cron/weekly-aggregate
@@ -33,6 +47,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data: profiles, error: profilesError } = await admin
     .from('profiles')
     .select('id')
+    .order('id', { ascending: true })
+    .limit(CRON_USER_QUERY_LIMIT)
 
   if (profilesError) {
     console.error('[GET /api/cron/weekly-aggregate] Failed to fetch users:', profilesError)
@@ -42,44 +58,51 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const results: Array<{
-    userId: string
-    status: 'ok' | 'error'
-    error?: string
-    lessonsInserted?: number
-    sportInsightWritten?: boolean
-  }> = []
-
-  for (const { id: userId } of profiles ?? []) {
+  const { items: users, truncated } = takeCronCapacity(profiles ?? [])
+  const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ id: userId }) => {
     try {
       await computeWeeklyAggregation(userId, prevWeekMondayStr)
       // AI extractors run after aggregation — both catch internally and
       // never throw, so a Claude failure can't break the cron.
       const { inserted } = await extractWeeklyLessons(userId, prevWeekMondayStr)
       const { written } = await extractSportInsight(userId)
-      results.push({
+      return {
         userId,
         status: 'ok',
         lessonsInserted: inserted,
         sportInsightWritten: written,
-      })
+      } satisfies WeeklyAggregateResult
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error(`[GET /api/cron/weekly-aggregate] Failed for user ${userId}:`, error)
-      results.push({ userId, status: 'error', error: message })
+      return { userId, status: 'error', error: message } satisfies WeeklyAggregateResult
     }
-  }
+  })
+  const results = settled.map((result, index): WeeklyAggregateResult =>
+    result.status === 'fulfilled'
+      ? result.value
+      : {
+          userId: users[index]?.id ?? 'unknown',
+          status: 'error',
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        },
+  )
 
   const totalErrors = results.filter((r) => r.status === 'error').length
   const totalLessonsInserted = results.reduce((s, r) => s + (r.lessonsInserted ?? 0), 0)
   const totalSportInsightsWritten = results.filter((r) => r.sportInsightWritten).length
 
-  return NextResponse.json({
-    weekStart: prevWeekMondayStr,
-    processed: results.length,
-    totalErrors,
-    totalLessonsInserted,
-    totalSportInsightsWritten,
-    results,
-  })
+  return NextResponse.json(
+    {
+      weekStart: prevWeekMondayStr,
+      processed: results.length,
+      truncated,
+      capacity: users.length,
+      totalErrors,
+      totalLessonsInserted,
+      totalSportInsightsWritten,
+      results,
+    },
+    { status: totalErrors > 0 || truncated ? 503 : 200 },
+  )
 }

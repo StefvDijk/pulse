@@ -3,6 +3,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { addDaysToKey, todayAmsterdam } from '@/lib/time/amsterdam'
 import { evaluateProteinNudge, type ProteinNudgeDay } from '@/lib/nudges/protein-nudge'
 import { wordNudge } from '@/lib/nudges/word'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+import {
+  CRON_USER_CONCURRENCY,
+  CRON_USER_LIMIT,
+  CRON_USER_QUERY_LIMIT,
+  takeCronCapacity,
+} from '@/lib/runtime/cron-capacity'
 
 export const maxDuration = 60
 
@@ -29,59 +36,80 @@ export async function GET(request: NextRequest) {
     .from('daily_nutrition_summary')
     .select('user_id, date, total_protein_g, protein_target_g')
     .gte('date', since)
+    .order('user_id', { ascending: true })
     .order('date', { ascending: false })
+    .limit(CRON_USER_QUERY_LIMIT * 7 + 1)
 
   if (error) {
     console.error('[cron/nudges] query failed:', error)
     return NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 })
   }
 
-  // Group the window by user.
+  // The query is sorted by user and capped at limit+1 users' maximum 7-day
+  // windows. Ignore any overflow user's partial window.
+  const candidateUserIds = [...new Set((rows ?? []).map((row) => row.user_id))]
+  const { items: userIds, truncated: userOverflow } = takeCronCapacity(candidateUserIds)
+  const truncated = userOverflow || (rows?.length ?? 0) > CRON_USER_LIMIT * 7
+  const allowedUsers = new Set(userIds)
+
+  // Group complete windows for only the users inside this run's capacity.
   const byUser = new Map<string, ProteinNudgeDay[]>()
   for (const r of rows ?? []) {
+    if (!allowedUsers.has(r.user_id)) continue
     const list = byUser.get(r.user_id) ?? []
     list.push({ date: r.date, total_protein_g: r.total_protein_g, protein_target_g: r.protein_target_g })
     byUser.set(r.user_id, list)
   }
 
-  let created = 0
-  for (const [userId, days] of byUser) {
-    try {
-      const draft = evaluateProteinNudge(days, today)
-      if (!draft) continue
+  const settled = await runInBatches(
+    [...byUser.entries()],
+    CRON_USER_CONCURRENCY,
+    async ([userId, days]) => {
+      try {
+        const draft = evaluateProteinNudge(days, today)
+        if (!draft) return false
 
-      // Dedup: a nudge for this key (even dismissed) already settled the matter —
-      // skip BEFORE the billed LLM wording call so a persisting streak costs nothing.
-      const { data: existing } = await admin
-        .from('nudges')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('dedupe_key', draft.dedupeKey)
-        .maybeSingle()
-      if (existing) continue
+        // Dedup: a nudge for this key (even dismissed) already settled the matter —
+        // skip BEFORE the billed LLM wording call so a persisting streak costs nothing.
+        const { data: existing, error: existingError } = await admin
+          .from('nudges')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('dedupe_key', draft.dedupeKey)
+          .maybeSingle()
+        if (existingError) throw existingError
+        if (existing) return false
 
-      const body = await wordNudge(userId, draft)
-      const { error: insertError } = await admin.from('nudges').insert({
-        user_id: userId,
-        coach_id: draft.coachId,
-        trigger_type: draft.triggerType,
-        severity: draft.severity,
-        body,
-        cta_label: draft.cta.label,
-        cta_href: draft.cta.href,
-        status: 'active',
-        dedupe_key: draft.dedupeKey,
-      })
-      // A unique-violation here means a concurrent run won the race — not an error.
-      if (insertError && insertError.code !== '23505') {
-        console.error(`[cron/nudges] insert failed for ${userId}:`, insertError)
-        continue
+        const body = await wordNudge(userId, draft)
+        const { error: insertError } = await admin.from('nudges').insert({
+          user_id: userId,
+          coach_id: draft.coachId,
+          trigger_type: draft.triggerType,
+          severity: draft.severity,
+          body,
+          cta_label: draft.cta.label,
+          cta_href: draft.cta.href,
+          status: 'active',
+          dedupe_key: draft.dedupeKey,
+        })
+        // A unique-violation here means a concurrent run won the race — not an error.
+        if (insertError && insertError.code !== '23505') {
+          console.error(`[cron/nudges] insert failed for ${userId}:`, insertError)
+          return false
+        }
+        return !insertError
+      } catch (err) {
+        console.error(`[cron/nudges] evaluation failed for ${userId}:`, err)
+        throw err
       }
-      if (!insertError) created += 1
-    } catch (err) {
-      console.error(`[cron/nudges] evaluation failed for ${userId}:`, err)
-    }
-  }
+    },
+  )
 
-  return NextResponse.json({ ok: true, candidates: byUser.size, created })
+  const created = settled.filter((result) => result.status === 'fulfilled' && result.value).length
+  const failed = settled.filter((result) => result.status === 'rejected').length
+
+  return NextResponse.json(
+    { ok: failed === 0 && !truncated, candidates: byUser.size, created, failed, truncated },
+    { status: failed > 0 || truncated ? 503 : 200 },
+  )
 }
