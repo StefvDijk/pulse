@@ -34,4 +34,18 @@ describe('ExplainTrigger', () => {
 
     expect(screen.getByRole('dialog')).toHaveTextContent('Uitleg geopend')
   })
+
+  it('does not intercept keyboard activation from an interactive child', () => {
+    render(
+      <ExplainTrigger topic="readiness" ariaLabel="Leg readiness uit">
+        <button type="button">Kaartactie</button>
+      </ExplainTrigger>,
+    )
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Kaartactie' }), {
+      key: 'Enter',
+    })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
 })

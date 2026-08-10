@@ -14,6 +14,7 @@ import { buildTrainingEventSummary } from '@/lib/ai/extractor-summaries'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
+import { recordUnmatchedExercise } from '@/lib/hevy/unmatched-exercises'
 
 interface ExerciseDefinition {
   id: string
@@ -210,17 +211,15 @@ export async function upsertSingleWorkout(
       // No matching exercise_definition → we can't insert (FK is NOT NULL), so
       // the exercise + its sets are dropped. Record the name so it's visible and
       // fixable instead of silently skewing tonnage/PR/ACWR (audit v2 DATA-H2).
-      const { error: unmatchedError } = await admin.from('unmatched_exercises').upsert(
-        {
-          user_id: userId,
-          hevy_exercise_name: item.hevyExerciseName,
-          last_hevy_workout_id: hevyWorkout.id,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,hevy_exercise_name' },
+      const unmatchedError = await recordUnmatchedExercise(
+        admin,
+        userId,
+        item.hevyExerciseName,
+        hevyWorkout.id,
       )
       if (unmatchedError) {
-        console.error('[hevy-sync] failed to log unmatched exercise:', unmatchedError.message)
+        errors.push(unmatchedError)
+        console.error('[hevy-sync] failed to log unmatched exercise:', unmatchedError)
       }
       continue
     }

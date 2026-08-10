@@ -82,8 +82,12 @@ export function TrendsPage() {
         />
       ) : data ? (
         <>
-          <SectionCard title="Maand vs maand" sub="Maand-op-maand vergelijking">
-            <MonthComparison current={currentMonth} previous={previousMonth} />
+          <SectionCard title="Maand vs maand" sub="Deze maand toont totalen tot en met vandaag">
+            <MonthComparison
+              current={currentMonth}
+              previous={previousMonth}
+              currentIsPartial
+            />
           </SectionCard>
 
           <SectionCard title="Kwartaal" sub="Totaal volume per maand">

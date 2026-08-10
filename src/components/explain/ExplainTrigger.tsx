@@ -25,6 +25,9 @@ export function ExplainTrigger({ topic, params, ariaLabel, children, className }
         tabIndex={0}
         onClick={() => setOpen(true)}
         onKeyDown={(e) => {
+          // Interactive descendants own their keyboard events. Without this
+          // guard Enter/Space on an inner action also opened this sheet.
+          if (e.target !== e.currentTarget) return
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             setOpen(true)
