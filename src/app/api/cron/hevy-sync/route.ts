@@ -7,6 +7,8 @@ import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { runAfterResponse } from '@/lib/runtime/after-response'
 
+export const maxDuration = 300
+
 /**
  * GET /api/cron/hevy-sync
  * Schedule: 0 6 * * * (06:00 UTC = 07:00/08:00 Amsterdam)

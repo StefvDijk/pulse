@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const maxDuration = 300
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { addDaysToKey, weekStartAmsterdam } from '@/lib/time/amsterdam'

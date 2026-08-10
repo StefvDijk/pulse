@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runBeliefExtractor, type BeliefScope } from '@/lib/ai/belief-extractor'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+
+export const maxDuration = 300
 
 /**
  * GET /api/cron/belief-sweep
@@ -25,22 +28,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .select('id, user_id, category, hypothesis_text')
     .eq('status', 'active')
     .or(`last_tested_at.is.null,last_tested_at.lt.${sevenDaysAgo}`)
-    .limit(50)
+    .limit(20)
 
   if (error) {
     console.error('[belief-sweep] query failed:', error)
     return NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 })
   }
 
-  let triggered = 0
-  for (const belief of stale ?? []) {
-    await runBeliefExtractor({
+  const results = await runInBatches(stale ?? [], 5, (belief) =>
+    runBeliefExtractor({
       userId: belief.user_id,
       scope: belief.category as BeliefScope,
       eventSummary: `Wekelijkse safety-net sweep. Bestaande active hypothese (id ${belief.id}) is >7 dagen niet getest: "${belief.hypothesis_text}". Beoordeel of er sinds laatste test relevante nieuwe data is en voeg evidence toe waar gepast.`,
-    })
-    triggered++
-  }
+    }),
+  )
 
-  return NextResponse.json({ ok: true, swept: triggered })
+  const swept = results.filter((result) => result.status === 'fulfilled').length
+  const failed = results.length - swept
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`[belief-sweep] belief ${stale?.[index]?.id ?? index} failed:`, result.reason)
+    }
+  })
+
+  return NextResponse.json({ ok: failed === 0, swept, failed })
 }
