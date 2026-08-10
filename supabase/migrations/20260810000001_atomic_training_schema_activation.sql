@@ -2,6 +2,27 @@
 -- active row inside one PostgreSQL transaction. The advisory lock serializes
 -- concurrent chat/block-review switches for the same user.
 
+DO $$
+DECLARE
+  conflicting_users text;
+BEGIN
+  SELECT string_agg(user_id::text || ' (' || active_count || ' active)', ', ')
+  INTO conflicting_users
+  FROM (
+    SELECT user_id, count(*) AS active_count
+    FROM public.training_schemas
+    WHERE is_active IS TRUE
+    GROUP BY user_id
+    HAVING count(*) > 1
+  ) conflicts;
+
+  IF conflicting_users IS NOT NULL THEN
+    RAISE EXCEPTION 'Cannot enforce one active training schema: %', conflicting_users
+      USING HINT = 'Resolve duplicate active schemas before rerunning this migration.';
+  END IF;
+END;
+$$;
+
 CREATE UNIQUE INDEX training_schemas_one_active_per_user_idx
   ON public.training_schemas (user_id)
   WHERE is_active IS TRUE;

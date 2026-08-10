@@ -18,6 +18,11 @@ export interface RunBeliefExtractorInput {
   eventSummary: string
 }
 
+interface RunBeliefExtractorOptions {
+  /** Re-throw failures so batch/cron callers can report honest run status. */
+  strict?: boolean
+}
+
 interface ExtractorAction {
   action: 'create' | 'evidence'
   hypothesis_text?: string
@@ -54,14 +59,18 @@ Regels:
 // Main export
 // ---------------------------------------------------------------------------
 
-export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promise<void> {
+export async function runBeliefExtractor(
+  input: RunBeliefExtractorInput,
+  options: RunBeliefExtractorOptions = {},
+): Promise<void> {
   try {
     const admin = createAdminClient()
-    const { data: existing } = await admin
+    const { data: existing, error: existingError } = await admin
       .from('coach_beliefs')
       .select('id, hypothesis_text, category, status')
       .eq('user_id', input.userId)
       .in('status', ['active', 'confirmed'])
+    if (existingError) throw existingError
 
     const existingBlock =
       existing && existing.length
@@ -97,16 +106,14 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
     // sentence, so coach_beliefs never got populated. Mirrors memory-extractor.
     const match = /\[[\s\S]*\]/.exec(text)
     if (!match) {
-      console.error('[belief-extractor] No JSON array in Haiku output; raw length:', text.length)
-      return
+      throw new Error(`No JSON array in Haiku output (raw length ${text.length})`)
     }
 
     let actions: ExtractorAction[]
     try {
       actions = JSON.parse(match[0]) as ExtractorAction[]
     } catch (parseErr) {
-      console.error('[belief-extractor] JSON.parse failed:', parseErr)
-      return
+      throw new Error('Belief extractor returned invalid JSON', { cause: parseErr })
     }
     if (!Array.isArray(actions) || actions.length === 0) return
 
@@ -115,6 +122,7 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
     }
   } catch (err) {
     console.error('[belief-extractor] error (non-fatal):', err)
+    if (options.strict) throw err
   }
 }
 
@@ -143,7 +151,7 @@ async function applyAction(
       status: 'active' as const,
     }
     const { confidence, status } = recomputeBelief(initial)
-    await admin.from('coach_beliefs').insert({
+    const { error } = await admin.from('coach_beliefs').insert({
       user_id: userId,
       hypothesis_text: action.hypothesis_text.slice(0, 240),
       category: action.category,
@@ -153,16 +161,18 @@ async function applyAction(
       status,
       last_tested_at: nowIso,
     })
+    if (error) throw error
     return
   }
 
   if (action.action === 'evidence' && action.target_id) {
-    const { data } = await admin
+    const { data, error: queryError } = await admin
       .from('coach_beliefs')
       .select('evidence_for, evidence_against, status')
       .eq('id', action.target_id)
       .eq('user_id', userId)
       .maybeSingle()
+    if (queryError) throw queryError
     if (!data) return
 
     const existingFor = (data.evidence_for ?? []) as unknown as EvidenceItem[]
@@ -176,7 +186,7 @@ async function applyAction(
       status: data.status as 'active' | 'confirmed' | 'superseded' | 'rejected',
     })
 
-    await admin
+    const { error: updateError } = await admin
       .from('coach_beliefs')
       .update({
         evidence_for: evidence_for as unknown as Json[],
@@ -186,5 +196,6 @@ async function applyAction(
         last_tested_at: nowIso,
       })
       .eq('id', action.target_id)
+    if (updateError) throw updateError
   }
 }

@@ -2600,6 +2600,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      insert_and_activate_training_schema: {
+        Args: {
+          p_previous_end_date?: string | null
+          p_previous_schema_id?: string | null
+          p_schema: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
       replace_hevy_workout_atomic: {
         Args: {
           p_exercises: Json

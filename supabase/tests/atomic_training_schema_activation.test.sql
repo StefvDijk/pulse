@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(5);
+SELECT plan(8);
 
 INSERT INTO auth.users (id, email)
 VALUES ('10000000-0000-0000-0000-000000000001', 'schema-atomicity@test.invalid');
@@ -115,6 +115,59 @@ SELECT results_eq(
   $$,
   $$ VALUES ('20000000-0000-0000-0000-000000000002'::uuid) $$,
   'the previous active schema survives a failed switch'
+);
+
+DROP TRIGGER reject_test_schema_activation ON public.training_schemas;
+CREATE TRIGGER reject_test_schema_activation
+BEFORE UPDATE ON public.training_schemas
+FOR EACH ROW
+WHEN (NEW.title = 'Atomic orphan candidate' AND NEW.is_active IS TRUE)
+EXECUTE FUNCTION public.reject_test_schema_activation();
+
+SELECT throws_ok(
+  $test$
+    SELECT public.insert_and_activate_training_schema(
+      '10000000-0000-0000-0000-000000000001',
+      '{
+        "user_id":"10000000-0000-0000-0000-000000000001",
+        "title":"Atomic orphan candidate",
+        "schema_type":"custom",
+        "weeks_planned":4,
+        "start_date":"2026-08-11",
+        "workout_schedule":[],
+        "progression_rules":{},
+        "quality_audit":{},
+        "planned_weekly_load":{},
+        "ai_generated":true
+      }'::jsonb,
+      '20000000-0000-0000-0000-000000000002',
+      '2026-08-10'
+    )
+  $test$,
+  'P0001',
+  'forced activation failure',
+  'an activation failure aborts the insert-and-switch transaction'
+);
+
+SELECT is(
+  (
+    SELECT count(*)
+    FROM public.training_schemas
+    WHERE title = 'Atomic orphan candidate'
+  ),
+  0::bigint,
+  'a failed activation leaves no orphan inactive schema'
+);
+
+SELECT results_eq(
+  $$
+    SELECT id
+    FROM public.training_schemas
+    WHERE user_id = '10000000-0000-0000-0000-000000000001'
+      AND is_active IS TRUE
+  $$,
+  $$ VALUES ('20000000-0000-0000-0000-000000000002'::uuid) $$,
+  'the prior schema remains active after insert-and-switch rollback'
 );
 
 SELECT * FROM finish();

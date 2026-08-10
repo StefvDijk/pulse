@@ -10,7 +10,6 @@ import {
 import { writeBlockSummary } from '@/lib/training/write-block-summary'
 import { insertProgramSchema, validateProgramProposalForUser } from '@/lib/training/program-save'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
-import { activateTrainingSchema } from '@/lib/training/activate-schema'
 
 // ---------------------------------------------------------------------------
 // Chat write-backs (audit #22 + #40).
@@ -175,19 +174,13 @@ async function applySchemaGeneration(
       return { kind: 'schema_generation', ok: false, correction: `Schema niet opgeslagen: ${blockers}` }
     }
 
-    const newSchemaId = await insertProgramSchema({
+    await insertProgramSchema({
       admin,
       userId,
       proposal: validation.proposal,
       audit: validation.audit,
       plannedWeeklyLoad: validation.plannedWeeklyLoad,
       generationContext: 'Chat schema generation',
-      isActive: false,
-    })
-
-    await activateTrainingSchema(admin, {
-      userId,
-      newSchemaId,
       previousSchemaId: oldActive?.id,
     })
 

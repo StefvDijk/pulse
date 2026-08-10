@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(7);
+SELECT plan(12);
 
 INSERT INTO auth.users (id, email)
 VALUES ('30000000-0000-0000-0000-000000000001', 'hevy-atomicity@test.invalid');
@@ -166,6 +166,119 @@ SELECT throws_ok(
   'P0001',
   'Hevy workout identity does not match RPC arguments',
   'identity mismatches are rejected'
+);
+
+SELECT lives_ok(
+  $test$
+    SELECT public.replace_hevy_workout_atomic(
+      '30000000-0000-0000-0000-000000000001',
+      'hevy-atomic-2',
+      '{
+        "user_id":"30000000-0000-0000-0000-000000000001",
+        "hevy_workout_id":"hevy-atomic-2",
+        "title":"Later workout",
+        "source":"hevy",
+        "started_at":"2026-08-17T10:00:00Z",
+        "total_volume_kg":550,
+        "set_count":1,
+        "exercise_count":1
+      }'::jsonb,
+      '[{
+        "exercise_definition_id":"40000000-0000-0000-0000-000000000001",
+        "exercise_order":0,
+        "sets":[{"set_order":0,"set_type":"normal","weight_kg":110,"reps":5}]
+      }]'::jsonb
+    )
+  $test$,
+  'a later workout can establish the next PR'
+);
+
+SELECT lives_ok(
+  $test$
+    SELECT public.replace_hevy_workout_atomic(
+      '30000000-0000-0000-0000-000000000001',
+      'hevy-atomic-1',
+      '{
+        "user_id":"30000000-0000-0000-0000-000000000001",
+        "hevy_workout_id":"hevy-atomic-1",
+        "title":"Historical edit",
+        "source":"hevy",
+        "started_at":"2026-08-10T10:00:00Z",
+        "total_volume_kg":525,
+        "set_count":1,
+        "exercise_count":1
+      }'::jsonb,
+      '[{
+        "exercise_definition_id":"40000000-0000-0000-0000-000000000001",
+        "exercise_order":0,
+        "sets":[{"set_order":0,"set_type":"normal","weight_kg":105,"reps":5}]
+      }]'::jsonb
+    )
+  $test$,
+  'editing an older workout rebuilds the full PR timeline'
+);
+
+SELECT results_eq(
+  $test$
+    SELECT w.hevy_workout_id, pr.value, pr.previous_record
+    FROM public.personal_records pr
+    JOIN public.workouts w ON w.id = pr.workout_id
+    WHERE pr.user_id = '30000000-0000-0000-0000-000000000001'
+      AND pr.exercise_definition_id = '40000000-0000-0000-0000-000000000001'
+      AND pr.record_type = 'weight'
+    ORDER BY pr.achieved_at
+  $test$,
+  $$
+    VALUES
+      ('hevy-atomic-1'::text, 105::numeric, NULL::numeric),
+      ('hevy-atomic-2'::text, 110::numeric, 105::numeric)
+  $$,
+  'historical edits preserve chronological previous-record values'
+);
+
+SELECT lives_ok(
+  $test$
+    SELECT public.replace_hevy_workout_atomic(
+      '30000000-0000-0000-0000-000000000001',
+      'hevy-atomic-2',
+      '{
+        "user_id":"30000000-0000-0000-0000-000000000001",
+        "hevy_workout_id":"hevy-atomic-2",
+        "title":"Later workout lowered",
+        "source":"hevy",
+        "started_at":"2026-08-17T10:00:00Z",
+        "total_volume_kg":450,
+        "set_count":1,
+        "exercise_count":1
+      }'::jsonb,
+      '[{
+        "exercise_definition_id":"40000000-0000-0000-0000-000000000001",
+        "exercise_order":0,
+        "sets":[{"set_order":0,"set_type":"normal","weight_kg":90,"reps":5}]
+      }]'::jsonb
+    )
+  $test$,
+  'lowering the latest workout removes its stale PR'
+);
+
+SELECT results_eq(
+  $test$
+    SELECT w.hevy_workout_id, w.pr_count, pr.value
+    FROM public.workouts w
+    LEFT JOIN public.personal_records pr
+      ON pr.workout_id = w.id
+      AND pr.record_type = 'weight'
+      AND pr.record_category = 'strength'
+    WHERE w.user_id = '30000000-0000-0000-0000-000000000001'
+      AND w.hevy_workout_id IN ('hevy-atomic-1', 'hevy-atomic-2')
+    ORDER BY w.hevy_workout_id
+  $test$,
+  $$
+    VALUES
+      ('hevy-atomic-1'::text, 1::integer, 105::numeric),
+      ('hevy-atomic-2'::text, 0::integer, NULL::numeric)
+  $$,
+  'PR rows and workout counters match the rebuilt timeline'
 );
 
 SELECT * FROM finish();

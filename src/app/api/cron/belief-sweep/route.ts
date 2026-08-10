@@ -28,6 +28,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .select('id, user_id, category, hypothesis_text')
     .eq('status', 'active')
     .or(`last_tested_at.is.null,last_tested_at.lt.${sevenDaysAgo}`)
+    .order('last_tested_at', { ascending: true, nullsFirst: true })
+    .order('id', { ascending: true })
     .limit(20)
 
   if (error) {
@@ -35,13 +37,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 })
   }
 
-  const results = await runInBatches(stale ?? [], 5, (belief) =>
-    runBeliefExtractor({
-      userId: belief.user_id,
-      scope: belief.category as BeliefScope,
-      eventSummary: `Wekelijkse safety-net sweep. Bestaande active hypothese (id ${belief.id}) is >7 dagen niet getest: "${belief.hypothesis_text}". Beoordeel of er sinds laatste test relevante nieuwe data is en voeg evidence toe waar gepast.`,
-    }),
-  )
+  const results = await runInBatches(stale ?? [], 5, async (belief) => {
+    await runBeliefExtractor(
+      {
+        userId: belief.user_id,
+        scope: belief.category as BeliefScope,
+        eventSummary: `Wekelijkse safety-net sweep. Bestaande active hypothese (id ${belief.id}) is >7 dagen niet getest: "${belief.hypothesis_text}". Beoordeel of er sinds laatste test relevante nieuwe data is en voeg evidence toe waar gepast.`,
+      },
+      { strict: true },
+    )
+
+    const { error: markError } = await admin
+      .from('coach_beliefs')
+      .update({ last_tested_at: new Date().toISOString() })
+      .eq('id', belief.id)
+      .eq('user_id', belief.user_id)
+    if (markError) throw markError
+  })
 
   const swept = results.filter((result) => result.status === 'fulfilled').length
   const failed = results.length - swept

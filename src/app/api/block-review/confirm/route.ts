@@ -6,7 +6,6 @@ import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import type { Json } from '@/types/database'
 import { insertProgramSchema, validateProgramProposalForUser, type ProgramValidationResult } from '@/lib/training/program-save'
-import { activateTrainingSchema } from '@/lib/training/activate-schema'
 
 const ConfirmSchema = z.object({
   schema_id: z.string().uuid(),
@@ -65,6 +64,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, dry_run: true })
     }
 
+    if (!parsed.data.new_schema) {
+      return NextResponse.json(
+        { error: 'Een opvolgend schema is verplicht', code: 'NEW_SCHEMA_REQUIRED' },
+        { status: 422 },
+      )
+    }
+
     const admin = createAdminClient()
     const {
       schema_id,
@@ -90,20 +96,18 @@ export async function POST(request: Request) {
     // 1) Aggregate snapshot for the snapshot fields
     const aggregate = await aggregateBlockData(admin, user.id, schema_id)
     let validation: ProgramValidationResult | null = null
-    if (new_schema) {
-      validation = await validateProgramProposalForUser({
-        admin,
-        userId: user.id,
-        proposal: new_schema,
-        previousScheduleRaw: owned.workout_schedule,
-        acwrWeekEnd: aggregate.schema.endDate,
-      })
-      if (validation.audit.hasBlockers) {
-        return NextResponse.json(
-          { error: 'Schema bevat blockers', code: 'PROGRAM_AUDIT_BLOCKED', audit: validation.audit },
-          { status: 422 },
-        )
-      }
+    validation = await validateProgramProposalForUser({
+      admin,
+      userId: user.id,
+      proposal: new_schema,
+      previousScheduleRaw: owned.workout_schedule,
+      acwrWeekEnd: aggregate.schema.endDate,
+    })
+    if (validation.audit.hasBlockers) {
+      return NextResponse.json(
+        { error: 'Schema bevat blockers', code: 'PROGRAM_AUDIT_BLOCKED', audit: validation.audit },
+        { status: 422 },
+      )
     }
 
     // 2) Insert block_review row (status confirmed)
@@ -164,19 +168,17 @@ export async function POST(request: Request) {
     }
 
     // 4) Insert new schema first (is_active=false). If this fails, old schema stays active.
-    let newSchemaId: string | null = null
-    if (validation) {
-      newSchemaId = await insertProgramSchema({
-        admin,
-        userId: user.id,
-        proposal: validation.proposal,
-        audit: validation.audit,
-        plannedWeeklyLoad: validation.plannedWeeklyLoad,
-        sourceBlockReviewId: review.id,
-        generationContext: `Block review ${review.id}`,
-        isActive: false,
-      })
-    }
+    const newSchemaId = await insertProgramSchema({
+      admin,
+      userId: user.id,
+      proposal: validation.proposal,
+      audit: validation.audit,
+      plannedWeeklyLoad: validation.plannedWeeklyLoad,
+      sourceBlockReviewId: review.id,
+      generationContext: `Block review ${review.id}`,
+      previousSchemaId: schema_id,
+      previousEndDate: aggregate.schema.endDate,
+    })
 
     // 5) Write summary row for old schema (non-fatal)
     const { error: summaryErr } = await admin.from('schema_block_summaries').insert({
@@ -191,24 +193,8 @@ export async function POST(request: Request) {
     })
     if (summaryErr) console.error('schema_block_summaries insert failed (non-fatal):', summaryErr)
 
-    // 6) Switch schema atomically. A failure rolls the deactivation back, so
-    // the user can never be left with zero active schemas.
-    if (newSchemaId) {
-      await activateTrainingSchema(admin, {
-        userId: user.id,
-        newSchemaId,
-        previousSchemaId: schema_id,
-        previousEndDate: aggregate.schema.endDate,
-      })
-    } else {
-      const { error: deactivateError } = await admin
-        .from('training_schemas')
-        .update({ end_date: aggregate.schema.endDate, is_active: false })
-        .eq('id', schema_id)
-      if (deactivateError) throw deactivateError
-    }
-
-    // 6) Update block_review with next_schema_id + goal ids
+    // 6) Update block_review with next_schema_id + goal ids. The new schema was
+    // already inserted and activated atomically by insertProgramSchema.
     await admin
       .from('block_reviews')
       .update({ next_schema_id: newSchemaId, new_goal_ids: selected_goal_ids })

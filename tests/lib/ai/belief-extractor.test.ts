@@ -10,8 +10,13 @@ vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn(() => ({ name: 'mocked' })),
 }))
 
-const adminInsert = vi.fn(async (_row: unknown) => ({ error: null }))
-const adminUpdate = vi.fn((_payload: unknown) => ({ error: null }))
+const adminInsert = vi.fn(async (row: unknown) => {
+  void row
+  return { error: null }
+})
+const adminUpdate = vi.fn((payload: unknown) => {
+  void payload
+})
 
 let beliefRowForMaybeSingle: { evidence_for: unknown[]; evidence_against: unknown[]; status: string } | null = null
 
@@ -30,7 +35,7 @@ vi.mock('@/lib/supabase/admin', () => ({
       }),
       insert: adminInsert,
       update: (payload: unknown) => ({
-        eq: async (..._args: unknown[]) => {
+        eq: async () => {
           adminUpdate(payload)
           return { error: null }
         },
@@ -116,6 +121,27 @@ describe('runBeliefExtractor', () => {
     await expect(
       runBeliefExtractor({ userId: 'user-1', scope: 'training', eventSummary: 'x' }),
     ).resolves.toBeUndefined()
+  })
+
+  it('rethrows parse and LLM failures for honest cron accounting', async () => {
+    generateTextMock.mockResolvedValueOnce({
+      text: 'not json',
+      usage: { inputTokens: 1, outputTokens: 1 },
+    })
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('No JSON array')
+
+    generateTextMock.mockRejectedValueOnce(new Error('provider down'))
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('provider down')
   })
 
   it('appends evidence to an existing belief and updates DB', async () => {
