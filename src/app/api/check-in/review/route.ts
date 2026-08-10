@@ -5,6 +5,7 @@ import { decayStaleMemories } from '@/lib/ai/memory-decay'
 import type { Database, Json } from '@/types/database'
 import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -275,7 +276,7 @@ export async function GET(request: Request) {
     const admin = createAdminClient()
 
     // Fire-and-forget: age stale memories so the prompt context stays fresh
-    decayStaleMemories(user.id).catch((err) => console.error('memory decay failed (non-fatal):', err))
+    runAfterResponse('check-in memory decay', () => decayStaleMemories(user.id))
 
     // Determine week range
     const { searchParams } = new URL(request.url)

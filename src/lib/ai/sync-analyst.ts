@@ -186,7 +186,7 @@ ${prSection}${existingSection}`
       messages: [{ role: 'user', content: userContent }],
       maxOutputTokens: 512,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'sync_analyst',
       model: MEMORY_MODEL,

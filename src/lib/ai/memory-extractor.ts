@@ -85,7 +85,7 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
       messages: [{ role: 'user', content: userContent }],
       maxOutputTokens: 512,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'memory_extractor',
       model: MEMORY_MODEL,

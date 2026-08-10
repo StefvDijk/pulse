@@ -15,6 +15,7 @@ import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import { recordUnmatchedExercise } from '@/lib/hevy/unmatched-exercises'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 interface ExerciseDefinition {
   id: string
@@ -557,29 +558,27 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     errors,
   }
 
-  // Record this sync attempt so the per-source status chip + audit trail stay
-  // accurate. Fire-and-forget; recordSyncRun logs its own insert failures.
-  void recordSyncRun({
-    userId,
-    source: 'hevy',
-    startedAt: syncStartedAt,
-    syncedCount: synced,
-    errors,
-  })
+  // Record this sync attempt after the response while keeping the serverless
+  // invocation alive long enough for the audit write to finish.
+  runAfterResponse('Hevy sync audit logging', () =>
+    recordSyncRun({
+      userId,
+      source: 'hevy',
+      startedAt: syncStartedAt,
+      syncedCount: synced,
+      errors,
+    }),
+  )
 
   // Fire-and-forget belief extraction on training-scope events.
   // Only triggers when at least one workout was actually synced. Feeds the
   // extractor a REAL training summary (load, tonnage, PR's) instead of bare
   // sync counters, which couldn't support a falsifiable hypothesis (audit #21).
   if (result.synced > 0) {
-    void (async () => {
-      try {
-        const eventSummary = await buildTrainingEventSummary(admin, userId)
-        await runBeliefExtractor({ userId, scope: 'training', eventSummary })
-      } catch (err) {
-        console.error('[hevy/sync] belief-extractor failed:', err)
-      }
-    })()
+    runAfterResponse('Hevy belief extraction', async () => {
+      const eventSummary = await buildTrainingEventSummary(admin, userId)
+      await runBeliefExtractor({ userId, scope: 'training', eventSummary })
+    })
   }
 
   return result

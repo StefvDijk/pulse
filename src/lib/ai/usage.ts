@@ -22,7 +22,7 @@ export interface LogUsageParams {
  * must not break the calling feature. Resolves the AI SDK's lazy `usage`
  * promise if one is passed in via the caller.
  */
-export function logAiUsage(params: LogUsageParams): void {
+export async function logAiUsage(params: LogUsageParams): Promise<void> {
   const {
     userId = null,
     feature,
@@ -34,7 +34,7 @@ export function logAiUsage(params: LogUsageParams): void {
   } = params
 
   const admin = createAdminClient()
-  admin
+  const { error } = await admin
     .from('ai_usage_log')
     .insert({
       user_id: userId,
@@ -48,7 +48,5 @@ export function logAiUsage(params: LogUsageParams): void {
       status,
       error_code: errorCode,
     })
-    .then((r) => {
-      if (r.error) console.error('[ai-usage] insert failed:', r.error.message)
-    })
+  if (error) console.error('[ai-usage] insert failed:', error.message)
 }

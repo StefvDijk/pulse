@@ -9,6 +9,7 @@ import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 // Shared Strava sync logic — pulls activities for a recent window, upserts them
 // into `strava_activities`, derives runs/walks, and records the sync timestamp.
@@ -112,7 +113,9 @@ export async function syncStravaActivities(
 
   if (allActivities.length === 0) {
     await touchLastSync(userId, admin)
-    void recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: 0, errors: [] })
+    runAfterResponse('Strava sync audit logging', () =>
+      recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: 0, errors: [] }),
+    )
     return { fetched: 0, synced: 0, derivedRuns: null, derivedWalks: null, derivedActivities: null, days }
   }
 
@@ -123,13 +126,15 @@ export async function syncStravaActivities(
     .select('id')
   if (error) {
     console.error('[strava/sync] upsert failed:', error)
-    void recordSyncRun({
-      userId,
-      source: 'strava',
-      startedAt,
-      syncedCount: 0,
-      errors: [`Opslaan mislukt: ${error.message}`],
-    })
+    runAfterResponse('Strava failed sync audit logging', () =>
+      recordSyncRun({
+        userId,
+        source: 'strava',
+        startedAt,
+        syncedCount: 0,
+        errors: [`Opslaan mislukt: ${error.message}`],
+      }),
+    )
     throw new Error('Opslaan mislukt')
   }
 
@@ -176,13 +181,15 @@ export async function syncStravaActivities(
 
   await touchLastSync(userId, admin)
 
-  void recordSyncRun({
-    userId,
-    source: 'strava',
-    startedAt,
-    syncedCount: data?.length ?? 0,
-    errors: [],
-  })
+  runAfterResponse('Strava sync audit logging', () =>
+    recordSyncRun({
+      userId,
+      source: 'strava',
+      startedAt,
+      syncedCount: data?.length ?? 0,
+      errors: [],
+    }),
+  )
 
   return {
     fetched: allActivities.length,

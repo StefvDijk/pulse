@@ -191,7 +191,7 @@ export async function extractWeeklyLessons(
       prompt: userContent,
       temperature: 0.4,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'weekly_lessons',
       model: MEMORY_MODEL,

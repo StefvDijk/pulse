@@ -5,6 +5,7 @@ import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 /**
  * GET /api/cron/hevy-sync
@@ -58,14 +59,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         result.errors.push(`Re-aggregation: ${msg}`)
       }
 
-      // Fire-and-forget: analyze training progress
-      analyzeAfterSync({
-        userId: user_id,
-        syncSource: 'hevy',
-        syncResult: result,
-      }).catch((err: unknown) => {
-        console.error('[cron/hevy-sync] analyzeAfterSync failed:', err)
-      })
+      runAfterResponse('scheduled Hevy sync analysis', () =>
+        analyzeAfterSync({
+          userId: user_id,
+          syncSource: 'hevy',
+          syncResult: result,
+        }),
+      )
 
       results.push({ userId: user_id, ...result })
     } catch (error) {

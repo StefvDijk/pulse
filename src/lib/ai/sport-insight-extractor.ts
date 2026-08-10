@@ -131,7 +131,7 @@ export async function extractSportInsight(
       prompt: `28 dagen data:\n\n${tableText}`,
       temperature: 0.3,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'sport_insight',
       model: MEMORY_MODEL,

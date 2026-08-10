@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { runBeliefExtractor } from '@/lib/ai/belief-extractor'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 const AnswerSchema = z.object({
   answer_text: z.string().min(1).max(2000),
@@ -52,11 +53,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .eq('related_entity_id', id)
 
   // Feed the answer to belief-extractor so the answered question becomes evidence
-  runBeliefExtractor({
-    userId: user.id,
-    scope: 'lifestyle',
-    eventSummary: `Coach vroeg: "${question.question_text}". Stef antwoordde: "${parsed.data.answer_text.slice(0, 800)}". Gerelateerde belief: ${question.related_belief_id ?? 'geen'}.`,
-  }).catch(console.error)
+  runAfterResponse('answered-question belief extraction', () =>
+    runBeliefExtractor({
+      userId: user.id,
+      scope: 'lifestyle',
+      eventSummary: `Coach vroeg: "${question.question_text}". Stef antwoordde: "${parsed.data.answer_text.slice(0, 800)}". Gerelateerde belief: ${question.related_belief_id ?? 'geen'}.`,
+    }),
+  )
 
   return NextResponse.json({ ok: true })
 }

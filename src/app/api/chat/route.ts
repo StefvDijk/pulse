@@ -14,6 +14,7 @@ import { runCoach } from '@/lib/ai/coaches/run-coach'
 import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
 import { planConsultation, orchestrateConsultation, renderTakesBlock } from '@/lib/ai/coaches/consult'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -366,13 +367,17 @@ export async function POST(request: Request) {
           // non-blocking. Skip greetings: "hoi" carries no lifestyle signal,
           // so running two paid Haiku extractors on it is pure waste (audit #21).
           if (questionType !== 'simple_greeting') {
-            extractAndUpdateMemory(user.id, message, cleanText).catch(console.error)
+            runAfterResponse('chat memory extraction', () =>
+              extractAndUpdateMemory(user.id, message, cleanText),
+            )
 
-            runBeliefExtractor({
-              userId: user.id,
-              scope: 'lifestyle',
-              eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
-            }).catch(console.error)
+            runAfterResponse('chat belief extraction', () =>
+              runBeliefExtractor({
+                userId: user.id,
+                scope: 'lifestyle',
+                eventSummary: `Stef zei: ${message}\n\nCoach antwoordde: ${cleanText.slice(0, 1500)}`,
+              }),
+            )
           }
 
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))

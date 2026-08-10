@@ -157,7 +157,7 @@ export async function GET() {
         prompt: formatContext(ctx),
         temperature: 0.5,
       })
-      logAiUsage({
+      await logAiUsage({
         userId: user.id,
         feature: 'chat_suggestions',
         model: MEMORY_MODEL,

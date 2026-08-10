@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { streamText, generateText, stepCountIs } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
 import { logAiUsage } from '@/lib/ai/usage'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 // ---------------------------------------------------------------------------
 // Model constants — single source of truth
@@ -154,14 +155,14 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
     ...(onError ? { onError } : {}),
   })
 
-  // Log usage when the stream concludes — fire-and-forget, never blocks.
-  // result.usage is PromiseLike (no .catch), so wrap in async IIFE.
+  // Resolve and persist lazy stream usage after the response without letting
+  // the serverless runtime terminate the write early.
   if (meta) {
-    void (async () => {
+    runAfterResponse('stream AI usage logging', async () => {
       try {
         const u = await result.usage
         const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(u)
-        logAiUsage({
+        await logAiUsage({
           userId: meta.userId,
           feature: meta.feature,
           model: resolvedModel,
@@ -174,7 +175,7 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
           durationMs: Date.now() - startedAt,
         })
       } catch (err) {
-        logAiUsage({
+        await logAiUsage({
           userId: meta.userId,
           feature: meta.feature,
           model: resolvedModel,
@@ -183,7 +184,7 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
           errorCode: (err as { name?: string })?.name ?? 'STREAM_ERROR',
         })
       }
-    })()
+    })
   }
 
   return result
@@ -212,7 +213,7 @@ async function loggedGenerateText(
     })
     if (meta) {
       const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(usage)
-      logAiUsage({
+      await logAiUsage({
         userId: meta.userId,
         feature: meta.feature,
         model,
@@ -228,7 +229,7 @@ async function loggedGenerateText(
     return text
   } catch (err) {
     if (meta) {
-      logAiUsage({
+      await logAiUsage({
         userId: meta.userId,
         feature: meta.feature,
         model,

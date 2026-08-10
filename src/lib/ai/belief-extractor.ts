@@ -80,7 +80,7 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
       maxOutputTokens: 512,
     })
 
-    logAiUsage({
+    await logAiUsage({
       userId: input.userId,
       feature: 'belief-extractor',
       model: MEMORY_MODEL,

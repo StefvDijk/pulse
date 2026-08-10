@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 import { reconcileWeek, type PlannedSession, type CompletionInput } from '@/lib/training/reconcile-week'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -406,7 +407,9 @@ export async function PATCH(request: Request) {
     if (updateError) throw updateError
 
     // Fire async AI notification (non-blocking)
-    notifySchemaEdit(admin, user.id, parsed.data.workout_schedule).catch(console.error)
+    runAfterResponse('schema edit notification', () =>
+      notifySchemaEdit(admin, user.id, parsed.data.workout_schedule),
+    )
 
     return NextResponse.json({ success: true })
   } catch (err) {
