@@ -2600,6 +2600,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      replace_hevy_workout_atomic: {
+        Args: {
+          p_exercises: Json
+          p_hevy_workout_id: string
+          p_user_id: string
+          p_workout: Json
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
