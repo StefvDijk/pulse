@@ -6,6 +6,7 @@ import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import type { Json } from '@/types/database'
 import { insertProgramSchema, validateProgramProposalForUser, type ProgramValidationResult } from '@/lib/training/program-save'
+import { activateTrainingSchema } from '@/lib/training/activate-schema'
 
 const ConfirmSchema = z.object({
   schema_id: z.string().uuid(),
@@ -190,20 +191,21 @@ export async function POST(request: Request) {
     })
     if (summaryErr) console.error('schema_block_summaries insert failed (non-fatal):', summaryErr)
 
-    // 6) Deactivate old schema, deactivate any leftover actives, activate new schema
-    await admin
-      .from('training_schemas')
-      .update({ end_date: aggregate.schema.endDate, is_active: false })
-      .eq('id', schema_id)
-
+    // 6) Switch schema atomically. A failure rolls the deactivation back, so
+    // the user can never be left with zero active schemas.
     if (newSchemaId) {
-      await admin
+      await activateTrainingSchema(admin, {
+        userId: user.id,
+        newSchemaId,
+        previousSchemaId: schema_id,
+        previousEndDate: aggregate.schema.endDate,
+      })
+    } else {
+      const { error: deactivateError } = await admin
         .from('training_schemas')
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .neq('id', newSchemaId)
-      await admin.from('training_schemas').update({ is_active: true }).eq('id', newSchemaId)
+        .update({ end_date: aggregate.schema.endDate, is_active: false })
+        .eq('id', schema_id)
+      if (deactivateError) throw deactivateError
     }
 
     // 6) Update block_review with next_schema_id + goal ids

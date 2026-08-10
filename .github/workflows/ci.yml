@@ -33,3 +33,4 @@ jobs:
       # A fresh GitHub runner has no linked project. `db start` therefore
       # validates the complete migration chain against an isolated database.
       - run: supabase db start
+      - run: supabase test db

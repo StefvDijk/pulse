@@ -10,6 +10,7 @@ import {
 import { writeBlockSummary } from '@/lib/training/write-block-summary'
 import { insertProgramSchema, validateProgramProposalForUser } from '@/lib/training/program-save'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
+import { activateTrainingSchema } from '@/lib/training/activate-schema'
 
 // ---------------------------------------------------------------------------
 // Chat write-backs (audit #22 + #40).
@@ -184,19 +185,11 @@ async function applySchemaGeneration(
       isActive: false,
     })
 
-    const { error: deactivateError } = await admin
-      .from('training_schemas')
-      .update({ is_active: false })
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .neq('id', newSchemaId)
-    if (deactivateError) throw deactivateError
-
-    const { error: activateError } = await admin
-      .from('training_schemas')
-      .update({ is_active: true })
-      .eq('id', newSchemaId)
-    if (activateError) throw activateError
+    await activateTrainingSchema(admin, {
+      userId,
+      newSchemaId,
+      previousSchemaId: oldActive?.id,
+    })
 
     if (oldActive?.id) {
       await writeBlockSummary(admin, userId, oldActive.id, 'switched').catch((err) =>

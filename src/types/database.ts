@@ -2591,6 +2591,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_training_schema: {
+        Args: {
+          p_new_schema_id: string
+          p_previous_end_date?: string | null
+          p_previous_schema_id?: string | null
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
@@ -2728,4 +2737,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
