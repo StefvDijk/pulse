@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(12);
+SELECT plan(14);
 
 INSERT INTO auth.users (id, email)
 VALUES ('30000000-0000-0000-0000-000000000001', 'hevy-atomicity@test.invalid');
@@ -279,6 +279,53 @@ SELECT results_eq(
       ('hevy-atomic-2'::text, 0::integer, NULL::numeric)
   $$,
   'PR rows and workout counters match the rebuilt timeline'
+);
+
+SELECT lives_ok(
+  $test$
+    SELECT public.replace_hevy_workout_atomic(
+      '30000000-0000-0000-0000-000000000001',
+      'hevy-atomic-2',
+      '{
+        "user_id":"30000000-0000-0000-0000-000000000001",
+        "hevy_workout_id":"hevy-atomic-2",
+        "title":"Repeated exercise slots",
+        "source":"hevy",
+        "started_at":"2026-08-17T10:00:00Z",
+        "total_volume_kg":1050,
+        "set_count":2,
+        "exercise_count":2
+      }'::jsonb,
+      '[
+        {
+          "exercise_definition_id":"40000000-0000-0000-0000-000000000001",
+          "exercise_order":0,
+          "sets":[{"set_order":0,"set_type":"normal","weight_kg":90,"reps":5}]
+        },
+        {
+          "exercise_definition_id":"40000000-0000-0000-0000-000000000001",
+          "exercise_order":1,
+          "sets":[{"set_order":0,"set_type":"normal","weight_kg":120,"reps":5}]
+        }
+      ]'::jsonb
+    )
+  $test$,
+  'one workout may contain the same exercise definition in multiple slots'
+);
+
+SELECT results_eq(
+  $test$
+    SELECT w.hevy_workout_id, w.pr_count, count(pr.id)::bigint, max(pr.value)
+    FROM public.workouts w
+    LEFT JOIN public.personal_records pr
+      ON pr.workout_id = w.id
+      AND pr.record_type = 'weight'
+      AND pr.record_category = 'strength'
+    WHERE w.hevy_workout_id = 'hevy-atomic-2'
+    GROUP BY w.hevy_workout_id, w.pr_count
+  $test$,
+  $$ VALUES ('hevy-atomic-2'::text, 1::integer, 1::bigint, 120::numeric) $$,
+  'a repeated exercise produces at most one PR candidate per workout'
 );
 
 SELECT * FROM finish();

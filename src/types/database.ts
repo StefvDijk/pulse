@@ -2609,6 +2609,19 @@ export type Database = {
         }
         Returns: string
       }
+      finalize_block_review: {
+        Args: {
+          p_body_measurement?: Json | null
+          p_new_goal_ids?: string[]
+          p_previous_end_date: string
+          p_previous_schema_id: string
+          p_review_id: string
+          p_schema: Json
+          p_summary?: Json | null
+          p_user_id: string
+        }
+        Returns: Json
+      }
       replace_hevy_workout_atomic: {
         Args: {
           p_exercises: Json
@@ -2617,6 +2630,19 @@ export type Database = {
           p_workout: Json
         }
         Returns: string
+      }
+      replace_hevy_workout_graph_atomic: {
+        Args: {
+          p_exercises: Json
+          p_hevy_workout_id: string
+          p_user_id: string
+          p_workout: Json
+        }
+        Returns: string
+      }
+      recompute_user_strength_prs_atomic: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

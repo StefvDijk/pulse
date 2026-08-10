@@ -1,5 +1,6 @@
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
+import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
@@ -23,17 +24,27 @@ interface RunBeliefExtractorOptions {
   strict?: boolean
 }
 
-interface ExtractorAction {
-  action: 'create' | 'evidence'
-  hypothesis_text?: string
-  category?: BeliefScope
-  target_id?: string
-  evidence: {
-    kind: 'for' | 'against'
-    observation: string
-    source: string
-  }
-}
+const EvidenceSchema = z.object({
+  kind: z.enum(['for', 'against']),
+  observation: z.string().trim().min(1).max(1000),
+  source: z.string().trim().min(1).max(100),
+})
+
+const ExtractorActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('create'),
+    hypothesis_text: z.string().trim().min(1).max(1000),
+    category: z.enum(['training', 'nutrition', 'recovery', 'lifestyle', 'preference']),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    action: z.literal('evidence'),
+    target_id: z.string().uuid(),
+    evidence: EvidenceSchema,
+  }),
+])
+
+type ExtractorAction = z.infer<typeof ExtractorActionSchema>
 
 // ---------------------------------------------------------------------------
 // Prompt
@@ -109,16 +120,23 @@ export async function runBeliefExtractor(
       throw new Error(`No JSON array in Haiku output (raw length ${text.length})`)
     }
 
-    let actions: ExtractorAction[]
+    let rawActions: unknown
     try {
-      actions = JSON.parse(match[0]) as ExtractorAction[]
+      rawActions = JSON.parse(match[0])
     } catch (parseErr) {
       throw new Error('Belief extractor returned invalid JSON', { cause: parseErr })
     }
-    if (!Array.isArray(actions) || actions.length === 0) return
+    const parsedActions = z.array(ExtractorActionSchema).max(2).safeParse(rawActions)
+    if (!parsedActions.success) {
+      throw new Error(`Belief extractor returned invalid actions: ${parsedActions.error.message}`)
+    }
+    if (parsedActions.data.length === 0) return
 
-    for (const action of actions.slice(0, 2)) {
-      await applyAction(admin, input.userId, action)
+    for (const action of parsedActions.data) {
+      const applied = await applyAction(admin, input.userId, action)
+      if (!applied && options.strict) {
+        throw new Error(`Belief extractor action could not be applied: ${action.action}`)
+      }
     }
   } catch (err) {
     console.error('[belief-extractor] error (non-fatal):', err)
@@ -134,7 +152,7 @@ async function applyAction(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   action: ExtractorAction,
-): Promise<void> {
+): Promise<boolean> {
   const nowIso = new Date().toISOString()
   const evidenceItem: EvidenceItem = {
     date: nowIso,
@@ -144,7 +162,6 @@ async function applyAction(
   }
 
   if (action.action === 'create') {
-    if (!action.hypothesis_text || !action.category) return
     const initial = {
       evidence_for: action.evidence.kind === 'for' ? [evidenceItem] : [],
       evidence_against: action.evidence.kind === 'against' ? [evidenceItem] : [],
@@ -162,7 +179,7 @@ async function applyAction(
       last_tested_at: nowIso,
     })
     if (error) throw error
-    return
+    return true
   }
 
   if (action.action === 'evidence' && action.target_id) {
@@ -173,7 +190,7 @@ async function applyAction(
       .eq('user_id', userId)
       .maybeSingle()
     if (queryError) throw queryError
-    if (!data) return
+    if (!data) return false
 
     const existingFor = (data.evidence_for ?? []) as unknown as EvidenceItem[]
     const existingAgainst = (data.evidence_against ?? []) as unknown as EvidenceItem[]
@@ -197,5 +214,8 @@ async function applyAction(
       })
       .eq('id', action.target_id)
     if (updateError) throw updateError
+    return true
   }
+
+  return false
 }

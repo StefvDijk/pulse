@@ -63,5 +63,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   })
 
-  return NextResponse.json({ ok: failed === 0, swept, failed })
+  return NextResponse.json(
+    { ok: failed === 0, swept, failed },
+    { status: failed > 0 ? 503 : 200 },
+  )
 }

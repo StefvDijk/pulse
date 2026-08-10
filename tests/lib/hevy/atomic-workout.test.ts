@@ -5,6 +5,7 @@ import type { MappedWorkout } from '@/lib/hevy/mappers'
 import {
   buildAtomicWorkoutPayload,
   persistHevyWorkoutAtomic,
+  recomputeHevyStrengthPrs,
 } from '@/lib/hevy/atomic-workout'
 
 const mapped = {
@@ -83,5 +84,30 @@ describe('atomic Hevy workout persistence', () => {
     await expect(
       persistHevyWorkoutAtomic(admin, 'user-1', 'hevy-1', mapped),
     ).rejects.toThrow('Atomic Hevy workout replace failed: set constraint failed')
+  })
+
+  it('can defer PR recomputation during a full-history batch', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: 'workout-1', error: null })
+    const admin = { rpc } as unknown as SupabaseClient<Database>
+
+    await persistHevyWorkoutAtomic(admin, 'user-1', 'hevy-1', mapped, {
+      deferPrRecompute: true,
+    })
+
+    expect(rpc).toHaveBeenCalledWith(
+      'replace_hevy_workout_graph_atomic',
+      expect.objectContaining({ p_user_id: 'user-1' }),
+    )
+  })
+
+  it('recomputes a user PR chain through one explicit RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: undefined, error: null })
+    const admin = { rpc } as unknown as SupabaseClient<Database>
+
+    await recomputeHevyStrengthPrs(admin, 'user-1')
+
+    expect(rpc).toHaveBeenCalledWith('recompute_user_strength_prs_atomic', {
+      p_user_id: 'user-1',
+    })
   })
 })

@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { aggregateBlockData } from '@/lib/block-review/aggregator'
 import type { Json } from '@/types/database'
-import { insertProgramSchema, validateProgramProposalForUser, type ProgramValidationResult } from '@/lib/training/program-save'
+import { buildProgramSchemaRow, validateProgramProposalForUser } from '@/lib/training/program-save'
 
 const ConfirmSchema = z.object({
   schema_id: z.string().uuid(),
@@ -43,6 +43,12 @@ const ConfirmSchema = z.object({
   new_schema: z.unknown().nullable(),
   selected_goal_ids: z.array(z.string().uuid()),
   dry_run: z.boolean().default(false),
+})
+
+const FinalizeResultSchema = z.object({
+  review_id: z.string().uuid(),
+  new_schema_id: z.string().uuid(),
+  already_confirmed: z.boolean(),
 })
 
 export async function POST(request: Request) {
@@ -95,8 +101,7 @@ export async function POST(request: Request) {
 
     // 1) Aggregate snapshot for the snapshot fields
     const aggregate = await aggregateBlockData(admin, user.id, schema_id)
-    let validation: ProgramValidationResult | null = null
-    validation = await validateProgramProposalForUser({
+    const validation = await validateProgramProposalForUser({
       admin,
       userId: user.id,
       proposal: new_schema,
@@ -110,95 +115,115 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2) Insert block_review row (status confirmed)
-    const { data: review, error: reviewErr } = await admin
+    // 2) Keep at most one idempotent draft per source schema. The RPC below is
+    // the only operation allowed to mark it confirmed.
+    const reviewValues = {
+      user_id: user.id,
+      schema_id,
+      period_start: aggregate.schema.startDate,
+      period_end: aggregate.schema.endDate,
+      status: 'draft',
+      end_reason,
+      template_ratings: reflection.templateRatings as unknown as Json,
+      keep_exercises: reflection.keepExercises,
+      drop_exercises: reflection.dropExercises,
+      biggest_win: reflection.biggestWin || null,
+      biggest_miss: reflection.biggestMiss || null,
+      injury_updates: reflection.injuryUpdates as unknown as Json,
+      exercise_verdicts: ((reflection as { exerciseVerdicts?: unknown }).exerciseVerdicts ?? []) as unknown as Json,
+      missed_sessions: ((reflection as { missedSessions?: unknown }).missedSessions ?? []) as unknown as Json,
+      performance_snapshot: {
+        totals: aggregate.totals,
+        templateAdherence: aggregate.templateAdherence,
+        weeklyMuscleVolume: aggregate.weeklyMuscleVolume,
+        movementPatternVolume: aggregate.movementPatternVolume,
+        sportBreakdown: aggregate.sportBreakdown,
+        sportLoadTrend: aggregate.sportLoadTrend,
+        exerciseProgressions: aggregate.exerciseProgressions,
+        personalRecords: aggregate.personalRecords,
+      } as unknown as Json,
+      body_snapshot: {
+        timeline: aggregate.bodyTimeline,
+        delta: aggregate.bodyDelta,
+      } as unknown as Json,
+      ai_analysis,
+      ai_schema_proposal: (ai_schema_proposal ?? null) as Json | null,
+      trainer_audit: validation.audit as unknown as Json,
+    }
+
+    const { data: existingReview, error: existingReviewError } = await admin
       .from('block_reviews')
-      .insert({
-        user_id: user.id,
-        schema_id,
-        period_start: aggregate.schema.startDate,
-        period_end: aggregate.schema.endDate,
-        status: 'confirmed',
-        end_reason,
-        template_ratings: reflection.templateRatings as unknown as Json,
-        keep_exercises: reflection.keepExercises,
-        drop_exercises: reflection.dropExercises,
-        biggest_win: reflection.biggestWin || null,
-        biggest_miss: reflection.biggestMiss || null,
-        injury_updates: reflection.injuryUpdates as unknown as Json,
-        exercise_verdicts: ((reflection as { exerciseVerdicts?: unknown }).exerciseVerdicts ?? []) as unknown as Json,
-        missed_sessions: ((reflection as { missedSessions?: unknown }).missedSessions ?? []) as unknown as Json,
-        performance_snapshot: {
-          totals: aggregate.totals,
-          templateAdherence: aggregate.templateAdherence,
-          weeklyMuscleVolume: aggregate.weeklyMuscleVolume,
-          movementPatternVolume: aggregate.movementPatternVolume,
-          sportBreakdown: aggregate.sportBreakdown,
-          sportLoadTrend: aggregate.sportLoadTrend,
-          exerciseProgressions: aggregate.exerciseProgressions,
-          personalRecords: aggregate.personalRecords,
-        } as unknown as Json,
-        body_snapshot: {
-          timeline: aggregate.bodyTimeline,
-          delta: aggregate.bodyDelta,
-        } as unknown as Json,
-        ai_analysis,
-        ai_schema_proposal: (ai_schema_proposal ?? null) as Json | null,
-        trainer_audit: (validation?.audit ?? {}) as unknown as Json,
-        confirmed_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
+      .select('id, status, next_schema_id')
+      .eq('user_id', user.id)
+      .eq('schema_id', schema_id)
+      .in('status', ['draft', 'confirmed'])
+      .maybeSingle()
+    if (existingReviewError) throw existingReviewError
 
-    if (reviewErr || !review) throw reviewErr ?? new Error('block_review insert failed')
-
-    // 3) Save InBody measurement if present
-    if (new_in_body) {
-      await admin.from('body_composition_logs').insert({
-        user_id: user.id,
-        date: new_in_body.measuredAt,
-        weight_kg: new_in_body.weightKg,
-        skeletal_muscle_mass_kg: new_in_body.skeletalMuscleMassKg,
-        fat_mass_kg: new_in_body.fatMassKg,
-        fat_pct: new_in_body.fatPct,
-        visceral_fat_level: new_in_body.visceralFatLevel,
-        waist_cm: new_in_body.waistCm,
-        source: 'manual',
+    if (existingReview?.status === 'confirmed' && existingReview.next_schema_id) {
+      return NextResponse.json({
+        success: true,
+        review_id: existingReview.id,
+        new_schema_id: existingReview.next_schema_id,
+        already_confirmed: true,
       })
     }
 
-    // 4) Insert new schema first (is_active=false). If this fails, old schema stays active.
-    const newSchemaId = await insertProgramSchema({
-      admin,
+    const review = existingReview
+      ? (
+          await admin
+            .from('block_reviews')
+            .update(reviewValues)
+            .eq('id', existingReview.id)
+            .eq('status', 'draft')
+            .select('id')
+            .single()
+        )
+      : await admin.from('block_reviews').insert(reviewValues).select('id').single()
+    if (review.error || !review.data) {
+      throw review.error ?? new Error('block_review draft save failed')
+    }
+
+    // 3) Finalize every correctness-critical write in one database transaction.
+    const schemaRow = buildProgramSchemaRow({
       userId: user.id,
       proposal: validation.proposal,
       audit: validation.audit,
       plannedWeeklyLoad: validation.plannedWeeklyLoad,
-      sourceBlockReviewId: review.id,
-      generationContext: `Block review ${review.id}`,
-      previousSchemaId: schema_id,
-      previousEndDate: aggregate.schema.endDate,
+      sourceBlockReviewId: review.data.id,
+      generationContext: `Block review ${review.data.id}`,
     })
-
-    // 5) Write summary row for old schema (non-fatal)
-    const { error: summaryErr } = await admin.from('schema_block_summaries').insert({
-      user_id: user.id,
-      schema_id,
+    const bodyMeasurement = new_in_body
+      ? {
+          date: new_in_body.measuredAt,
+          weight_kg: new_in_body.weightKg,
+          skeletal_muscle_mass_kg: new_in_body.skeletalMuscleMassKg,
+          fat_mass_kg: new_in_body.fatMassKg,
+          fat_pct: new_in_body.fatPct,
+          visceral_fat_level: new_in_body.visceralFatLevel,
+          waist_cm: new_in_body.waistCm,
+        }
+      : null
+    const summary = {
       summary: `Block review afgesloten — ${aggregate.totals.completedSessions}/${aggregate.totals.plannedSessions} sessies (${aggregate.totals.adherencePct ?? '?'}%). Eindstatus: ${end_reason}.`,
       exercises_used: Array.from(new Set(aggregate.exerciseProgressions.map((e) => e.exerciseName))).slice(0, 50),
       adherence_percentage: aggregate.totals.adherencePct,
       total_sessions_planned: aggregate.totals.plannedSessions,
       total_sessions_completed: aggregate.totals.completedSessions,
       end_reason,
+    }
+    const { data: finalizedRaw, error: finalizeError } = await admin.rpc('finalize_block_review', {
+      p_user_id: user.id,
+      p_review_id: review.data.id,
+      p_previous_schema_id: schema_id,
+      p_previous_end_date: aggregate.schema.endDate,
+      p_schema: schemaRow as unknown as Json,
+      p_body_measurement: bodyMeasurement as unknown as Json,
+      p_summary: summary as unknown as Json,
+      p_new_goal_ids: selected_goal_ids,
     })
-    if (summaryErr) console.error('schema_block_summaries insert failed (non-fatal):', summaryErr)
-
-    // 6) Update block_review with next_schema_id + goal ids. The new schema was
-    // already inserted and activated atomically by insertProgramSchema.
-    await admin
-      .from('block_reviews')
-      .update({ next_schema_id: newSchemaId, new_goal_ids: selected_goal_ids })
-      .eq('id', review.id)
+    if (finalizeError) throw finalizeError
+    const finalized = FinalizeResultSchema.parse(finalizedRaw)
 
     // 7) Coaching memory entries for learnings
     if (reflection.biggestWin) {
@@ -224,7 +249,12 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ success: true, review_id: review.id, new_schema_id: newSchemaId })
+    return NextResponse.json({
+      success: true,
+      review_id: finalized.review_id,
+      new_schema_id: finalized.new_schema_id,
+      already_confirmed: finalized.already_confirmed,
+    })
   } catch (err) {
     console.error('Block review confirm error:', err)
     return NextResponse.json({ error: 'Failed to confirm block review', code: 'INTERNAL_ERROR' }, { status: 500 })

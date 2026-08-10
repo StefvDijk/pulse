@@ -15,7 +15,7 @@ import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import { recordUnmatchedExercise } from '@/lib/hevy/unmatched-exercises'
 import { runAfterResponse } from '@/lib/runtime/after-response'
-import { persistHevyWorkoutAtomic } from '@/lib/hevy/atomic-workout'
+import { persistHevyWorkoutAtomic, recomputeHevyStrengthPrs } from '@/lib/hevy/atomic-workout'
 
 interface ExerciseDefinition {
   id: string
@@ -51,6 +51,7 @@ export async function upsertSingleWorkout(
   hevyWorkout: HevyWorkout,
   userId: string,
   exerciseDefinitions: ExerciseDefinition[],
+  options: { deferPrRecompute?: boolean } = {},
 ): Promise<UpsertSingleWorkoutResult> {
   const admin = createAdminClient()
   const errors: string[] = []
@@ -80,6 +81,7 @@ export async function upsertSingleWorkout(
       userId,
       hevyWorkout.id,
       mapped,
+      options,
     )
   } catch (error) {
     errors.push(
@@ -113,6 +115,7 @@ async function runFullSync(
   exerciseDefinitions: ExerciseDefinition[],
   errors: string[],
 ): Promise<number> {
+  const admin = createAdminClient()
   let synced = 0
   let page = 1
   let pageCount = 1
@@ -130,12 +133,23 @@ async function runFullSync(
     pageCount = response.page_count
 
     for (const hevyWorkout of response.workouts) {
-      const result = await upsertSingleWorkout(hevyWorkout, userId, exerciseDefinitions)
+      const result = await upsertSingleWorkout(hevyWorkout, userId, exerciseDefinitions, {
+        deferPrRecompute: true,
+      })
       errors.push(...result.errors)
       if (result.workoutId) synced++
     }
 
     page++
+  }
+
+  if (synced > 0) {
+    try {
+      await recomputeHevyStrengthPrs(admin, userId)
+    } catch (recomputeError) {
+      const message = recomputeError instanceof Error ? recomputeError.message : String(recomputeError)
+      errors.push(`PR recompute after full sync: ${message}`)
+    }
   }
 
   return synced

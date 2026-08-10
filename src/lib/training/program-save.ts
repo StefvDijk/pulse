@@ -31,6 +31,33 @@ export interface SaveProgramSchemaParams {
   previousEndDate?: string | null
 }
 
+type TrainingSchemaInsert = Database['public']['Tables']['training_schemas']['Insert']
+
+export function buildProgramSchemaRow({
+  userId,
+  proposal,
+  audit,
+  plannedWeeklyLoad,
+  sourceBlockReviewId,
+  generationContext,
+}: Omit<SaveProgramSchemaParams, 'admin' | 'previousSchemaId' | 'previousEndDate'>): TrainingSchemaInsert {
+  return {
+    user_id: userId,
+    title: proposal.title,
+    schema_type: proposal.schema_type,
+    weeks_planned: proposal.weeks_planned,
+    start_date: proposal.start_date,
+    workout_schedule: proposal.workout_schedule as unknown as Json,
+    progression_rules: proposal.progression as unknown as Json,
+    quality_audit: audit as unknown as Json,
+    planned_weekly_load: plannedWeeklyLoad as unknown as Json,
+    source_block_review_id: sourceBlockReviewId ?? null,
+    is_active: false,
+    ai_generated: true,
+    generation_context: generationContext ?? null,
+  }
+}
+
 function normaliseSportType(focus: string): 'gym' | 'run' | 'padel' | 'rest' {
   const f = focus.toLowerCase()
   if (f.includes('rust') || f.includes('rest')) return 'rest'
@@ -168,20 +195,13 @@ export async function insertProgramSchema({
     userId,
     previousSchemaId,
     previousEndDate,
-    schema: {
-      user_id: userId,
-      title: proposal.title,
-      schema_type: proposal.schema_type,
-      weeks_planned: proposal.weeks_planned,
-      start_date: proposal.start_date,
-      workout_schedule: proposal.workout_schedule as unknown as Json,
-      progression_rules: proposal.progression as unknown as Json,
-      quality_audit: audit as unknown as Json,
-      planned_weekly_load: plannedWeeklyLoad as unknown as Json,
-      source_block_review_id: sourceBlockReviewId ?? null,
-      is_active: false,
-      ai_generated: true,
-      generation_context: generationContext ?? null,
-    },
+    schema: buildProgramSchemaRow({
+      userId,
+      proposal,
+      audit,
+      plannedWeeklyLoad,
+      sourceBlockReviewId,
+      generationContext,
+    }) as unknown as Json,
   })
 }

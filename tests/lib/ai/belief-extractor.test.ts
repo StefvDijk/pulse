@@ -144,6 +144,26 @@ describe('runBeliefExtractor', () => {
     ).rejects.toThrow('provider down')
   })
 
+  it('rejects semantically invalid actions in strict mode', async () => {
+    generateTextMock.mockResolvedValue({
+      text: JSON.stringify([
+        {
+          action: 'create',
+          evidence: { kind: 'for', observation: 'Evidence without hypothesis', source: 'manual' },
+        },
+      ]),
+      usage: { inputTokens: 10, outputTokens: 10 },
+    })
+
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('invalid actions')
+    expect(adminInsert).not.toHaveBeenCalled()
+  })
+
   it('appends evidence to an existing belief and updates DB', async () => {
     beliefRowForMaybeSingle = {
       evidence_for: [],
@@ -154,7 +174,7 @@ describe('runBeliefExtractor', () => {
       text: JSON.stringify([
         {
           action: 'evidence',
-          target_id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          target_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
           evidence: { kind: 'for', observation: 'Slecht geslapen, prestaties OK', source: 'chat-turn' },
         },
       ]),

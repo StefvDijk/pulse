@@ -62,9 +62,13 @@ export async function persistHevyWorkoutAtomic(
   userId: string,
   hevyWorkoutId: string,
   mapped: MappedWorkout,
+  options: { deferPrRecompute?: boolean } = {},
 ): Promise<string> {
   const payload = buildAtomicWorkoutPayload(mapped)
-  const { data, error } = await admin.rpc('replace_hevy_workout_atomic', {
+  const rpcName = options.deferPrRecompute
+    ? 'replace_hevy_workout_graph_atomic'
+    : 'replace_hevy_workout_atomic'
+  const { data, error } = await admin.rpc(rpcName, {
     p_user_id: userId,
     p_hevy_workout_id: hevyWorkoutId,
     p_workout: payload.workout as Json,
@@ -78,4 +82,17 @@ export async function persistHevyWorkoutAtomic(
     throw new Error('Atomic Hevy workout replace failed: no workout id returned')
   }
   return data
+}
+
+/** Rebuild a user's chronological strength-PR chain once after a graph batch. */
+export async function recomputeHevyStrengthPrs(
+  admin: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  const { error } = await admin.rpc('recompute_user_strength_prs_atomic', {
+    p_user_id: userId,
+  })
+  if (error) {
+    throw new Error(`Atomic Hevy PR recompute failed: ${error.message}`)
+  }
 }
