@@ -6,6 +6,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import { recomputeBelief, type EvidenceItem } from '@/lib/ai/belief-update'
 import type { Json } from '@/types/database'
+import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,6 +75,7 @@ export async function runBeliefExtractor(
   input: RunBeliefExtractorInput,
   options: RunBeliefExtractorOptions = {},
 ): Promise<void> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
     const { data: existing, error: existingError } = await admin
@@ -93,6 +95,7 @@ export async function runBeliefExtractor(
     const userMessage = `Scope: ${input.scope}\n\nGebeurtenis:\n${input.eventSummary.slice(0, 2000)}${existingBlock}`
 
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(input.userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
@@ -110,6 +113,7 @@ export async function runBeliefExtractor(
         cacheReadTokens: null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
 
     // Extract the JSON array even when the model wraps it in prose — a bare
@@ -139,6 +143,7 @@ export async function runBeliefExtractor(
       }
     }
   } catch (err) {
+    await releaseAiBudget(reservation)
     console.error('[belief-extractor] error (non-fatal):', err)
     if (options.strict) throw err
   }

@@ -48,39 +48,6 @@ export function CoachAnalysisCard({
   const [draft, setDraft] = useState('')
   const dialogStarted = useRef(false)
 
-  // Phase 1: fetch questions on mount (skip if analysis already exists)
-  useEffect(() => {
-    if (analysis || dialogStarted.current) return
-    dialogStarted.current = true
-
-    fetch('/api/check-in/dialog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reviewData,
-        reflection: reflection ?? null,
-        focusOutcome: focusOutcome ?? null,
-      }),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Vragen ophalen mislukt')
-        return res.json() as Promise<DialogResponse>
-      })
-      .then((data) => {
-        if (!data.questions || data.questions.length === 0) {
-          // No questions worth asking — go straight to synthesis
-          synthesize([])
-          return
-        }
-        setQuestions(data.questions)
-        setAnswers(new Array(data.questions.length).fill(''))
-        setPhase('dialog')
-      })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : 'Vragen ophalen mislukt')
-      })
-  }, [analysis, reviewData, reflection, focusOutcome])
-
   function recordAnswerAndAdvance(answer: string) {
     const newAnswers = [...answers]
     newAnswers[currentIndex] = answer
@@ -123,6 +90,41 @@ export function CoachAnalysisCard({
       setPhase('dialog')
     }
   }
+
+  // Phase 1: fetch questions on mount (skip if analysis already exists)
+  useEffect(() => {
+    if (analysis || dialogStarted.current) return
+    dialogStarted.current = true
+
+    fetch('/api/check-in/dialog', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reviewData,
+        reflection: reflection ?? null,
+        focusOutcome: focusOutcome ?? null,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Vragen ophalen mislukt')
+        return res.json() as Promise<DialogResponse>
+      })
+      .then((data) => {
+        if (!data.questions || data.questions.length === 0) {
+          // No questions worth asking — go straight to synthesis
+          void synthesize([])
+          return
+        }
+        setQuestions(data.questions)
+        setAnswers(new Array(data.questions.length).fill(''))
+        setPhase('dialog')
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Vragen ophalen mislukt')
+      })
+    // synthesize is intentionally captured for this one guarded dialog start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, reviewData, reflection, focusOutcome])
 
   // ─── ERROR ───────────────────────────────────────────────────────────
   if (error && phase !== 'dialog') {
@@ -294,4 +296,3 @@ function UserBubble({ text, muted }: { text: string; muted?: boolean }) {
     </div>
   )
 }
-

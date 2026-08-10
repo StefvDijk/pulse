@@ -5,6 +5,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import type { SyncResult } from '@/lib/hevy/sync'
 import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // System prompt for the sync analyst
@@ -108,6 +109,7 @@ function getWeekNumber(): number {
  * logged, never thrown.
  */
 export async function analyzeAfterSync(input: AnalysisInput): Promise<void> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
     const { userId, syncSource } = input
@@ -180,6 +182,7 @@ ${prSection}${existingSection}`
 
     // 5. Generate analysis
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(input.userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: ANALYST_SYSTEM,
@@ -195,6 +198,7 @@ ${prSection}${existingSection}`
         outputTokens: usage.outputTokens ?? null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
 
     // 6. Parse and store updates
@@ -239,6 +243,7 @@ ${prSection}${existingSection}`
       )
     }
   } catch (err) {
+    await releaseAiBudget(reservation)
     // Fire-and-forget: never crash the sync response
     console.error('[sync-analyst] Error:', err)
   }

@@ -212,11 +212,12 @@ export async function POST(request: Request) {
       total_sessions_completed: aggregate.totals.completedSessions,
       end_reason,
     }
-    const { data: finalizedRaw, error: finalizeError } = await admin.rpc('finalize_block_review', {
+    const { data: finalizedRaw, error: finalizeError } = await admin.rpc('finalize_block_review_v2', {
       p_user_id: user.id,
       p_review_id: review.data.id,
       p_previous_schema_id: schema_id,
       p_previous_end_date: aggregate.schema.endDate,
+      p_review: reviewValues as unknown as Json,
       p_schema: schemaRow as unknown as Json,
       p_body_measurement: bodyMeasurement as unknown as Json,
       p_summary: summary as unknown as Json,

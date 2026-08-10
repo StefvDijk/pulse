@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { MAX_FEEDBACK_LENGTH } from '@/lib/training/session-feedback-contract'
@@ -40,14 +40,6 @@ export function SessionFeedbackSheet({
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'save' | 'dismiss' | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  // Reset the field whenever the sheet (re)opens for a different session.
-  useEffect(() => {
-    if (!open) return
-    setText('')
-    setError(null)
-    setBusy(null)
-  }, [open, session?.session_id])
 
   async function submit(payload: { feedback_text?: string; dismissed?: boolean }) {
     if (!session) return

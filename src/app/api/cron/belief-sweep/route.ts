@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runBeliefExtractor, type BeliefScope } from '@/lib/ai/belief-extractor'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 export const maxDuration = 300
 
@@ -20,8 +21,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
+  return runCronWithStatus('belief-sweep', async () => {
+    const admin = createAdminClient()
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
 
   const { data: stale, error } = await admin
     .from('coach_beliefs')
@@ -34,7 +36,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (error) {
     console.error('[belief-sweep] query failed:', error)
-    return NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 })
+    return {
+      response: NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 }),
+      nextCursor: null,
+    }
   }
 
   const results = await runInBatches(stale ?? [], 5, async (belief) => {
@@ -63,8 +68,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   })
 
-  return NextResponse.json(
-    { ok: failed === 0, swept, failed },
-    { status: failed > 0 ? 503 : 200 },
-  )
+  return {
+    response: NextResponse.json(
+      { ok: failed === 0, swept, failed },
+      { status: failed > 0 ? 503 : 200 },
+    ),
+    nextCursor: null,
+  }
+  })
 }

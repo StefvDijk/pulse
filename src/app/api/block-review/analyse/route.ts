@@ -181,7 +181,7 @@ export async function POST(request: Request) {
     // AI_NoOutputGeneratedError which loses the actionable message
     // (e.g. credit-balance, rate-limit, content-filter).
     let providerError: { statusCode?: number; message?: string; responseBody?: string } | null = null
-    const result = streamChat({
+    const result = await streamChat({
       system,
       messages: [{ role: 'user', content: userPrompt }],
       model: BLOCK_REVIEW_MODEL,

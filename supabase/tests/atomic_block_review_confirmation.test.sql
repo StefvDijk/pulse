@@ -30,11 +30,12 @@ INSERT INTO public.block_reviews (
 
 SELECT lives_ok(
   $test$
-    SELECT public.finalize_block_review(
+    SELECT public.finalize_block_review_v2(
       '50000000-0000-0000-0000-000000000001',
       '52000000-0000-0000-0000-000000000001',
       '51000000-0000-0000-0000-000000000001',
       '2026-08-10',
+      '{"period_start":"2026-07-01","period_end":"2026-08-10","end_reason":"completed","biggest_win":"Atomic win"}'::jsonb,
       '{
         "user_id":"50000000-0000-0000-0000-000000000001",
         "title":"Successor block",
@@ -75,11 +76,12 @@ SELECT results_eq(
 
 SELECT is(
   (
-    public.finalize_block_review(
+    public.finalize_block_review_v2(
       '50000000-0000-0000-0000-000000000001',
       '52000000-0000-0000-0000-000000000001',
       '51000000-0000-0000-0000-000000000001',
       '2026-08-10',
+      '{}'::jsonb,
       '{}'::jsonb
     )->>'already_confirmed'
   )::boolean,
@@ -122,11 +124,12 @@ EXECUTE FUNCTION public.reject_broken_successor();
 
 SELECT throws_ok(
   $test$
-    SELECT public.finalize_block_review(
+    SELECT public.finalize_block_review_v2(
       '50000000-0000-0000-0000-000000000001',
       '52000000-0000-0000-0000-000000000002',
       (SELECT next_schema_id FROM public.block_reviews WHERE id = '52000000-0000-0000-0000-000000000001'),
       '2026-09-10',
+      '{"period_start":"2026-08-11","period_end":"2026-09-10","end_reason":"completed"}'::jsonb,
       '{
         "user_id":"50000000-0000-0000-0000-000000000001",
         "title":"Broken successor",

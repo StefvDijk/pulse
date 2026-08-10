@@ -251,7 +251,7 @@ export async function POST(request: Request) {
           // Run the request through the coach engine. The owning coach (manager
           // by default, a specialist when its tab sends coach_id) decides the
           // persona + scoped toolset; the engine seam is identical for all.
-          const result = runCoach(getCoachConfig(effectiveCoachId), {
+          const result = await runCoach(getCoachConfig(effectiveCoachId), {
             userId: user.id,
             questionType,
             message,

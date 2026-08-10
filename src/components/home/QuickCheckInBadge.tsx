@@ -89,6 +89,7 @@ export function QuickCheckInBadge() {
       </button>
 
       <QuickCheckInSheet
+        key={`${open ? 'open' : 'closed'}:${existing?.feeling ?? ''}:${existing?.sleep_quality ?? ''}:${existing?.note ?? ''}`}
         open={open}
         onClose={() => setOpen(false)}
         existing={existing}

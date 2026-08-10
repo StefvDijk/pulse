@@ -3,6 +3,7 @@ import { streamText, generateText, stepCountIs } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
 import { logAiUsage } from '@/lib/ai/usage'
 import { runAfterResponse } from '@/lib/runtime/after-response'
+import { reserveAiBudget, releaseAiBudget } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Model constants — single source of truth
@@ -124,7 +125,7 @@ export function extractUsageForLog(usage: unknown): {
  * full training schema as tool-call arguments, which at 4096 silently
  * truncated mid-JSON.
  */
-export function streamChat({ system, systemDynamic, messages, tools, model, maxOutputTokens = 8192, maxSteps = 8, meta, onError }: StreamChatParams) {
+export async function streamChat({ system, systemDynamic, messages, tools, model, maxOutputTokens = 8192, maxSteps = 8, meta, onError }: StreamChatParams) {
   // Split system prompt into a CACHED static block + an UNCACHED dynamic block.
   // The cache_control breakpoint sits at the end of the static block, so the
   // large, between-turns-stable coaching context is reused from Anthropic's
@@ -146,19 +147,26 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
 
   const resolvedModel = model ?? MODEL
   const startedAt = Date.now()
+  if (!meta) throw new Error('AI usage metadata is required for budget enforcement')
+  const reservation = await reserveAiBudget(meta.userId, resolvedModel, maxOutputTokens)
 
-  const result = streamText({
-    model: anthropic(resolvedModel),
-    messages: messagesWithCachedSystem,
-    maxOutputTokens,
-    ...(tools ? { tools, stopWhen: stepCountIs(maxSteps) } : {}),
-    ...(onError ? { onError } : {}),
-  })
+  let result: ReturnType<typeof streamText>
+  try {
+    result = streamText({
+      model: anthropic(resolvedModel),
+      messages: messagesWithCachedSystem,
+      maxOutputTokens,
+      ...(tools ? { tools, stopWhen: stepCountIs(maxSteps) } : {}),
+      ...(onError ? { onError } : {}),
+    })
+  } catch (error) {
+    await releaseAiBudget(reservation)
+    throw error
+  }
 
   // Resolve and persist lazy stream usage after the response without letting
   // the serverless runtime terminate the write early.
-  if (meta) {
-    runAfterResponse('stream AI usage logging', async () => {
+  runAfterResponse('stream AI usage logging', async () => {
       try {
         const u = await result.usage
         const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(u)
@@ -173,6 +181,7 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
             cacheCreationTokens: cacheCreation,
           },
           durationMs: Date.now() - startedAt,
+          reservation,
         })
       } catch (err) {
         await logAiUsage({
@@ -182,10 +191,10 @@ export function streamChat({ system, systemDynamic, messages, tools, model, maxO
           durationMs: Date.now() - startedAt,
           status: 'error',
           errorCode: (err as { name?: string })?.name ?? 'STREAM_ERROR',
+          reservation,
         })
       }
     })
-  }
 
   return result
 }
@@ -204,6 +213,8 @@ async function loggedGenerateText(
   meta?: UsageMeta,
 ): Promise<string> {
   const startedAt = Date.now()
+  if (!meta) throw new Error('AI usage metadata is required for budget enforcement')
+  const reservation = await reserveAiBudget(meta.userId, model, maxOutputTokens)
   try {
     const { text, usage } = await generateText({
       model: anthropic(model),
@@ -211,9 +222,8 @@ async function loggedGenerateText(
       messages,
       maxOutputTokens,
     })
-    if (meta) {
-      const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(usage)
-      await logAiUsage({
+    const { inputTokens, cacheRead, cacheCreation } = extractUsageForLog(usage)
+    await logAiUsage({
         userId: meta.userId,
         feature: meta.feature,
         model,
@@ -224,20 +234,19 @@ async function loggedGenerateText(
           cacheCreationTokens: cacheCreation,
         },
         durationMs: Date.now() - startedAt,
+        reservation,
       })
-    }
     return text
   } catch (err) {
-    if (meta) {
-      await logAiUsage({
+    await logAiUsage({
         userId: meta.userId,
         feature: meta.feature,
         model,
         durationMs: Date.now() - startedAt,
         status: 'error',
         errorCode: (err as { name?: string })?.name ?? 'GENERATE_ERROR',
+        reservation,
       })
-    }
     throw err
   }
 }

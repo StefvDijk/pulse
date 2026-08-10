@@ -9,9 +9,10 @@ import { runAfterResponse } from '@/lib/runtime/after-response'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import {
   CRON_USER_CONCURRENCY,
-  CRON_USER_QUERY_LIMIT,
-  takeCronCapacity,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 export const maxDuration = 300
 
@@ -32,27 +33,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
+  return runCronWithStatus('hevy-sync', async ({ cursor }) => {
+    const admin = createAdminClient()
 
   // Find all users with a hevy_api_key configured
-  const { data: usersWithKey, error: queryError } = await admin
-    .from('user_settings')
-    .select('user_id')
-    .not('hevy_api_key', 'is', null)
-    .order('user_id', { ascending: true })
-    .limit(CRON_USER_QUERY_LIMIT)
-
-  if (queryError) {
-    console.error('[GET /api/cron/hevy-sync] Failed to query users:', queryError)
-    return NextResponse.json(
-      { error: 'Failed to query users', code: 'QUERY_FAILED' },
-      { status: 500 },
-    )
-  }
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin
+        .from('user_settings')
+        .select('user_id')
+        .not('hevy_api_key', 'is', null)
+        .order('user_id', { ascending: true })
+      if (after) query = query.gt('user_id', after)
+      return query.limit(limit)
+    },
+    (settings) => settings.user_id,
+  )
 
   const todayStr = todayAmsterdam()
   const weekMonday = weekStartAmsterdam()
-  const { items: users, truncated } = takeCronCapacity(usersWithKey ?? [])
+  const users = page.items
   const analysisQueue: Array<{
     userId: string
     syncResult: Awaited<ReturnType<typeof syncHevyWorkouts>>
@@ -108,15 +109,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const totalSynced = results.reduce((sum, r) => sum + r.synced, 0)
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json(
+  const firstFailed = results.findIndex((result) => result.errors.length > 0)
+  const response = NextResponse.json(
     {
       processed: results.length,
-      truncated,
+      truncated: page.truncated,
       capacity: users.length,
       totalSynced,
       totalErrors: totalErrors.length,
       results,
     },
-    { status: totalErrors.length > 0 || truncated ? 503 : 200 },
+    { status: totalErrors.length > 0 ? 503 : 200 },
   )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+  }
+  })
 }

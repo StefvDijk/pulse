@@ -1,4 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { estimateCostUsd } from '@/lib/ai/pricing'
+import { releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 export interface UsageMetrics {
   inputTokens?: number | null
@@ -15,6 +17,7 @@ export interface LogUsageParams {
   durationMs?: number
   status?: 'ok' | 'error'
   errorCode?: string | null
+  reservation?: AiBudgetReservation | null
 }
 
 /**
@@ -31,22 +34,36 @@ export async function logAiUsage(params: LogUsageParams): Promise<void> {
     durationMs,
     status = 'ok',
     errorCode = null,
+    reservation = null,
   } = params
 
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('ai_usage_log')
-    .insert({
-      user_id: userId,
-      feature,
-      model,
-      input_tokens: usage?.inputTokens ?? null,
-      output_tokens: usage?.outputTokens ?? null,
-      cache_read_tokens: usage?.cacheReadTokens ?? null,
-      cache_creation_tokens: usage?.cacheCreationTokens ?? null,
-      duration_ms: durationMs ?? null,
-      status,
-      error_code: errorCode,
-    })
-  if (error) console.error('[ai-usage] insert failed:', error.message)
+  try {
+    const admin = createAdminClient()
+    const tokens = {
+      inputTokens: usage?.inputTokens ?? null,
+      outputTokens: usage?.outputTokens ?? null,
+      cacheReadTokens: usage?.cacheReadTokens ?? null,
+      cacheCreationTokens: usage?.cacheCreationTokens ?? null,
+    }
+    const { error } = await admin
+      .from('ai_usage_log')
+      .insert({
+        user_id: userId,
+        feature,
+        model,
+        input_tokens: tokens.inputTokens,
+        output_tokens: tokens.outputTokens,
+        cache_read_tokens: tokens.cacheReadTokens,
+        cache_creation_tokens: tokens.cacheCreationTokens,
+        estimated_cost_usd: estimateCostUsd(model, tokens),
+        duration_ms: durationMs ?? null,
+        status,
+        error_code: errorCode,
+      })
+    if (error) console.error('[ai-usage] insert failed:', error.message)
+  } catch (error) {
+    console.error('[ai-usage] insert threw:', error)
+  } finally {
+    await releaseAiBudget(reservation)
+  }
 }

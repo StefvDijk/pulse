@@ -6,10 +6,10 @@ import { wordNudge } from '@/lib/nudges/word'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import {
   CRON_USER_CONCURRENCY,
-  CRON_USER_LIMIT,
-  CRON_USER_QUERY_LIMIT,
-  takeCronCapacity,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 export const maxDuration = 60
 
@@ -27,35 +27,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
-  const today = todayAmsterdam()
-  const since = addDaysToKey(today, -6) // a 7-day window is enough for a 3-day streak
+  return runCronWithStatus('nudges', async ({ cursor }) => {
+    const admin = createAdminClient()
+    const today = todayAmsterdam()
+    const since = addDaysToKey(today, -6) // a 7-day window is enough for a 3-day streak
 
-  // Users who have any nutrition data in the window are the only candidates.
-  const { data: rows, error } = await admin
-    .from('daily_nutrition_summary')
-    .select('user_id, date, total_protein_g, protein_target_g')
-    .gte('date', since)
-    .order('user_id', { ascending: true })
-    .order('date', { ascending: false })
-    .limit(CRON_USER_QUERY_LIMIT * 7 + 1)
-
-  if (error) {
-    console.error('[cron/nudges] query failed:', error)
-    return NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 })
-  }
-
-  // The query is sorted by user and capped at limit+1 users' maximum 7-day
-  // windows. Ignore any overflow user's partial window.
-  const candidateUserIds = [...new Set((rows ?? []).map((row) => row.user_id))]
-  const { items: userIds, truncated: userOverflow } = takeCronCapacity(candidateUserIds)
-  const truncated = userOverflow || (rows?.length ?? 0) > CRON_USER_LIMIT * 7
-  const allowedUsers = new Set(userIds)
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => admin.rpc('list_nutrition_cron_users', {
+      p_since: since,
+      p_after: after,
+      p_limit: limit,
+    }),
+    (row) => row.user_id,
+  )
+  const userIds = page.items.map((row) => row.user_id)
+  const rows = userIds.length > 0
+    ? await admin
+        .from('daily_nutrition_summary')
+        .select('user_id, date, total_protein_g, protein_target_g')
+        .in('user_id', userIds)
+        .gte('date', since)
+        .order('user_id', { ascending: true })
+        .order('date', { ascending: false })
+    : { data: [], error: null }
+  if (rows.error) throw rows.error
 
   // Group complete windows for only the users inside this run's capacity.
   const byUser = new Map<string, ProteinNudgeDay[]>()
-  for (const r of rows ?? []) {
-    if (!allowedUsers.has(r.user_id)) continue
+  for (const r of rows.data ?? []) {
     const list = byUser.get(r.user_id) ?? []
     list.push({ date: r.date, total_protein_g: r.total_protein_g, protein_target_g: r.protein_target_g })
     byUser.set(r.user_id, list)
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         // A unique-violation here means a concurrent run won the race — not an error.
         if (insertError && insertError.code !== '23505') {
           console.error(`[cron/nudges] insert failed for ${userId}:`, insertError)
-          return false
+          throw insertError
         }
         return !insertError
       } catch (err) {
@@ -108,8 +108,14 @@ export async function GET(request: NextRequest) {
   const created = settled.filter((result) => result.status === 'fulfilled' && result.value).length
   const failed = settled.filter((result) => result.status === 'rejected').length
 
-  return NextResponse.json(
-    { ok: failed === 0 && !truncated, candidates: byUser.size, created, failed, truncated },
-    { status: failed > 0 || truncated ? 503 : 200 },
+  const firstFailed = settled.findIndex((result) => result.status === 'rejected')
+  const response = NextResponse.json(
+    { ok: failed === 0, candidates: byUser.size, created, failed, truncated: page.truncated },
+    { status: failed > 0 ? 503 : 200 },
   )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+  }
+  })
 }

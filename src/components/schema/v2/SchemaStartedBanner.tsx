@@ -25,12 +25,16 @@ export function SchemaStartedBanner({
   const [dismissed, setDismissed] = useState(false)
   const [undoing, setUndoing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [withinWindow] = useState(
+    () => !!createdAt && Date.now() - new Date(createdAt).getTime() < WINDOW_MS,
+  )
 
   useEffect(() => {
-    if (window.localStorage.getItem(storageKey) === '1') setDismissed(true)
+    const timeout = window.setTimeout(() => {
+      if (window.localStorage.getItem(storageKey) === '1') setDismissed(true)
+    }, 0)
+    return () => window.clearTimeout(timeout)
   }, [storageKey])
-
-  const withinWindow = !!createdAt && Date.now() - new Date(createdAt).getTime() < WINDOW_MS
 
   if (dismissed || !sourceBlockReviewId || !withinWindow) return null
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Sheet } from '@/components/ui/Sheet'
 
 export interface QuickCheckinValue {
@@ -78,15 +78,6 @@ export function QuickCheckInSheet({
   const [note, setNote] = useState(existing?.note ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Sync state when the sheet (re)opens with different existing data.
-  useEffect(() => {
-    if (!open) return
-    setFeeling(existing?.feeling ?? null)
-    setSleep(existing?.sleep_quality ?? null)
-    setNote(existing?.note ?? '')
-    setError(null)
-  }, [open, existing])
 
   const canSave = feeling !== null && sleep !== null && !saving
 

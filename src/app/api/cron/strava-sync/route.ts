@@ -6,9 +6,10 @@ import { syncStravaActivities } from '@/lib/strava/sync'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import {
   CRON_USER_CONCURRENCY,
-  CRON_USER_QUERY_LIMIT,
-  takeCronCapacity,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 /**
  * GET /api/cron/strava-sync
@@ -27,26 +28,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
+  return runCronWithStatus('strava-sync', async ({ cursor }) => {
+    const admin = createAdminClient()
 
   // Find all users with a connected Strava athlete (durable refresh token present)
-  const { data: connectedUsers, error: queryError } = await admin
-    .from('user_settings')
-    .select('user_id')
-    .not('strava_refresh_token', 'is', null)
-    .order('user_id', { ascending: true })
-    .limit(CRON_USER_QUERY_LIMIT)
-
-  if (queryError) {
-    console.error('[GET /api/cron/strava-sync] Failed to query users:', queryError)
-    return NextResponse.json(
-      { error: 'Failed to query users', code: 'QUERY_FAILED' },
-      { status: 500 },
-    )
-  }
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin
+        .from('user_settings')
+        .select('user_id')
+        .not('strava_refresh_token', 'is', null)
+        .order('user_id', { ascending: true })
+      if (after) query = query.gt('user_id', after)
+      return query.limit(limit)
+    },
+    (settings) => settings.user_id,
+  )
 
   const SYNC_DAYS = 7
-  const { items: users, truncated } = takeCronCapacity(connectedUsers ?? [])
+  const users = page.items
 
   // Sync users with bounded concurrency — one failure does not block others.
   const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ user_id }) => {
@@ -72,15 +73,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const totalSynced = results.reduce((sum, r) => sum + r.synced, 0)
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json(
+  const firstFailed = results.findIndex((result) => result.errors.length > 0)
+  const response = NextResponse.json(
     {
       processed: results.length,
-      truncated,
+      truncated: page.truncated,
       capacity: users.length,
       totalSynced,
       totalErrors: totalErrors.length,
       results,
     },
-    { status: totalErrors.length > 0 || truncated ? 503 : 200 },
+    { status: totalErrors.length > 0 ? 503 : 200 },
   )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+  }
+  })
 }

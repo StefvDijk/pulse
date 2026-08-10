@@ -15,9 +15,10 @@ import {
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import {
   CRON_USER_CONCURRENCY,
-  CRON_USER_QUERY_LIMIT,
-  takeCronCapacity,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 interface DailyAggregateResult {
   userId: string
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
+  return runCronWithStatus('daily-aggregate', async ({ cursor }) => {
+    const admin = createAdminClient()
 
   const todayStr = todayAmsterdam()
   const yesterdayStr = addDaysToKey(todayStr, -1)
@@ -72,21 +74,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     : null
 
   // Fetch all user IDs
-  const { data: profiles, error: profilesError } = await admin
-    .from('profiles')
-    .select('id')
-    .order('id', { ascending: true })
-    .limit(CRON_USER_QUERY_LIMIT)
-
-  if (profilesError) {
-    console.error('[GET /api/cron/daily-aggregate] Failed to fetch users:', profilesError)
-    return NextResponse.json(
-      { error: 'Failed to fetch users', code: 'QUERY_FAILED' },
-      { status: 500 },
-    )
-  }
-
-  const { items: users, truncated } = takeCronCapacity(profiles ?? [])
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin.from('profiles').select('id').order('id', { ascending: true })
+      if (after) query = query.gt('id', after)
+      return query.limit(limit)
+    },
+    (profile) => profile.id,
+  )
+  const users = page.items
   const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ id: userId }) => {
     const userErrors: string[] = []
     let dailyStatus: 'ok' | 'error' = 'ok'
@@ -168,17 +165,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json(
+  const firstFailed = results.findIndex((result) => result.errors.length > 0)
+  const response = NextResponse.json(
     {
       date: yesterdayStr,
       processed: results.length,
       triggeredWeekly: isMonday,
       triggeredMonthly: isFirstOfMonth,
-      truncated,
+      truncated: page.truncated,
       capacity: users.length,
       totalErrors: totalErrors.length,
       results,
     },
-    { status: totalErrors.length > 0 || truncated ? 503 : 200 },
+    { status: totalErrors.length > 0 ? 503 : 200 },
   )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+  }
+  })
 }

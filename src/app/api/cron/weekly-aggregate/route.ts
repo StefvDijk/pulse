@@ -9,9 +9,10 @@ import { extractSportInsight } from '@/lib/ai/sport-insight-extractor'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import {
   CRON_USER_CONCURRENCY,
-  CRON_USER_QUERY_LIMIT,
-  takeCronCapacity,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 interface WeeklyAggregateResult {
   userId: string
@@ -38,34 +39,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const admin = createAdminClient()
+  return runCronWithStatus('weekly-aggregate', async ({ cursor }) => {
+    const admin = createAdminClient()
 
   // Cron draait maandag — vorige week start zeven dagen voor de huidige Amsterdam-maandag.
   const prevWeekMondayStr = addDaysToKey(weekStartAmsterdam(), -7)
 
   // Fetch all user IDs
-  const { data: profiles, error: profilesError } = await admin
-    .from('profiles')
-    .select('id')
-    .order('id', { ascending: true })
-    .limit(CRON_USER_QUERY_LIMIT)
-
-  if (profilesError) {
-    console.error('[GET /api/cron/weekly-aggregate] Failed to fetch users:', profilesError)
-    return NextResponse.json(
-      { error: 'Failed to fetch users', code: 'QUERY_FAILED' },
-      { status: 500 },
-    )
-  }
-
-  const { items: users, truncated } = takeCronCapacity(profiles ?? [])
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin.from('profiles').select('id').order('id', { ascending: true })
+      if (after) query = query.gt('id', after)
+      return query.limit(limit)
+    },
+    (profile) => profile.id,
+  )
+  const users = page.items
   const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ id: userId }) => {
     try {
       await computeWeeklyAggregation(userId, prevWeekMondayStr)
-      // AI extractors run after aggregation — both catch internally and
-      // never throw, so a Claude failure can't break the cron.
-      const { inserted } = await extractWeeklyLessons(userId, prevWeekMondayStr)
-      const { written } = await extractSportInsight(userId)
+      // Strict mode distinguishes a valid "no lesson/insight" from provider,
+      // parse and persistence failures so scheduler status remains honest.
+      const { inserted } = await extractWeeklyLessons(userId, prevWeekMondayStr, { strict: true })
+      const { written } = await extractSportInsight(userId, { strict: true })
       return {
         userId,
         status: 'ok',
@@ -92,17 +89,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const totalLessonsInserted = results.reduce((s, r) => s + (r.lessonsInserted ?? 0), 0)
   const totalSportInsightsWritten = results.filter((r) => r.sportInsightWritten).length
 
-  return NextResponse.json(
+  const firstFailed = results.findIndex((result) => result.status === 'error')
+  const response = NextResponse.json(
     {
       weekStart: prevWeekMondayStr,
       processed: results.length,
-      truncated,
+      truncated: page.truncated,
       capacity: users.length,
       totalErrors,
       totalLessonsInserted,
       totalSportInsightsWritten,
       results,
     },
-    { status: totalErrors > 0 || truncated ? 503 : 200 },
+    { status: totalErrors > 0 ? 503 : 200 },
   )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+  }
+  })
 }

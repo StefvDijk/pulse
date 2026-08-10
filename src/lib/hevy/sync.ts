@@ -26,8 +26,11 @@ export interface SyncResult {
   synced: number
   templatesSynced: number
   routinesSynced: number
+  pendingFullSync: boolean
   errors: string[]
 }
+
+const FULL_SYNC_PAGE_BUDGET = 3
 
 // ---------------------------------------------------------------------------
 // Single-workout upsert
@@ -110,23 +113,27 @@ type AdminClient = ReturnType<typeof createAdminClient>
 // Full history paginate. Used on first run or as a recovery path. Returns the
 // count of workouts actually processed; collects per-item errors in `errors`.
 async function runFullSync(
+  admin: AdminClient,
   apiKey: string,
   userId: string,
   exerciseDefinitions: ExerciseDefinition[],
   errors: string[],
-): Promise<number> {
-  const admin = createAdminClient()
+  startPage: number,
+): Promise<{ synced: number; complete: boolean }> {
   let synced = 0
-  let page = 1
-  let pageCount = 1
+  let page = startPage
+  let pageCount = startPage
+  let pagesProcessed = 0
+  let fetchFailed = false
 
-  while (page <= pageCount) {
+  while (page <= pageCount && pagesProcessed < FULL_SYNC_PAGE_BUDGET) {
     let response
     try {
       response = await getWorkouts(apiKey, page)
     } catch (fetchError) {
       const message = fetchError instanceof Error ? fetchError.message : String(fetchError)
       errors.push(`Page ${page}: ${message}`)
+      fetchFailed = true
       break
     }
 
@@ -141,6 +148,15 @@ async function runFullSync(
     }
 
     page++
+    pagesProcessed++
+    const { error: cursorError } = await admin
+      .from('user_settings')
+      .update({ hevy_full_sync_next_page: page })
+      .eq('user_id', userId)
+    if (cursorError) {
+      errors.push(`Failed to persist full-sync page ${page}: ${cursorError.message}`)
+      break
+    }
   }
 
   if (synced > 0) {
@@ -152,7 +168,7 @@ async function runFullSync(
     }
   }
 
-  return synced
+  return { synced, complete: !fetchFailed && page > pageCount }
 }
 
 // Incremental events feed. 'updated' → upsert the workout; 'deleted' → remove
@@ -287,7 +303,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   // HEVY_API_KEY in env was a footgun: it would override every user's key).
   const { data: settings, error: settingsError } = await admin
     .from('user_settings')
-    .select('hevy_api_key, last_hevy_sync_at')
+    .select('hevy_api_key, last_hevy_sync_at, hevy_full_sync_next_page, hevy_full_sync_started_at')
     .eq('user_id', userId)
     .single()
 
@@ -307,6 +323,8 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   // advance last_hevy_sync_at to this instant, so events created *during* the
   // sync are still picked up next time (no gap).
   const syncStartedAt = new Date().toISOString()
+  const fullSyncStartedAt = settings?.hevy_full_sync_started_at ?? syncStartedAt
+  let syncComplete = true
 
   // 2. Sync exercise templates from Hevy first
   const templateResult = await syncExerciseTemplates(apiKey)
@@ -339,17 +357,37 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   if (since) {
     synced += await runEventsSync(admin, apiKey, userId, exerciseDefinitions, since, errors)
   } else {
-    synced += await runFullSync(apiKey, userId, exerciseDefinitions, errors)
+    if (!settings?.hevy_full_sync_started_at) {
+      const { error: watermarkError } = await admin
+        .from('user_settings')
+        .update({ hevy_full_sync_started_at: fullSyncStartedAt })
+        .eq('user_id', userId)
+      if (watermarkError) errors.push(`Failed to persist full-sync watermark: ${watermarkError.message}`)
+    }
+    const full = await runFullSync(
+      admin,
+      apiKey,
+      userId,
+      exerciseDefinitions,
+      errors,
+      settings?.hevy_full_sync_next_page ?? 1,
+    )
+    synced += full.synced
+    syncComplete = full.complete
   }
 
   // 6. Advance last_hevy_sync_at ONLY after a fully error-free pass. With a real
   //    incremental events feed, advancing on a partial/failed pass would skip
   //    events we never processed (the old `synced > 0 || errors.length === 0`
   //    condition silently lost data the moment a single workout errored).
-  if (errors.length === 0) {
+  if (errors.length === 0 && syncComplete) {
     const { error: updateError } = await admin
       .from('user_settings')
-      .update({ last_hevy_sync_at: syncStartedAt })
+      .update({
+        last_hevy_sync_at: since ? syncStartedAt : fullSyncStartedAt,
+        hevy_full_sync_next_page: 1,
+        hevy_full_sync_started_at: null,
+      })
       .eq('user_id', userId)
 
     if (updateError) {
@@ -361,6 +399,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     synced,
     templatesSynced: templateResult.synced,
     routinesSynced: routineResult.synced,
+    pendingFullSync: !syncComplete,
     errors,
   }
 

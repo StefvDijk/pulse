@@ -54,13 +54,19 @@ export function ChatInterface({
   suggestions,
   emptyState,
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const startsFresh = !initialSessionId
+  const seededFreshMessage = startsFresh && seededAssistant
+  const [messages, setMessages] = useState<Message[]>(() =>
+    seededFreshMessage
+      ? [{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }]
+      : [],
+  )
   const [streamingContent, setStreamingContent] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
-  const [showSuggestions, setShowSuggestions] = useState(true)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [showSuggestions, setShowSuggestions] = useState(!seededFreshMessage)
+  const [isInitializing, setIsInitializing] = useState(!startsFresh)
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
   // When there is no initialSessionId the user started a fresh chat — skip the
   // history fetch until the first send returns a real session_id via header.
@@ -93,12 +99,6 @@ export function ChatInterface({
   // effect re-runs to load the new session's history (which is fine at that point).
   useEffect(() => {
     if (isFreshSession) {
-      // Show empty state immediately; seed assistant nudge if provided.
-      if (seededAssistant) {
-        setMessages([{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }])
-        setShowSuggestions(false)
-      }
-      setIsInitializing(false)
       return
     }
 

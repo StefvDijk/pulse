@@ -3,6 +3,7 @@ import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
+import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const KNOWN_CATEGORIES = ['program', 'lifestyle', 'injury', 'preference', 'pattern', 'goal'] as const
 type LessonCategory = (typeof KNOWN_CATEGORIES)[number]
@@ -134,11 +135,13 @@ function subtractDays(dateStr: string, days: number): string {
 export async function extractWeeklyLessons(
   userId: string,
   weekStart: string,
+  options: { strict?: boolean } = {},
 ): Promise<{ inserted: number }> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
 
-    const { data: weekly } = await admin
+    const { data: weekly, error: weeklyError } = await admin
       .from('weekly_aggregations')
       .select(
         'total_sessions, gym_sessions, running_sessions, padel_sessions, total_tonnage_kg, total_running_km, total_training_minutes, avg_hrv, avg_resting_heart_rate, acute_load, chronic_load, acute_chronic_ratio, workload_status, avg_daily_calories, avg_daily_protein_g',
@@ -146,16 +149,18 @@ export async function extractWeeklyLessons(
       .eq('user_id', userId)
       .eq('week_start', weekStart)
       .maybeSingle()
+    if (weeklyError) throw weeklyError
 
     if (!weekly) {
       console.warn(
         `[lessons-extractor] No weekly_aggregations row for user=${userId} week=${weekStart}`,
       )
+      if (options.strict) throw new Error('Weekly aggregation is missing after computation')
       return { inserted: 0 }
     }
 
     const prevWeekStart = subtractDays(weekStart, 7)
-    const { data: prevWeekly } = await admin
+    const { data: prevWeekly, error: prevWeeklyError } = await admin
       .from('weekly_aggregations')
       .select(
         'total_sessions, gym_sessions, running_sessions, padel_sessions, total_tonnage_kg, total_running_km, total_training_minutes, avg_hrv, avg_resting_heart_rate, acute_load, chronic_load, acute_chronic_ratio, workload_status, avg_daily_calories, avg_daily_protein_g',
@@ -163,20 +168,23 @@ export async function extractWeeklyLessons(
       .eq('user_id', userId)
       .eq('week_start', prevWeekStart)
       .maybeSingle()
+    if (prevWeeklyError) throw prevWeeklyError
 
-    const { data: review } = await admin
+    const { data: review, error: reviewError } = await admin
       .from('weekly_reviews')
       .select('sessions_completed, sessions_planned, summary_text')
       .eq('user_id', userId)
       .eq('week_start', weekStart)
       .maybeSingle()
+    if (reviewError) throw reviewError
 
-    const { data: existing } = await admin
+    const { data: existing, error: existingError } = await admin
       .from('weekly_lessons')
       .select('lesson_text')
       .eq('user_id', userId)
       .order('week_start', { ascending: false })
       .limit(20)
+    if (existingError) throw existingError
 
     const existingSection = existing?.length
       ? `\n\nEerdere lessen (vermijd herhaling):\n${existing.map((l) => `- ${l.lesson_text}`).join('\n')}`
@@ -185,11 +193,13 @@ export async function extractWeeklyLessons(
     const userContent = `${formatWeekContext(weekStart, weekly, prevWeekly, review)}${existingSection}`
 
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
       prompt: userContent,
       temperature: 0.4,
+      maxOutputTokens: 512,
     })
     await logAiUsage({
       userId,
@@ -200,11 +210,13 @@ export async function extractWeeklyLessons(
         outputTokens: usage.outputTokens ?? null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
 
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) {
       console.warn(`[lessons-extractor] No JSON array in response for user=${userId}`)
+      if (options.strict) throw new Error('Weekly lessons response did not contain a JSON array')
       return { inserted: 0 }
     }
 
@@ -213,20 +225,30 @@ export async function extractWeeklyLessons(
       parsed = JSON.parse(match[0])
     } catch (err) {
       console.warn(`[lessons-extractor] JSON parse failed for user=${userId}:`, err)
+      if (options.strict) throw new Error('Weekly lessons response contained invalid JSON', { cause: err })
       return { inserted: 0 }
     }
 
-    if (!Array.isArray(parsed)) return { inserted: 0 }
+    if (!Array.isArray(parsed)) {
+      if (options.strict) throw new Error('Weekly lessons response was not an array')
+      return { inserted: 0 }
+    }
 
     const lessons = parsed.filter(isValidLesson).slice(0, 2)
-    if (lessons.length === 0) return { inserted: 0 }
+    if (lessons.length === 0) {
+      if (options.strict && parsed.length > 0) {
+        throw new Error('Weekly lessons response contained no valid lessons')
+      }
+      return { inserted: 0 }
+    }
 
     // Idempotency: replace any existing lessons for this user+week
-    await admin
+    const { error: deleteError } = await admin
       .from('weekly_lessons')
       .delete()
       .eq('user_id', userId)
       .eq('week_start', weekStart)
+    if (deleteError) throw deleteError
 
     const rows = lessons.map((l) => ({
       user_id: userId,
@@ -243,7 +265,9 @@ export async function extractWeeklyLessons(
 
     return { inserted: rows.length }
   } catch (error) {
+    await releaseAiBudget(reservation)
     console.error(`[lessons-extractor] Unexpected error for user=${userId}:`, error)
+    if (options.strict) throw error
     return { inserted: 0 }
   }
 }

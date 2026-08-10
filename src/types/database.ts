@@ -103,6 +103,7 @@ export type Database = {
           cache_read_tokens: number | null
           created_at: string
           duration_ms: number | null
+          estimated_cost_usd: number
           error_code: string | null
           feature: string
           id: string
@@ -117,6 +118,7 @@ export type Database = {
           cache_read_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
+          estimated_cost_usd?: number
           error_code?: string | null
           feature: string
           id?: string
@@ -131,6 +133,7 @@ export type Database = {
           cache_read_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
+          estimated_cost_usd?: number
           error_code?: string | null
           feature?: string
           id?: string
@@ -139,6 +142,33 @@ export type Database = {
           output_tokens?: number | null
           status?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_budget_reservations: {
+        Row: {
+          created_at: string
+          estimated_cost_usd: number
+          expires_at: string
+          id: string
+          released_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost_usd: number
+          expires_at?: string
+          id?: string
+          released_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_cost_usd?: number
+          expires_at?: string
+          id?: string
+          released_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -247,6 +277,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cron_runs: {
+        Row: {
+          error_count: number
+          finished_at: string | null
+          first_error: string | null
+          http_status: number | null
+          id: string
+          job_name: string
+          processed: number
+          started_at: string
+          status: string
+          summary: Json
+          truncated: boolean
+        }
+        Insert: {
+          error_count?: number
+          finished_at?: string | null
+          first_error?: string | null
+          http_status?: number | null
+          id?: string
+          job_name: string
+          processed?: number
+          started_at?: string
+          status?: string
+          summary?: Json
+          truncated?: boolean
+        }
+        Update: {
+          error_count?: number
+          finished_at?: string | null
+          first_error?: string | null
+          http_status?: number | null
+          id?: string
+          job_name?: string
+          processed?: number
+          started_at?: string
+          status?: string
+          summary?: Json
+          truncated?: boolean
+        }
+        Relationships: []
+      }
+      cron_job_state: {
+        Row: {
+          cursor: string | null
+          job_name: string
+          lease_expires_at: string | null
+          lease_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          cursor?: string | null
+          job_name: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cursor?: string | null
+          job_name?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       body_composition_logs: {
         Row: {
@@ -2074,6 +2170,8 @@ export type Database = {
           google_calendar_token_expiry: string | null
           health_auto_export_token: string | null
           hevy_api_key: string | null
+          hevy_full_sync_next_page: number
+          hevy_full_sync_started_at: string | null
           last_apple_health_sync_at: string | null
           last_hevy_sync_at: string | null
           last_strava_sync_at: string | null
@@ -2098,6 +2196,8 @@ export type Database = {
           google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
+          hevy_full_sync_next_page?: number
+          hevy_full_sync_started_at?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
           last_strava_sync_at?: string | null
@@ -2122,6 +2222,8 @@ export type Database = {
           google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
+          hevy_full_sync_next_page?: number
+          hevy_full_sync_started_at?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
           last_strava_sync_at?: string | null
@@ -2621,6 +2723,52 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      finalize_block_review_v2: {
+        Args: {
+          p_body_measurement?: Json | null
+          p_new_goal_ids?: string[]
+          p_previous_end_date: string
+          p_previous_schema_id: string
+          p_review: Json
+          p_review_id: string
+          p_schema: Json
+          p_summary?: Json | null
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      claim_cron_job: {
+        Args: { p_job_name: string; p_lease_seconds?: number }
+        Returns: Json
+      }
+      finish_cron_job: {
+        Args: {
+          p_job_name: string
+          p_lease_token: string
+          p_next_cursor: string | null
+        }
+        Returns: undefined
+      }
+      list_nutrition_cron_users: {
+        Args: {
+          p_after?: string | null
+          p_limit?: number
+          p_since: string
+        }
+        Returns: { user_id: string }[]
+      }
+      reserve_ai_budget: {
+        Args: {
+          p_budget_usd: number
+          p_estimated_cost_usd: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      release_ai_budget_reservation: {
+        Args: { p_reservation_id: string; p_user_id: string }
+        Returns: undefined
       }
       replace_hevy_workout_atomic: {
         Args: {

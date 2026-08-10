@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
+import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Extractor system prompt
@@ -59,6 +60,7 @@ export async function extractAndUpdateMemory(
   userMessage: string,
   assistantResponse: string,
 ): Promise<void> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
 
@@ -79,6 +81,7 @@ GEBRUIKER: ${userMessage}
 COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
 
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
@@ -94,6 +97,7 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
         outputTokens: usage.outputTokens ?? null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
 
     // Extract JSON array — be lenient about surrounding whitespace/text
@@ -142,6 +146,7 @@ COACH: ${assistantResponse.slice(0, 2000)}${existingSection}`
       )
     }
   } catch (err) {
+    await releaseAiBudget(reservation)
     // Fire-and-forget: never let memory extraction crash the chat response.
     // [B10] Logged with extractor tag so it's greppable in Vercel logs.
     console.error('[memory-extractor] Extraction failed:', err)

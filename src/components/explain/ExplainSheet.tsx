@@ -91,7 +91,12 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
               </Section>
 
               <Section title="Wat betekent dit voor jou?">
-                <ExplainAI topic={topic} params={params} inputsHash={payload.inputsHash} />
+                <ExplainAI
+                  key={`${topic}:${payload.inputsHash}`}
+                  topic={topic}
+                  params={params}
+                  inputsHash={payload.inputsHash}
+                />
               </Section>
 
               {payload.sources.length > 0 ? (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
 import { stripStructuredTags, parseProposalFromStream, isValidProposal } from '../parse-utils'
@@ -42,18 +42,8 @@ export function NextBlockStep({
   const [error, setError] = useState<string | null>(null)
   const [proposalRecovery, setProposalRecovery] = useState<string | null>(null)
 
-  const baselineLenRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (baselineLenRef.current === null) {
-      baselineLenRef.current = form.conversation.length
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const recentRefinements =
-    baselineLenRef.current !== null
-      ? form.conversation.slice(baselineLenRef.current)
-      : []
+  const [baselineLength] = useState(() => form.conversation.length)
+  const recentRefinements = form.conversation.slice(baselineLength)
 
   function blockerMessages(audit: ProgramAudit | null | undefined) {
     return audit?.items.filter((i) => i.severity === 'blocker').map((i) => i.message) ?? []

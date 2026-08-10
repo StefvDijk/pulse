@@ -44,10 +44,6 @@ export function AnalysisStep({
   const ranRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (existingProposal !== null) setProposalFound(true)
-  }, [existingProposal])
-
   async function sendTurn(history: BlockReviewMessage[]) {
     setBusy(true)
     setError(null)
@@ -98,7 +94,8 @@ export function AnalysisStep({
     if (ranRef.current) return
     ranRef.current = true
     if (conversation.length === 0) {
-      sendTurn([])
+      const timeout = window.setTimeout(() => void sendTurn([]), 0)
+      return () => window.clearTimeout(timeout)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -134,7 +131,7 @@ export function AnalysisStep({
       stepIndex={stepIndex}
       stepTotal={stepTotal}
       onBack={onBack}
-      onNext={proposalFound ? onNext : undefined}
+      onNext={proposalFound || existingProposal !== null ? onNext : undefined}
       nextLabel="Naar volgend blok"
     >
       <div ref={scrollRef} className="flex flex-col gap-3 min-h-[100px] max-h-[50vh] overflow-y-auto">

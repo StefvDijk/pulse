@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
+import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const FIXED_SUGGESTION = 'Log wat ik heb gegeten'
 
@@ -149,13 +150,16 @@ export async function GET() {
     }
 
     let dynamicSuggestions: string[] = []
+    let reservation: AiBudgetReservation | null = null
     try {
       const startedAt = Date.now()
+      reservation = await reserveAiBudget(user.id, MEMORY_MODEL, 256)
       const { text, usage } = await generateText({
         model: anthropic(MEMORY_MODEL),
         system: SYSTEM_PROMPT,
         prompt: formatContext(ctx),
         temperature: 0.5,
+        maxOutputTokens: 256,
       })
       await logAiUsage({
         userId: user.id,
@@ -166,6 +170,7 @@ export async function GET() {
           outputTokens: usage.outputTokens ?? null,
         },
         durationMs: Date.now() - startedAt,
+        reservation,
       })
 
       const match = text.match(/\[[\s\S]*\]/)
@@ -179,6 +184,7 @@ export async function GET() {
         }
       }
     } catch (err) {
+      await releaseAiBudget(reservation)
       console.warn('[chat-suggestions] Claude call failed, using fallback:', err)
     }
 
