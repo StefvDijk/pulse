@@ -11,6 +11,9 @@ describe('ExerciseCard', () => {
           name: 'Squat',
           primary_muscle_group: 'legs',
           image_url: null,
+          animation_url: null,
+          equipment: 'barbell',
+          instruction_steps: ['Brace je romp', 'Zak gecontroleerd'],
           notes: null,
           is_pr: false,
           sets: [
@@ -26,5 +29,7 @@ describe('ExerciseCard', () => {
     expect(
       screen.getAllByText(/^(W|1|2|D)$/).map((label) => label.textContent),
     ).toEqual(['W', '1', '2', 'D'])
+    expect(screen.getByText(/barbell/)).toBeTruthy()
+    expect(screen.getByText('Uitvoering')).toBeTruthy()
   })
 })

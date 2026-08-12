@@ -14,16 +14,22 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import type { Database } from '../src/types/database'
 import { CatalogExerciseSchema, toCatalogRow } from '../src/lib/exercises/catalog-schema'
+import { assertCatalogTarget, catalogTargetOptions } from './catalog-target'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseUrl = assertCatalogTarget(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  'exercise catalog import',
+  catalogTargetOptions(process.argv.slice(2)),
+)
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!supabaseUrl || !serviceKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+if (!serviceKey) {
+  console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
 
 const datasetDir = process.env.EXERCISES_DATASET_DIR ?? 'vendor/exercises-dataset'
+const dryRun = process.argv.includes('--dry-run')
 
 const supabase = createClient<Database>(supabaseUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -36,6 +42,15 @@ async function main() {
   console.log(`Parsed ${records.length} exercises from ${jsonPath}`)
 
   const rows = records.map(toCatalogRow)
+  const { count: beforeCount, error: countError } = await supabase
+    .from('exercise_catalog')
+    .select('*', { count: 'exact', head: true })
+  if (countError) throw countError
+  console.log(`Before: ${beforeCount ?? 0} catalog rows`)
+  if (dryRun) {
+    console.log(`Dry run: validated ${rows.length} rows; no writes performed`)
+    return
+  }
 
   const BATCH = 500
   let upserted = 0
@@ -52,7 +67,11 @@ async function main() {
     console.log(`Upserted ${upserted}/${rows.length}`)
   }
 
-  console.log(`✓ Imported ${upserted} catalog rows`)
+  const { count: afterCount, error: afterError } = await supabase
+    .from('exercise_catalog')
+    .select('*', { count: 'exact', head: true })
+  if (afterError) throw afterError
+  console.log(`✓ Imported ${upserted} catalog rows; after: ${afterCount ?? 0}`)
 }
 
 main()

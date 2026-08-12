@@ -109,7 +109,8 @@ export function ExerciseCard({ exercise, prevExercise }: ExerciseCardProps) {
             )}
           </div>
           <div className="text-[11px] capitalize text-text-tertiary">
-            {exercise.primary_muscle_group ?? 'work'} · {workingSets.length}{' '}
+            {exercise.primary_muscle_group ?? 'work'}
+            {exercise.equipment ? ` · ${exercise.equipment}` : ''} · {workingSets.length}{' '}
             {workingSets.length === 1 ? 'set' : 'sets'}
             {warmupSets.length > 0 && ` + ${warmupSets.length} warmup`}
           </div>
@@ -144,6 +145,28 @@ export function ExerciseCard({ exercise, prevExercise }: ExerciseCardProps) {
         <div className="border-t-[0.5px] border-bg-border p-[10px_16px] text-[12px] italic text-text-tertiary">
           {exercise.notes}
         </div>
+      )}
+      {(exercise.instruction_steps.length > 0 || exercise.animation_url) && (
+        <details className="border-t-[0.5px] border-bg-border p-[10px_16px] text-[13px] text-text-secondary">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium text-text-primary">
+            Uitvoering
+          </summary>
+          {exercise.instruction_steps.length > 0 && (
+            <ol className="list-decimal space-y-1.5 pl-5">
+              {exercise.instruction_steps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+          )}
+          {exercise.animation_url && (
+            <a
+              href={exercise.animation_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex min-h-11 items-center text-system-blue"
+            >
+              Bekijk bewegingsdemo
+            </a>
+          )}
+        </details>
       )}
     </Card>
   )

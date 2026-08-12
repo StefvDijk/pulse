@@ -9,17 +9,23 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, extname } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../src/types/database'
+import { assertCatalogTarget, catalogTargetOptions } from './catalog-target'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseUrl = assertCatalogTarget(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  'exercise media upload',
+  catalogTargetOptions(process.argv.slice(2)),
+)
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!supabaseUrl || !serviceKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+if (!serviceKey) {
+  console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
 
 const datasetDir = process.env.EXERCISES_DATASET_DIR ?? 'vendor/exercises-dataset'
 const BUCKET = 'exercise-media'
+const dryRun = process.argv.includes('--dry-run')
 
 const supabase = createClient<Database>(supabaseUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -41,6 +47,10 @@ async function uploadDir(subdir: 'images' | 'videos') {
   for (const file of files) {
     const contentType = CONTENT_TYPES[extname(file).toLowerCase()]
     if (!contentType) continue
+    if (dryRun) {
+      done += 1
+      continue
+    }
     const body = readFileSync(join(dir, file))
     const { error } = await supabase.storage
       .from(BUCKET)
@@ -52,7 +62,7 @@ async function uploadDir(subdir: 'images' | 'videos') {
     done += 1
     if (done % 100 === 0) console.log(`  ${subdir}: ${done}/${files.length}`)
   }
-  console.log(`✓ Uploaded ${done} files from ${subdir}/`)
+  console.log(`${dryRun ? 'Dry run: validated' : '✓ Uploaded'} ${done} files from ${subdir}/`)
 }
 
 async function main() {
