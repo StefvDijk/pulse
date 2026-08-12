@@ -12,6 +12,7 @@ import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 import { runAfterResponse } from '@/lib/runtime/after-response'
+import { secretsMatch } from '@/lib/security/secrets'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
 
   let userId: string
 
-  if (envToken && envUserId && token === envToken) {
+  if (envUserId && secretsMatch(token, envToken)) {
     // Single-user mode: token matches env var → use PULSE_USER_ID directly
     userId = envUserId
   } else {
@@ -158,9 +159,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
 
   const payload = parseResult.data
 
-  // Debug: log incoming metric names and data point counts
-  const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
-  console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
+  // Keep operational logs aggregate-only: metric names and values are health data.
+  console.log(
+    `apple-health ingest: received ${payload.data.metrics.length} metrics and ${payload.data.workouts.length} workouts`,
+  )
 
   const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, activities: parsedActivities } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
@@ -169,10 +171,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const parsedGymWorkouts = parseGymWorkouts(payload)
   const parsedBodyComposition = parseBodyComposition(payload)
 
-  console.log(`apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`)
-  if (parsedBodyComposition.length > 0) {
-    console.log('apple-health ingest: bodyComp entries:', JSON.stringify(parsedBodyComposition.slice(0, 5)))
-  }
+  console.log(
+    `apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`,
+  )
 
   const errors: string[] = []
 

@@ -19,6 +19,7 @@ import {
   fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
 import { runCronWithStatus } from '@/lib/runtime/cron-runs'
+import { validBearerSecret } from '@/lib/security/secrets'
 
 interface DailyAggregateResult {
   userId: string
@@ -37,10 +38,9 @@ interface DailyAggregateResult {
  * zodat een workout van 23:30 NL niet in de UTC-vorige-dag valt.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!validBearerSecret(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
