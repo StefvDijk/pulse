@@ -39,7 +39,7 @@ describe('SegmentedControl', () => {
     expect(onChange).toHaveBeenCalledWith('month')
   })
 
-  it('active option has aria-pressed=true, others have aria-pressed=false', () => {
+  it('marks the active tab with aria-selected', () => {
     const { getByRole, getAllByRole } = render(
       <SegmentedControl
         options={weekOptions}
@@ -49,12 +49,12 @@ describe('SegmentedControl', () => {
     )
     const tabs = getAllByRole('tab')
     // 'month' is at index 1
-    expect(tabs[1].getAttribute('aria-pressed')).toBe('true')
-    expect(tabs[0].getAttribute('aria-pressed')).toBe('false')
-    expect(tabs[2].getAttribute('aria-pressed')).toBe('false')
+    expect(tabs[1].getAttribute('aria-selected')).toBe('true')
+    expect(tabs[0].getAttribute('aria-selected')).toBe('false')
+    expect(tabs[2].getAttribute('aria-selected')).toBe('false')
     // also verify by label
     const monthTab = getByRole('tab', { name: 'Maand' })
-    expect(monthTab.getAttribute('aria-pressed')).toBe('true')
+    expect(monthTab.getAttribute('aria-selected')).toBe('true')
   })
 
   it('supports a generic string value type', () => {

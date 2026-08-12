@@ -32,7 +32,6 @@ export function SegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             role="tab"
-            aria-pressed={isActive}
             aria-selected={isActive}
             onClick={() => onChange(opt.value)}
             className="relative flex-1 flex items-center justify-center z-10 focus:outline-none"

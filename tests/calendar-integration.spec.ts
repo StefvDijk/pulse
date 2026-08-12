@@ -153,10 +153,6 @@ test.describe('R-022: Plan-je-week modal (authenticated)', () => {
     await expect(page.getByText('Plan je week')).toBeVisible()
     // Close via X button
     await page.locator('button').filter({ has: page.locator('svg') }).first().click()
-    // Find close button more specifically
-    const closeBtn = page.locator('[aria-label="Sluiten"], button').filter({
-      hasText: '',
-    })
     // Click the X close button (it's the first svg button in the modal header)
     await page.keyboard.press('Escape')
   })

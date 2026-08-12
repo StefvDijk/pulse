@@ -6,6 +6,8 @@ import { Brain, RefreshCcw, X } from 'lucide-react'
 import { InboxCard } from './InboxCard'
 import { NudgeList } from './NudgeList'
 import type { CoachInboxItem } from './types'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 interface Props {
   items: CoachInboxItem[]
@@ -19,6 +21,8 @@ const PRIORITY_ORDER: Record<CoachInboxItem['priority'], number> = { high: 0, me
 
 export function InboxList({ items, isLoading = false, isError = false, onClose, onMutate }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  useEscapeKey(true, onClose)
+  useDialogFocusTrap(true, ref)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -44,6 +48,10 @@ export function InboxList({ items, isLoading = false, isError = false, onClose, 
       />
       <div
         ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Coach-inbox"
+        tabIndex={-1}
         className={[
           'fixed inset-x-3 bottom-[calc(var(--nav-height)+12px)] z-[60]',
           'max-h-[min(70dvh,520px)] overflow-y-auto rounded-[22px]',
@@ -67,7 +75,7 @@ export function InboxList({ items, isLoading = false, isError = false, onClose, 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white/45 hover:bg-white/5 hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-white/45 hover:bg-white/5 hover:text-white"
             aria-label="Sluit"
           >
             <X size={18} />

@@ -1,11 +1,12 @@
 'use client'
 
-import { useRef, useEffect, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { springInteractive } from '@/lib/motion-presets'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 export interface AlertAction {
   label: string
@@ -52,24 +53,7 @@ export function Alert({
   useEscapeKey(open, onClose)
 
   const dialogRef = useRef<HTMLDivElement>(null)
-  const previousFocus = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    if (open) {
-      previousFocus.current = document.activeElement as HTMLElement
-      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      )
-      if (focusables && focusables.length > 0) {
-        focusables[0].focus()
-      } else {
-        dialogRef.current?.focus()
-      }
-    } else if (previousFocus.current) {
-      previousFocus.current.focus()
-      previousFocus.current = null
-    }
-  }, [open])
+  useDialogFocusTrap(open, dialogRef)
 
   if (typeof window === 'undefined') return null
 
@@ -136,7 +120,7 @@ export function Alert({
                   onClose()
                 }}
                 className={[
-                  'w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity active:opacity-70',
+                  'min-h-11 w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity active:opacity-70',
                   primaryAction.destructive
                     ? 'bg-[var(--color-status-bad)] text-white'
                     : 'bg-[#0A84FF] text-white',
@@ -151,7 +135,7 @@ export function Alert({
                     secondaryAction.onPress()
                     onClose()
                   }}
-                  className="w-full rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-text-secondary transition-opacity active:opacity-70"
+                  className="min-h-11 w-full rounded-xl bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-text-secondary transition-opacity active:opacity-70"
                 >
                   {secondaryAction.label}
                 </button>

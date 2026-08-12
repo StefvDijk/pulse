@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useRef } from 'react'
 import { X } from 'lucide-react'
 import { useExplain } from '@/hooks/useExplain'
 import type { ExplainTopic, ExplainInputRow } from '@/lib/explain/topics'
 import { ExplainAI } from './ExplainAI'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 interface Props {
   topic: ExplainTopic | null
@@ -15,8 +17,10 @@ interface Props {
 }
 
 export function ExplainSheet({ topic, params, onClose }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   useBodyScrollLock(topic !== null)
   useEscapeKey(topic !== null, onClose)
+  useDialogFocusTrap(topic !== null, dialogRef)
 
   const { payload, error, isLoading } = useExplain(topic, params)
 
@@ -35,7 +39,11 @@ export function ExplainSheet({ topic, params, onClose }: Props) {
         aria-hidden="true"
       />
 
-      <div className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface pb-safe sm:max-h-[85dvh] sm:rounded-[22px] sm:border-[0.5px] sm:pb-0">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="relative flex w-full max-w-md flex-col rounded-t-[28px] border-t-[0.5px] border-bg-border-strong bg-bg-surface pb-safe sm:max-h-[85dvh] sm:rounded-[22px] sm:border-[0.5px] sm:pb-0"
+      >
         <div className="flex justify-center pt-2">
           <span className="h-1 w-9 rounded-full bg-bg-border-strong" aria-hidden="true" />
         </div>

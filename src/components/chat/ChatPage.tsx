@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type CSSProperties } from 'react'
 import { SquarePen, Clock } from 'lucide-react'
 import { ChatInterface } from './ChatInterface'
 import { ChatHistoryPanel } from './ChatHistoryPanel'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { getCoachConfig } from '@/lib/ai/coaches/registry'
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -17,6 +18,7 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const viewportHeight = useVisualViewportHeight()
 
   const handleNewChat = useCallback(() => {
     setActiveSessionId(undefined)
@@ -31,7 +33,12 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
   const handleCloseHistory = useCallback(() => setHistoryOpen(false), [])
 
   return (
-    <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
+    <div
+      className="flex h-[calc(var(--chat-viewport-height,100dvh)-var(--nav-height))] flex-col lg:h-screen"
+      style={{
+        '--chat-viewport-height': viewportHeight ? `${viewportHeight}px` : '100dvh',
+      } as CSSProperties}
+    >
       <header
         className="sticky top-0 z-30 glass-nav border-b-[0.5px] border-bg-border pt-safe pl-safe pr-safe"
         style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.14) 0%, var(--color-bg-glass-nav) 100%)' }}

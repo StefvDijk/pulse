@@ -21,7 +21,7 @@ function AddButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-white"
       style={{ background: '#0A84FF', boxShadow: '0 4px 14px rgba(10,132,255,0.4)' }}
       aria-label="Doel toevoegen"
     >
@@ -82,7 +82,7 @@ export function GoalsPage() {
         leading={
           <Link
             href="/schema"
-            className="flex items-center gap-0.5 text-[#0A84FF] active:opacity-60 transition-opacity"
+            className="flex min-h-11 items-center gap-0.5 text-[#0A84FF] active:opacity-60 transition-opacity"
             aria-label="Terug naar Schema"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />

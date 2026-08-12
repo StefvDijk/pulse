@@ -4,14 +4,14 @@ import { test, expect } from '@playwright/test'
 // Chat history panel — clock-icon trigger, panel open, new-chat reset
 //
 // Public /chat auth-redirect is already covered in tests/contextual-coach.spec.ts.
-// Authenticated tests — skipped without TEST_EMAIL/TEST_PASSWORD
+// Authenticated tests — credentials are required by playwright.config.ts.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const email = process.env.TEST_EMAIL
-const password = process.env.TEST_PASSWORD
+const email = process.env.TEST_USER_EMAIL
+const password = process.env.TEST_USER_PASSWORD
 
 test.describe('Chat history panel (authenticated)', () => {
-  test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set')
+  test.skip(!email || !password, 'TEST_USER_EMAIL / TEST_USER_PASSWORD not set')
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/auth/login')

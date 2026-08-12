@@ -1,6 +1,6 @@
 'use client'
 
-import type { MouseEvent, KeyboardEvent } from 'react'
+import type { MouseEvent } from 'react'
 import useSWR from 'swr'
 import { SquarePen, Trash2 } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
@@ -59,13 +59,6 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
     }
   }
 
-  function onRowKey(e: KeyboardEvent, id: string) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      select(id)
-    }
-  }
-
   return (
     <Sheet open={open} onClose={onClose} title="Gesprekken" detents={['large']}>
       <div className="flex flex-col gap-1 pb-safe">
@@ -92,25 +85,25 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
           sessions.map((s) => (
             <div
               key={s.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => select(s.id)}
-              onKeyDown={(e) => onRowKey(e, s.id)}
               className="group flex items-center gap-3 rounded-[13px] px-3 py-3 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-sport-gym-base)]"
             >
-              <span className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => select(s.id)}
+                className="min-h-11 min-w-0 flex-1 text-left"
+              >
                 <span className="block truncate text-body font-semibold text-text-primary">
                   {s.title ?? 'Nieuw gesprek'}
                 </span>
                 <span className="text-caption1 text-text-tertiary">
                   {relativeDate(s.last_message_at)} · {s.message_count} berichten
                 </span>
-              </span>
+              </button>
               <button
                 type="button"
                 aria-label="Verwijder gesprek"
                 onClick={(e) => remove(e, s.id)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:text-status-bad"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:text-status-bad"
               >
                 <Trash2 size={16} strokeWidth={1.75} />
               </button>

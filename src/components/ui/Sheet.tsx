@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { sheetPresentation } from '@/lib/motion-presets'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 export type SheetDetent = 'medium' | 'large'
 
@@ -52,26 +53,8 @@ export function Sheet({
   // useEscapeKey takes (active: boolean, onEscape: () => void)
   useEscapeKey(open, onClose)
 
-  // Focus trap: store previous focus, restore on close
   const sheetRef = useRef<HTMLDivElement>(null)
-  const previousFocus = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    if (open) {
-      previousFocus.current = document.activeElement as HTMLElement
-      const focusables = sheetRef.current?.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      )
-      if (autoFocus && focusables && focusables.length > 0) {
-        focusables[0].focus()
-      } else {
-        sheetRef.current?.focus()
-      }
-    } else if (previousFocus.current) {
-      previousFocus.current.focus()
-      previousFocus.current = null
-    }
-  }, [open, autoFocus])
+  useDialogFocusTrap(open, sheetRef, { autoFocus })
 
   // SSR guard for portal
   if (typeof window === 'undefined') return null

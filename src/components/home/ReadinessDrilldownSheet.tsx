@@ -1,9 +1,11 @@
 'use client'
 
+import { useRef } from 'react'
 import { X } from 'lucide-react'
 import { useReadinessContributors } from '@/hooks/useReadinessContributors'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 import type { Contributor } from '@/app/api/readiness/contributors/route'
 
 interface ReadinessDrilldownSheetProps {
@@ -95,8 +97,10 @@ function ContributorRow({ c }: { c: Contributor }) {
 }
 
 export function ReadinessDrilldownSheet({ open, onClose }: ReadinessDrilldownSheetProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   useBodyScrollLock(open)
   useEscapeKey(open, onClose)
+  useDialogFocusTrap(open, dialogRef)
   const { data, isLoading } = useReadinessContributors(open)
 
   if (!open) return null
@@ -112,7 +116,11 @@ export function ReadinessDrilldownSheet({ open, onClose }: ReadinessDrilldownShe
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-bg-surface shadow-2xl sm:rounded-3xl max-h-[85dvh] pb-safe">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="relative flex w-full max-w-md flex-col rounded-t-3xl bg-bg-surface shadow-2xl sm:rounded-3xl max-h-[85dvh] pb-safe"
+      >
         <div className="flex items-start justify-between gap-3 border-b border-bg-border px-5 pt-5 pb-3">
           <div className="min-w-0">
             <h2 className="text-headline font-semibold text-text-primary">Wat bepaalt dit?</h2>

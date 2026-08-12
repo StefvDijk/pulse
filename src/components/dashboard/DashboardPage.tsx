@@ -136,7 +136,7 @@ export function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <InboxBell />
-          <Link href="/chat" aria-label="Ga naar Coach">
+          <Link href="/chat" aria-label="Ga naar Coach" className="flex h-11 w-11 items-center justify-center">
             <CoachOrb size={32} />
           </Link>
         </div>

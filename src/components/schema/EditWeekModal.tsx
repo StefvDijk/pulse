@@ -164,8 +164,8 @@ export function EditWeekModal({
                 {showResetButton && (
                   <button
                     onClick={() => resetToTemplate(draft.date, draft.dayName)}
-                    className="flex items-center gap-1 text-[11px] text-text-tertiary hover:text-text-secondary"
-                    title={`Terug naar template (${templateFocus || 'rust'})`}
+                    className="flex min-h-11 items-center gap-1 px-2 text-[11px] text-text-tertiary hover:text-text-secondary"
+                    aria-label={`Terug naar template (${templateFocus || 'rust'})`}
                   >
                     <RotateCcw size={11} />
                     Reset
@@ -174,12 +174,13 @@ export function EditWeekModal({
               </div>
 
               <input
+                aria-label={`Training op ${DAY_LABELS[draft.dayName] ?? draft.dayName}`}
                 type="text"
                 value={draft.focus}
                 onChange={(e) => updateDraft(draft.date, e.target.value)}
                 placeholder="Rustdag"
                 list={`suggestions-${draft.date}`}
-                className="w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
+                className="min-h-11 w-full rounded-lg border border-bg-border bg-white/[0.06] px-3 py-2 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
               />
               <datalist id={`suggestions-${draft.date}`}>
                 {suggestions.map((s) => (
@@ -205,7 +206,7 @@ export function EditWeekModal({
         <button
           onClick={handleSave}
           disabled={status === 'saving' || dirtyCount === 0}
-          className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          className="flex min-h-11 items-center gap-2 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
         >
           {status === 'saving' && <Loader2 size={16} className="animate-spin" />}
           Opslaan

@@ -9,6 +9,7 @@ import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import type { LiveCoachId } from '@/lib/ai/coaches/registry'
 import { parseCardEvent } from '@/lib/ai/chat/cards'
 import type { AnyCard } from '@/lib/ai/chat/cards'
+import { createSseDataParser } from '@/lib/ai/chat/sse'
 import { dayKeyAmsterdam, todayAmsterdam, diffDayKeys } from '@/lib/time/amsterdam'
 
 interface Message {
@@ -26,6 +27,7 @@ interface ChatHistoryResponse {
     role: string
     content: string
     created_at: string | null
+    cards?: unknown
   }>
 }
 
@@ -127,12 +129,21 @@ export function ChatInterface({
       .then((r) => r.json() as Promise<ChatHistoryResponse>)
       .then((data) => {
         if (data.session_id) setSessionId(data.session_id)
-        const loaded = (data.messages ?? []).map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          created_at: m.created_at,
-        }))
+        const loaded: Message[] = (data.messages ?? []).map((m): Message => {
+          const cards = Array.isArray(m.cards)
+            ? m.cards.flatMap((card) => {
+                const parsed = parseCardEvent({ __card: card })
+                return parsed ? [parsed] : []
+              })
+            : []
+          return {
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            created_at: m.created_at,
+            cards: cards.length > 0 ? cards : undefined,
+          }
+        })
         // Seed a fresh thread with the coach nudge as the first AI message.
         // Skipped when history already exists so we don't duplicate after reload.
         if (loaded.length === 0 && seededAssistant) {
@@ -275,6 +286,7 @@ export function ChatInterface({
         }
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
+        const sseParser = createSseDataParser()
         let accumulated = ''
         let errorEvent: { code: string; message: string } | null = null
         const pendingCards: AnyCard[] = []
@@ -284,11 +296,7 @@ export function ChatInterface({
           if (done) break
 
           const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const payload = line.slice(6)
+          for (const payload of sseParser.feed(chunk)) {
             if (payload === '[DONE]') break
             try {
               const parsed: unknown = JSON.parse(payload)

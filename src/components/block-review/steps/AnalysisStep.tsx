@@ -158,7 +158,7 @@ export function AnalysisStep({
               setError(null)
               sendTurn(conversation)
             }}
-            className="self-start px-3 py-1.5 rounded-full text-[12px] border border-bg-border text-text-primary"
+            className="min-h-11 self-start px-3 py-2 rounded-full text-[12px] border border-bg-border text-text-primary"
           >
             Opnieuw proberen
           </button>
@@ -183,14 +183,14 @@ export function AnalysisStep({
             <button
               type="button"
               onClick={requestSchema}
-              className="h-9 px-4 rounded-full text-[12px] font-semibold bg-white text-black"
+              className="h-11 px-4 rounded-full text-[12px] font-semibold bg-white text-black"
             >
               Genereer schema voorstel
             </button>
             <button
               type="button"
               onClick={onNext}
-              className="h-9 px-4 rounded-full text-[12px] border border-bg-border text-text-tertiary"
+              className="h-11 px-4 rounded-full text-[12px] border border-bg-border text-text-tertiary"
             >
               Sla over
             </button>
@@ -221,7 +221,7 @@ export function AnalysisStep({
             type="button"
             onClick={handleSend}
             disabled={!input.trim() || busy}
-            className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
+            className="h-11 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
           >
             Verstuur
           </button>

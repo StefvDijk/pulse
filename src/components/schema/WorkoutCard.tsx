@@ -40,8 +40,8 @@ function ExerciseRow({ exercise, workoutTitle }: { exercise: ExerciseData; worko
         </span>
         <Link
           href={`/chat?context=exercise&name=${encodeURIComponent(exercise.name)}&workout=${encodeURIComponent(workoutTitle)}`}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] hover:text-[#0A84FF] transition-colors"
-          title={`Vraag de coach over ${exercise.name}`}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] hover:text-[#0A84FF] transition-colors"
+          aria-label={`Vraag de coach over ${exercise.name}`}
         >
           <MessageCircle size={14} />
         </Link>

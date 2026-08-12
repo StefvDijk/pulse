@@ -58,7 +58,7 @@ export function SaveButton({ state, onClick }: SaveButtonProps) {
       <button
         onClick={onClick}
         disabled={status === 'saving'}
-        className={`rounded-lg px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-50 ${buttonBg}`}
+        className={`min-h-11 rounded-lg px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-50 ${buttonBg}`}
       >
         {label}
       </button>
@@ -80,10 +80,18 @@ export function SectionHeader({ title }: { title: string }) {
   )
 }
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string
+  htmlFor: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-medium text-text-tertiary">{label}</label>
+      <label htmlFor={htmlFor} className="text-[11px] font-medium text-text-tertiary">{label}</label>
       {children}
     </div>
   )
@@ -102,4 +110,4 @@ export function StatusDot({ active }: { active: boolean }) {
   )
 }
 
-export const INPUT_CLASSES = 'bg-white/[0.06] border-[0.5px] border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus:border-bg-border-strong focus-ring'
+export const INPUT_CLASSES = 'min-h-11 bg-white/[0.06] border-[0.5px] border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus:border-bg-border-strong focus-ring'

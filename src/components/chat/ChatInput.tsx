@@ -56,7 +56,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         type="button"
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:active:scale-100"
         style={{
           background: 'linear-gradient(135deg, #00E5C7, #7C3AED)',
           boxShadow: value.trim() && !isLoading ? '0 4px 16px -4px rgba(0,229,199,0.4)' : 'none',

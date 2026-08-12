@@ -22,8 +22,6 @@ test.describe('R-016 to R-019: Progress page redesign', () => {
   test('R-016: exercise picker shows exercises on click', async ({ page }) => {
     await page.locator('text=Kies een oefening...').click()
     await expect(page.locator('input[placeholder="Zoek oefening..."]')).toBeVisible()
-    // Should show some exercises in the dropdown
-    const options = page.locator('button:has-text("Chest"), button:has-text("Back"), button:has-text("Legs"), button:has-text("Shoulders"), button:has-text("Arms"), button:has-text("Core")')
     // Any muscle group label should appear
     await page.waitForTimeout(1000)
     const allButtons = page.locator('[class*="max-h-64"] button')

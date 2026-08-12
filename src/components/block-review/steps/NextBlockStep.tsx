@@ -312,7 +312,7 @@ export function NextBlockStep({
               type="button"
               onClick={regenerateFullProposal}
               disabled={busy}
-              className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+              className="min-h-11 self-start rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
             >
               Genereer volledig voorstel
             </button>
@@ -390,7 +390,7 @@ export function NextBlockStep({
                 type="button"
                 onClick={repairFromAudit}
                 disabled={busy}
-                className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+                className="min-h-11 self-start rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
               >
                 Laat coach herstellen
               </button>
@@ -469,7 +469,7 @@ export function NextBlockStep({
                     type="button"
                     onClick={regenerateFullProposal}
                     disabled={busy}
-                    className="rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-black disabled:opacity-40"
+                    className="min-h-11 rounded-full bg-white px-3 py-2 text-[12px] font-semibold text-black disabled:opacity-40"
                   >
                     Genereer volledig voorstel
                   </button>
@@ -479,7 +479,7 @@ export function NextBlockStep({
                     type="button"
                     onClick={repairFromAudit}
                     disabled={busy}
-                    className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+                    className="min-h-11 rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
                   >
                     Laat coach herstellen
                   </button>
@@ -500,7 +500,7 @@ export function NextBlockStep({
             type="button"
             onClick={sendRefinement}
             disabled={!input.trim() || busy}
-            className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
+            className="h-11 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
           >
             {busy ? 'Coach denkt na...' : 'Verstuur'}
           </button>

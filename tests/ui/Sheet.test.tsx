@@ -51,4 +51,24 @@ describe('Sheet', () => {
     )
     expect(getByText('My Sheet')).toBeTruthy()
   })
+
+  it('keeps keyboard focus inside the sheet', () => {
+    const { getByRole } = render(
+      <Sheet open={true} onClose={() => {}} title="Focus test">
+        <button>First</button>
+        <button>Last</button>
+      </Sheet>,
+    )
+    const dialog = getByRole('dialog')
+    const first = getByRole('button', { name: 'First' })
+    const last = getByRole('button', { name: 'Last' })
+
+    last.focus()
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+
+    first.focus()
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+  })
 })

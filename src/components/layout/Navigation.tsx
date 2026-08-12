@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import {
   LogOut,
   Settings as SettingsIcon,
@@ -12,16 +12,14 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { springLayout } from '@/lib/motion-presets'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { NAV_ITEMS, MORE_ITEMS, isNavItemActive } from './nav-items'
+import { Sheet } from '@/components/ui/Sheet'
 
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
   const [moreMenu, setMoreMenu] = useState({ path: pathname, open: false })
   const moreOpen = moreMenu.open && moreMenu.path === pathname
-
-  useBodyScrollLock(moreOpen)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -105,86 +103,40 @@ export function Navigation() {
       </nav>
 
       {/* ─── More sheet — mobile (Pulse v2) ───────────────────────────── */}
-      <AnimatePresence>
-        {moreOpen && (
-          <motion.div
-            className="fixed inset-0 z-[60] lg:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Meer opties"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      <Sheet
+        open={moreOpen}
+        onClose={() => setMoreMenu((current) => ({ ...current, open: false }))}
+        title="Meer"
+        detents={['medium']}
+        className="lg:hidden"
+      >
+        <div className="px-3 pb-3">
+          {MORE_ITEMS.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
               onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
-            />
-            <motion.div
-              className={[
-                'absolute bottom-0 left-0 right-0',
-                'bg-bg-elevated',
-                'rounded-t-[28px]',
-                'border-t border-bg-border-strong',
-                'pb-safe-24',
-              ].join(' ')}
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+              className="flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium text-text-primary transition-colors duration-150 hover:bg-white/[0.04] active:bg-white/[0.08]"
             >
-              {/* Grabber */}
-              <div className="flex justify-center pt-2 pb-1">
-                <div className="h-1 w-9 rounded-full bg-white/15" />
-              </div>
+              <Icon size={22} strokeWidth={1.5} className="text-text-secondary" />
+              <span className="flex-1">{label}</span>
+              <ChevronRight size={18} strokeWidth={1.5} className="text-text-muted" />
+            </Link>
+          ))}
 
-              {/* Header */}
-              <div className="px-5 pt-2 pb-3">
-                <h2 className="text-[17px] font-semibold text-text-primary tracking-[-0.2px]">Meer</h2>
-              </div>
-
-              {/* List */}
-              <div className="px-3 pb-3">
-                {MORE_ITEMS.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMoreMenu((current) => ({ ...current, open: false }))}
-                    className={[
-                      'flex min-h-[44px] items-center gap-3 px-3 py-3 rounded-xl',
-                      'text-[15px] font-medium text-text-primary',
-                      'hover:bg-white/[0.04] active:bg-white/[0.08]',
-                      'transition-colors duration-150',
-                    ].join(' ')}
-                  >
-                    <Icon size={22} strokeWidth={1.5} className="text-text-secondary" />
-                    <span className="flex-1">{label}</span>
-                    <ChevronRight size={18} strokeWidth={1.5} className="text-text-muted" />
-                  </Link>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMoreMenu((current) => ({ ...current, open: false }))
-                    handleSignOut()
-                  }}
-                  className={[
-                    'mt-1 flex min-h-[44px] w-full items-center gap-3 px-3 py-3 rounded-xl text-left',
-                    'text-[15px] font-medium text-status-bad',
-                    'hover:bg-status-bad/10 active:bg-status-bad/15',
-                    'transition-colors duration-150',
-                  ].join(' ')}
-                >
-                  <LogOut size={22} strokeWidth={1.5} />
-                  <span>Uitloggen</span>
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <button
+            type="button"
+            onClick={() => {
+              setMoreMenu((current) => ({ ...current, open: false }))
+              handleSignOut()
+            }}
+            className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-medium text-status-bad transition-colors duration-150 hover:bg-status-bad/10 active:bg-status-bad/15"
+          >
+            <LogOut size={22} strokeWidth={1.5} />
+            <span>Uitloggen</span>
+          </button>
+        </div>
+      </Sheet>
 
       {/* ─── Sidebar — desktop (Pulse v2 dark) ─────────────────────────── */}
       <aside

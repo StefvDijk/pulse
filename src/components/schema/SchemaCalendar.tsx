@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, Dumbbell, Footprints, CircleDot, MoreHorizontal, ArrowRight, Calendar, Pencil } from 'lucide-react'
 import type { SchemaWeek, SchemaDay, SchemaScheduleItem } from '@/hooks/useSchema'
 import { EditWeekModal } from './EditWeekModal'
 import { DayDetailSheet } from './DayDetailSheet'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 interface SchemaCalendarProps {
   weeks: SchemaWeek[]
@@ -88,15 +90,31 @@ interface RescheduleMenuProps {
 }
 
 function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   useBodyScrollLock(true)
+  useEscapeKey(true, onClose)
+  useDialogFocusTrap(true, dialogRef)
   const availableDays = weekDays.filter(
     (d) => d.date !== day.date && d.status !== 'completed',
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl pb-safe">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${day.workoutFocus} verplaatsen`}
+    >
+      <div
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-bg-surface shadow-2xl pb-safe"
+      >
         <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold text-text-primary">
             {day.workoutFocus} verplaatsen
@@ -108,7 +126,7 @@ function RescheduleMenu({ day, weekDays, onMove, onClose }: RescheduleMenuProps)
             <button
               key={target.date}
               onClick={() => onMove(target.date)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors"
+              className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors"
             >
               <ArrowRight size={14} className="text-text-tertiary" />
               <span className="text-sm text-text-primary">

@@ -121,7 +121,7 @@ function HistoryCard({
           )}
           <Link
             href={`/check-in/${id}/edit`}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.10]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.10]"
             aria-label="Bewerken"
           >
             <Pencil size={12} />

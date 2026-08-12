@@ -147,7 +147,7 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
           <button
             key={t}
             onClick={() => setType(t)}
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex min-h-11 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
               type === t
                 ? `${SPORT_BG[t]} border ${SPORT_BORDER[t]}`
                 : 'bg-bg-surface border border-bg-border text-text-tertiary'
@@ -160,12 +160,14 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
       </div>
       <div className="flex items-center gap-2">
         <input
+          aria-label="Starttijd nieuwe sessie"
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
           className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-[16px] text-text-primary"
         />
         <input
+          aria-label="Naam nieuwe sessie"
           type="text"
           value={workout}
           onChange={(e) => setWorkout(e.target.value)}
@@ -176,13 +178,13 @@ function AddSessionForm({ date, onAdd, onCancel }: AddFormProps) {
       <div className="flex items-center gap-2">
         <button
           onClick={handleSubmit}
-          className="rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white"
+          className="min-h-11 rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white"
         >
           Toevoegen
         </button>
         <button
           onClick={onCancel}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
+          className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
         >
           Annuleren
         </button>
@@ -215,22 +217,23 @@ function EditSessionForm({ session, onSave, onCancel }: EditFormProps) {
 
   return (
     <div className="mt-2 rounded-xl bg-white/[0.06] p-3 flex items-center gap-2">
-      <label className="text-xs text-text-secondary">Starttijd:</label>
+      <label htmlFor={`edit-session-${session.date}-${session.time}`} className="text-xs text-text-secondary">Starttijd:</label>
       <input
+        id={`edit-session-${session.date}-${session.time}`}
         type="time"
         value={time}
         onChange={(e) => setTime(e.target.value)}
-        className="rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-sm text-text-primary"
+        className="min-h-11 rounded-lg border border-bg-border bg-bg-surface px-2.5 py-1.5 text-[16px] text-text-primary"
       />
       <button
         onClick={handleSave}
-        className="rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white"
+        className="min-h-11 rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white"
       >
         Opslaan
       </button>
       <button
         onClick={onCancel}
-        className="rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
+        className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-medium text-text-tertiary"
       >
         Annuleren
       </button>
@@ -314,15 +317,15 @@ function DayRow({
                   </div>
                   <button
                     onClick={() => onStartEdit(sessionKey)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
-                    title="Aanpassen"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
+                    aria-label="Sessie aanpassen"
                   >
                     <Pencil size={12} />
                   </button>
                   <button
                     onClick={() => onRemove(session.date, session.time)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
-                    title="Verwijderen"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-surface/60 text-text-tertiary"
+                    aria-label="Sessie verwijderen"
                   >
                     <X size={12} />
                   </button>
@@ -341,7 +344,7 @@ function DayRow({
           {!isAdding && (
             <button
               onClick={() => onStartAdd(date)}
-              className="flex w-fit items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-text-tertiary hover:bg-white/[0.10]"
+              className="flex min-h-11 w-fit items-center gap-1 rounded-full bg-white/[0.06] px-3 py-2 text-[11px] font-medium text-text-tertiary hover:bg-white/[0.10]"
             >
               <Plus size={11} /> Extra sessie
             </button>
@@ -352,8 +355,8 @@ function DayRow({
           <span className="text-xs text-text-tertiary">Geen training</span>
           <button
             onClick={() => onStartAdd(date)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
-            title="Sessie toevoegen"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary"
+            aria-label="Sessie toevoegen"
           >
             <Plus size={12} />
           </button>
@@ -379,7 +382,6 @@ function DayRow({
 // ---------------------------------------------------------------------------
 
 export function WeekPlanCard({
-  reviewData,
   onNext,
   weekStart,
   weekEnd,
@@ -637,12 +639,12 @@ export function WeekPlanCard({
 
       {/* Calendar sync toggle */}
       <div className="rounded-2xl bg-bg-surface border border-bg-border p-4">
-        <label className="flex items-center gap-3 cursor-pointer">
+        <label className="flex min-h-11 items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={syncToCalendar}
             onChange={(e) => setSyncToCalendar(e.target.checked)}
-            className="h-4 w-4 rounded border-bg-border accent-[#0A84FF]"
+            className="h-6 w-6 rounded border-bg-border accent-[#0A84FF]"
           />
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-text-tertiary" />
@@ -654,7 +656,7 @@ export function WeekPlanCard({
       {/* Continue button */}
       <button
         onClick={handleContinue}
-        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white"
+        className="min-h-11 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white"
       >
         Bevestigen en opslaan
       </button>

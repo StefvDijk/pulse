@@ -36,7 +36,7 @@ export function NudgeCard({ nudge, onDismiss }: NudgeCardProps) {
           type="button"
           aria-label="Nudge sluiten"
           onClick={() => onDismiss(nudge.id)}
-          className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary transition-colors hover:text-text-primary active:scale-95"
+          className="-m-2 ml-auto flex h-11 w-11 items-center justify-center rounded-full text-text-tertiary transition-colors hover:text-text-primary active:scale-95"
         >
           <X size={15} strokeWidth={1.75} />
         </button>
@@ -45,7 +45,7 @@ export function NudgeCard({ nudge, onDismiss }: NudgeCardProps) {
       {nudge.cta_label && nudge.cta_href && (
         <Link
           href={nudge.cta_href}
-          className="mt-2 inline-flex text-[12px] font-semibold"
+          className="mt-1 inline-flex min-h-11 items-center py-2 text-[12px] font-semibold"
           style={{ color: coach.identity.color }}
         >
           {nudge.cta_label} →
