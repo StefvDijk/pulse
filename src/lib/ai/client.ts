@@ -148,7 +148,12 @@ export async function streamChat({ system, systemDynamic, messages, tools, model
   const resolvedModel = model ?? MODEL
   const startedAt = Date.now()
   if (!meta) throw new Error('AI usage metadata is required for budget enforcement')
-  const reservation = await reserveAiBudget(meta.userId, resolvedModel, maxOutputTokens)
+  const reservation = await reserveAiBudget(
+    meta.userId,
+    resolvedModel,
+    maxOutputTokens,
+    tools ? maxSteps : 1,
+  )
 
   let result: ReturnType<typeof streamText>
   try {

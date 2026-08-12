@@ -13,6 +13,7 @@ import {
   fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
 import { runCronWithStatus } from '@/lib/runtime/cron-runs'
+import { filterRunnableCronItems } from '@/lib/runtime/cron-items'
 import { validBearerSecret } from '@/lib/security/secrets'
 
 export const maxDuration = 300
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const todayStr = todayAmsterdam()
   const weekMonday = weekStartAmsterdam()
-  const users = page.items
+  const users = await filterRunnableCronItems('hevy-sync', page.items, (settings) => settings.user_id)
   const analysisQueue: Array<{
     userId: string
     syncResult: Awaited<ReturnType<typeof syncHevyWorkouts>>
@@ -124,6 +125,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return {
     response,
     nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+    itemOutcomes: results.map((result) => ({
+      itemKey: result.userId,
+      ok: result.errors.length === 0,
+      error: result.errors[0],
+    })),
   }
   })
 }

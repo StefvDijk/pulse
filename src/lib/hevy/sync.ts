@@ -16,6 +16,7 @@ import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import { recordUnmatchedExercise } from '@/lib/hevy/unmatched-exercises'
 import { runAfterResponse } from '@/lib/runtime/after-response'
 import { persistHevyWorkoutAtomic, recomputeHevyStrengthPrs } from '@/lib/hevy/atomic-workout'
+import { canAdvanceFullSyncPage } from '@/lib/hevy/full-sync-cursor'
 
 interface ExerciseDefinition {
   id: string
@@ -138,6 +139,7 @@ async function runFullSync(
     }
 
     pageCount = response.page_count
+    const errorsBeforePage = errors.length
 
     for (const hevyWorkout of response.workouts) {
       const result = await upsertSingleWorkout(hevyWorkout, userId, exerciseDefinitions, {
@@ -146,6 +148,10 @@ async function runFullSync(
       errors.push(...result.errors)
       if (result.workoutId) synced++
     }
+
+    // Re-run the complete page when any workout failed. Successful upserts are
+    // idempotent; advancing here would permanently skip the failed workout.
+    if (!canAdvanceFullSyncPage(errorsBeforePage, errors.length)) break
 
     page++
     pagesProcessed++

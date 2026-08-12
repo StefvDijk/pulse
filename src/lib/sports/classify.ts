@@ -24,7 +24,8 @@ const RULES: ReadonlyArray<readonly [SportKey, readonly string[]]> = [
  * Map een ruwe sport-/workoutnaam (Apple Health workout-naam of Strava
  * sport_type/type) naar een canonieke SportKey. Onbekend → 'other'.
  */
-export function classifySport(rawName: string | null | undefined, _source: SportSource): SportKey {
+export function classifySport(rawName: string | null | undefined, source: SportSource): SportKey {
+  void source
   const name = (rawName ?? '').toLowerCase().trim()
   if (!name) return 'other'
   for (const [key, keywords] of RULES) {

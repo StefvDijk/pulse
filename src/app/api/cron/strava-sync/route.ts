@@ -10,6 +10,7 @@ import {
   fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
 import { runCronWithStatus } from '@/lib/runtime/cron-runs'
+import { filterRunnableCronItems } from '@/lib/runtime/cron-items'
 import { validBearerSecret } from '@/lib/security/secrets'
 
 /**
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   )
 
   const SYNC_DAYS = 7
-  const users = page.items
+  const users = await filterRunnableCronItems('strava-sync', page.items, (settings) => settings.user_id)
 
   // Sync users with bounded concurrency — one failure does not block others.
   const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ user_id }) => {
@@ -88,6 +89,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return {
     response,
     nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+    itemOutcomes: results.map((result) => ({
+      itemKey: result.userId,
+      ok: result.errors.length === 0,
+      error: result.errors[0],
+    })),
   }
   })
 }

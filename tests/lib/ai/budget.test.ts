@@ -10,6 +10,7 @@ afterEach(() => vi.unstubAllEnvs())
 describe('AI budget configuration', () => {
   it('reserves conservative input plus the configured output ceiling', () => {
     expect(estimateAiReservationCost('claude-sonnet-4-6', 8_000)).toBeCloseTo(0.27, 6)
+    expect(estimateAiReservationCost('claude-sonnet-4-6', 8_000, 8)).toBeCloseTo(2.16, 6)
     expect(estimateAiReservationCost('claude-haiku-4-5', 512)).toBeCloseTo(0.05256, 6)
   })
 

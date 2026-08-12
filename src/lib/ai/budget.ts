@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { priceForModel } from '@/lib/ai/pricing'
+import { reportOperationalWarning } from '@/lib/observability/operational-errors'
 
 const ReservationSchema = z.object({
   reservation_id: z.string().uuid(),
@@ -15,10 +16,16 @@ export interface AiBudgetReservation {
   userId: string
 }
 
-export function estimateAiReservationCost(model: string, maxOutputTokens: number): number {
+export function estimateAiReservationCost(
+  model: string,
+  maxOutputTokens: number,
+  maxModelSteps = 1,
+): number {
   const price = priceForModel(model)
   const conservativeInputTokens = 50_000
-  return (conservativeInputTokens * price.input + maxOutputTokens * price.output) / 1_000_000
+  const perStep =
+    (conservativeInputTokens * price.input + maxOutputTokens * price.output) / 1_000_000
+  return perStep * Math.max(1, Math.floor(maxModelSteps))
 }
 
 export function readAiBudgetUsd(): number {
@@ -42,11 +49,13 @@ export async function reserveAiBudget(
   userId: string | null | undefined,
   model: string,
   maxOutputTokens: number,
+  maxModelSteps = 1,
 ): Promise<AiBudgetReservation | null> {
   if (process.env.NODE_ENV === 'test') return null
   if (!userId) throw new Error('A user id is required for AI budget enforcement')
   if (isAiBudgetBypassActive()) {
     console.warn(`[ai-budget] emergency bypass active for user ${userId}`)
+    reportOperationalWarning('ai-budget:emergency-bypass', { userId })
     return null
   }
 
@@ -54,7 +63,7 @@ export async function reserveAiBudget(
   const { data, error } = await admin.rpc('reserve_ai_budget', {
     p_user_id: userId,
     p_budget_usd: readAiBudgetUsd(),
-    p_estimated_cost_usd: estimateAiReservationCost(model, maxOutputTokens),
+    p_estimated_cost_usd: estimateAiReservationCost(model, maxOutputTokens, maxModelSteps),
   })
   if (error) throw new Error(`AI budget reservation failed: ${error.message}`)
   const reservation = ReservationSchema.parse(data)
@@ -64,6 +73,12 @@ export async function reserveAiBudget(
         `$${reservation.reserved_usd.toFixed(2)} including active reservations of ` +
         `$${reservation.budget_usd.toFixed(2)} budget`,
     )
+    reportOperationalWarning('ai-budget:70-percent', {
+      userId,
+      spentUsd: reservation.spent_usd,
+      reservedUsd: reservation.reserved_usd,
+      budgetUsd: reservation.budget_usd,
+    })
   }
   return { id: reservation.reservation_id, userId }
 }

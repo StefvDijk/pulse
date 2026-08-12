@@ -10,6 +10,7 @@ import {
   fetchCronCursorPage,
 } from '@/lib/runtime/cron-capacity'
 import { runCronWithStatus } from '@/lib/runtime/cron-runs'
+import { filterRunnableCronItems } from '@/lib/runtime/cron-items'
 import { validBearerSecret } from '@/lib/security/secrets'
 
 export const maxDuration = 60
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
     }),
     (row) => row.user_id,
   )
-  const userIds = page.items.map((row) => row.user_id)
+  const runnable = await filterRunnableCronItems('nudges', page.items, (row) => row.user_id)
+  const userIds = runnable.map((row) => row.user_id)
   const rows = userIds.length > 0
     ? await admin
         .from('daily_nutrition_summary')
@@ -61,8 +63,9 @@ export async function GET(request: NextRequest) {
     byUser.set(r.user_id, list)
   }
 
+  const candidates = [...byUser.entries()]
   const settled = await runInBatches(
-    [...byUser.entries()],
+    candidates,
     CRON_USER_CONCURRENCY,
     async ([userId, days]) => {
       try {
@@ -116,6 +119,16 @@ export async function GET(request: NextRequest) {
   return {
     response,
     nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+    itemOutcomes: settled.map((result, index) => ({
+      itemKey: candidates[index]?.[0] ?? 'unknown',
+      ok: result.status === 'fulfilled',
+      error:
+        result.status === 'rejected'
+          ? result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+          : undefined,
+    })),
   }
   })
 }

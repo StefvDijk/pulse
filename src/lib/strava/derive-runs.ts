@@ -23,7 +23,8 @@ type ValidRunType = 'easy' | 'tempo' | 'interval' | 'long' | 'race'
 /** Map a Strava sport_type/activity_type to a DB-valid run_type.
  *  workout_type is not stored in strava_activities, so we always default to 'easy'.
  */
-function toValidRunType(_sportType: string | null | undefined): ValidRunType {
+function toValidRunType(sportType: string | null | undefined): ValidRunType {
+  void sportType
   return 'easy'
 }
 

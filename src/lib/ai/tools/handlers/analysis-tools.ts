@@ -309,7 +309,8 @@ const SLEEP_TIER_LABEL_NL: Record<number, string> = {
  * Returns the same SleepScore (0-100) the user sees on the home card, so the
  * coach quotes one consistent number for "hoe heb ik geslapen?".
  */
-export async function getSleepScore(userId: string, _input: { date?: string }): Promise<string> {
+export async function getSleepScore(userId: string, input: { date?: string }): Promise<string> {
+  void input
   const data = await computeSleepScore(userId)
   if (data.score === null) {
     return 'Geen slaapdata beschikbaar. Sync Apple Health om een slaapscore te zien.'

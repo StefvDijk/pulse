@@ -36,10 +36,6 @@ Output: JSON-array met 3 strings.
 
 UITSLUITEND geldige JSON, geen uitleg.`
 
-interface AiSuggestion {
-  text: string
-}
-
 function isValidStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((v) => typeof v === 'string')
 }

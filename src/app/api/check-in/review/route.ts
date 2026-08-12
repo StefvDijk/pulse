@@ -19,8 +19,6 @@ type NutritionRow = Database['public']['Tables']['daily_nutrition_summary']['Row
 type SleepLogRow = Database['public']['Tables']['sleep_logs']['Row']
 type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
 type WeeklyReviewRow = Database['public']['Tables']['weekly_reviews']['Row']
-type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
-
 // ---------------------------------------------------------------------------
 // Gap detection types
 // ---------------------------------------------------------------------------

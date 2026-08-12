@@ -84,12 +84,19 @@ export async function POST(request: Request) {
     let effectiveCoachId: LiveCoachId = coach_id
     if (session_id) {
       sessionId = session_id
-      const { data: sessionRow } = await admin
+      const { data: sessionRow, error: sessionError } = await admin
         .from('chat_sessions')
         .select('coach_id')
         .eq('id', session_id)
         .eq('user_id', user.id)
         .maybeSingle()
+      if (sessionError) throw sessionError
+      if (!sessionRow) {
+        return NextResponse.json(
+          { error: 'Session not found', code: 'SESSION_NOT_FOUND' },
+          { status: 404 },
+        )
+      }
       const stored = sessionRow?.coach_id
       if (stored && (LIVE_COACH_IDS as readonly string[]).includes(stored)) {
         effectiveCoachId = stored as LiveCoachId
@@ -130,37 +137,9 @@ export async function POST(request: Request) {
           // 1. Flush thinking indicator FIRST — frontend shows typing bubble.
           controller.enqueue(encoder.encode(`data: {"__thinking":true}\n\n`))
 
-          // 2. Run history fetch + 5 context queries fully in parallel.
-          //    Save user message fire-and-forget — doesn't block stream.
-          //    For seeded threads: persist the assistant seed first so the
-          //    thread reads correctly on reload (assistant turn before user).
-          if (seedToPersist) {
-            admin
-              .from('chat_messages')
-              .insert({
-                user_id: user.id,
-                session_id: sessionId,
-                role: 'assistant',
-                content: seedToPersist,
-                message_type: 'coach_nudge',
-              })
-              .then((r) => {
-                if (r.error) console.error('seed-assistant insert failed:', r.error)
-              })
-          }
-          admin
-            .from('chat_messages')
-            .insert({
-              user_id: user.id,
-              session_id: sessionId,
-              role: 'user',
-              content: message,
-              message_type: questionType,
-            })
-            .then((r) => {
-              if (r.error) console.error('user-message insert failed:', r.error)
-            })
-
+          // 2. Load history + context in parallel. History is read before this
+          // turn is inserted so the current user message is not duplicated in
+          // the model conversation below.
           const [
             thinContext,
             schemaResult,
@@ -198,10 +177,36 @@ export async function POST(request: Request) {
               .from('chat_messages')
               .select('role, content')
               .eq('session_id', sessionId)
+              .eq('user_id', user.id)
               .order('created_at', { ascending: false })
               .limit(20),
             loadUserProfile(user.id),
           ])
+
+          if (historyResult.error) throw historyResult.error
+
+          const openingMessages = [
+            ...(seedToPersist
+              ? [{
+                  user_id: user.id,
+                  session_id: sessionId,
+                  role: 'assistant' as const,
+                  content: seedToPersist,
+                  message_type: 'coach_nudge',
+                }]
+              : []),
+            {
+              user_id: user.id,
+              session_id: sessionId,
+              role: 'user' as const,
+              content: message,
+              message_type: questionType,
+            },
+          ]
+          const { error: openingInsertError } = await admin
+            .from('chat_messages')
+            .insert(openingMessages)
+          if (openingInsertError) throw openingInsertError
 
           const history = historyResult.data
           const historyMessages = (history ?? [])
@@ -323,14 +328,22 @@ export async function POST(request: Request) {
           } catch (usageErr) {
             console.error('[chat] result.usage failed (fallback 0):', usageErr)
           }
-          await admin.from('chat_messages').insert({
+          const confirmCards = outcomes
+            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } =>
+              o.ok && o.card !== undefined)
+            .map((o) => o.card)
+          const allCards = [...infoCards, ...confirmCards]
+
+          const { error: assistantInsertError } = await admin.from('chat_messages').insert({
             user_id: user.id,
             session_id: sessionId,
             role: 'assistant',
             content: finalText,
             message_type: questionType,
             tokens_used: outputTokens,
+            cards: allCards,
           })
+          if (assistantInsertError) throw assistantInsertError
 
           // Bump last_confirmed_at on memories the coach actively cited.
           // Coach emits first-8-char prefixes — map back to full UUIDs.
@@ -362,18 +375,9 @@ export async function POST(request: Request) {
             }
           }
 
-          // Update session
-          await admin
-            .from('chat_sessions')
-            .update({ last_message_at: new Date().toISOString() })
-            .eq('id', sessionId)
-
           // Emit card events: write-back confirmations + informational cards.
           // Must precede [DONE] so the frontend receives them in the same read loop.
-          const confirmCards = outcomes
-            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } => o.ok && o.card !== undefined)
-            .map((o) => o.card)
-          for (const card of [...infoCards, ...confirmCards]) {
+          for (const card of allCards) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`),
             )

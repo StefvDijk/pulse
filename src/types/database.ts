@@ -278,6 +278,39 @@ export type Database = {
           },
         ]
       }
+      cron_item_failures: {
+        Row: {
+          attempts: number
+          dead_lettered_at: string | null
+          first_failed_at: string
+          item_key: string
+          job_name: string
+          last_error: string | null
+          last_failed_at: string
+          next_retry_at: string
+        }
+        Insert: {
+          attempts?: number
+          dead_lettered_at?: string | null
+          first_failed_at?: string
+          item_key: string
+          job_name: string
+          last_error?: string | null
+          last_failed_at?: string
+          next_retry_at?: string
+        }
+        Update: {
+          attempts?: number
+          dead_lettered_at?: string | null
+          first_failed_at?: string
+          item_key?: string
+          job_name?: string
+          last_error?: string | null
+          last_failed_at?: string
+          next_retry_at?: string
+        }
+        Relationships: []
+      }
       cron_runs: {
         Row: {
           error_count: number
@@ -453,6 +486,7 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          cards: Json
           content: string
           context_used: Json | null
           created_at: string | null
@@ -464,6 +498,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cards?: Json
           content: string
           context_used?: Json | null
           created_at?: string | null
@@ -475,6 +510,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cards?: Json
           content?: string
           context_used?: Json | null
           created_at?: string | null
@@ -2812,6 +2848,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      finalize_cron_run: {
+        Args: {
+          p_error_count: number
+          p_first_error: string | null
+          p_http_status: number
+          p_item_outcomes: Json
+          p_job_name: string
+          p_lease_token: string
+          p_next_cursor: string | null
+          p_processed: number
+          p_run_id: string
+          p_status: string
+          p_summary: Json
+          p_truncated: boolean
+        }
+        Returns: undefined
+      }
       list_nutrition_cron_users: {
         Args: {
           p_after?: string | null
@@ -2827,6 +2880,23 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      settle_ai_usage: {
+        Args: {
+          p_cache_creation_tokens: number | null
+          p_cache_read_tokens: number | null
+          p_duration_ms: number | null
+          p_error_code: string | null
+          p_estimated_cost_usd: number
+          p_feature: string
+          p_input_tokens: number | null
+          p_model: string
+          p_output_tokens: number | null
+          p_reservation_id: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: string
       }
       release_ai_budget_reservation: {
         Args: { p_reservation_id: string; p_user_id: string }

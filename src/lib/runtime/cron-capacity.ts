@@ -51,15 +51,16 @@ export async function fetchCronCursorPage<T>(
   return { items, truncated, startCursor, keyOf }
 }
 
-/** Cursor after success, or immediately before a failed item for safe retry. */
+/**
+ * Advance the fairness cursor independently of per-item failures. A failed item
+ * is retried after the scan wraps; rewinding here lets one poison record starve
+ * every later user forever.
+ */
 export function cursorAfterCronPage<T>(
   page: CronCursorPage<T>,
   firstFailedIndex: number | null = null,
 ): string | null {
-  if (firstFailedIndex !== null) {
-    if (firstFailedIndex <= 0) return page.startCursor
-    return page.keyOf(page.items[firstFailedIndex - 1])
-  }
+  void firstFailedIndex
   if (!page.truncated) return null
   const last = page.items.at(-1)
   return last ? page.keyOf(last) : page.startCursor

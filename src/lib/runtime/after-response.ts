@@ -1,4 +1,5 @@
 import { after } from 'next/server'
+import { reportOperationalError } from '@/lib/observability/operational-errors'
 
 /**
  * Keep request-triggered background work alive after the response is sent.
@@ -13,6 +14,7 @@ export function runAfterResponse(
       await task()
     } catch (error) {
       console.error(`[after] ${label} failed:`, error)
+      reportOperationalError(label, error)
     }
   })
 }

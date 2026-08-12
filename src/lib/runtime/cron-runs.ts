@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Json } from '@/types/database'
+import {
+  reportOperationalError,
+  reportOperationalWarning,
+} from '@/lib/observability/operational-errors'
+import type { CronItemOutcome } from '@/lib/runtime/cron-items'
 
 type CronRunStatus = 'success' | 'partial' | 'error'
 
@@ -15,6 +20,7 @@ export interface CronRunClassification {
 interface CronTaskResult {
   response: NextResponse
   nextCursor: string | null
+  itemOutcomes?: CronItemOutcome[]
 }
 
 const ClaimSchema = z.object({
@@ -78,6 +84,7 @@ export async function runCronWithStatus(
   })
   if (claimError) {
     console.error(`[cron:${jobName}] lease claim failed:`, claimError)
+    reportOperationalError(`cron:${jobName}:lease-claim`, claimError)
     return NextResponse.json(
       { error: 'Cron already running', code: 'CRON_LEASE_UNAVAILABLE' },
       { status: 409 },
@@ -93,6 +100,7 @@ export async function runCronWithStatus(
 
   if (startError || !started) {
     console.error(`[cron:${jobName}] run-status insert failed:`, startError)
+    reportOperationalError(`cron:${jobName}:status-start`, startError ?? new Error('Missing run'))
     await admin.rpc('finish_cron_job', {
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
@@ -105,65 +113,63 @@ export async function runCronWithStatus(
   }
 
   try {
-    const { response, nextCursor } = await task({ cursor: claim.cursor })
+    const { response, nextCursor, itemOutcomes = [] } = await task({ cursor: claim.cursor })
     const parsedBody = (await response.clone().json().catch(() => ({}))) as Record<string, unknown>
     const classification = classifyCronRun(response.status, parsedBody)
     const { status, processed, errorCount, truncated } = classification
-    const { error: finishError } = await admin
-      .from('cron_runs')
-      .update({
-        status,
+    if (status !== 'success') {
+      reportOperationalWarning(`cron:${jobName}:${status}`, {
+        httpStatus: response.status,
         processed,
-        error_count: errorCount,
+        errorCount,
         truncated,
-        http_status: response.status,
-        finished_at: new Date().toISOString(),
-        summary: parsedBody as Json,
-        first_error: firstError(parsedBody),
+        firstError: firstError(parsedBody),
       })
-      .eq('id', started.id)
-
-    const { error: leaseFinishError } = await admin.rpc('finish_cron_job', {
+    }
+    const { error: finalizeError } = await admin.rpc('finalize_cron_run', {
+      p_run_id: started.id,
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
       p_next_cursor: nextCursor,
+      p_status: status,
+      p_http_status: response.status,
+      p_processed: processed,
+      p_error_count: errorCount,
+      p_truncated: truncated,
+      p_summary: parsedBody as Json,
+      p_first_error: firstError(parsedBody),
+      p_item_outcomes: itemOutcomes as unknown as Json,
     })
-    if (finishError) {
-      console.error(`[cron:${jobName}] run-status update failed:`, finishError)
+    if (finalizeError) {
+      console.error(`[cron:${jobName}] atomic finalization failed:`, finalizeError)
+      reportOperationalError(`cron:${jobName}:finalize`, finalizeError)
       return NextResponse.json(
-        { error: 'Cron status update failed', code: 'CRON_STATUS_UPDATE_FAILED' },
-        { status: 503 },
-      )
-    }
-    if (leaseFinishError) {
-      console.error(`[cron:${jobName}] cursor update failed:`, leaseFinishError)
-      return NextResponse.json(
-        { error: 'Cron cursor update failed', code: 'CRON_CURSOR_UPDATE_FAILED' },
+        { error: 'Cron finalization failed', code: 'CRON_FINALIZATION_FAILED' },
         { status: 503 },
       )
     }
     return response
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    const { error: finishError } = await admin
-      .from('cron_runs')
-      .update({
-        status: 'error',
-        http_status: 500,
-        error_count: 1,
-        finished_at: new Date().toISOString(),
-        first_error: message.slice(0, 1000),
-      })
-      .eq('id', started.id)
-    if (finishError) console.error(`[cron:${jobName}] failed to record thrown error:`, finishError)
-    const { error: leaseFinishError } = await admin.rpc('finish_cron_job', {
+    const { error: finalizeError } = await admin.rpc('finalize_cron_run', {
+      p_run_id: started.id,
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
       p_next_cursor: claim.cursor,
+      p_status: 'error',
+      p_http_status: 500,
+      p_processed: 0,
+      p_error_count: 1,
+      p_truncated: false,
+      p_summary: { error: message } as Json,
+      p_first_error: message.slice(0, 1000),
+      p_item_outcomes: [] as Json,
     })
-    if (leaseFinishError) {
-      console.error(`[cron:${jobName}] failed to release lease after error:`, leaseFinishError)
+    if (finalizeError) {
+      console.error(`[cron:${jobName}] failed to atomically record error:`, finalizeError)
+      reportOperationalError(`cron:${jobName}:error-finalize`, finalizeError)
     }
+    reportOperationalError(`cron:${jobName}:task`, error)
     throw error
   }
 }

@@ -67,11 +67,12 @@ export function calculateTrainingLoadScore(params: TrainingLoadParams): number {
   const {
     gymMinutes,
     totalTonnageKg,
-    runningMinutes: _runningMinutes,
+    runningMinutes,
     totalRunningKm,
     avgPaceSecondsPerKm,
     padelMinutes,
   } = params
+  void runningMinutes
 
   return (
     gymSessionLoad(totalTonnageKg, gymMinutes) +

@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextResponse } from 'next/server'
 
-const { rpc, finishEq } = vi.hoisted(() => ({
+const { rpc } = vi.hoisted(() => ({
   rpc: vi.fn(),
-  finishEq: vi.fn(async () => ({ error: null })),
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -13,7 +12,6 @@ vi.mock('@/lib/supabase/admin', () => ({
       insert: () => ({
         select: () => ({ single: async () => ({ data: { id: 'run-1' }, error: null }) }),
       }),
-      update: () => ({ eq: finishEq }),
     }),
   }),
 }))
@@ -22,7 +20,6 @@ import { classifyCronRun, runCronWithStatus } from '@/lib/runtime/cron-runs'
 
 beforeEach(() => {
   rpc.mockReset()
-  finishEq.mockClear()
   rpc
     .mockResolvedValueOnce({
       data: { lease_token: '90000000-0000-4000-8000-000000000001', cursor: 'user-20' },
@@ -62,15 +59,24 @@ describe('classifyCronRun', () => {
       return {
         response: NextResponse.json({ processed: 2, totalErrors: 0 }),
         nextCursor: 'user-40',
+        itemOutcomes: [{ itemKey: 'user-20', ok: true }],
       }
     })
 
     expect(response.status).toBe(200)
-    expect(finishEq).toHaveBeenCalledWith('id', 'run-1')
-    expect(rpc).toHaveBeenLastCalledWith('finish_cron_job', {
+    expect(rpc).toHaveBeenLastCalledWith('finalize_cron_run', {
+      p_run_id: 'run-1',
       p_job_name: 'daily-test',
       p_lease_token: '90000000-0000-4000-8000-000000000001',
       p_next_cursor: 'user-40',
+      p_status: 'success',
+      p_http_status: 200,
+      p_processed: 2,
+      p_error_count: 0,
+      p_truncated: false,
+      p_summary: { processed: 2, totalErrors: 0 },
+      p_first_error: null,
+      p_item_outcomes: [{ itemKey: 'user-20', ok: true }],
     })
   })
 })

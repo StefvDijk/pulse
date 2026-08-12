@@ -36,7 +36,7 @@ describe('takeCronCapacity', () => {
     expect(cursorAfterCronPage(page)).toBeNull()
   })
 
-  it('advances after a full page but retries from before the first failed row', async () => {
+  it('advances the fairness cursor even when an item failed', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       data: [{ id: 'b' }, { id: 'c' }, { id: 'd' }],
       error: null,
@@ -48,7 +48,7 @@ describe('takeCronCapacity', () => {
     const page = await fetchCronCursorPage('a', fetchPage, (row) => row.id, 2)
 
     expect(cursorAfterCronPage(page)).toBe('c')
-    expect(cursorAfterCronPage(page, 1)).toBe('b')
-    expect(cursorAfterCronPage(page, 0)).toBe('a')
+    expect(cursorAfterCronPage(page, 1)).toBe('c')
+    expect(cursorAfterCronPage(page, 0)).toBe('c')
   })
 })

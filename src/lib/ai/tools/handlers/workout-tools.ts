@@ -6,12 +6,6 @@ function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function formatPace(secondsPerKm: number): string {
-  const mins = Math.floor(secondsPerKm / 60)
-  const secs = Math.round(secondsPerKm % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}/km`
-}
-
 // ---------------------------------------------------------------------------
 // get_workout_history
 // ---------------------------------------------------------------------------

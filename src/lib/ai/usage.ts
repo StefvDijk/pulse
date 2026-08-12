@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { estimateCostUsd } from '@/lib/ai/pricing'
-import { releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
+import type { AiBudgetReservation } from '@/lib/ai/budget'
+import { reportOperationalError } from '@/lib/observability/operational-errors'
 
 export interface UsageMetrics {
   inputTokens?: number | null
@@ -21,9 +22,8 @@ export interface LogUsageParams {
 }
 
 /**
- * Fire-and-forget Claude usage logger. Never throws — logging failures
- * must not break the calling feature. Resolves the AI SDK's lazy `usage`
- * promise if one is passed in via the caller.
+ * Persist Claude usage. When a budget reservation exists, settlement and
+ * release happen in one database transaction; failures retain the reservation.
  */
 export async function logAiUsage(params: LogUsageParams): Promise<void> {
   const {
@@ -45,9 +45,8 @@ export async function logAiUsage(params: LogUsageParams): Promise<void> {
       cacheReadTokens: usage?.cacheReadTokens ?? null,
       cacheCreationTokens: usage?.cacheCreationTokens ?? null,
     }
-    const { error } = await admin
-      .from('ai_usage_log')
-      .insert({
+    const estimatedCostUsd = estimateCostUsd(model, tokens)
+    const usageRow = {
         user_id: userId,
         feature,
         model,
@@ -55,15 +54,40 @@ export async function logAiUsage(params: LogUsageParams): Promise<void> {
         output_tokens: tokens.outputTokens,
         cache_read_tokens: tokens.cacheReadTokens,
         cache_creation_tokens: tokens.cacheCreationTokens,
-        estimated_cost_usd: estimateCostUsd(model, tokens),
+        estimated_cost_usd: estimatedCostUsd,
         duration_ms: durationMs ?? null,
         status,
         error_code: errorCode,
+      }
+
+    if (reservation) {
+      const { error } = await admin.rpc('settle_ai_usage', {
+        p_reservation_id: reservation.id,
+        p_user_id: reservation.userId,
+        p_feature: feature,
+        p_model: model,
+        p_input_tokens: tokens.inputTokens,
+        p_output_tokens: tokens.outputTokens,
+        p_cache_read_tokens: tokens.cacheReadTokens,
+        p_cache_creation_tokens: tokens.cacheCreationTokens,
+        p_estimated_cost_usd: estimatedCostUsd,
+        p_duration_ms: durationMs ?? null,
+        p_status: status,
+        p_error_code: errorCode,
       })
-    if (error) console.error('[ai-usage] insert failed:', error.message)
+      if (error) throw new Error(`AI usage settlement failed: ${error.message}`)
+      return
+    }
+
+    const { error } = await admin.from('ai_usage_log').insert(usageRow)
+    if (error) throw new Error(`AI usage insert failed: ${error.message}`)
   } catch (error) {
     console.error('[ai-usage] insert threw:', error)
-  } finally {
-    await releaseAiBudget(reservation)
+    reportOperationalError('ai-usage:settlement', error, {
+      userId,
+      feature,
+      model,
+      reservationId: reservation?.id,
+    })
   }
 }

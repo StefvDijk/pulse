@@ -4,6 +4,8 @@ import { runBeliefExtractor, type BeliefScope } from '@/lib/ai/belief-extractor'
 import { runInBatches } from '@/lib/runtime/run-in-batches'
 import { runCronWithStatus } from '@/lib/runtime/cron-runs'
 import { validBearerSecret } from '@/lib/security/secrets'
+import { cursorAfterCronPage, fetchCronCursorPage } from '@/lib/runtime/cron-capacity'
+import { filterRunnableCronItems } from '@/lib/runtime/cron-items'
 
 export const maxDuration = 300
 
@@ -21,26 +23,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  return runCronWithStatus('belief-sweep', async () => {
+  return runCronWithStatus('belief-sweep', async ({ cursor }) => {
     const admin = createAdminClient()
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
 
-  const { data: stale, error } = await admin
-    .from('coach_beliefs')
-    .select('id, user_id, category, hypothesis_text')
-    .eq('status', 'active')
-    .or(`last_tested_at.is.null,last_tested_at.lt.${sevenDaysAgo}`)
-    .order('last_tested_at', { ascending: true, nullsFirst: true })
-    .order('id', { ascending: true })
-    .limit(20)
-
-  if (error) {
-    console.error('[belief-sweep] query failed:', error)
-    return {
-      response: NextResponse.json({ error: 'Query failed', code: 'QUERY_FAILED' }, { status: 500 }),
-      nextCursor: null,
-    }
-  }
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin
+        .from('coach_beliefs')
+        .select('id, user_id, category, hypothesis_text')
+        .eq('status', 'active')
+        .or(`last_tested_at.is.null,last_tested_at.lt.${sevenDaysAgo}`)
+        .order('id', { ascending: true })
+      if (after) query = query.gt('id', after)
+      return query.limit(limit)
+    },
+    (belief) => belief.id,
+  )
+  const stale = await filterRunnableCronItems('belief-sweep', page.items, (belief) => belief.id)
 
   const results = await runInBatches(stale ?? [], 5, async (belief) => {
     await runBeliefExtractor(
@@ -64,16 +65,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const failed = results.length - swept
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
-      console.error(`[belief-sweep] belief ${stale?.[index]?.id ?? index} failed:`, result.reason)
+      console.error(`[belief-sweep] belief ${stale[index]?.id ?? index} failed:`, result.reason)
     }
   })
 
   return {
     response: NextResponse.json(
-      { ok: failed === 0, swept, failed },
+      { ok: failed === 0, swept, failed, truncated: page.truncated },
       { status: failed > 0 ? 503 : 200 },
     ),
-    nextCursor: null,
+    nextCursor: cursorAfterCronPage(page),
+    itemOutcomes: results.map((result, index) => ({
+      itemKey: stale[index]?.id ?? 'unknown',
+      ok: result.status === 'fulfilled',
+      error:
+        result.status === 'rejected'
+          ? result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+          : undefined,
+    })),
   }
   })
 }
