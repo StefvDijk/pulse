@@ -4,7 +4,7 @@ import { buildLocalSupabaseCommand } from '@/lib/supabase/local-cli'
 describe('buildLocalSupabaseCommand', () => {
   it.each([
     ['reset', ['db', 'reset', '--local']],
-    ['migrate', ['migration', 'up', '--local']],
+    ['migrate', ['migration', 'up', '--local', '--include-all']],
   ] as const)('forces the %s command to the local stack', (action, expected) => {
     expect(buildLocalSupabaseCommand(action)).toEqual(expected)
   })
