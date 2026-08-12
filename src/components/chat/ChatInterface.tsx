@@ -293,7 +293,7 @@ export function ChatInterface({
             try {
               const parsed: unknown = JSON.parse(payload)
               if (typeof parsed === 'string') {
-                if (isThinking) setIsThinking(false)
+                setIsThinking(false)
                 accumulated += parsed
                 targetRef.current = accumulated
                 startSmoothReveal()
