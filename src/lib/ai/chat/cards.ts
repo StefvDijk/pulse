@@ -57,6 +57,14 @@ export const WritebackCardSchema = z.object({
   type: z.literal('writeback_card'),
   kind: z.enum(['nutrition', 'injury', 'schema_generation', 'schema_update']),
   label: z.string().min(1).max(80),
+  status: z.enum(['saved', 'undone']).optional(),
+  record_id: z.string().uuid().optional(),
+  nutrition: z.object({
+    calories: z.number().nonnegative(),
+    protein_g: z.number().nonnegative(),
+    carbs_g: z.number().nonnegative(),
+    fat_g: z.number().nonnegative(),
+  }).optional(),
 })
 export type WritebackCardData = z.infer<typeof WritebackCardSchema>
 
@@ -130,8 +138,11 @@ const WRITEBACK_LABELS: Record<WritebackCardData['kind'], string> = {
 }
 
 /** Construct a write-back confirmation card for a successful write. */
-export function makeWritebackCard(kind: WritebackCardData['kind']): WritebackCardData {
-  return { type: 'writeback_card', kind, label: WRITEBACK_LABELS[kind] }
+export function makeWritebackCard(
+  kind: WritebackCardData['kind'],
+  details: Pick<WritebackCardData, 'record_id' | 'nutrition'> = {},
+): WritebackCardData {
+  return { type: 'writeback_card', kind, label: WRITEBACK_LABELS[kind], status: 'saved', ...details }
 }
 
 /**

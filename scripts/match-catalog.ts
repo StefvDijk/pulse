@@ -59,7 +59,7 @@ async function fetchAllCatalog(): Promise<{ id: string; name: string }[]> {
 async function main() {
   const { data: defs, error: defErr } = await supabase
     .from('exercise_definitions')
-    .select('id, name')
+    .select('id, name, catalog_id')
   if (defErr) {
     console.error(defErr.message)
     process.exit(1)
@@ -73,6 +73,18 @@ async function main() {
     const result = matchDefinitionToCatalog(def.name, catalog, CATALOG_OVERRIDES)
     if (!result.catalogId) {
       unmatched.push(def.name)
+      if (dryRun && def.catalog_id) {
+        console.log(`• ${def.name} → would clear stale link ${def.catalog_id}`)
+      } else if (!dryRun && def.catalog_id) {
+        const { error } = await supabase
+          .from('exercise_definitions')
+          .update({ catalog_id: null })
+          .eq('id', def.id)
+        if (error) {
+          console.error(`Clearing stale match failed for ${def.name}:`, error.message)
+          process.exit(1)
+        }
+      }
       continue
     }
     matched += 1
@@ -92,7 +104,11 @@ async function main() {
   }
 
   const total = defs?.length ?? 0
+  const staleLinks = (defs ?? []).filter((def) =>
+    def.catalog_id && !matchDefinitionToCatalog(def.name, catalog, CATALOG_OVERRIDES).catalogId,
+  ).length
   console.log(`\n${dryRun ? 'Dry-run matched' : 'Matched'} ${matched}/${total}`)
+  console.log(`${dryRun ? 'Would clear' : 'Cleared'} ${staleLinks} stale catalog links`)
   if (unmatched.length) {
     console.log('\nUnmatched (add to CATALOG_OVERRIDES):')
     unmatched.forEach((n) => console.log(`  - ${n}`))

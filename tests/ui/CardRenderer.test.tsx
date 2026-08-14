@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { render, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { CardRenderer } from '@/components/chat/cards/CardRenderer'
 import type { AnyCard } from '@/lib/ai/chat/cards'
 
@@ -46,5 +46,36 @@ describe('CardRenderer', () => {
     const card: AnyCard = { type: 'writeback_card', kind: 'nutrition', label: '✓ Voeding gelogd' }
     const { getByText } = render(<CardRenderer card={card} />)
     expect(getByText('✓ Voeding gelogd')).toBeTruthy()
+  })
+
+  it('shows exact stored nutrition macros and can undo the record', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    const card: AnyCard = {
+      type: 'writeback_card',
+      kind: 'nutrition',
+      label: '✓ Voeding gelogd',
+      record_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      nutrition: { calories: 220, protein_g: 28, carbs_g: 12.5, fat_g: 4 },
+    }
+    const { getByText } = render(<CardRenderer card={card} />)
+    expect(getByText(/220 kcal · 28g eiwit · 12.5g koolhydraten · 4g vet/)).toBeTruthy()
+    fireEvent.click(getByText('Ongedaan maken'))
+    await waitFor(() => expect(getByText('Voedingslog ongedaan gemaakt')).toBeTruthy())
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/nutrition/log/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      { method: 'DELETE' },
+    )
+    globalThis.fetch = originalFetch
+  })
+
+  it('restores a durable undone nutrition card without offering undo again', () => {
+    const card: AnyCard = {
+      type: 'writeback_card', kind: 'nutrition', label: '✓ Voeding gelogd',
+      status: 'undone', record_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+    }
+    const { getByText, queryByText } = render(<CardRenderer card={card} />)
+    expect(getByText('Voedingslog ongedaan gemaakt')).toBeTruthy()
+    expect(queryByText('Ongedaan maken')).toBeNull()
   })
 })

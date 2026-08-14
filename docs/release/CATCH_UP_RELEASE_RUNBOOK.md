@@ -44,6 +44,19 @@ in the pull request.
 5. Smoke-test: open an old chat with rich cards, send a new message, run one
    authorized cron manually, and verify its `cron_runs` row and cursor.
 
+Review dead letters after every deploy and when `cron:*:item-failure` alerts:
+
+```sql
+select job_name, item_key, attempts, last_error, dead_lettered_at
+from public.cron_item_failures
+where dead_lettered_at is not null
+order by dead_lettered_at desc;
+```
+
+After fixing the root cause, requeue one reviewed item by deleting only its
+exact `(job_name, item_key)` failure row. The next scan will retry it. Never
+bulk-delete this table; preserve unrelated backoff state.
+
 The chat metric trigger, cron finalizer, and AI usage settlement have pgTAP
 rollback tests in `supabase/tests/release_durability.test.sql`.
 

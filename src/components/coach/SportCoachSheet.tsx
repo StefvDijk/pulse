@@ -29,7 +29,7 @@ export function SportCoachSheet({ open, onClose }: SportCoachSheetProps) {
   const sport = getCoachConfig('sport')
 
   return (
-    <Sheet open={open} onClose={onClose} detents={['large']} grabber autoFocus={false}>
+    <Sheet open={open} onClose={onClose} detents={['large']} title="Sportcoach" showTitle={false} grabber autoFocus={false}>
       <div className="flex h-full flex-col">
         <CoachIdentity
           identity={sport.identity}

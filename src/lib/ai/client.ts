@@ -3,7 +3,7 @@ import { streamText, generateText, stepCountIs } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
 import { logAiUsage } from '@/lib/ai/usage'
 import { runAfterResponse } from '@/lib/runtime/after-response'
-import { reserveAiBudget, releaseAiBudget } from '@/lib/ai/budget'
+import { reserveAiBudget } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Model constants — single source of truth
@@ -165,7 +165,15 @@ export async function streamChat({ system, systemDynamic, messages, tools, model
       ...(onError ? { onError } : {}),
     })
   } catch (error) {
-    await releaseAiBudget(reservation)
+    await logAiUsage({
+      userId: meta.userId,
+      feature: meta.feature,
+      model: resolvedModel,
+      durationMs: Date.now() - startedAt,
+      status: 'error',
+      errorCode: (error as { name?: string })?.name ?? 'STREAM_SETUP_ERROR',
+      reservation,
+    })
     throw error
   }
 

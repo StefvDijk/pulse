@@ -20,6 +20,24 @@ interface Message {
   cards?: AnyCard[]
 }
 
+export function prepareMessagesForChatAttempt(
+  messages: Message[],
+  message: string,
+  turnId: string,
+  retry: boolean,
+  createdAt = new Date().toISOString(),
+): Message[] {
+  if (retry) {
+    return messages.filter(
+      (item) => item.id !== `assistant-${turnId}` && item.id !== `error-${turnId}`,
+    )
+  }
+  return [
+    ...messages,
+    { id: `user-${turnId}`, role: 'user', content: message, created_at: createdAt },
+  ]
+}
+
 interface ChatHistoryResponse {
   session_id: string | null
   messages: Array<{
@@ -86,7 +104,10 @@ export function ChatInterface({
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
   const [showSuggestions, setShowSuggestions] = useState(!seededFreshMessage)
   const [isInitializing, setIsInitializing] = useState(!startsFresh)
-  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  const [lastFailedRequest, setLastFailedRequest] = useState<{
+    message: string
+    turnId: string
+  } | null>(null)
   // When there is no initialSessionId the user started a fresh chat — skip the
   // history fetch until the first send returns a real session_id via header.
   const [isFreshSession, setIsFreshSession] = useState(!initialSessionId)
@@ -178,8 +199,7 @@ export function ChatInterface({
     const container = scrollContainerRef.current
     if (!container) return
 
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
     if (distanceFromBottom > NEAR_BOTTOM_PX) return
 
     if (rafRef.current !== null) return // already scheduled this frame
@@ -232,20 +252,22 @@ export function ChatInterface({
   }, [])
 
   const handleSend = useCallback(
-    async (message: string) => {
+    async (message: string, retryTurnId?: string) => {
       if (isLoading) return
 
       setShowSuggestions(false)
       setIsLoading(true)
-      setLastFailedMessage(null)
+      setLastFailedRequest(null)
+      const turnId = retryTurnId ?? crypto.randomUUID()
 
-      const userMsg: Message = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: message,
-        created_at: new Date().toISOString(),
+      if (retryTurnId) {
+        // Replace the failed attempt in place: keep the original user bubble,
+        // remove its partial assistant/error bubbles, and let the durable turn
+        // replay produce one final assistant response.
+        setMessages((prev) => prepareMessagesForChatAttempt(prev, message, turnId, true))
+      } else {
+        setMessages((prev) => prepareMessagesForChatAttempt(prev, message, turnId, false))
       }
-      setMessages((prev) => [...prev, userMsg])
       setStreamingContent('')
       setIsThinking(false)
       targetRef.current = ''
@@ -256,7 +278,8 @@ export function ChatInterface({
       try {
         // Seed is only relevant on the first turn of a fresh seeded thread.
         // After the server persists it the session has it in history naturally.
-        const seedForRequest = !sessionId && seededAssistant ? seededAssistant : undefined
+        const seedForRequest =
+          (!sessionId || retryTurnId) && seededAssistant ? seededAssistant : undefined
 
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -265,10 +288,27 @@ export function ChatInterface({
             message,
             session_id: sessionId,
             coach_id: coachId,
+            turn_id: turnId,
             ...(seedForRequest ? { seed_assistant: seedForRequest } : {}),
           }),
         })
 
+        if (res.status === 409) {
+          const conflict = (await res.json().catch(() => null)) as { code?: string } | null
+          if (conflict?.code === 'TURN_IN_PROGRESS') {
+            const retryAfter = Math.max(1, Number(res.headers.get('Retry-After')) || 1)
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `error-${turnId}`,
+                role: 'assistant',
+                content: `Deze poging wordt nog afgerond. Wacht ongeveer ${retryAfter} seconden en probeer opnieuw.`,
+              },
+            ])
+            setLastFailedRequest({ message, turnId })
+            return
+          }
+        }
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`)
         }
@@ -323,11 +363,7 @@ export function ChatInterface({
                   code: e.code ?? 'AI_GENERIC_ERROR',
                   message: e.message ?? 'Er ging iets mis bij het genereren van het antwoord.',
                 }
-              } else if (
-                parsed &&
-                typeof parsed === 'object' &&
-                '__card' in parsed
-              ) {
+              } else if (parsed && typeof parsed === 'object' && '__card' in parsed) {
                 const card = parseCardEvent(parsed)
                 if (card) pendingCards.push(card)
               }
@@ -350,7 +386,7 @@ export function ChatInterface({
         // Persist any partial response we did get before the error.
         if (accumulated) {
           const assistantMsg: Message = {
-            id: `assistant-${Date.now()}`,
+            id: `assistant-${turnId}`,
             role: 'assistant',
             content: accumulated,
             created_at: new Date().toISOString(),
@@ -365,24 +401,24 @@ export function ChatInterface({
           setMessages((prev) => [
             ...prev,
             {
-              id: `error-${Date.now()}`,
+              id: `error-${turnId}`,
               role: 'assistant',
               content: errorEvent.message,
             },
           ])
-          setLastFailedMessage(message)
+          setLastFailedRequest({ message, turnId })
         }
       } catch (err) {
         console.error('Chat send error:', err)
         setMessages((prev) => [
           ...prev,
           {
-            id: `error-${Date.now()}`,
+            id: `error-${turnId}`,
             role: 'assistant',
             content: 'Er is iets misgegaan. Tik op "Opnieuw" of stel je vraag opnieuw.',
           },
         ])
-        setLastFailedMessage(message)
+        setLastFailedRequest({ message, turnId })
       } finally {
         setStreamingContent('')
         setIsThinking(false)
@@ -401,12 +437,8 @@ export function ChatInterface({
 
   // Auto-send initialMessage once history has loaded and there are no existing messages
   useEffect(() => {
-    if (
-      !initialMessage ||
-      isInitializing ||
-      initialMessageSentRef.current ||
-      messages.length > 0
-    ) return
+    if (!initialMessage || isInitializing || initialMessageSentRef.current || messages.length > 0)
+      return
     initialMessageSentRef.current = true
     handleSend(initialMessage)
   }, [initialMessage, isInitializing, messages.length, handleSend])
@@ -450,9 +482,7 @@ export function ChatInterface({
               dayKeyAmsterdam(msg.created_at) !== dayKeyAmsterdam(prev.created_at))
           return (
             <Fragment key={msg.id}>
-              {showSeparator && (
-                <TimeSeparator dateLabel={messageDateLabel(msg.created_at!)} />
-              )}
+              {showSeparator && <TimeSeparator dateLabel={messageDateLabel(msg.created_at!)} />}
               <ChatMessage
                 role={msg.role}
                 content={msg.content}
@@ -467,35 +497,34 @@ export function ChatInterface({
             the instant the server flushes its __thinking event, even
             before the first token arrives. */}
         {(streamingContent || isThinking) && (
-          <ChatMessage
-            role="assistant"
-            content={streamingContent}
-            isStreaming
-          />
+          <ChatMessage role="assistant" content={streamingContent} isStreaming />
         )}
 
         <div ref={bottomRef} />
       </div>
 
       {/* Glass input bar — sticky bottom, safe-area aware */}
-      <div className={`glass-nav border-t-0 border-b-0 ${compact ? 'px-2 pt-2 pb-safe-12' : 'px-4 pt-3 pb-safe-16'}`}
+      <div
+        className={`glass-nav border-t-0 border-b-0 ${compact ? 'pb-safe-12 px-2 pt-2' : 'pb-safe-16 px-4 pt-3'}`}
         style={{ borderTop: '0.5px solid var(--color-bg-border-strong)' }}
       >
-        {lastFailedMessage && !isLoading && (
+        {lastFailedRequest && !isLoading && (
           <div className="flex justify-center pb-2">
             <button
               onClick={() => {
-                // Remove the error message and retry
-                setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
-                handleSend(lastFailedMessage)
+                handleSend(lastFailedRequest.message, lastFailedRequest.turnId)
               }}
-              className="rounded-full bg-white/[0.08] border-[0.5px] border-white/[0.14] px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-all duration-150 active:scale-95"
+              className="text-caption1 text-text-secondary min-h-11 rounded-full border-[0.5px] border-white/[0.14] bg-white/[0.08] px-4 py-1.5 font-medium transition-all duration-150 active:scale-95"
             >
               Opnieuw proberen
             </button>
           </div>
         )}
-        <ChatSuggestions onSelect={handleSend} visible={showSuggestions} suggestions={suggestions} />
+        <ChatSuggestions
+          onSelect={handleSend}
+          visible={showSuggestions}
+          suggestions={suggestions}
+        />
         <ChatInput onSend={handleSend} isLoading={isLoading} />
       </div>
     </div>

@@ -493,7 +493,7 @@ export function NextBlockStep({
             onChange={(e) => setInput(e.target.value)}
             rows={2}
             placeholder="Bijv. 'Vervang Lat Pulldown met Pull-ups' of 'minder volume op donderdag'..."
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary placeholder:text-text-tertiary resize-none"
             disabled={busy}
           />
           <button

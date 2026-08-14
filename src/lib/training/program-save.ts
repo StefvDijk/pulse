@@ -29,6 +29,7 @@ export interface SaveProgramSchemaParams {
   generationContext?: string | null
   previousSchemaId?: string | null
   previousEndDate?: string | null
+  sourceChatTurnId?: string | null
 }
 
 type TrainingSchemaInsert = Database['public']['Tables']['training_schemas']['Insert']
@@ -40,6 +41,7 @@ export function buildProgramSchemaRow({
   plannedWeeklyLoad,
   sourceBlockReviewId,
   generationContext,
+  sourceChatTurnId,
 }: Omit<SaveProgramSchemaParams, 'admin' | 'previousSchemaId' | 'previousEndDate'>): TrainingSchemaInsert {
   return {
     user_id: userId,
@@ -55,6 +57,7 @@ export function buildProgramSchemaRow({
     is_active: false,
     ai_generated: true,
     generation_context: generationContext ?? null,
+    source_chat_turn_id: sourceChatTurnId ?? null,
   }
 }
 
@@ -190,6 +193,7 @@ export async function insertProgramSchema({
   generationContext,
   previousSchemaId,
   previousEndDate,
+  sourceChatTurnId,
 }: SaveProgramSchemaParams): Promise<string> {
   return insertAndActivateTrainingSchema(admin, {
     userId,
@@ -202,6 +206,7 @@ export async function insertProgramSchema({
       plannedWeeklyLoad,
       sourceBlockReviewId,
       generationContext,
+      sourceChatTurnId,
     }) as unknown as Json,
   })
 }

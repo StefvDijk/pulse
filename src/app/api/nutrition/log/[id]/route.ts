@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { recomputeDailyNutritionSummary } from '@/lib/nutrition/summary'
 
 export async function DELETE(
   _request: Request,
@@ -20,27 +19,16 @@ export async function DELETE(
     const { id } = await params
     const admin = createAdminClient()
 
-    const { data: existing, error: lookupError } = await admin
-      .from('nutrition_logs')
-      .select('id, date')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (lookupError) throw lookupError
-    if (!existing) {
-      return NextResponse.json({ error: 'Not found', code: 'NOT_FOUND' }, { status: 404 })
+    const { error: undoError } = await admin.rpc('undo_chat_nutrition_log', {
+      p_user_id: user.id,
+      p_log_id: id,
+    })
+    if (undoError) {
+      if (undoError.message.includes('Nutrition log not found')) {
+        return NextResponse.json({ error: 'Not found', code: 'NOT_FOUND' }, { status: 404 })
+      }
+      throw undoError
     }
-
-    const { error: deleteError } = await admin
-      .from('nutrition_logs')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
-
-    if (deleteError) throw deleteError
-
-    await recomputeDailyNutritionSummary(user.id, existing.date)
 
     return NextResponse.json({ ok: true })
   } catch (error) {

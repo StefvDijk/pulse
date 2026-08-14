@@ -1,8 +1,10 @@
 BEGIN;
-SELECT plan(19);
+SELECT plan(40);
 
 INSERT INTO auth.users (id, email)
-VALUES ('90000000-0000-0000-0000-000000000001', 'release-durability@test.invalid');
+VALUES
+  ('90000000-0000-0000-0000-000000000001', 'release-durability@test.invalid'),
+  ('90000000-0000-0000-0000-000000000002', 'release-durability-other@test.invalid');
 
 -- Chat cards survive persistence and session metrics are derived from messages.
 INSERT INTO public.chat_sessions (id, user_id, title)
@@ -10,6 +12,89 @@ VALUES (
   '91000000-0000-0000-0000-000000000001',
   '90000000-0000-0000-0000-000000000001',
   'Durability test'
+);
+
+SELECT is(
+  public.resolve_chat_session_for_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000001','manager','first'
+  )->>'id',
+  public.resolve_chat_session_for_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000001','manager','retry'
+  )->>'id',
+  'a retried first turn resolves to the original session'
+);
+
+SELECT is(
+  (public.claim_chat_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    '91000000-0000-0000-0000-000000000001',repeat('a',64),90
+  )->>'claimed')::boolean,
+  true,
+  'the first worker atomically claims a chat turn'
+);
+
+SELECT is(
+  (public.claim_chat_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    '91000000-0000-0000-0000-000000000001',repeat('a',64),90
+  )->>'claimed')::boolean,
+  false,
+  'a concurrent worker cannot claim the same chat turn'
+);
+
+SELECT lives_ok(
+  $$ SELECT public.store_chat_turn_response(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    (SELECT lease_token FROM public.chat_turn_executions
+     WHERE user_id='90000000-0000-0000-0000-000000000001'
+       AND turn_id='91500000-0000-4000-8000-000000000002'),
+    'first durable model intent'
+  );
+  SELECT public.store_chat_turn_response(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    (SELECT lease_token FROM public.chat_turn_executions
+     WHERE user_id='90000000-0000-0000-0000-000000000001'
+       AND turn_id='91500000-0000-4000-8000-000000000002'),
+    'different retry output'
+  ) $$,
+  'the lease owner can durably store chat intent before write-backs'
+);
+
+SELECT is(
+  (SELECT generated_response FROM public.chat_turn_executions
+   WHERE user_id='90000000-0000-0000-0000-000000000001'
+     AND turn_id='91500000-0000-4000-8000-000000000002'),
+  'first durable model intent',
+  'the first complete model intent wins across retries'
+);
+
+SELECT lives_ok(
+  $$ SELECT public.complete_chat_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    (SELECT lease_token FROM public.chat_turn_executions
+     WHERE user_id='90000000-0000-0000-0000-000000000001'
+       AND turn_id='91500000-0000-4000-8000-000000000002')
+  ) $$,
+  'the owning worker can complete its chat turn'
+);
+
+SELECT is(
+  (public.claim_chat_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    '91000000-0000-0000-0000-000000000001',repeat('a',64),90
+  )->>'completed')::boolean,
+  true,
+  'a completed turn is replay-only'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.claim_chat_turn(
+    '90000000-0000-0000-0000-000000000001','91500000-0000-4000-8000-000000000002',
+    '91000000-0000-0000-0000-000000000001',repeat('b',64),90
+  ) $$,
+  'P0001',
+  'Chat turn identity does not match original request',
+  'a turn id cannot be reused for different request content'
 );
 
 INSERT INTO public.chat_messages (
@@ -63,6 +148,116 @@ SELECT throws_ok(
   'chat cards must be a JSON array'
 );
 
+SELECT throws_ok(
+  $$
+    INSERT INTO public.chat_messages (user_id, session_id, role, content)
+    VALUES (
+      '90000000-0000-0000-0000-000000000002',
+      '91000000-0000-0000-0000-000000000001',
+      'user', 'cross-owner message'
+    )
+  $$,
+  '23503',
+  NULL,
+  'a chat message cannot be linked to another users session'
+);
+
+INSERT INTO public.nutrition_logs (
+  user_id, date, raw_input, source_chat_turn_id
+) VALUES (
+  '90000000-0000-0000-0000-000000000001',
+  '2026-08-12',
+  'first retry-safe log',
+  '92500000-0000-4000-8000-000000000001'
+);
+
+SELECT throws_ok(
+  $$
+    INSERT INTO public.nutrition_logs (
+      user_id, date, raw_input, source_chat_turn_id
+    ) VALUES (
+      '90000000-0000-0000-0000-000000000001',
+      '2026-08-12',
+      'duplicate retry',
+      '92500000-0000-4000-8000-000000000001'
+    )
+  $$,
+  '23505',
+  NULL,
+  'a retried chat turn cannot create a duplicate nutrition log'
+);
+
+SELECT lives_ok(
+  $$
+    INSERT INTO public.chat_messages(user_id,session_id,role,content,message_type,source_chat_turn_id)
+    VALUES ('90000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001',
+      'assistant','retry-safe','general','92500000-0000-4000-8000-000000000002')
+    ON CONFLICT (user_id,source_chat_turn_id,role,message_type) DO NOTHING;
+    INSERT INTO public.chat_messages(user_id,session_id,role,content,message_type,source_chat_turn_id)
+    VALUES ('90000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000001',
+      'assistant','retry-safe','general','92500000-0000-4000-8000-000000000002')
+    ON CONFLICT (user_id,source_chat_turn_id,role,message_type) DO NOTHING
+  $$,
+  'a retried assistant message is accepted idempotently'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.chat_messages WHERE source_chat_turn_id='92500000-0000-4000-8000-000000000002'),
+  1::bigint,
+  'a retried assistant message remains one row'
+);
+
+SELECT lives_ok(
+  $$ SELECT public.save_nutrition_log_atomic(
+    '90000000-0000-0000-0000-000000000001',
+    '{"date":"2026-08-13","raw_input":"kwark","estimated_calories":220,"estimated_protein_g":28,"estimated_carbs_g":12.5,"estimated_fat_g":4,"estimated_fiber_g":0,"meal_type":"snack","confidence":"high","ai_analysis":"[]","source_chat_turn_id":"92500000-0000-4000-8000-000000000003"}'::jsonb
+  ) $$,
+  'atomic nutrition save commits log and summary'
+);
+
+UPDATE public.chat_messages SET cards = jsonb_build_array(jsonb_build_object(
+  'type','writeback_card','kind','nutrition','label','Voeding gelogd','status','saved',
+  'record_id',(SELECT id::text FROM public.nutrition_logs WHERE source_chat_turn_id='92500000-0000-4000-8000-000000000003')
+)) WHERE source_chat_turn_id='92500000-0000-4000-8000-000000000002';
+
+SELECT is(
+  (SELECT total_calories FROM public.daily_nutrition_summary
+   WHERE user_id='90000000-0000-0000-0000-000000000001' AND date='2026-08-13'),
+  220::numeric,
+  'atomic nutrition save derives the daily summary'
+);
+
+SELECT is(
+  (public.save_nutrition_log_atomic(
+    '90000000-0000-0000-0000-000000000001',
+    '{"date":"2026-08-13","raw_input":"different retry","estimated_calories":999,"estimated_protein_g":1,"estimated_carbs_g":1,"estimated_fat_g":1,"estimated_fiber_g":1,"meal_type":"snack","confidence":"low","ai_analysis":"[]","source_chat_turn_id":"92500000-0000-4000-8000-000000000003"}'::jsonb
+  )->>'estimated_calories')::numeric,
+  220::numeric,
+  'a nutrition retry returns the first durable macro values'
+);
+
+SELECT lives_ok(
+  $$ SELECT public.undo_chat_nutrition_log(
+    '90000000-0000-0000-0000-000000000001',
+    (SELECT id FROM public.nutrition_logs WHERE source_chat_turn_id='92500000-0000-4000-8000-000000000003')
+  ) $$,
+  'atomic nutrition undo deletes and recomputes'
+);
+
+SELECT is(
+  (SELECT cards->0->>'status' FROM public.chat_messages
+   WHERE source_chat_turn_id='92500000-0000-4000-8000-000000000002'),
+  'undone',
+  'nutrition undo persists the restored card status'
+);
+
+SELECT is(
+  (SELECT total_calories FROM public.daily_nutrition_summary
+   WHERE user_id='90000000-0000-0000-0000-000000000001' AND date='2026-08-13'),
+  0::numeric,
+  'nutrition undo recomputes the daily summary in the same transaction'
+);
+
 DELETE FROM public.chat_messages
 WHERE id = '92000000-0000-0000-0000-000000000002';
 
@@ -72,7 +267,7 @@ SELECT is(
     FROM public.chat_sessions
     WHERE id = '91000000-0000-0000-0000-000000000001'
   ),
-  1,
+  2,
   'deleting a message decrements the derived session count'
 );
 
@@ -234,6 +429,54 @@ SELECT results_eq(
   $$ VALUES (1::bigint, true) $$,
   'settlement writes one usage row and releases headroom'
 );
+
+INSERT INTO public.ai_budget_reservations (
+  id, user_id, estimated_cost_usd
+) VALUES (
+  '94000000-0000-0000-0000-000000000003',
+  '90000000-0000-0000-0000-000000000001',
+  0.33
+);
+
+SELECT lives_ok(
+  $$
+    SELECT public.settle_ai_usage(
+      '94000000-0000-0000-0000-000000000003',
+      '90000000-0000-0000-0000-000000000001',
+      'unknown-provider-usage', 'claude-sonnet-4-6',
+      NULL, NULL, NULL, NULL, 0, 125, 'error', 'STREAM_ERROR'
+    )
+  $$,
+  'unknown provider usage can settle without reported token counts'
+);
+
+SELECT is(
+  (
+    SELECT estimated_cost_usd
+    FROM public.ai_usage_log
+    WHERE feature = 'unknown-provider-usage'
+  ),
+  0.33::numeric,
+  'unknown provider usage settles at the conservative reservation cost'
+);
+
+INSERT INTO public.ai_budget_reservations(
+  id,user_id,estimated_cost_usd,expires_at
+) VALUES (
+  '94000000-0000-0000-0000-000000000004',
+  '90000000-0000-0000-0000-000000000001',0.39,now()-interval '1 day'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.reserve_ai_budget(
+    '90000000-0000-0000-0000-000000000001',0.40,0.02
+  ) $$,
+  'P0001',
+  'AI monthly budget exceeded',
+  'an expired but unsettled reservation still holds monthly budget headroom'
+);
+UPDATE public.ai_budget_reservations SET released_at=now()
+WHERE id='94000000-0000-0000-0000-000000000004';
 
 INSERT INTO public.ai_budget_reservations (
   id, user_id, estimated_cost_usd

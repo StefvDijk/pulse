@@ -5,7 +5,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import type { SyncResult } from '@/lib/hevy/sync'
 import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
-import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // System prompt for the sync analyst
@@ -200,6 +200,7 @@ ${prSection}${existingSection}`
       durationMs: Date.now() - startedAt,
       reservation,
     })
+    reservation = null
 
     // 6. Parse and store updates
     const match = /\[[\s\S]*\]/.exec(text)
@@ -243,7 +244,16 @@ ${prSection}${existingSection}`
       )
     }
   } catch (err) {
-    await releaseAiBudget(reservation)
+    if (reservation) {
+      await logAiUsage({
+        userId: input.userId,
+        feature: 'sync_analyst',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (err as { name?: string })?.name ?? 'ANALYST_ERROR',
+        reservation,
+      })
+    }
     // Fire-and-forget: never crash the sync response
     console.error('[sync-analyst] Error:', err)
   }

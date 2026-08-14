@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
-import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const KNOWN_CATEGORIES = ['program', 'lifestyle', 'injury', 'preference', 'pattern', 'goal'] as const
 type LessonCategory = (typeof KNOWN_CATEGORIES)[number]
@@ -212,6 +212,7 @@ export async function extractWeeklyLessons(
       durationMs: Date.now() - startedAt,
       reservation,
     })
+    reservation = null
 
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) {
@@ -265,7 +266,16 @@ export async function extractWeeklyLessons(
 
     return { inserted: rows.length }
   } catch (error) {
-    await releaseAiBudget(reservation)
+    if (reservation) {
+      await logAiUsage({
+        userId,
+        feature: 'weekly_lessons',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (error as { name?: string })?.name ?? 'EXTRACTOR_ERROR',
+        reservation,
+      })
+    }
     console.error(`[lessons-extractor] Unexpected error for user=${userId}:`, error)
     if (options.strict) throw error
     return { inserted: 0 }

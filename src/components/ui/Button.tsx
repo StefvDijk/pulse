@@ -35,7 +35,7 @@ const tintedSportClasses: Record<ButtonSport, string> = {
 }
 
 const sizeClasses: Record<ButtonSize, { base: string; radius: string }> = {
-  sm: { base: 'min-h-[36px] px-3 text-body-s', radius: 'rounded-full' },
+  sm: { base: 'min-h-[44px] px-3 text-body-s', radius: 'rounded-full' },
   md: { base: 'min-h-[44px] px-4 text-body',   radius: 'rounded-full' },
   lg: { base: 'min-h-[50px] px-5 text-body-l', radius: 'rounded-card-md' },
 }
@@ -44,7 +44,7 @@ const baseClasses = [
   'inline-flex items-center justify-center gap-2',
   'transition-all duration-150',
   'disabled:opacity-50 disabled:pointer-events-none',
-  'focus:outline-none focus-visible:ring-1 focus-visible:ring-text-primary/30',
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-page',
 ].join(' ')
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

@@ -9,6 +9,10 @@ SELECT dblink_connect(
 SELECT dblink_exec(
   'hevy_setup',
   $setup$
+    DELETE FROM auth.users
+    WHERE id = '60000000-0000-0000-0000-000000000001';
+    DELETE FROM public.exercise_definitions
+    WHERE id = '61000000-0000-0000-0000-000000000001';
     INSERT INTO auth.users (id, email)
     VALUES ('60000000-0000-0000-0000-000000000001', 'hevy-concurrency@test.invalid');
     INSERT INTO public.exercise_definitions (

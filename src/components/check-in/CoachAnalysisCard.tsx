@@ -188,7 +188,7 @@ export function CoachAnalysisCard({
             rows={3}
             maxLength={500}
             placeholder="Schrijf je antwoord…"
-            className="w-full resize-none rounded-lg bg-transparent px-1 py-1 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
+            className="w-full resize-none rounded-lg bg-transparent px-1 py-1 text-[16px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
             autoFocus
           />
           <div className="mt-2 flex items-center justify-between">

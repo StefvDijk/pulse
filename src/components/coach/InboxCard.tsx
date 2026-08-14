@@ -94,7 +94,7 @@ export function InboxCard({ item, onChanged }: Props) {
             onChange={(e) => setAnswer(e.target.value)}
             rows={3}
             placeholder="Jouw antwoord…"
-            className="w-full rounded-lg border border-white/10 bg-[#15171F] p-2 text-sm text-white focus:border-[#D97757] focus:outline-none"
+            className="w-full rounded-lg border border-white/10 bg-[#15171F] p-2 text-[16px] text-white focus:border-[#D97757] focus:outline-none"
           />
           <button
             type="button"

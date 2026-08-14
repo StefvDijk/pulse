@@ -14,6 +14,8 @@ const ReservationSchema = z.object({
 export interface AiBudgetReservation {
   id: string
   userId: string
+  /** Conservative amount held before the provider call. */
+  estimatedCostUsd: number
 }
 
 export function estimateAiReservationCost(
@@ -60,10 +62,15 @@ export async function reserveAiBudget(
   }
 
   const admin = createAdminClient()
+  const estimatedCostUsd = estimateAiReservationCost(
+    model,
+    maxOutputTokens,
+    maxModelSteps,
+  )
   const { data, error } = await admin.rpc('reserve_ai_budget', {
     p_user_id: userId,
     p_budget_usd: readAiBudgetUsd(),
-    p_estimated_cost_usd: estimateAiReservationCost(model, maxOutputTokens, maxModelSteps),
+    p_estimated_cost_usd: estimatedCostUsd,
   })
   if (error) throw new Error(`AI budget reservation failed: ${error.message}`)
   const reservation = ReservationSchema.parse(data)
@@ -80,7 +87,7 @@ export async function reserveAiBudget(
       budgetUsd: reservation.budget_usd,
     })
   }
-  return { id: reservation.reservation_id, userId }
+  return { id: reservation.reservation_id, userId, estimatedCostUsd }
 }
 
 export async function releaseAiBudget(

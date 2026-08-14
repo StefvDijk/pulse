@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     }
 
     // No session_id: return most recent session or null
-    const { data: session } = await admin
+    const { data: session, error: sessionError } = await admin
       .from('chat_sessions')
       .select('id, title, started_at, last_message_at, message_count')
       .eq('user_id', user.id)
@@ -67,18 +67,20 @@ export async function GET(request: Request) {
       .order('last_message_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+    if (sessionError) throw sessionError
 
     if (!session) {
       return NextResponse.json({ session_id: null, messages: [] })
     }
 
-    const { data: messages } = await admin
+    const { data: messages, error: messagesError } = await admin
       .from('chat_messages')
       .select('id, role, content, message_type, created_at, cards')
       .eq('session_id', session.id)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50)
+    if (messagesError) throw messagesError
 
     return NextResponse.json({
       session_id: session.id,

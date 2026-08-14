@@ -6,7 +6,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import { recomputeBelief, type EvidenceItem } from '@/lib/ai/belief-update'
 import type { Json } from '@/types/database'
-import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +115,7 @@ export async function runBeliefExtractor(
       durationMs: Date.now() - startedAt,
       reservation,
     })
+    reservation = null
 
     // Extract the JSON array even when the model wraps it in prose — a bare
     // JSON.parse(text) silently failed in production whenever Haiku prefixed a
@@ -143,7 +144,16 @@ export async function runBeliefExtractor(
       }
     }
   } catch (err) {
-    await releaseAiBudget(reservation)
+    if (reservation) {
+      await logAiUsage({
+        userId: input.userId,
+        feature: 'belief-extractor',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (err as { name?: string })?.name ?? 'EXTRACTOR_ERROR',
+        reservation,
+      })
+    }
     console.error('[belief-extractor] error (non-fatal):', err)
     if (options.strict) throw err
   }

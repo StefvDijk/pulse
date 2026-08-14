@@ -14,7 +14,10 @@ export interface SheetProps {
   open: boolean
   onClose: () => void
   detents?: SheetDetent[]
-  title?: string
+  /** Accessible dialog name, also rendered as the sheet heading. */
+  title: string
+  /** Render the title above content. Set false when content has its own header. */
+  showTitle?: boolean
   grabber?: boolean
   children: ReactNode
   className?: string
@@ -44,6 +47,7 @@ export function Sheet({
   onClose,
   detents = ['large'],
   title,
+  showTitle = true,
   grabber = true,
   children,
   className = '',
@@ -115,7 +119,7 @@ export function Sheet({
                 />
               </div>
             )}
-            {title && (
+            {showTitle && (
               <div className="px-5 pb-3 text-center text-pulse-title text-text-primary shrink-0">
                 {title}
               </div>

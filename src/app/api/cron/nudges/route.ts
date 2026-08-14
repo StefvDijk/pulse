@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     cursor,
     (after, limit) => admin.rpc('list_nutrition_cron_users', {
       p_since: since,
-      p_after: after,
+      ...(after ? { p_after: after } : {}),
       p_limit: limit,
     }),
     (row) => row.user_id,

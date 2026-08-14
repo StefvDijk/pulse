@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
-import { reserveAiBudget, releaseAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const COACHING_MEMORY_KEY = 'sport_pattern_hardest_combo'
 
@@ -148,6 +148,7 @@ export async function extractSportInsight(
       durationMs: Date.now() - startedAt,
       reservation,
     })
+    reservation = null
 
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) {
@@ -201,7 +202,16 @@ export async function extractSportInsight(
 
     return { written: true }
   } catch (error) {
-    await releaseAiBudget(reservation)
+    if (reservation) {
+      await logAiUsage({
+        userId,
+        feature: 'sport_insight',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (error as { name?: string })?.name ?? 'EXTRACTOR_ERROR',
+        reservation,
+      })
+    }
     console.error(`[sport-insight] Unexpected error for user=${userId}:`, error)
     if (options.strict) throw error
     return { written: false }

@@ -3,11 +3,7 @@ import type { Database } from '@/types/database'
 import { analyzeNutrition } from '@/lib/nutrition/analyze'
 import { NutritionLogSchema } from '@/lib/nutrition/nutrition-log-contract'
 import { InjuryLogSchema } from '@/lib/injury/injury-log-contract'
-import {
-  SchemaUpdateSchema,
-  applySchemaUpdate,
-} from '@/lib/training/apply-schema-update'
-import { writeBlockSummary } from '@/lib/training/write-block-summary'
+import { SchemaUpdateSchema, applySchemaUpdate } from '@/lib/training/apply-schema-update'
 import { insertProgramSchema, validateProgramProposalForUser } from '@/lib/training/program-save'
 import { todayAmsterdam } from '@/lib/time/amsterdam'
 import { makeWritebackCard, type WritebackCardData } from './cards'
@@ -108,38 +104,87 @@ export interface WritebackOutcome {
   card?: WritebackCardData
 }
 
-async function applyNutrition(userId: string, raw: string): Promise<WritebackOutcome> {
+async function applyNutrition(
+  userId: string,
+  raw: string,
+  sourceChatTurnId?: string,
+): Promise<WritebackOutcome> {
   const parsed = NutritionLogSchema.safeParse(safeJson(raw))
   if (!parsed.success) {
     console.error('[chat] malformed <nutrition_log>:', parsed.error?.message)
-    return { kind: 'nutrition', ok: false, correction: 'Ik kon je voedingslog niet verwerken — log het zo nog eens.' }
+    return {
+      kind: 'nutrition',
+      ok: false,
+      correction: 'Ik kon je voedingslog niet verwerken — log het zo nog eens.',
+    }
   }
   try {
-    await analyzeNutrition({ userId, input: parsed.data.input })
-    return { kind: 'nutrition', ok: true, card: makeWritebackCard('nutrition') }
+    const result = await analyzeNutrition({
+      userId,
+      input: parsed.data.input,
+      sourceChatTurnId,
+    })
+    return {
+      kind: 'nutrition',
+      ok: true,
+      card: makeWritebackCard('nutrition', {
+        record_id: result.data.id,
+        nutrition: {
+          calories: result.data.calories,
+          protein_g: result.data.protein_g,
+          carbs_g: result.data.carbs_g,
+          fat_g: result.data.fat_g,
+        },
+      }),
+    }
   } catch (err) {
     console.error('[chat] nutrition write-back failed:', err)
-    return { kind: 'nutrition', ok: false, correction: 'Het loggen van je voeding ging mis — probeer het opnieuw.' }
+    return {
+      kind: 'nutrition',
+      ok: false,
+      correction: 'Het loggen van je voeding ging mis — probeer het opnieuw.',
+    }
   }
 }
 
-async function applyInjury(admin: Admin, userId: string, raw: string): Promise<WritebackOutcome> {
+async function applyInjury(
+  admin: Admin,
+  userId: string,
+  raw: string,
+  sourceChatTurnId?: string,
+): Promise<WritebackOutcome> {
   const parsed = InjuryLogSchema.safeParse(safeJson(raw))
   if (!parsed.success) {
     console.error('[chat] malformed <injury_log>:', parsed.error?.message)
-    return { kind: 'injury', ok: false, correction: 'Ik kon je blessure niet vastleggen — beschrijf hem zo nog eens.' }
+    return {
+      kind: 'injury',
+      ok: false,
+      correction: 'Ik kon je blessure niet vastleggen — beschrijf hem zo nog eens.',
+    }
   }
-  const { error } = await admin.from('injury_logs').insert({
+  const injuryRow = {
     user_id: userId,
     date: todayAmsterdam(),
     body_location: parsed.data.body_location,
     severity: parsed.data.severity,
     description: parsed.data.description,
     status: 'active',
-  })
+    source_chat_turn_id: sourceChatTurnId ?? null,
+  }
+  const write = sourceChatTurnId
+    ? admin.from('injury_logs').upsert(injuryRow, {
+        onConflict: 'user_id,source_chat_turn_id',
+        ignoreDuplicates: true,
+      })
+    : admin.from('injury_logs').insert(injuryRow)
+  const { error } = await write
   if (error) {
     console.error('[chat] injury insert failed:', error)
-    return { kind: 'injury', ok: false, correction: 'Het vastleggen van je blessure ging mis — probeer het opnieuw.' }
+    return {
+      kind: 'injury',
+      ok: false,
+      correction: 'Het vastleggen van je blessure ging mis — probeer het opnieuw.',
+    }
   }
   return { kind: 'injury', ok: true, card: makeWritebackCard('injury') }
 }
@@ -148,13 +193,30 @@ async function applySchemaGeneration(
   admin: Admin,
   userId: string,
   raw: string,
+  sourceChatTurnId?: string,
 ): Promise<WritebackOutcome> {
   const json = safeJson(raw)
   if (json === undefined) {
     console.error('[chat] malformed <schema_generation> JSON')
-    return { kind: 'schema_generation', ok: false, correction: 'Het schema kwam onvolledig door — vraag me het opnieuw te genereren.' }
+    return {
+      kind: 'schema_generation',
+      ok: false,
+      correction: 'Het schema kwam onvolledig door — vraag me het opnieuw te genereren.',
+    }
   }
   try {
+    if (sourceChatTurnId) {
+      const { data: replayed, error: replayError } = await admin
+        .from('training_schemas')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('source_chat_turn_id', sourceChatTurnId)
+        .maybeSingle()
+      if (replayError) throw replayError
+      if (replayed) {
+        return { kind: 'schema_generation', ok: true, card: makeWritebackCard('schema_generation') }
+      }
+    }
     const { data: oldActive } = await admin
       .from('training_schemas')
       .select('id, workout_schedule')
@@ -174,7 +236,11 @@ async function applySchemaGeneration(
         .filter((i) => i.severity === 'blocker')
         .map((i) => i.message)
         .join(' ')
-      return { kind: 'schema_generation', ok: false, correction: `Schema niet opgeslagen: ${blockers}` }
+      return {
+        kind: 'schema_generation',
+        ok: false,
+        correction: `Schema niet opgeslagen: ${blockers}`,
+      }
     }
 
     await insertProgramSchema({
@@ -185,17 +251,17 @@ async function applySchemaGeneration(
       plannedWeeklyLoad: validation.plannedWeeklyLoad,
       generationContext: 'Chat schema generation',
       previousSchemaId: oldActive?.id,
+      sourceChatTurnId,
     })
 
-    if (oldActive?.id) {
-      await writeBlockSummary(admin, userId, oldActive.id, 'switched').catch((err) =>
-        console.error('[chat] block summary write failed:', err),
-      )
-    }
     return { kind: 'schema_generation', ok: true, card: makeWritebackCard('schema_generation') }
   } catch (err) {
     console.error('[chat] schema generation write-back failed:', err)
-    return { kind: 'schema_generation', ok: false, correction: 'Het opslaan van het schema ging mis — probeer het opnieuw.' }
+    return {
+      kind: 'schema_generation',
+      ok: false,
+      correction: 'Het opslaan van het schema ging mis — probeer het opnieuw.',
+    }
   }
 }
 
@@ -203,21 +269,34 @@ async function applySchemaUpdateWriteback(
   admin: Admin,
   userId: string,
   raw: string,
+  sourceChatTurnId?: string,
 ): Promise<WritebackOutcome> {
   const parsed = SchemaUpdateSchema.safeParse(safeJson(raw))
   if (!parsed.success) {
     console.error('[chat] malformed <schema_update>:', parsed.error?.message)
-    return { kind: 'schema_update', ok: false, correction: 'Ik kon de schema-aanpassing niet uitvoeren — zeg het zo nog eens.' }
+    return {
+      kind: 'schema_update',
+      ok: false,
+      correction: 'Ik kon de schema-aanpassing niet uitvoeren — zeg het zo nog eens.',
+    }
   }
   try {
-    const result = await applySchemaUpdate(admin, userId, parsed.data)
+    const result = await applySchemaUpdate(admin, userId, parsed.data, sourceChatTurnId)
     if (!result.applied) {
-      return { kind: 'schema_update', ok: false, correction: `Schema-aanpassing niet doorgevoerd: ${result.description}` }
+      return {
+        kind: 'schema_update',
+        ok: false,
+        correction: `Schema-aanpassing niet doorgevoerd: ${result.description}`,
+      }
     }
     return { kind: 'schema_update', ok: true, card: makeWritebackCard('schema_update') }
   } catch (err) {
     console.error('[chat] schema update write-back failed:', err)
-    return { kind: 'schema_update', ok: false, correction: 'De schema-aanpassing ging mis — probeer het opnieuw.' }
+    return {
+      kind: 'schema_update',
+      ok: false,
+      correction: 'De schema-aanpassing ging mis — probeer het opnieuw.',
+    }
   }
 }
 
@@ -239,13 +318,20 @@ export async function applyWritebacks(
   admin: Admin,
   userId: string,
   parsed: ParsedWritebacks,
+  sourceChatTurnId?: string,
 ): Promise<WritebackOutcome[]> {
   const outcomes: WritebackOutcome[] = []
-  if (parsed.nutritionRaw) outcomes.push(await applyNutrition(userId, parsed.nutritionRaw))
-  if (parsed.injuryRaw) outcomes.push(await applyInjury(admin, userId, parsed.injuryRaw))
+  if (parsed.nutritionRaw)
+    outcomes.push(await applyNutrition(userId, parsed.nutritionRaw, sourceChatTurnId))
+  if (parsed.injuryRaw)
+    outcomes.push(await applyInjury(admin, userId, parsed.injuryRaw, sourceChatTurnId))
   if (parsed.schemaGenerationRaw)
-    outcomes.push(await applySchemaGeneration(admin, userId, parsed.schemaGenerationRaw))
+    outcomes.push(
+      await applySchemaGeneration(admin, userId, parsed.schemaGenerationRaw, sourceChatTurnId),
+    )
   if (parsed.schemaUpdateRaw)
-    outcomes.push(await applySchemaUpdateWriteback(admin, userId, parsed.schemaUpdateRaw))
+    outcomes.push(
+      await applySchemaUpdateWriteback(admin, userId, parsed.schemaUpdateRaw, sourceChatTurnId),
+    )
   return outcomes
 }

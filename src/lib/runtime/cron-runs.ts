@@ -104,7 +104,7 @@ export async function runCronWithStatus(
     await admin.rpc('finish_cron_job', {
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
-      p_next_cursor: claim.cursor,
+      p_next_cursor: claim.cursor as string,
     })
     return NextResponse.json(
       { error: 'Cron status unavailable', code: 'CRON_STATUS_UNAVAILABLE' },
@@ -117,6 +117,15 @@ export async function runCronWithStatus(
     const parsedBody = (await response.clone().json().catch(() => ({}))) as Record<string, unknown>
     const classification = classifyCronRun(response.status, parsedBody)
     const { status, processed, errorCount, truncated } = classification
+    for (const outcome of itemOutcomes) {
+      if (!outcome.ok) {
+        reportOperationalWarning(`cron:${jobName}:item-failure`, {
+          itemKey: outcome.itemKey,
+          error: outcome.error?.slice(0, 1000),
+          deadLetterAfterAttempts: 5,
+        })
+      }
+    }
     if (status !== 'success') {
       reportOperationalWarning(`cron:${jobName}:${status}`, {
         httpStatus: response.status,
@@ -130,14 +139,14 @@ export async function runCronWithStatus(
       p_run_id: started.id,
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
-      p_next_cursor: nextCursor,
+      p_next_cursor: nextCursor as string,
       p_status: status,
       p_http_status: response.status,
       p_processed: processed,
       p_error_count: errorCount,
       p_truncated: truncated,
       p_summary: parsedBody as Json,
-      p_first_error: firstError(parsedBody),
+      p_first_error: firstError(parsedBody) as string,
       p_item_outcomes: itemOutcomes as unknown as Json,
     })
     if (finalizeError) {
@@ -148,6 +157,26 @@ export async function runCronWithStatus(
         { status: 503 },
       )
     }
+    const failedKeys = itemOutcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.itemKey)
+    if (failedKeys.length > 0) {
+      const { data: deadLetters, error: deadLetterError } = await admin
+        .from('cron_item_failures')
+        .select('item_key, attempts, last_error')
+        .eq('job_name', jobName)
+        .in('item_key', failedKeys)
+        .not('dead_lettered_at', 'is', null)
+      if (deadLetterError) {
+        reportOperationalError(`cron:${jobName}:dead-letter-check`, deadLetterError)
+      } else {
+        for (const deadLetter of deadLetters ?? []) {
+          reportOperationalWarning(`cron:${jobName}:item-dead-lettered`, {
+            itemKey: deadLetter.item_key,
+            attempts: deadLetter.attempts,
+            error: deadLetter.last_error,
+          })
+        }
+      }
+    }
     return response
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -155,7 +184,7 @@ export async function runCronWithStatus(
       p_run_id: started.id,
       p_job_name: jobName,
       p_lease_token: claim.lease_token,
-      p_next_cursor: claim.cursor,
+      p_next_cursor: claim.cursor as string,
       p_status: 'error',
       p_http_status: 500,
       p_processed: 0,

@@ -61,7 +61,6 @@ describe('activateTrainingSchema', () => {
       p_user_id: 'user-1',
       p_schema: { user_id: 'user-1', title: 'New schema' },
       p_previous_schema_id: 'schema-old',
-      p_previous_end_date: null,
     })
   })
 })

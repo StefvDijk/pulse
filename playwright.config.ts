@@ -26,6 +26,7 @@ requireE2eEnv('TEST_USER_PASSWORD')
 
 export default defineConfig({
   testDir: './tests',
+  testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -46,6 +47,10 @@ export default defineConfig({
         ...devices['iPhone 14'],
         browserName: 'chromium',
       },
+    },
+    {
+      name: 'mobile-webkit',
+      use: devices['iPhone 14'],
     },
   ],
   webServer: {

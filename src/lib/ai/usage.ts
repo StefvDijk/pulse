@@ -45,7 +45,13 @@ export async function logAiUsage(params: LogUsageParams): Promise<void> {
       cacheReadTokens: usage?.cacheReadTokens ?? null,
       cacheCreationTokens: usage?.cacheCreationTokens ?? null,
     }
-    const estimatedCostUsd = estimateCostUsd(model, tokens)
+    // Provider failures can happen after billable work but before the SDK
+    // exposes token usage (especially for interrupted streams). In that case,
+    // settle the full conservative reservation instead of recording $0 and
+    // failing the monthly hard cap open.
+    const estimatedCostUsd = usage
+      ? estimateCostUsd(model, tokens)
+      : reservation?.estimatedCostUsd ?? estimateCostUsd(model, tokens)
     const usageRow = {
         user_id: userId,
         feature,
@@ -66,14 +72,14 @@ export async function logAiUsage(params: LogUsageParams): Promise<void> {
         p_user_id: reservation.userId,
         p_feature: feature,
         p_model: model,
-        p_input_tokens: tokens.inputTokens,
-        p_output_tokens: tokens.outputTokens,
-        p_cache_read_tokens: tokens.cacheReadTokens,
-        p_cache_creation_tokens: tokens.cacheCreationTokens,
+        p_input_tokens: tokens.inputTokens as number,
+        p_output_tokens: tokens.outputTokens as number,
+        p_cache_read_tokens: tokens.cacheReadTokens as number,
+        p_cache_creation_tokens: tokens.cacheCreationTokens as number,
         p_estimated_cost_usd: estimatedCostUsd,
-        p_duration_ms: durationMs ?? null,
+        p_duration_ms: (durationMs ?? null) as number,
         p_status: status,
-        p_error_code: errorCode,
+        p_error_code: errorCode as string,
       })
       if (error) throw new Error(`AI usage settlement failed: ${error.message}`)
       return

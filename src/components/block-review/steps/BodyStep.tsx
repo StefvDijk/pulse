@@ -53,7 +53,7 @@ function NumberInput({
         step={step}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-        className="w-24 px-2 py-1 bg-bg-base border border-bg-border rounded text-right text-[14px] tabular-nums text-text-primary"
+        className="w-24 px-2 py-1 bg-bg-base border border-bg-border rounded text-right text-[16px] tabular-nums text-text-primary"
       />
     </label>
   )

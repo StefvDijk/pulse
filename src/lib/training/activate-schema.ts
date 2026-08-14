@@ -16,8 +16,8 @@ export async function activateTrainingSchema(
   const { error } = await admin.rpc('activate_training_schema', {
     p_user_id: input.userId,
     p_new_schema_id: input.newSchemaId,
-    p_previous_schema_id: input.previousSchemaId ?? null,
-    p_previous_end_date: input.previousEndDate ?? null,
+    ...(input.previousSchemaId ? { p_previous_schema_id: input.previousSchemaId } : {}),
+    ...(input.previousEndDate ? { p_previous_end_date: input.previousEndDate } : {}),
   })
 
   if (error) {
@@ -40,8 +40,8 @@ export async function insertAndActivateTrainingSchema(
   const { data, error } = await admin.rpc('insert_and_activate_training_schema', {
     p_user_id: input.userId,
     p_schema: input.schema,
-    p_previous_schema_id: input.previousSchemaId ?? null,
-    p_previous_end_date: input.previousEndDate ?? null,
+    ...(input.previousSchemaId ? { p_previous_schema_id: input.previousSchemaId } : {}),
+    ...(input.previousEndDate ? { p_previous_end_date: input.previousEndDate } : {}),
   })
 
   if (error) {

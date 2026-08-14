@@ -209,7 +209,7 @@ export function AnalysisStep({
                 ? 'Nog iets aanpassen? Of klik "Naar volgend blok"...'
                 : 'Stel een vraag of geef extra context...'
             }
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary placeholder:text-text-tertiary resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()

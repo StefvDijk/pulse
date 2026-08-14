@@ -12,10 +12,15 @@ import { parseWritebacks, applyWritebacks } from '@/lib/ai/chat/writebacks'
 import { createStreamTagStripper, CHAT_WRITEBACK_TAGS } from '@/lib/ai/chat/strip-stream-tags'
 import { runCoach } from '@/lib/ai/coaches/run-coach'
 import { getCoachConfig, LIVE_COACH_IDS, type LiveCoachId } from '@/lib/ai/coaches/registry'
-import { planConsultation, orchestrateConsultation, renderTakesBlock } from '@/lib/ai/coaches/consult'
+import {
+  planConsultation,
+  orchestrateConsultation,
+  renderTakesBlock,
+} from '@/lib/ai/coaches/consult'
 import { classifyStreamError } from '@/lib/ai/chat/stream-errors'
 import { runAfterResponse } from '@/lib/runtime/after-response'
 import { parseCards, stripCardTagsFromText, CHAT_CARD_TAGS } from '@/lib/ai/chat/cards'
+import { createHash, randomUUID } from 'node:crypto'
 
 // Vercel function timeout — agentic tool loops with up to 8 steps and Sonnet 4.6
 // can take 30-50s on a tool-heavy question. Default 60s avoids mid-stream kills.
@@ -32,6 +37,23 @@ const RequestSchema = z.object({
    *  Used by the homescreen CoachCard: the nudge shown on /home becomes the
    *  first AI message in the thread, then the user's reply continues from there. */
   seed_assistant: z.string().min(1).max(4000).optional(),
+  /** Stable across client retries so health-data write-backs are idempotent. */
+  turn_id: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
+})
+
+const ResolvedSessionSchema = z.object({
+  id: z.string().uuid(),
+  coach_id: z.string(),
+})
+
+const TurnClaimSchema = z.object({
+  claimed: z.boolean(),
+  completed: z.boolean(),
+  lease_token: z.string().uuid().nullable(),
+  retry_after_ms: z.number().int().nonnegative(),
 })
 
 export async function POST(request: Request) {
@@ -64,7 +86,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { message, session_id, coach_id, seed_assistant } = parsed.data
+    const { message, session_id, coach_id, seed_assistant, turn_id } = parsed.data
     // Seed is only persisted on a brand-new session — once the session has any
     // history it's a no-op so a stale client can't inject a fake AI turn.
     const isNewSession = !session_id
@@ -102,22 +124,117 @@ export async function POST(request: Request) {
         effectiveCoachId = stored as LiveCoachId
       }
     } else {
-      const { data: newSession, error: sessionError } = await admin
-        .from('chat_sessions')
-        .insert({
-          user_id: user.id,
-          coach_id,
-          title: message.slice(0, 50),
-          started_at: new Date().toISOString(),
-          last_message_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single()
-      if (sessionError || !newSession) {
-        throw new Error('Failed to create chat session')
+      const { data: resolvedRaw, error: sessionError } = await admin.rpc(
+        'resolve_chat_session_for_turn',
+        { p_user_id: user.id, p_turn_id: turn_id, p_coach_id: coach_id, p_title: message },
+      )
+      if (sessionError) throw sessionError
+      const resolved = ResolvedSessionSchema.parse(resolvedRaw)
+      sessionId = resolved.id
+      if ((LIVE_COACH_IDS as readonly string[]).includes(resolved.coach_id)) {
+        effectiveCoachId = resolved.coach_id as LiveCoachId
       }
-      sessionId = newSession.id
     }
+
+    // Atomically claim the logical turn before the model or any write-back.
+    // The fingerprint also prevents a client from reusing a turn id for a
+    // different message. A killed worker's lease can be reclaimed after 90s.
+    const requestFingerprint = createHash('sha256')
+      .update(`${sessionId}\0${effectiveCoachId}\0${message}\0${seed_assistant ?? ''}`)
+      .digest('hex')
+    const { data: claimRaw, error: claimError } = await admin.rpc('claim_chat_turn', {
+      p_user_id: user.id,
+      p_turn_id: turn_id,
+      p_session_id: sessionId,
+      p_request_fingerprint: requestFingerprint,
+      p_lease_seconds: 90,
+    })
+    if (claimError) throw claimError
+    const turnClaim = TurnClaimSchema.parse(claimRaw)
+
+    const transitionTurn = async (transition: 'complete' | 'abandon') => {
+      if (!turnClaim.lease_token) return
+      const functionName = transition === 'complete' ? 'complete_chat_turn' : 'abandon_chat_turn'
+      try {
+        const { error } = await admin.rpc(functionName, {
+          p_user_id: user.id,
+          p_turn_id: turn_id,
+          p_lease_token: turnClaim.lease_token,
+        })
+        if (error) console.error(`[chat] ${transition} turn claim failed:`, error)
+      } catch (error) {
+        console.error(`[chat] ${transition} turn claim threw:`, error)
+      }
+    }
+
+    // A response can reach durable storage while the network drops before the
+    // client sees [DONE]. Replaying the same turn must return that exact stored
+    // terminal response instead of invoking the model and mutations again.
+    const { data: replayedAssistant, error: replayError } = await admin
+      .from('chat_messages')
+      .select('content, cards')
+      .eq('user_id', user.id)
+      .eq('session_id', sessionId)
+      .eq('source_chat_turn_id', turn_id)
+      .eq('role', 'assistant')
+      .neq('message_type', 'coach_nudge')
+      .maybeSingle()
+    if (replayError) {
+      await transitionTurn('abandon')
+      throw replayError
+    }
+    if (replayedAssistant) {
+      await transitionTurn('complete')
+      const encoder = new TextEncoder()
+      const replay = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(replayedAssistant.content)}\n\n`),
+          )
+          const cards = Array.isArray(replayedAssistant.cards) ? replayedAssistant.cards : []
+          for (const card of cards) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`))
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          controller.close()
+        },
+      })
+      return new Response(replay, {
+        headers: {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          'X-Session-Id': sessionId,
+          'X-Chat-Replayed': 'true',
+        },
+      })
+    }
+
+    if (turnClaim.completed) {
+      throw new Error('Completed chat turn has no durable assistant response')
+    }
+    if (!turnClaim.claimed) {
+      return NextResponse.json(
+        { error: 'Chat turn is already in progress', code: 'TURN_IN_PROGRESS' },
+        {
+          status: 409,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil(turnClaim.retry_after_ms / 1000))),
+          },
+        },
+      )
+    }
+
+    const { data: turnExecution, error: turnExecutionError } = await admin
+      .from('chat_turn_executions')
+      .select('generated_response')
+      .eq('user_id', user.id)
+      .eq('turn_id', turn_id)
+      .single()
+    if (turnExecutionError) {
+      await transitionTurn('abandon')
+      throw turnExecutionError
+    }
+    const persistedGeneratedResponse = turnExecution.generated_response
 
     // Manager hub (#40/#44): classify the question's scope. In fase C a `cross`
     // scope escalates to real parallel specialist orchestration below; also
@@ -175,11 +292,14 @@ export async function POST(request: Request) {
               .maybeSingle(),
             admin
               .from('chat_messages')
-              .select('role, content')
+              .select('role, content, message_type, source_chat_turn_id')
               .eq('session_id', sessionId)
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(20),
+              // A prior attempt can already have persisted this turn's user
+              // message and opening nudge. Fetch two extra so filtering them
+              // still leaves 20 real history messages for the model.
+              .limit(22),
             loadUserProfile(user.id),
           ])
 
@@ -187,13 +307,16 @@ export async function POST(request: Request) {
 
           const openingMessages = [
             ...(seedToPersist
-              ? [{
-                  user_id: user.id,
-                  session_id: sessionId,
-                  role: 'assistant' as const,
-                  content: seedToPersist,
-                  message_type: 'coach_nudge',
-                }]
+              ? [
+                  {
+                    user_id: user.id,
+                    session_id: sessionId,
+                    role: 'assistant' as const,
+                    content: seedToPersist,
+                    message_type: 'coach_nudge',
+                    source_chat_turn_id: turn_id,
+                  },
+                ]
               : []),
             {
               user_id: user.id,
@@ -201,15 +324,30 @@ export async function POST(request: Request) {
               role: 'user' as const,
               content: message,
               message_type: questionType,
+              source_chat_turn_id: turn_id,
             },
           ]
           const { error: openingInsertError } = await admin
             .from('chat_messages')
-            .insert(openingMessages)
+            .upsert(openingMessages, {
+              onConflict: 'user_id,source_chat_turn_id,role,message_type',
+              ignoreDuplicates: true,
+            })
           if (openingInsertError) throw openingInsertError
 
-          const history = historyResult.data
-          const historyMessages = (history ?? [])
+          const history = historyResult.data ?? []
+          const persistedTurnSeed = history.find(
+            (m) =>
+              m.source_chat_turn_id === turn_id &&
+              m.role === 'assistant' &&
+              m.message_type === 'coach_nudge',
+          )?.content
+          const historyMessages = history
+            // If a stream failed after the opening write, a retry must not send
+            // the same user turn to the model twice. The opening seed is also
+            // removed here and reinserted exactly once below.
+            .filter((m) => m.source_chat_turn_id !== turn_id)
+            .slice(0, 20)
             .reverse()
             .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
@@ -233,9 +371,10 @@ export async function POST(request: Request) {
           // For a freshly seeded thread the parallel history fetch races the
           // seed insert above — we can't rely on it picking up the seed turn.
           // Inline it so Claude sees the same conversation the user does.
-          const conversation = seedToPersist
+          const conversationSeed = seedToPersist ?? persistedTurnSeed
+          const conversation = conversationSeed
             ? [
-                { role: 'assistant' as const, content: seedToPersist },
+                { role: 'assistant' as const, content: conversationSeed },
                 ...historyMessages,
                 { role: 'user' as const, content: message },
               ]
@@ -246,7 +385,7 @@ export async function POST(request: Request) {
           // into the manager's context, so it streams ONE synthesised mixed
           // answer. Non-cross questions skip this entirely.
           let coachThinContext = thinContext
-          if (managerPlan?.scope === 'cross') {
+          if (!persistedGeneratedResponse && managerPlan?.scope === 'cross') {
             const { takes } = await orchestrateConsultation(message, {
               userId: user.id,
               context: thinContext,
@@ -257,33 +396,62 @@ export async function POST(request: Request) {
           // Run the request through the coach engine. The owning coach (manager
           // by default, a specialist when its tab sends coach_id) decides the
           // persona + scoped toolset; the engine seam is identical for all.
-          const result = await runCoach(getCoachConfig(effectiveCoachId), {
-            userId: user.id,
-            questionType,
-            message,
-            conversation,
-            thinContext: coachThinContext,
-            systemData: {
-              activeSchema,
-              activeInjuries: injuriesResult.data ?? [],
-              activeGoals: goalsResult.data ?? [],
-              customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
-              coachTone: (settingsResult.data?.coach_tone ?? 'direct') as CoachTone,
-              profileBlock: renderProfileBlock(profile),
-            },
-          })
-
           // Strip write-back tags from the DISPLAYED stream so the user never
           // sees `<schema_generation>{...}</schema_generation>` type out, while
           // fullResponse keeps the raw text for post-stream write-back parsing.
           const stripper = createStreamTagStripper([...CHAT_WRITEBACK_TAGS, ...CHAT_CARD_TAGS])
-          for await (const chunk of result.textStream) {
-            fullResponse += chunk
-            const visible = stripper.feed(chunk)
-            if (visible) controller.enqueue(encoder.encode(`data: ${JSON.stringify(visible)}\n\n`))
+          let result: Awaited<ReturnType<typeof runCoach>> | null = null
+          if (persistedGeneratedResponse) {
+            fullResponse = persistedGeneratedResponse
+            const visible = stripper.feed(fullResponse)
+            if (visible) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(visible)}\n\n`))
+            }
+          } else {
+            result = await runCoach(getCoachConfig(effectiveCoachId), {
+              userId: user.id,
+              questionType,
+              message,
+              conversation,
+              thinContext: coachThinContext,
+              systemData: {
+                activeSchema,
+                activeInjuries: injuriesResult.data ?? [],
+                activeGoals: goalsResult.data ?? [],
+                customInstructions: settingsResult.data?.ai_custom_instructions ?? null,
+                coachTone: (settingsResult.data?.coach_tone ?? 'direct') as CoachTone,
+                profileBlock: renderProfileBlock(profile),
+              },
+            })
+            for await (const chunk of result.textStream) {
+              fullResponse += chunk
+              const visible = stripper.feed(chunk)
+              if (visible) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(visible)}\n\n`))
+              }
+            }
           }
           const tail = stripper.flush()
           if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify(tail)}\n\n`))
+
+          // This is the write-ahead boundary for the turn: no health/schema
+          // mutation may happen until the complete model intent is durable.
+          if (!persistedGeneratedResponse) {
+            const { data: stored, error: storeError } = await admin.rpc(
+              'store_chat_turn_response',
+              {
+                p_user_id: user.id,
+                p_turn_id: turn_id,
+                p_lease_token: turnClaim.lease_token!,
+                p_generated_response: fullResponse,
+              },
+            )
+            if (storeError || !stored) {
+              throw new Error(
+                `Chat turn intent persistence failed: ${storeError?.message ?? 'lease lost'}`,
+              )
+            }
+          }
 
           // Process write-backs after full response
           const parsed = parseWritebacks(fullResponse)
@@ -302,7 +470,7 @@ export async function POST(request: Request) {
           // so the coach can't claim "gelogd" when the write was skipped or
           // failed (audit #22). Runs before the message is saved so the stored
           // content matches what the user saw.
-          const outcomes = await applyWritebacks(admin, user.id, parsed)
+          const outcomes = await applyWritebacks(admin, user.id, parsed, turn_id)
           let finalText = cleanText
           for (const outcome of outcomes) {
             if (outcome.ok || !outcome.correction) continue
@@ -323,35 +491,47 @@ export async function POST(request: Request) {
 
           let outputTokens = 0
           try {
+            if (!result) throw new Error('usage unavailable for replayed turn intent')
             const usage = await result.usage
             outputTokens = usage.outputTokens ?? 0
           } catch (usageErr) {
-            console.error('[chat] result.usage failed (fallback 0):', usageErr)
+            if (result) console.error('[chat] result.usage failed (fallback 0):', usageErr)
           }
           const confirmCards = outcomes
-            .filter((o): o is typeof o & { card: NonNullable<typeof o.card> } =>
-              o.ok && o.card !== undefined)
+            .filter(
+              (o): o is typeof o & { card: NonNullable<typeof o.card> } =>
+                o.ok && o.card !== undefined,
+            )
             .map((o) => o.card)
           const allCards = [...infoCards, ...confirmCards]
 
-          const { error: assistantInsertError } = await admin.from('chat_messages').insert({
-            user_id: user.id,
-            session_id: sessionId,
-            role: 'assistant',
-            content: finalText,
-            message_type: questionType,
-            tokens_used: outputTokens,
-            cards: allCards,
-          })
+          const { error: assistantInsertError } = await admin.from('chat_messages').upsert(
+            {
+              user_id: user.id,
+              session_id: sessionId,
+              role: 'assistant',
+              content: finalText,
+              message_type: questionType,
+              tokens_used: outputTokens,
+              cards: allCards,
+              source_chat_turn_id: turn_id,
+            },
+            {
+              onConflict: 'user_id,source_chat_turn_id,role,message_type',
+              ignoreDuplicates: true,
+            },
+          )
           if (assistantInsertError) throw assistantInsertError
+
+          // The terminal response is durable. Mark the turn complete before
+          // non-critical memory updates and client delivery continue.
+          await transitionTurn('complete')
 
           // Bump last_confirmed_at on memories the coach actively cited.
           // Coach emits first-8-char prefixes — map back to full UUIDs.
           if (citedMemories && citedMemories.length > 0) {
             try {
-              const prefixOrs = citedMemories
-                .map((p) => `id.ilike.${p}%`)
-                .join(',')
+              const prefixOrs = citedMemories.map((p) => `id.ilike.${p}%`).join(',')
               const { data: matches } = await admin
                 .from('coaching_memory')
                 .select('id')
@@ -378,9 +558,7 @@ export async function POST(request: Request) {
           // Emit card events: write-back confirmations + informational cards.
           // Must precede [DONE] so the frontend receives them in the same read loop.
           for (const card of allCards) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`),
-            )
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ __card: card })}\n\n`))
           }
 
           // Fire memory + belief extraction after response is sent —
@@ -403,6 +581,7 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (err) {
+          await transitionTurn('abandon')
           // Structured server log so the actual cause is visible in Vercel logs
           // — not behind a generic Dutch error string the user only sees in UI.
           const errorEvent = classifyStreamError(err)
@@ -412,9 +591,7 @@ export async function POST(request: Request) {
             statusCode: (err as { statusCode?: number })?.statusCode,
             message: (err as { message?: string })?.message,
           })
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`),
-          )
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`))
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         }
