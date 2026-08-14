@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { prepareMessagesForChatAttempt } from '@/components/chat/ChatInterface'
+import {
+  prepareMessagesForChatAttempt,
+  seedAssistantForTurn,
+} from '@/components/chat/ChatInterface'
 
 describe('ChatInterface retry state', () => {
   it('keeps one user turn and replaces partial/error bubbles for that turn', () => {
@@ -24,5 +27,14 @@ describe('ChatInterface retry state', () => {
     expect(retry.some((item) => item.id === `assistant-${turnId}`)).toBe(false)
     expect(retry.some((item) => item.id === `error-${turnId}`)).toBe(false)
     expect(retry.some((item) => item.id === 'assistant-older')).toBe(true)
+  })
+})
+
+describe('ChatInterface seeded opening retry', () => {
+  it('only resends the seed for the opening turn', () => {
+    expect(seedAssistantForTurn('Welkom terug', 'opening-turn', 'opening-turn')).toBe(
+      'Welkom terug',
+    )
+    expect(seedAssistantForTurn('Welkom terug', 'opening-turn', 'later-turn')).toBeUndefined()
   })
 })

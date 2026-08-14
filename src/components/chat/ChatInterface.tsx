@@ -38,6 +38,14 @@ export function prepareMessagesForChatAttempt(
   ]
 }
 
+export function seedAssistantForTurn(
+  seededAssistant: string | undefined,
+  seedTurnId: string | null,
+  turnId: string,
+) {
+  return seedTurnId === turnId ? seededAssistant : undefined
+}
+
 interface ChatHistoryResponse {
   session_id: string | null
   messages: Array<{
@@ -122,6 +130,7 @@ export function ChatInterface({
   // down to match upstream rate when the buffer is empty. This eliminates
   // the visible "stutter" between bursts of 20+ tokens followed by a pause.
   const targetRef = useRef('')
+  const seedTurnIdRef = useRef<string | null>(null)
   const renderedRef = useRef('')
   const streamDoneRef = useRef(false)
   const smoothRafRef = useRef<number | null>(null)
@@ -260,6 +269,10 @@ export function ChatInterface({
       setLastFailedRequest(null)
       const turnId = retryTurnId ?? crypto.randomUUID()
 
+      if (!retryTurnId && !sessionId && seededAssistant && !seedTurnIdRef.current) {
+        seedTurnIdRef.current = turnId
+      }
+
       if (retryTurnId) {
         // Replace the failed attempt in place: keep the original user bubble,
         // remove its partial assistant/error bubbles, and let the durable turn
@@ -278,8 +291,11 @@ export function ChatInterface({
       try {
         // Seed is only relevant on the first turn of a fresh seeded thread.
         // After the server persists it the session has it in history naturally.
-        const seedForRequest =
-          (!sessionId || retryTurnId) && seededAssistant ? seededAssistant : undefined
+        const seedForRequest = seedAssistantForTurn(
+          seededAssistant,
+          seedTurnIdRef.current,
+          turnId,
+        )
 
         const res = await fetch('/api/chat', {
           method: 'POST',

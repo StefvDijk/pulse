@@ -87,10 +87,6 @@ export async function POST(request: Request) {
     }
 
     const { message, session_id, coach_id, seed_assistant, turn_id } = parsed.data
-    // Seed is only persisted on a brand-new session — once the session has any
-    // history it's a no-op so a stale client can't inject a fake AI turn.
-    const isNewSession = !session_id
-    const seedToPersist = isNewSession ? seed_assistant : undefined
 
     // Classify and assemble thin context (tools fill the rest on-demand)
     const questionType = classifyQuestion(message)
@@ -103,12 +99,13 @@ export async function POST(request: Request) {
     // requested coach; for an existing one we trust the stored coach_id (not the
     // request body) so a thread can never be answered by the wrong specialist.
     let sessionId: string
+    let sessionInitialTurnId: string | null
     let effectiveCoachId: LiveCoachId = coach_id
     if (session_id) {
       sessionId = session_id
       const { data: sessionRow, error: sessionError } = await admin
         .from('chat_sessions')
-        .select('coach_id')
+        .select('coach_id, initial_turn_id')
         .eq('id', session_id)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -119,6 +116,7 @@ export async function POST(request: Request) {
           { status: 404 },
         )
       }
+      sessionInitialTurnId = sessionRow.initial_turn_id
       const stored = sessionRow?.coach_id
       if (stored && (LIVE_COACH_IDS as readonly string[]).includes(stored)) {
         effectiveCoachId = stored as LiveCoachId
@@ -131,16 +129,23 @@ export async function POST(request: Request) {
       if (sessionError) throw sessionError
       const resolved = ResolvedSessionSchema.parse(resolvedRaw)
       sessionId = resolved.id
+      // The resolver creates or retrieves a session by this exact initial turn.
+      sessionInitialTurnId = turn_id
       if ((LIVE_COACH_IDS as readonly string[]).includes(resolved.coach_id)) {
         effectiveCoachId = resolved.coach_id as LiveCoachId
       }
     }
 
+    // Only the session's designated opening turn may carry a seeded assistant
+    // message. This remains true when a retry already knows the resolved
+    // session id, while a stale seed attached to any later turn is ignored.
+    const effectiveSeed = sessionInitialTurnId === turn_id ? seed_assistant : undefined
+
     // Atomically claim the logical turn before the model or any write-back.
     // The fingerprint also prevents a client from reusing a turn id for a
     // different message. A killed worker's lease can be reclaimed after 90s.
     const requestFingerprint = createHash('sha256')
-      .update(`${sessionId}\0${effectiveCoachId}\0${message}\0${seed_assistant ?? ''}`)
+      .update(`${sessionId}\0${effectiveCoachId}\0${message}\0${effectiveSeed ?? ''}`)
       .digest('hex')
     const { data: claimRaw, error: claimError } = await admin.rpc('claim_chat_turn', {
       p_user_id: user.id,
@@ -306,13 +311,13 @@ export async function POST(request: Request) {
           if (historyResult.error) throw historyResult.error
 
           const openingMessages = [
-            ...(seedToPersist
+            ...(effectiveSeed
               ? [
                   {
                     user_id: user.id,
                     session_id: sessionId,
                     role: 'assistant' as const,
-                    content: seedToPersist,
+                    content: effectiveSeed,
                     message_type: 'coach_nudge',
                     source_chat_turn_id: turn_id,
                   },
@@ -371,7 +376,7 @@ export async function POST(request: Request) {
           // For a freshly seeded thread the parallel history fetch races the
           // seed insert above — we can't rely on it picking up the seed turn.
           // Inline it so Claude sees the same conversation the user does.
-          const conversationSeed = seedToPersist ?? persistedTurnSeed
+          const conversationSeed = effectiveSeed ?? persistedTurnSeed
           const conversation = conversationSeed
             ? [
                 { role: 'assistant' as const, content: conversationSeed },

@@ -30,6 +30,7 @@ const TURN_ID = '30000000-0000-4000-8000-000000000001'
 interface HarnessOptions {
   failFirstAssistant?: boolean
   initialAssistant?: { content: string; cards: unknown[] }
+  sessionInitialTurnId?: string | null
 }
 
 function createHarness(options: HarnessOptions = {}) {
@@ -93,7 +94,15 @@ function createHarness(options: HarnessOptions = {}) {
       chain[method] = vi.fn(() => chain)
     }
     chain.maybeSingle = vi.fn(async () => {
-      if (table === 'chat_sessions') return { data: { coach_id: 'manager' }, error: null }
+      if (table === 'chat_sessions') {
+        return {
+          data: {
+            coach_id: 'manager',
+            initial_turn_id: options.sessionInitialTurnId ?? TURN_ID,
+          },
+          error: null,
+        }
+      }
       if (table === 'chat_messages') return { data: assistant, error: null }
       if (table === 'training_schemas' || table === 'user_settings') {
         return { data: null, error: null }
@@ -224,6 +233,41 @@ describe('POST /api/chat durable turn orchestration', () => {
     expect(await replay.text()).toContain('Duurzaam antwoord')
     expect(runCoachMock).toHaveBeenCalledTimes(1)
     expect(harness.seedUpserts).toBe(1)
+  })
+
+  it('keeps the opening seed when its retry already knows the session id', async () => {
+    thinContextMock.mockRejectedValueOnce(new Error('forced pre-insert failure'))
+    const harness = createHarness()
+    createAdminMock.mockReturnValue(harness.admin)
+
+    const failed = await POST(request({ newSession: true, seed: 'Welkom terug' }))
+    expect(await failed.text()).toContain('AI_GENERIC_ERROR')
+    expect(harness.seedUpserts).toBe(0)
+
+    const retry = await POST(request({ seed: 'Welkom terug' }))
+    expect(await retry.text()).toContain('Duurzaam antwoord')
+    expect(harness.seedUpserts).toBe(1)
+    expect(runCoachMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores a stale opening seed on a later-turn retry', async () => {
+    const harness = createHarness({
+      failFirstAssistant: true,
+      sessionInitialTurnId: '30000000-0000-4000-8000-000000000099',
+    })
+    createAdminMock.mockReturnValue(harness.admin)
+
+    const failed = await POST(request())
+    expect(await failed.text()).toContain('AI_GENERIC_ERROR')
+    const retry = await POST(request({ seed: 'Verouderde seed' }))
+    expect(await retry.text()).toContain('Duurzaam antwoord')
+    expect(harness.seedUpserts).toBe(0)
+
+    const fingerprints = harness.admin.rpc.mock.calls
+      .filter(([name]) => name === 'claim_chat_turn')
+      .map(([, args]) => args.p_request_fingerprint)
+    expect(fingerprints).toHaveLength(2)
+    expect(fingerprints[0]).toBe(fingerprints[1])
   })
 
   it('replays exact terminal text and cards without invoking the provider', async () => {
