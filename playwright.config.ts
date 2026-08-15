@@ -19,6 +19,8 @@ const e2eServerEnv = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: requireE2eEnv('PULSE_E2E_SUPABASE_ANON_KEY'),
   SUPABASE_SERVICE_ROLE_KEY: requireE2eEnv('PULSE_E2E_SUPABASE_SERVICE_ROLE_KEY'),
   PULSE_USER_ID: requireE2eEnv('PULSE_E2E_USER_ID'),
+  HEALTH_EXPORT_AUTH_TOKEN:
+    process.env.PULSE_E2E_HEALTH_TOKEN ?? 'pulse-local-e2e-health-token',
 }
 
 requireE2eEnv('TEST_USER_EMAIL')

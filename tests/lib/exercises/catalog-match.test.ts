@@ -27,6 +27,22 @@ describe('matchDefinitionToCatalog', () => {
     expect(r.method).toBe('none')
   })
 
+  it('rejects a different movement with partial token overlap', () => {
+    const r = matchDefinitionToCatalog('One Arm Push Up', [
+      { id: '0500', name: 'one arm chin-up' },
+    ])
+    expect(r.catalogId).toBeNull()
+    expect(r.method).toBe('none')
+  })
+
+  it('rejects a different exercise that only shares equipment and position', () => {
+    const r = matchDefinitionToCatalog('Standing Y Raise (Cable)', [
+      { id: '0600', name: 'cable standing calf raise' },
+    ])
+    expect(r.catalogId).toBeNull()
+    expect(r.method).toBe('none')
+  })
+
   it('honours an override keyed by normalized name', () => {
     const overrides = { 'leg press': '0400' }
     const r = matchDefinitionToCatalog('Leg Press', catalog, overrides)

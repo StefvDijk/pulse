@@ -67,6 +67,20 @@ the pinned dataset revision outside git and set `EXERCISES_DATASET_DIR`. Record
 the dataset URL, commit SHA, license, row count, media counts, and operator in
 the pull request.
 
+Validated candidate revision for this release:
+
+- URL: `https://github.com/hasaneyldrm/exercises-dataset`
+- commit: `7455efae41b330c265e7cd4b78dfa848e7ce5ebd`
+- metadata rows: 1,324 (schema validation passed locally on 2026-08-15)
+- code, dataset structure, and instruction text: MIT
+- images and GIFs: separate Gym Visual terms; **do not upload or publish them
+  until Pulse has documented its own reuse license and required attribution**
+
+The conservative matching dry-run currently accepts 105/455 definitions and
+leaves 350 for reviewed overrides. This is intentional: partial token overlap
+previously produced semantically wrong links. Do not lower the matcher threshold
+or promote unmatched definitions in bulk.
+
 Run all three dry-runs against local Supabase first:
 
 ```bash

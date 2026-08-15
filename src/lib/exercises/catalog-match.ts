@@ -13,8 +13,13 @@ export interface MatchResult {
   method: 'override' | 'exact' | 'token' | 'none'
 }
 
-/** Minimum Jaccard token overlap to accept a fuzzy match. */
-export const TOKEN_THRESHOLD = 0.6
+/**
+ * Automatic matches must contain exactly the same normalized tokens. Exercise
+ * names are safety-sensitive: a partial overlap can silently map a movement to
+ * a different exercise (for example, push-up to chin-up). Variants with added
+ * or missing qualifiers require a reviewed override.
+ */
+export const TOKEN_THRESHOLD = 1
 
 function jaccard(a: Set<string>, b: Set<string>): number {
   if (a.size === 0 || b.size === 0) return 0
@@ -26,8 +31,9 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 
 /**
  * Match one exercise_definitions name to its best exercise_catalog entry.
- * Tiered: manual override → exact normalized name → best token overlap ≥
- * TOKEN_THRESHOLD. `overrides` is keyed by NORMALIZED def name → catalog id.
+ * Tiered: manual override → exact normalized name → exact token-set match
+ * (allowing word-order differences). `overrides` is keyed by NORMALIZED def
+ * name → catalog id.
  */
 export function matchDefinitionToCatalog(
   defName: string,
