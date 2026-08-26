@@ -33,6 +33,24 @@ landscape rotation, keyboard-open chat, VoiceOver focus order, sheet focus
 return, safe areas, and reduced motion. Record device/iOS/build and screenshots
 in the pull request.
 
+Before testing password recovery, configure hosted Supabase Auth:
+
+- set **Site URL** to the exact production origin;
+- add the exact production recovery callback
+  `https://<production-origin>/auth/callback?next=%2Fauth%2Freset-password`;
+- add `https://*-<vercel-team-or-account-slug>.vercel.app/**` only for Vercel
+  previews, plus the required loopback development origins;
+- keep the hosted minimum password length at eight or higher and verify the
+  recovery email rate limit and SMTP delivery;
+- if the recovery email template is customized, confirm it uses
+  `{{ .RedirectTo }}` so the requested callback is preserved.
+
+Request a recovery email only for a controlled account. Verify the email link
+lands on `/auth/reset-password`, an expired link shows a safe error, a valid new
+password signs the user in, and the old password no longer works. The UI always
+uses an account-neutral confirmation; do not weaken it to reveal whether an
+email address exists.
+
 ## 2. Database deployment
 
 1. Take a Supabase database backup and record its identifier.
@@ -151,11 +169,11 @@ third-party data. Treat that expansion as a separate legal/product release gate.
 
 ## 6. Release and rollback
 
-Deploy the merged commit to preview first. Verify auth, home, chat, workout
-detail, check-in, schema, nutrition, cron status, budget status, and catalog
-media. Promote that exact commit to production; do not rebuild from a different
-tree. Record Git SHA, migration versions, dataset SHA, backup ID, Vercel deploy
-ID, and smoke results.
+Deploy the merged commit to preview first. Verify login and password recovery,
+home, chat, workout detail, check-in, schema, nutrition, cron status, budget
+status, and catalog media. Promote that exact commit to production; do not
+rebuild from a different tree. Record Git SHA, migration versions, dataset SHA,
+backup ID, Vercel deploy ID, and smoke results.
 
 For application regressions, redeploy the last known-good Git SHA. Do not roll
 database migrations back destructively: the new columns/functions are backward
