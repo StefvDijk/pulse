@@ -30,6 +30,7 @@ export function LoginForm({ initialError = null }: LoginFormProps) {
 
     // Full page navigation guarantees the freshly-set Supabase session cookie
     // is sent on the next request — router.push misses it intermittently.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Intentional hard navigation after auth cookie creation.
     window.location.assign('/')
   }
 

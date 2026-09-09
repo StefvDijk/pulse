@@ -37,9 +37,9 @@
     "ai": "^6.0.142",
     "googleapis": "^171.4.0",
     "lucide-react": "^1.7.0",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.4.1",
     "motion": "^12.38.0",
-    "next": "16.2.12",
+    "next": "16.3.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -60,7 +60,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.3",
     "happy-dom": "^20.9.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
@@ -68,19 +68,22 @@
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vite": "8.0.16",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "overrides": {
+      "@ai-sdk/provider-utils": "4.0.33",
       "@babel/core": "7.29.7",
       "brace-expansion@<2": "1.1.18",
       "brace-expansion@>=5 <6": "5.0.9",
       "esbuild": "0.28.1",
-      "js-yaml": "4.3.1",
+      "fast-uri": "3.1.6",
+      "@humanfs/node": "0.16.8",
+      "js-yaml": "4.3.2",
       "nanoid@<4": "3.3.18",
       "postcss": "8.5.26",
-      "qs": "6.15.3",
-      "sharp": "0.35.0",
+      "qs": "6.16.0",
+      "sharp": "0.35.4",
       "ws": "8.21.3"
     }
   }

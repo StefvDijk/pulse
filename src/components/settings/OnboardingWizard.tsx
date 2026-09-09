@@ -349,7 +349,7 @@ export function OnboardingWizard() {
               } catch {
                 // ignore — fall through to redirect
               }
-              window.location.assign('/')
+              router.push('/')
             }}
             disabled={saving}
             className="min-h-11 rounded-lg px-3 py-2 text-sm text-text-tertiary hover:text-text-primary disabled:opacity-50"
