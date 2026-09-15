@@ -6,6 +6,7 @@ import { sportMeta, type SportKey } from '@/lib/sports/registry'
 import { reconcileWeek, type PlannedSession, type CompletionInput, type ActivityKind } from '@/lib/training/reconcile-week'
 import { toTokens } from './to-tokens'
 import { softRows } from '@/lib/supabase/soft-rows'
+import { parseScheduleTemplates, parseScheduledOverrides, resolveScheduledSession } from '@/lib/training/scheduled-session'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -15,16 +16,6 @@ interface ScheduleDay {
   type: string
   duration_min: number
 }
-
-// workout_schedule is stored as an array of day entries
-interface WorkoutScheduleItem {
-  day: string   // "monday", "tuesday", etc.
-  focus: string // e.g. "Upper A" — used as the workout title for matching
-  exercises?: Array<{ name: string; sets?: number; reps?: string; notes?: string }>
-  duration_min?: number
-}
-
-type WorkoutSchedule = WorkoutScheduleItem[]
 
 interface SetData {
   set_order: number
@@ -216,38 +207,8 @@ export async function GET() {
       )
     }
 
-    // Build a fast lookup: day name → ScheduleDay (template schedule)
-    // Supports two formats:
-    //   Array:  [{ day: "monday", focus: "Upper A", exercises: [...], duration_min: 50 }]
-    //   Object: { days: { monday: { title: "UPPER A", subtitle: "Push Focus", type: "gym", duration_min: 50 } } }
-    const scheduleByDay = new Map<string, ScheduleDay>()
-    const raw = schema.workout_schedule as unknown
-
-    if (Array.isArray(raw)) {
-      for (const item of raw as WorkoutSchedule) {
-        scheduleByDay.set(item.day.toLowerCase(), {
-          title: item.focus,
-          subtitle: item.exercises?.map((e) => e.name).slice(0, 3).join(', ') ?? '',
-          type: 'gym',
-          duration_min: item.duration_min ?? 60,
-        })
-      }
-    } else if (raw && typeof raw === 'object' && 'days' in raw) {
-      const daysObj = (raw as { days: Record<string, ScheduleDay | null> }).days
-      for (const [dayName, dayData] of Object.entries(daysObj)) {
-        if (dayData) {
-          scheduleByDay.set(dayName.toLowerCase(), {
-            title: dayData.title,
-            subtitle: dayData.subtitle ?? '',
-            type: dayData.type ?? 'gym',
-            duration_min: dayData.duration_min ?? 60,
-          })
-        }
-      }
-    }
-
-    // Parse scheduled_overrides (date → workoutFocus or null for rest)
-    const overrides = (schema.scheduled_overrides ?? {}) as Record<string, string | null>
+    const schedule = parseScheduleTemplates(schema.workout_schedule)
+    const overrides = parseScheduledOverrides(schema.scheduled_overrides)
 
     const weekDates = getWeekDates(today)
     const weekStart = weekDates[0].date
@@ -377,29 +338,15 @@ export async function GET() {
 
     // Hergebruik de bestaande planned-bepaling (override > template > rust) per dag.
     function plannedForDate(date: string, dayName: string): PlannedSession | null {
-      let planned: ScheduleDay | null = null
-      if (date in overrides) {
-        const overrideFocus = overrides[date]
-        if (overrideFocus === null) return null // expliciete rust
-        const templateEntry = Array.from(scheduleByDay.values()).find(
-          (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
-        )
-        planned = templateEntry ?? { title: overrideFocus, subtitle: '', type: 'gym', duration_min: 60 }
-      } else {
-        planned = scheduleByDay.get(dayName) ?? null
-      }
-      if (!planned) return null
-      const rawSchedule = (schema!).workout_schedule as unknown
-      const exercises = Array.isArray(rawSchedule)
-        ? (rawSchedule as WorkoutSchedule).find((s) => s.day.toLowerCase() === dayName)?.exercises
-        : undefined
+      const planned = resolveScheduledSession(schedule,overrides,date,dayName)
+      if (!planned || planned.sport_type === 'rest') return null
       return {
         plannedDate: date,
-        focus: planned.title,
-        kind: classifyByTitle(planned.title) as ActivityKind,
-        exercises,
-        subtitle: planned.subtitle || undefined,
-        durationMin: planned.duration_min,
+        focus: planned.focus,
+        kind: planned.sport_type ?? classifyByTitle(planned.focus) as ActivityKind,
+        exercises: planned.exercises,
+        subtitle: planned.exercises?.map(e=>e.name).slice(0,3).join(', ') ?? planned.subtitle,
+        durationMin: planned.duration_min ?? 60,
       }
     }
 

@@ -23,11 +23,15 @@ export default defineConfig({
         browserName: 'chromium',
       },
     },
+    {
+      name: 'mobile-webkit',
+      use: { ...devices['iPhone 14'], browserName: 'webkit' },
+    },
   ],
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 30000,
+    reuseExistingServer: false,
+    timeout: 120000,
   },
 })
