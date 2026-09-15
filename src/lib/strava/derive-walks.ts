@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { loadCachedStravaActivities } from './cached-activities'
 import { pickBestRunMatch, runMatchWindow } from '@/lib/runs/match'
 
 // Walks/hikes derived from Strava. Mirrors derive-runs but writes to the
@@ -32,16 +33,7 @@ export async function deriveWalksFromStrava(
   userId: string,
   admin: AdminClient,
 ): Promise<DeriveResult> {
-  const { data: stravaWalks, error } = await admin
-    .from('strava_activities')
-    .select(
-      'strava_activity_id, name, activity_type, sport_type, start_date, distance_meters, moving_time_seconds, elapsed_time_seconds, total_elevation_gain_meters, average_heartrate, max_heartrate, calories',
-    )
-    .eq('user_id', userId)
-    .in('activity_type', STRAVA_WALK_TYPES as unknown as string[])
-    .order('start_date', { ascending: false })
-
-  if (error) throw new Error(`Failed to load strava_activities: ${error.message}`)
+  const stravaWalks = await loadCachedStravaActivities(userId, admin, STRAVA_WALK_TYPES)
   if (!stravaWalks || stravaWalks.length === 0) {
     return { scanned: 0, matched: 0, inserted: 0, failed: 0 }
   }

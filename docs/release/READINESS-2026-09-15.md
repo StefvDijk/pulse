@@ -362,3 +362,21 @@ the overall goal active until live evidence supports the complete objective.
   and sport coverage in aggregate calculations. Scheduling all cached dates
   does not prove the aggregates count every sport correctly. No production data
   was modified; full release remains draft.
+
+### Complete cached Strava derivation input (release only)
+
+- Reproduced all three derivation helpers processing only the first database
+  response, reporting zero failures while the next activity was never looked up.
+  Runs, walks and other sports now share a cached-input loader that reads stable
+  500-row pages ordered by start date and unique Strava activity id.
+- The loader reads all pages before derivation writes. A failed later page
+  throws rather than processing an incomplete input and claiming success.
+- Six new cases cover activity 501 and a failed second page for each sport
+  category, through the actual helpers and Supabase client with HTTP fixtures.
+  The 43 focused Strava tests, typecheck and scoped lint pass. Full local suite:
+  **140 files / 908 tests passed**. Diff whitespace check passes.
+- This fixes database-response truncation, not concurrent snapshot consistency
+  or serverless runtime limits. Derivation still updates cached rows serially;
+  large-history performance needs explicit verification and likely incremental
+  processing before claiming robust production-scale sync. No production data
+  was changed.

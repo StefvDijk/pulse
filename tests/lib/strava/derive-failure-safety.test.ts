@@ -7,6 +7,39 @@ import { deriveActivitiesFromStrava } from '@/lib/strava/derive-activities'
 
 vi.mock('server-only', () => ({}))
 
+describe.each([
+  { derive: deriveRunsFromStrava, type: 'Run' },
+  { derive: deriveWalksFromStrava, type: 'Walk' },
+  { derive: deriveActivitiesFromStrava, type: 'Ride' },
+])('$type cache pagination', ({ derive, type }) => {
+  it.each([false, true])('handles a second page (page fails: %s)', async (pageFails) => {
+    const lookedUp: string[] = []
+    const admin = createClient<Database>('http://127.0.0.1:54321', 'test-only', {
+      auth: { persistSession: false, autoRefreshToken: false, storageKey: `pagination-${type}` },
+      global: { fetch: async (input, init) => {
+        const url = new URL(String(input))
+        if (url.pathname.endsWith('/strava_activities')) {
+          const offset = Number(url.searchParams.get('offset') ?? 0)
+          if (offset > 0 && pageFails) return Response.json({ message: 'second page unavailable', code: '42501' }, { status: 403 })
+          return Response.json(Array.from({ length: offset === 0 ? 500 : 1 }, (_, index) => ({
+            ...baseActivity, activity_type: type, sport_type: type, strava_activity_id: offset + index + 1,
+          })))
+        }
+        if (init?.method === 'PATCH') return new Response(null, { status: 204 })
+        lookedUp.push(url.searchParams.get('strava_activity_id') ?? '')
+        return Response.json([{ id: 'existing', source: 'strava', apple_health_id: null }])
+      } },
+    })
+    if (pageFails) {
+      await expect(derive('test-user', admin)).rejects.toThrow('second page unavailable')
+      expect(lookedUp).toEqual([])
+    } else {
+      expect(await derive('test-user', admin)).toEqual({ scanned: 501, matched: 501, inserted: 0, failed: 0 })
+      expect(lookedUp).toContain('eq.501')
+    }
+  })
+})
+
 describe('other Strava activity failure safety', () => {
   it.each(['insert', 'update'])('reports a failed %s instead of zero failures', async (operation) => {
     const { admin } = databaseWithResponses([

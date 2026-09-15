@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { loadCachedStravaActivities } from './cached-activities'
 import {
   isDerivableActivity,
   stravaActivitySportKey,
@@ -24,14 +25,7 @@ export async function deriveActivitiesFromStrava(
   userId: string,
   admin: AdminClient,
 ): Promise<DeriveResult> {
-  const { data, error } = await admin
-    .from('strava_activities')
-    .select(
-      'strava_activity_id, name, activity_type, sport_type, start_date, distance_meters, moving_time_seconds, elapsed_time_seconds, total_elevation_gain_meters, average_heartrate, max_heartrate, calories',
-    )
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false })
-  if (error) throw new Error(`Failed to load strava_activities: ${error.message}`)
+  const data = await loadCachedStravaActivities(userId, admin)
 
   const derivable = (data ?? []).filter(isDerivableActivity)
   let inserted = 0
