@@ -5,17 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
 import { reconcileWeek, type PlannedSession, type CompletionInput } from '@/lib/training/reconcile-week'
 import { runAfterResponse } from '@/lib/runtime/after-response'
+import { parseScheduleTemplates, parseScheduledOverrides, resolveScheduledSession, type ScheduleTemplate, type ScheduledOverride } from '@/lib/training/scheduled-session'
 
 /* ── Types ─────────────────────────────────────────────────── */
-
-interface WorkoutScheduleItem {
-  day: string
-  focus: string
-  sport_type?: 'gym' | 'run' | 'padel' | 'rest'
-  run_type?: 'easy' | 'interval' | 'tempo' | 'long'
-  exercises?: Array<{ name: string; sets?: number; reps?: string; rest_seconds?: number; rpe?: string; tempo?: string; notes?: string }>
-  duration_min?: number
-}
 
 interface CompletedWorkoutRow {
   started_at: string
@@ -29,21 +21,6 @@ interface DatedActivityRow {
 /* ── Helpers ───────────────────────────────────────────────── */
 
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
-
-function parseSchedule(raw: unknown): WorkoutScheduleItem[] {
-  if (Array.isArray(raw)) return raw as WorkoutScheduleItem[]
-  if (raw && typeof raw === 'object' && 'days' in raw) {
-    const daysObj = (raw as { days: Record<string, { title: string; subtitle?: string; type?: string; duration_min?: number } | null> }).days
-    return Object.entries(daysObj)
-      .filter(([, v]) => v !== null)
-      .map(([dayName, data]) => ({
-        day: dayName.toLowerCase(),
-        focus: data!.title,
-        duration_min: data!.duration_min ?? 60,
-      }))
-  }
-  return []
-}
 
 function getWeekStartDate(schemaStart: string, weekNumber: number): Date {
   const start = new Date(schemaStart + 'T00:00:00Z')
@@ -71,27 +48,17 @@ function computeCurrentWeek(startDate: string, totalWeeks: number): number {
   return Math.max(1, Math.min(totalWeeks, diffWeeks + 1))
 }
 
-interface OverrideObject {
-  focus: string
-  exercises?: WorkoutScheduleItem['exercises']
-  duration_min?: number
-}
-
-type OverrideValue = string | null | OverrideObject
-
-function isOverrideObject(val: OverrideValue): val is OverrideObject {
-  return val !== null && typeof val === 'object' && 'focus' in val
-}
-
 function titleCase(s: string): string {
   return s.replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
-function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], overrides: Record<string, OverrideValue>): Array<{
+function generateWeekDates(weekStart: Date, schedule: ScheduleTemplate[], overrides: Record<string, ScheduledOverride>): Array<{
   date: string
   dayName: string
   workoutFocus: string | null
-  exercises?: WorkoutScheduleItem['exercises']
+  exercises?: ScheduleTemplate['exercises']
+  durationMin?: number
+  sportType?: ScheduleTemplate['sport_type']
 }> {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
@@ -99,18 +66,10 @@ function generateWeekDates(weekStart: Date, schedule: WorkoutScheduleItem[], ove
     const dateStr = d.toISOString().slice(0, 10)
     const dayName = DAY_ORDER[i]
 
-    // Check override first
-    if (dateStr in overrides) {
-      const val = overrides[dateStr]
-      if (isOverrideObject(val)) {
-        return { date: dateStr, dayName, workoutFocus: val.focus, exercises: val.exercises }
-      }
-      return { date: dateStr, dayName, workoutFocus: val }
-    }
-
-    // Fall back to template schedule
-    const scheduled = schedule.find((s) => s.day.toLowerCase() === dayName)
-    return { date: dateStr, dayName, workoutFocus: scheduled?.focus ?? null }
+    const scheduled = resolveScheduledSession(schedule,overrides,dateStr,dayName)
+    if (!scheduled || scheduled.sport_type === 'rest') return {date:dateStr,dayName,workoutFocus:null}
+    return {date:dateStr,dayName,workoutFocus:scheduled.focus,exercises:scheduled.exercises,
+      durationMin:scheduled.duration_min ?? 60,sportType:scheduled.sport_type}
   })
 }
 
@@ -141,8 +100,8 @@ export async function GET() {
 
     const totalWeeks = schema.weeks_planned ?? 4
     const currentWeek = computeCurrentWeek(schema.start_date, totalWeeks)
-    const schedule = parseSchedule(schema.workout_schedule)
-    const overrides = (schema.scheduled_overrides as Record<string, OverrideValue>) ?? {}
+    const schedule = parseScheduleTemplates(schema.workout_schedule)
+    const overrides = parseScheduledOverrides(schema.scheduled_overrides)
     const workoutsPerWeek = schedule.length
 
     // Build all week dates
@@ -221,8 +180,10 @@ export async function GET() {
       const planned: PlannedSession[] = []
       for (const d of week.days) {
         if (!d.workoutFocus) continue
-        const exercises = d.exercises ?? schedule.find((s) => s.day.toLowerCase() === d.dayName)?.exercises
-        planned.push({ plannedDate: d.date, focus: d.workoutFocus, kind: focusKind(d.workoutFocus), exercises })
+        const exercises = d.exercises
+        planned.push({ plannedDate: d.date, focus: d.workoutFocus,
+          kind: d.sportType && d.sportType !== 'rest' ? d.sportType : focusKind(d.workoutFocus),
+          exercises, durationMin:d.durationMin })
       }
 
       const completions: CompletionInput[] = []
@@ -238,6 +199,7 @@ export async function GET() {
       type DayItem = {
         focus: string
         exercises?: PlannedSession['exercises']
+        durationMin?: number
         status: 'completed' | 'today' | 'planned'
         plannedDate?: string
         actualDate?: string
@@ -262,6 +224,7 @@ export async function GET() {
                 ? titleCase(r.title)
                 : r.title,
           exercises: r.plannedExercises,
+          durationMin: r.durationMin,
           status,
           plannedDate: r.plannedDate,
           actualDate: r.actualDate,
@@ -287,6 +250,7 @@ export async function GET() {
           dayName: day.dayName,
           workoutFocus: primary?.focus ?? null,
           exercises: primary?.exercises,
+          durationMin: primary?.durationMin,
           status: dayStatus,
           items,
         }
