@@ -269,3 +269,8 @@ the overall goal active until live evidence supports the complete objective.
   timed out filling the login form before reaching the target screen; an unchanged
   traced rerun passed in 7.2s. All three profiles have exercised the target state,
   but the transient login stall has no proven root cause yet.
+- Final exact-code verification: commit `dfa7095c4702ce45d78cbe6fe14712579032a89c`,
+  [CI run 34962058927](https://github.com/StefvDijk/pulse/actions/runs/34962058927),
+  passed **138 files / 867 tests**, typecheck, production build and migrations.
+  Vercel preview also passed. This resolves the missing full-run evidence for
+  this code change; it does not diagnose the local worker-start timeouts.
