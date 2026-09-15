@@ -1,25 +1,25 @@
 'use client'
 
-import type { MouseEvent } from 'react'
+import { useState } from 'react'
 import useSWR from 'swr'
+import { z } from 'zod'
 import { SquarePen, Trash2 } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
+import { ErrorAlert } from '@/components/shared/ErrorAlert'
 
-interface SessionRow {
-  id: string
-  title: string | null
-  last_message_at: string | null
-  message_count: number
-}
-
-interface SessionsResponse {
-  sessions: SessionRow[]
-}
+const SessionsResponseSchema = z.object({
+  sessions: z.array(z.object({
+    id: z.string().min(1),
+    title: z.string().nullable(),
+    last_message_at: z.iso.datetime({ offset: true }).nullable(),
+    message_count: z.number().int().nonnegative().nullable(),
+  })),
+})
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Failed to load sessions: ${res.status}`)
-  return res.json() as Promise<SessionsResponse>
+  return SessionsResponseSchema.parse(await res.json())
 }
 
 function relativeDate(iso: string | null): string {
@@ -40,7 +40,9 @@ export interface ChatHistoryPanelProps {
 }
 
 export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHistoryPanelProps) {
-  const { data, error, mutate } = useSWR(open ? '/api/chat/sessions' : null, fetcher)
+  const { data, error, isLoading, mutate } = useSWR(open ? '/api/chat/sessions' : null, fetcher)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [failedDeleteId, setFailedDeleteId] = useState<string | null>(null)
   const sessions = data?.sessions ?? []
 
   function select(id: string) {
@@ -48,14 +50,21 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
     onClose()
   }
 
-  async function remove(e: MouseEvent, id: string) {
-    e.stopPropagation()
+  async function remove(id: string) {
+    if (deletingId) return
+    setDeletingId(id)
+    setFailedDeleteId(null)
     try {
       const res = await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE' })
-      if (res.ok) void mutate()
-      else console.error('Failed to delete session:', res.status)
+      if (!res.ok) throw new Error(`Failed to delete session: ${res.status}`)
+      await mutate(current => current ? {
+        sessions: current.sessions.filter(session => session.id !== id),
+      } : current, { revalidate: false })
     } catch (error) {
       console.error('Failed to delete session:', error)
+      setFailedDeleteId(id)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -73,9 +82,18 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
           <SquarePen size={16} strokeWidth={1.75} /> Nieuwe chat
         </button>
 
+        {failedDeleteId && (
+          <ErrorAlert
+            message="Kon gesprek niet verwijderen. Probeer opnieuw."
+            onRetry={() => { void remove(failedDeleteId) }}
+          />
+        )}
+
         {error ? (
+          <ErrorAlert message="Kon gesprekken niet laden." onRetry={() => { void mutate() }} />
+        ) : isLoading ? (
           <p className="px-3 py-6 text-center text-body-s text-text-tertiary">
-            Kon gesprekken niet laden.
+            Gesprekken laden…
           </p>
         ) : sessions.length === 0 ? (
           <p className="px-3 py-6 text-center text-body-s text-text-tertiary">
@@ -96,13 +114,17 @@ export function ChatHistoryPanel({ open, onClose, onSelect, onNewChat }: ChatHis
                   {s.title ?? 'Nieuw gesprek'}
                 </span>
                 <span className="text-caption1 text-text-tertiary">
-                  {relativeDate(s.last_message_at)} · {s.message_count} berichten
+                  {[relativeDate(s.last_message_at), s.message_count === null
+                    ? 'Aantal berichten onbekend'
+                    : `${s.message_count} berichten`].filter(Boolean).join(' · ')}
                 </span>
               </button>
               <button
                 type="button"
                 aria-label="Verwijder gesprek"
-                onClick={(e) => remove(e, s.id)}
+                disabled={deletingId !== null}
+                aria-busy={deletingId === s.id}
+                onClick={(e) => { e.stopPropagation(); void remove(s.id) }}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:text-status-bad"
               >
                 <Trash2 size={16} strokeWidth={1.75} />
