@@ -187,6 +187,30 @@ criteria in `CATCH_UP_RELEASE_RUNBOOK.md`, the PRD and the July audit improvemen
 
 ## Next work
 
+### Sleep date / failure-state follow-up (release only)
+
+- The historical sleep-score card regression was observed failing with the actual
+  August 14 date, then fixed: only today's Amsterdam date is labelled “afgelopen
+  nacht”; older records display their full date, including the year.
+- Failed loads now remain visible with retry. Imported but incomplete sleep no
+  longer says that no sleep was imported. Client response validation rejects
+  invalid dates/scores and a scored record without a date.
+- The score calculation now excludes future sleep dates so they cannot hide the
+  newest available night. The regression first returned September 16 while the
+  Amsterdam clock was September 15, then passed after adding the date bound.
+- Ten focused tests cover these cases and the Amsterdam/UTC midnight boundary.
+  No production records changed and this is not deployed to main.
+- Full verification: 136 test files / 847 tests, lint and standalone typecheck
+  passed. Owner confirmed that all relevant Health Auto Export metrics are enabled
+  but the watch is only worn some nights. Missing readings must be supported as
+  normal missing input, not interpreted as recovery or automatically blamed on
+  export configuration. This does not yet prove why every specific night is absent.
+- Remaining related work: `DailyHealthBar` uses one activity date for independently
+  dated sleep data; `/api/health/today` does not surface query errors and omits
+  sleep provenance. Fix that path too. Sleep-baseline date alignment and the
+  broader readiness confidence/wording requirements remain open. Do not call the
+  entire sleep/health experience complete based on this card correction.
+
 The schema/retry and empty Hevy-feed hotfixes are live and merged to main; the
 draft release contains both corrections.
 Next address import identity/data integrity, readiness context and unsupported

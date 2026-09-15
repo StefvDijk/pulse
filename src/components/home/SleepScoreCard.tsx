@@ -2,6 +2,8 @@
 
 import { useSleepScore } from '@/hooks/useSleepScore'
 import type { SleepComponentKey, SleepScoreResult } from '@/lib/sleep/score'
+import { formatLongDate, todayAmsterdam } from '@/lib/time/amsterdam'
+import { ErrorAlert } from '@/components/shared/ErrorAlert'
 
 const ACCENT = '#00E5C7' // gym/sleep accent
 const TRACK = 'rgba(0, 229, 199, 0.18)'
@@ -94,16 +96,24 @@ function ComponentBar({ label, scored, available, skipped }: ComponentBarProps) 
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function SleepScoreCard() {
-  const { data, isLoading } = useSleepScore()
+  const { data, isLoading, error, refresh } = useSleepScore()
+
+  if (error) return <ErrorAlert message="Slaapgegevens konden niet worden geladen." onRetry={refresh} />
 
   if (isLoading || !data) return null
+
+  const dateLabel = data.date === todayAmsterdam()
+    ? 'afgelopen nacht'
+    : data.date ? formatLongDate(data.date) : 'datum onbekend'
 
   if (data.score === null) {
     return (
       <div className="rounded-2xl border border-bg-border bg-white/[0.04] p-4">
         <span className="text-subhead font-semibold text-text-primary">Slaap</span>
         <p className="mt-2 text-caption1 text-text-tertiary">
-          Nog geen slaap geïmporteerd. Sync je Apple Health om je slaapscore te zien.
+          {data.date
+            ? `Onvoldoende slaapgegevens voor een score — ${dateLabel}. Sync je Apple Health opnieuw.`
+            : 'Nog geen slaap geïmporteerd. Sync je Apple Health om je slaapscore te zien.'}
         </p>
       </div>
     )
@@ -116,7 +126,7 @@ export function SleepScoreCard() {
       <div className="flex items-center justify-between">
         <span className="text-subhead font-semibold text-text-primary">Slaap</span>
         <span className="text-caption2 uppercase tracking-wide text-text-tertiary">
-          afgelopen nacht
+          {dateLabel}
         </span>
       </div>
 
