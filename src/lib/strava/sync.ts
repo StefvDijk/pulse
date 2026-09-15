@@ -22,6 +22,7 @@ interface DeriveSummary {
   scanned: number
   matched: number
   inserted: number
+  failed: number
 }
 
 export interface StravaSyncResult {
@@ -77,6 +78,7 @@ async function touchLastSync(userId: string, admin: AdminClient): Promise<void> 
     .eq('user_id', userId)
   if (error) {
     console.error('[strava/sync] touchLastSync failed:', error)
+    throw new Error('Sync-tijdstip opslaan mislukt')
   }
 }
 
@@ -85,11 +87,11 @@ async function touchLastSync(userId: string, admin: AdminClient): Promise<void> 
  *
  * Pulls the last `days` days of activities (paginated, capped at 3 pages),
  * upserts them into `strava_activities`, then derives `runs` and `walks`.
- * Derive failures are logged but do not undo the upsert. On success the
- * user's `last_strava_sync_at` is updated.
+ * Processing failures retain the cached source data for retry, but reject the
+ * sync and record an error. Only fully processed syncs update last success.
  *
  * Throws when the user is not connected (caller maps to NOT_CONNECTED) or when
- * the upsert itself fails.
+ * persistence, derivation or reaggregation fails.
  */
 export async function syncStravaActivities(
   userId: string,
@@ -143,21 +145,33 @@ export async function syncStravaActivities(
   // untouched. Failures here shouldn't undo the upsert above.
   let derivedRuns: DeriveSummary | null = null
   let derivedWalks: DeriveSummary | null = null
+  const processingErrors: string[] = []
   try {
     derivedRuns = await deriveRunsFromStrava(userId, admin)
   } catch (deriveErr) {
     console.error('[strava/sync] derive runs failed:', deriveErr)
+    processingErrors.push('Hardloopactiviteiten verwerken mislukt')
   }
   try {
     derivedWalks = await deriveWalksFromStrava(userId, admin)
   } catch (deriveErr) {
     console.error('[strava/sync] derive walks failed:', deriveErr)
+    processingErrors.push('Wandelactiviteiten verwerken mislukt')
   }
   let derivedActivities: DeriveSummary | null = null
   try {
     derivedActivities = await deriveActivitiesFromStrava(userId, admin)
   } catch (deriveErr) {
     console.error('[strava/sync] derive activities failed:', deriveErr)
+    processingErrors.push('Overige activiteiten verwerken mislukt')
+  }
+
+  for (const [label, result] of [
+    ['Hardloopactiviteiten', derivedRuns],
+    ['Wandelactiviteiten', derivedWalks],
+    ['Overige activiteiten', derivedActivities],
+  ] as const) {
+    if (result && result.failed > 0) processingErrors.push(`${label}: ${result.failed} verwerking(en) mislukt`)
   }
 
   // Re-aggregate the days the synced activities fall on (Amsterdam wall-clock),
@@ -176,10 +190,24 @@ export async function syncStravaActivities(
       await reaggregateDates(userId, Array.from(touchedDays))
     } catch (aggErr) {
       console.error('[strava/sync] re-aggregation failed:', aggErr)
+      processingErrors.push('Trainingsgegevens herberekenen mislukt')
     }
   }
 
-  await touchLastSync(userId, admin)
+  if (processingErrors.length === 0) {
+    try {
+      await touchLastSync(userId, admin)
+    } catch {
+      processingErrors.push('Sync-tijdstip opslaan mislukt')
+    }
+  }
+
+  if (processingErrors.length > 0) {
+    runAfterResponse('Strava failed processing audit logging', () =>
+      recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: data?.length ?? 0, errors: processingErrors }),
+    )
+    throw new Error(`Strava-sync onvolledig: ${processingErrors.join('; ')}`)
+  }
 
   runAfterResponse('Strava sync audit logging', () =>
     recordSyncRun({

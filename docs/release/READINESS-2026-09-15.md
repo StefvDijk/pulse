@@ -316,3 +316,25 @@ the overall goal active until live evidence supports the complete objective.
   success. Fixing its public error/audit contract, empty-feed retries and
   reaggregation remains required before Strava can be called release-ready.
   No live import or production data mutation was performed.
+
+### Strava sync completion contract (release only)
+
+- Reproduced the real sync function resolving successfully with an activity
+  derivation result containing `failed: 1`. Sync now collects explicit failure
+  counts and caught derivation/reaggregation exceptions, records an error audit
+  and rejects rather than updating last-success and returning success.
+- Also reproduced a failed last-success timestamp write being ignored. It now
+  rejects; the nonempty-feed processing path records this failure as well.
+- Seven sync cases use real OAuth token lookup, Strava client, Supabase clients,
+  derivation helpers, aggregation helper and audit writer, with only HTTP I/O
+  and Next's after-response scheduling substituted. They cover a row failure,
+  each of the three cache-read failures, aggregation failure, timestamp failure
+  and successful completion. All 26 focused Strava tests, typecheck, scoped lint
+  and diff checks pass. Exact-commit full CI still needs verification.
+- Previous walk/activity fix `58ee4adc1d21a03951c5833482a044da718cda1f`
+  passed [CI run 34973910076](https://github.com/StefvDijk/pulse/actions/runs/34973910076).
+- Still required: empty-feed cached retries (current early return skips them),
+  auditing failures before/within that early path, aggregating all affected
+  cached dates rather than only freshly fetched run/walk days, pagination and
+  payload validation, and concurrent import safety. This is not a claim of
+  complete Strava correctness or release readiness. No production data changed.
