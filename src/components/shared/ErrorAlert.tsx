@@ -12,7 +12,7 @@ export function ErrorAlert({ message = 'Er is iets misgegaan. Probeer opnieuw.',
         <span>{message}</span>
         {onRetry && (
           <button
-            onClick={onRetry}
+            onClick={() => onRetry()}
             className="shrink-0 text-xs font-medium text-[#0A84FF] underline"
           >
             Opnieuw proberen

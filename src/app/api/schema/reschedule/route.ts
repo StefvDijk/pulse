@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parseScheduleTemplates, parseScheduledOverrides, resolveScheduledSession } from '@/lib/training/scheduled-session'
 
 const RescheduleSchema = z.object({
-  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  fromDate: z.iso.date(),
+  toDate: z.iso.date(),
   workoutFocus: z.string().min(1),
 })
 
@@ -36,31 +37,49 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
 
-    const { data: schema } = await admin
+    const { data: schema, error: schemaError } = await admin
       .from('training_schemas')
-      .select('id, scheduled_overrides')
+      .select('id, scheduled_overrides, workout_schedule, updated_at')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .maybeSingle()
 
+    if (schemaError) throw schemaError
     if (!schema) {
       return NextResponse.json({ error: 'No active training schema', code: 'NO_SCHEMA' }, { status: 404 })
     }
 
-    // Merge new overrides with existing ones
-    const existing = (schema.scheduled_overrides as Record<string, string | null>) ?? {}
+    const schedule = parseScheduleTemplates(schema.workout_schedule)
+    const existing = parseScheduledOverrides(schema.scheduled_overrides)
+    const dayName = (date:string) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}).toLowerCase()
+    const session = resolveScheduledSession(schedule,existing,fromDate,dayName(fromDate))
+    if (!session || session.sport_type === 'rest' || session.focus !== workoutFocus) {
+      return NextResponse.json({error:'De training is gewijzigd. Vernieuw je schema.',code:'SCHEMA_CHANGED'},{status:409})
+    }
+    const destination = resolveScheduledSession(schedule,existing,toDate,dayName(toDate))
+    if (destination && destination.sport_type !== 'rest') {
+      return NextResponse.json({error:'Op deze dag staat al een training.',code:'DESTINATION_OCCUPIED'},{status:409})
+    }
+    // Carry the resolved contents, not just a label that loses personal edits.
     const updated = {
       ...existing,
       [fromDate]: null,           // Original date becomes rest
-      [toDate]: workoutFocus,     // New date gets the workout
+      [toDate]: session,
     }
 
-    const { error: updateError } = await admin
+    const update = admin
       .from('training_schemas')
-      .update({ scheduled_overrides: updated as unknown as import('@/types/database').Json })
+      .update({ scheduled_overrides: updated as unknown as import('@/types/database').Json, updated_at:new Date().toISOString() })
       .eq('id', schema.id)
+      .eq('user_id',user.id)
+      .eq('is_active',true)
+    const guardedUpdate = schema.updated_at === null
+      ? update.is('updated_at',null)
+      : update.eq('updated_at',schema.updated_at)
+    const {data:saved,error:updateError} = await guardedUpdate.select('id').maybeSingle()
 
     if (updateError) throw updateError
+    if (!saved) return NextResponse.json({error:'Het schema is ondertussen gewijzigd. Vernieuw en probeer opnieuw.',code:'SCHEMA_CHANGED'},{status:409})
 
     return NextResponse.json({
       success: true,
