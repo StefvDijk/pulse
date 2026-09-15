@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
@@ -25,6 +26,21 @@ interface WorkoutScheduleItem {
 }
 
 type WorkoutSchedule = WorkoutScheduleItem[]
+
+const OverrideSchema = z.union([
+  z.string().min(1),
+  z.null(),
+  z.object({
+    focus: z.string().min(1),
+    exercises: z.array(z.object({
+      name: z.string(),
+      sets: z.number().optional(),
+      reps: z.string().optional(),
+      notes: z.string().optional(),
+    }).passthrough()).optional(),
+    duration_min: z.number().nonnegative().optional(),
+  }),
+])
 
 interface SetData {
   set_order: number
@@ -246,8 +262,9 @@ export async function GET() {
       }
     }
 
-    // Parse scheduled_overrides (date → workoutFocus or null for rest)
-    const overrides = (schema.scheduled_overrides ?? {}) as Record<string, string | null>
+    // Date overrides can move a template by title or carry edited exercises.
+    // Validate stored JSON here instead of trusting a TypeScript assertion.
+    const overrides = z.record(z.string(), OverrideSchema).parse(schema.scheduled_overrides ?? {})
 
     const weekDates = getWeekDates(today)
     const weekStart = weekDates[0].date
@@ -378,21 +395,30 @@ export async function GET() {
     // Hergebruik de bestaande planned-bepaling (override > template > rust) per dag.
     function plannedForDate(date: string, dayName: string): PlannedSession | null {
       let planned: ScheduleDay | null = null
+      const rawSchedule = schema!.workout_schedule as unknown
+      const templateItems = Array.isArray(rawSchedule) ? rawSchedule as WorkoutSchedule : []
+      let exercises = templateItems.find((s) => s.day.toLowerCase() === dayName)?.exercises
       if (date in overrides) {
-        const overrideFocus = overrides[date]
-        if (overrideFocus === null) return null // expliciete rust
+        const override = overrides[date]
+        if (override === null) return null // expliciete rust
+        const overrideFocus = typeof override === 'string' ? override : override.focus
         const templateEntry = Array.from(scheduleByDay.values()).find(
           (s) => s.title.toLowerCase() === overrideFocus.toLowerCase(),
         )
-        planned = templateEntry ?? { title: overrideFocus, subtitle: '', type: 'gym', duration_min: 60 }
+        const movedExercises = templateItems.find((s) => s.focus.toLowerCase() === overrideFocus.toLowerCase())?.exercises
+        exercises = typeof override === 'string' ? movedExercises : override.exercises ?? movedExercises
+        planned = {
+          title: overrideFocus,
+          subtitle: exercises?.map((e) => e.name).slice(0, 3).join(', ') ?? templateEntry?.subtitle ?? '',
+          type: templateEntry?.type ?? 'gym',
+          duration_min: typeof override === 'string'
+            ? templateEntry?.duration_min ?? 60
+            : override.duration_min ?? templateEntry?.duration_min ?? 60,
+        }
       } else {
         planned = scheduleByDay.get(dayName) ?? null
       }
       if (!planned) return null
-      const rawSchedule = (schema!).workout_schedule as unknown
-      const exercises = Array.isArray(rawSchedule)
-        ? (rawSchedule as WorkoutSchedule).find((s) => s.day.toLowerCase() === dayName)?.exercises
-        : undefined
       return {
         plannedDate: date,
         focus: planned.title,
