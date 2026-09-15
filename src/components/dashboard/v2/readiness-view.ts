@@ -13,6 +13,7 @@ import type { ReadinessLevel } from '@/types/readiness'
 export type ReadinessView =
   | { status: 'loading' }
   | { status: 'unavailable' }
+  | { status: 'insufficient' }
   | { status: 'ready'; score: number; level: ReadinessLevel | undefined }
 
 interface ScoreSource {
@@ -30,6 +31,11 @@ export interface ReadinessViewInput {
 }
 
 export function deriveReadinessView(input: ReadinessViewInput): ReadinessView {
+  // The two requests settle independently. An explicit unknown from either
+  // source must not be covered up by a score still cached by the other.
+  if (input.summary?.level === 'unknown' || input.readiness?.level === 'unknown') {
+    return { status: 'insufficient' }
+  }
   const score = input.summary?.score ?? input.readiness?.score ?? null
   if (score !== null && score !== undefined) {
     return {

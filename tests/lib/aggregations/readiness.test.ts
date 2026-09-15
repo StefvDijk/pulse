@@ -74,7 +74,7 @@ describe('readiness from persisted training and health data', () => {
   it('updates the summary immediately when the user changes today to a rest day', async () => {
     expect(await (await GET()).json()).toMatchObject({ todayWorkout: 'Upper A' })
     db.tables.training_schemas[0].scheduled_overrides = { '2026-09-15': null }
-    expect(await (await GET()).json()).toMatchObject({ todayWorkout: null, level: 'rest_day' })
+    expect(await (await GET()).json()).toMatchObject({ todayWorkout: null, level: 'unknown', score: null })
   })
 
   it('uses yesterday’s available biometrics when today’s partial import has only one metric', async () => {
@@ -110,6 +110,7 @@ describe('readiness from persisted training and health data', () => {
   })
 
   it('reuses text for identical inputs, but refreshes after a check-in or synced load change', async () => {
+    db.tables.daily_checkins = [{ user_id: 'athlete', date: '2026-09-15', feeling: 3, sleep_quality: null }]
     vi.mocked(generateText).mockClear()
     vi.setSystemTime(new Date('2026-09-15T13:00:00Z')) // Expire earlier test requests.
     const initial = await (await GET()).json()
@@ -125,6 +126,15 @@ describe('readiness from persisted training and health data', () => {
     }]
     expect(await (await GET()).json()).toMatchObject({ acwr: 1, score: 60 })
     expect(generateText).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not ask the model to invent recovery advice from load alone', async () => {
+    vi.mocked(generateText).mockClear()
+    db.tables.daily_aggregations = [{ user_id: 'athlete', date: '2026-09-15',
+      acwr_acute: 20, acwr_chronic: 20, run_acwr_acute: 0, run_acwr_chronic: 0 }]
+    expect(await (await GET()).json()).toMatchObject({ score: null, level: 'unknown',
+      sentence: expect.stringContaining('Onvoldoende herstelgegevens') })
+    expect(generateText).not.toHaveBeenCalled()
   })
 
   it.each([

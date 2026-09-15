@@ -39,7 +39,8 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
     )
   }
 
-  if (view.status === 'unavailable') {
+  if (view.status === 'unavailable' || view.status === 'insufficient') {
+    const insufficient = view.status === 'insufficient'
     return (
       <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
         <div className="flex items-center gap-[18px]">
@@ -54,11 +55,12 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
               Readiness
             </div>
             <div className="mt-1 text-[15px] font-semibold text-text-secondary">
-              Nog niet beschikbaar
+              {insufficient ? 'Onvoldoende herstelgegevens' : 'Nog niet beschikbaar'}
             </div>
             <p className="mt-1 text-[12px] leading-snug text-text-tertiary">
-              Je herstelgegevens konden niet worden geladen. Zodra je biometrie
-              (HRV, slaap, rusthart) binnen is, verschijnt hier je score.
+              {insufficient
+                ? 'Er zijn geen bruikbare recente herstelmetingen of check-in. Trainingsbelasting alleen bepaalt je herstel niet. Vul je check-in in voor meer context.'
+                : 'Je herstelgegevens konden niet worden geladen. Probeer het opnieuw.'}
             </p>
           </div>
         </div>

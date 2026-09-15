@@ -12,7 +12,7 @@ export const maxDuration = 20
 
 export interface ReadinessSummary {
   sentence: string
-  score: number
+  score: number | null
   level: ReadinessLevel
   breakdown: {
     sleep: number | null
@@ -82,6 +82,7 @@ function metricBreakdown(
 // ── Fallback sentence (no Claude call) ────────────────────────────────────────
 
 function fallbackSentence(level: ReadinessLevel, todayWorkout: string | null): string {
+  if (level === 'unknown') return 'Onvoldoende herstelgegevens voor een beoordeling — vul je check-in in; trainingsbelasting alleen zegt niet hoe hersteld je bent.'
   if (level === 'rest_day') return 'Geen workout gepland — geniet van je herstel of plan een easy run.'
   if (level === 'fatigued') {
     return todayWorkout
@@ -160,7 +161,7 @@ export async function GET() {
     // Generate the sentence via Haiku — fall back to a pre-canned line if it fails
     let sentence: string
     try {
-      const text = await createJsonCompletion({
+      const text = score === null ? fallbackSentence(level, todayWorkout) : await createJsonCompletion({
         system: READINESS_SUMMARY_SYSTEM,
         userMessage: buildReadinessUserMessage({
           level,

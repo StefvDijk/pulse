@@ -8,6 +8,14 @@ afterEach(() => cleanup())
 const noop = () => {}
 
 describe('ReadinessCard honest states', () => {
+  it('distinguishes insufficient measurements from a failed load and shows no readiness number', () => {
+    render(<ReadinessCard view={{ status: 'insufficient' }} readiness={null} summary={null}
+      label="Op koers" tone="good" onRetry={noop} />)
+    expect(screen.getByText('Onvoldoende herstelgegevens')).toBeVisible()
+    expect(screen.queryByText('Op koers')).toBeNull()
+    expect(screen.queryByText(/konden niet worden geladen/)).toBeNull()
+    expect(screen.queryByText('70')).toBeNull()
+  })
   it('labels the recent session count as three days, not seven', () => {
     render(<ReadinessCard view={{ status: 'ready', score: 70, level: 'normal' }}
       readiness={null} summary={null} label="Op koers" tone="good" onRetry={noop} />)

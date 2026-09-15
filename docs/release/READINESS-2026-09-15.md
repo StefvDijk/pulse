@@ -239,3 +239,33 @@ Next address import identity/data integrity, readiness context and unsupported
 recovery claims, and misleading sync success. Complete
 the requirement-by-requirement audit, and execute the production runbook. Keep
 the overall goal active until live evidence supports the complete objective.
+
+### Missing-recovery assessment follow-up (release only)
+
+- Reproduced `70/100, normal` with every recovery input absent. The calculation
+  now returns `score: null, level: unknown` if no usable HRV/RHR deviation, sleep
+  score or subjective check-in contributed. ACWR is retained as load context but
+  cannot independently manufacture a recovery assessment. Existing arithmetic
+  for genuinely available recovery inputs is unchanged, not newly validated.
+- The summary API skips model generation for unknown recovery and returns an
+  explicit missing-data explanation. The dashboard distinguishes insufficient
+  data from a failed request and will not replace unknown with an older score
+  from the other independently refreshing endpoint. The alternate readiness
+  signal also supports unknown without rendering a numeric ring.
+- Regression tests cover no data, load-only across three ratios, unbaselined
+  heart data, API model-call suppression, both stale-client arrival orders and
+  the visible card state. Cache tests now explicitly seed a neutral subjective
+  check-in so they continue to test model-text reuse for a real assessment.
+- Still open: numeric-score calibration/confidence with sparse but nonempty
+  inputs, confident wording/fallbacks for numeric scores, misleading baseline
+  countdowns/bars, contributor/explanation consistency and wider coach triggers.
+  This is not proof that all recovery recommendations are ready for production.
+- Verification so far: targeted regressions pass; earlier full 862-test run
+  passed before the final five cases were added. Subsequent full local runs hit
+  worker-start timeouts on unrelated, different files (five workers initially;
+  one worker with maxWorkers=2, 137 files/863 executed tests passed). Do not call
+  those final runs green. No assertions were relaxed; await exact-commit CI.
+- Browser test: desktop Chromium and mobile WebKit passed. Mobile Chromium first
+  timed out filling the login form before reaching the target screen; an unchanged
+  traced rerun passed in 7.2s. All three profiles have exercised the target state,
+  but the transient login stall has no proven root cause yet.
