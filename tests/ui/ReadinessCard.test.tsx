@@ -8,6 +8,13 @@ afterEach(() => cleanup())
 const noop = () => {}
 
 describe('ReadinessCard honest states', () => {
+  it('labels the recent session count as three days, not seven', () => {
+    render(<ReadinessCard view={{ status: 'ready', score: 70, level: 'normal' }}
+      readiness={null} summary={null} label="Op koers" tone="good" onRetry={noop} />)
+    expect(screen.getByText('3d')).toBeTruthy()
+    expect(screen.queryByText('7d')).toBeNull()
+  })
+
   it('unavailable state shows no fabricated score and offers a retry', () => {
     const onRetry = vi.fn()
     const { getByText, queryByText } = render(

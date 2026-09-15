@@ -143,7 +143,7 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
               label="Slaap"
               value={sleepHours !== null ? `${sleepHours}u ${sleepMins}m` : '—'}
             />
-            <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="7d" />
+            <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="3d" />
           </div>
 
         </ExplainTrigger>

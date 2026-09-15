@@ -8,6 +8,7 @@ import {
 } from '@/lib/readiness/score'
 import { computeRollingAcwr } from '@/lib/aggregations/rolling-acwr'
 import { calculateSleepScore } from '@/lib/sleep/score'
+import { parseScheduleTemplates, parseScheduledOverrides, resolveScheduledSession } from '@/lib/training/scheduled-session'
 
 interface ScheduleSession {
   day: string
@@ -49,11 +50,6 @@ function extractSessions(schedule: Json): ScheduleSession[] {
     .map((s) => ({ day: String(s.day), focus: String(s.focus) }))
 }
 
-function getWorkoutForDay(sessions: ScheduleSession[], dayName: string): string | null {
-  const match = sessions.find((s) => s.day.toLowerCase() === dayName)
-  return match?.focus ?? null
-}
-
 const EMPTY_BASELINE: BaselineStat = { avg: null, stddev: null, sampleCount: 0 }
 
 interface BaselineRowSlice {
@@ -82,14 +78,12 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   const tomorrow = new Date(now)
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowDayName = getDayName(tomorrow)
-  const threeDaysAgo = new Date(now)
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-  const threeDaysAgoStr = toAmsterdamDate(threeDaysAgo)
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = toAmsterdamDate(yesterday)
 
-  const threeDaysAgoIso = `${threeDaysAgoStr}T00:00:00Z`
+  const threeDaysAgoIso = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString()
+  const nowIso = now.toISOString()
 
   const [
     rollingAcwr,
@@ -152,20 +146,23 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
         .from('workouts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('started_at', threeDaysAgoIso),
+        .gte('started_at', threeDaysAgoIso)
+        .lte('started_at', nowIso),
       admin
         .from('runs')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('started_at', threeDaysAgoIso),
+        .gte('started_at', threeDaysAgoIso)
+        .lte('started_at', nowIso),
       admin
         .from('padel_sessions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('started_at', threeDaysAgoIso),
+        .gte('started_at', threeDaysAgoIso)
+        .lte('started_at', nowIso),
       admin
         .from('training_schemas')
-        .select('workout_schedule')
+        .select('workout_schedule, scheduled_overrides')
         .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle(),
@@ -182,14 +179,21 @@ export async function computeReadiness(userId: string): Promise<ReadinessData> {
   if (recentPadelResult.error) throw recentPadelResult.error
   if (schemaResult.error) throw schemaResult.error
 
-  const sessions = schemaResult.data ? extractSessions(schemaResult.data.workout_schedule) : []
-  const todayWorkout = getWorkoutForDay(sessions, todayDayName)
-  const tomorrowWorkout = getWorkoutForDay(sessions, tomorrowDayName)
-  const activity = activityTodayResult.data ?? activityYesterdayResult.data
-
+  const rawSchedule = schemaResult.data?.workout_schedule ?? []
+  // Preserve the historical week-block reader while sharing the calendar's
+  // canonical date-override resolution for both current persisted formats.
+  const first = Array.isArray(rawSchedule) ? rawSchedule[0] : null
+  const sessions = parseScheduleTemplates(
+    first && typeof first === 'object' && 'sessions' in first
+      ? extractSessions(rawSchedule)
+      : rawSchedule,
+  )
+  const overrides = parseScheduledOverrides(schemaResult.data?.scheduled_overrides)
+  const todayWorkout = resolveScheduledSession(sessions, overrides, todayStr, todayDayName)?.focus ?? null
+  const tomorrowWorkout = resolveScheduledSession(sessions, overrides, toAmsterdamDate(tomorrow), tomorrowDayName)?.focus ?? null
   const acwr = rollingAcwr.ratio
-  const restingHR = activity?.resting_heart_rate ?? null
-  const hrv = activity?.hrv_average ?? null
+  const restingHR = activityTodayResult.data?.resting_heart_rate ?? activityYesterdayResult.data?.resting_heart_rate ?? null
+  const hrv = activityTodayResult.data?.hrv_average ?? activityYesterdayResult.data?.hrv_average ?? null
   const recentSessions =
     (recentWorkoutsResult.count ?? 0) + (recentRunsResult.count ?? 0) + (recentPadelResult.count ?? 0)
   const night = sleepTodayResult.data ?? sleepYesterdayResult.data ?? null

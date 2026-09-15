@@ -136,12 +136,49 @@ criteria in `CATCH_UP_RELEASE_RUNBOOK.md`, the PRD and the July audit improvemen
 
 ## Confirmed open work — do not mark these complete
 
+### Readiness data-path follow-up (release only)
+
+- CI for release `08b0394` was rechecked: quality, migrations and Vercel all passed.
+- Reproduced the live wrong-session symptom through the real readiness calculation:
+  a Tuesday move of Upper A returned Lower A. The calculation now reads dated
+  overrides and uses the same validated resolver as the calendar, preserving
+  title, object, explicit-rest and legacy schedule compatibility.
+- A second regression reproduced four-hour stale summary data after changing
+  today to rest. Cache reuse now follows a fresh input read and comparison,
+  including check-ins, load and history availability. Identical inputs still
+  reuse model text; the client refresh interval now matches the one-minute
+  dashboard cadence. A failed history read is an error, not a fabricated cold start.
+- Further red-to-green regressions cover per-metric yesterday fallback after a
+  partial import, exactly 72 hours of recent sessions (no future sessions), and
+  exclusion of future biometric dates. The card labels this count `3d`, not `7d`.
+- Read-only hosted check identified the apparent sleep contradiction: the newest
+  sleep record is **2026-08-14, 463 minutes**. September 13–15 activity rows have
+  null HRV and resting heart rate. The separate sleep card shows old data as
+  “afgelopen nacht”; readiness correctly has no recent sleep. No health rows changed.
+- This patch does **not** validate model advice or calibrate the readiness score.
+  Still open: authoritative recovery claims with absent inputs, fixed-population
+  metric bars, baseline freshness/window semantics, legacy multi-week selection,
+  schema start/end bounds and date provenance for yesterday fallback. Do not
+  promote this data-path patch alone as a trustworthy recovery recommendation.
+  The source review also found that the explanation topic still describes the
+  old scoring formula. These are concrete follow-up requirements, not accepted
+  limitations for the finished product.
+- Scientific caution informing that follow-up: an ACWR value is not an individual
+  training clearance. See [Impellizzeri et al., conceptual pitfalls](https://pubmed.ncbi.nlm.nih.gov/32502973/)
+  and the [original analysis of chronic-load substitutions](https://pubmed.ncbi.nlm.nih.gov/33332011/).
+- Verification: 13 new regression/compatibility cases; full suite **134 files /
+  837 tests passed**, full lint passed, 104-route Webpack build passed. The first
+  standalone typecheck collided with the build rewriting `.next/types` (TS6053
+  missing generated files); the build's own TypeScript phase passed. Standalone
+  typecheck repeated after the build also passed. No new live deployment,
+  production data mutation or database migration in this follow-up.
+
 | Area | Evidence / next verification |
 |---|---|
 | Apple Health duplicate runs | Four rows share one exact start/end/distance/duration but have different Health UUIDs. Import dedup runs within a request; identified rows bypass existing-time dedup. Reproduce repeated and concurrent uploads, fix ingestion identity, then repair only reviewed duplicates with backup and reaggregation. No production rows deleted. |
 | Hevy reliability | Freshness and the empty-feed failure are fixed live; full newest-workout comparison and repeated no-op UI sync passed. Still verify unattended cron, transient errors, retry/cursor safety, unknown-event handling and atomic replacement with the full release. |
 | Strava failure semantics | `sync.ts` catches derivation/aggregation failures but records success; `derive-runs.ts` ignores lookup errors and counts failed updates as matched. Needs regression tests and proper partial-failure/retry handling. |
-| Coaching/readiness | Live text recommends the old weekday template rather than the moved session, and infers recovery from low ACWR with missing baseline inputs. `computeReadiness` selects only `workout_schedule`, ignoring overrides; summary cache is keyed only by user/date for four hours. Correct the resolver/context, cache invalidation and unsupported recovery wording, including deterministic fallbacks. No model-quality claim from mocked tests. |
+| Coaching/readiness | Resolver, input-aware cache and data-window corrections are implemented on the draft release, not live. Finish missing-data/confidence semantics, unsupported recovery wording (including deterministic fallback), old sleep shown as last night, and the outdated formula explanation before promotion. No model-quality claim from mocked tests. |
 | Schema block lifecycle | Live week-one screen shows “schema ready next week / block 2” despite an eight-week block. Trace the nudge's source and date logic. |
 | Catalog/media | Hosted catalog missing; source media rights not resolved. Local workout E2E observed an upstream image 404. Do not upload unlicensed assets or classify broken media as passed. |
 | Deployment | Backup restoration, pending migrations, hosted auth/config, environment secrets/budgets, cron/Sentry smoke, then exact-SHA deployment and rollback evidence. |
