@@ -52,7 +52,7 @@ export default defineConfig({
     },
     {
       name: 'mobile-webkit',
-      use: devices['iPhone 14'],
+      use: { ...devices['iPhone 14'], browserName: 'webkit' },
     },
   ],
   webServer: {
@@ -62,6 +62,6 @@ export default defineConfig({
     // Never attach to a manually started app: it may have loaded `.env.local`
     // and point at production instead of the validated test target above.
     reuseExistingServer: false,
-    timeout: 30000,
+    timeout: 120000,
   },
 })
