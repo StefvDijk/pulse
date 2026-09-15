@@ -113,19 +113,11 @@ export async function syncStravaActivities(
 
   const admin = createAdminClient()
 
-  if (allActivities.length === 0) {
-    await touchLastSync(userId, admin)
-    runAfterResponse('Strava sync audit logging', () =>
-      recordSyncRun({ userId, source: 'strava', startedAt, syncedCount: 0, errors: [] }),
-    )
-    return { fetched: 0, synced: 0, derivedRuns: null, derivedWalks: null, derivedActivities: null, days }
-  }
-
   const rows = allActivities.map((a) => mapToRow(userId, a))
-  const { data, error } = await admin
+  const { data, error } = rows.length > 0 ? await admin
     .from('strava_activities')
     .upsert(rows, { onConflict: 'user_id,strava_activity_id' })
-    .select('id')
+    .select('id') : { data: [], error: null }
   if (error) {
     console.error('[strava/sync] upsert failed:', error)
     runAfterResponse('Strava failed sync audit logging', () =>
@@ -174,19 +166,24 @@ export async function syncStravaActivities(
     if (result && result.failed > 0) processingErrors.push(`${label}: ${result.failed} verwerking(en) mislukt`)
   }
 
-  // Re-aggregate the days the synced activities fall on (Amsterdam wall-clock),
-  // not just "today" — the window spans `days`, so a backfill of older runs/
-  // walks must rebuild those historical days/weeks. The derive helpers only
-  // return counts, so we derive day-keys from the fetched activities' start
-  // dates (restricted to run/walk types, which is all the derives produce).
-  const touchedDays = new Set<string>()
-  for (const a of allActivities) {
-    const type = (a.sport_type ?? a.type ?? '').toLowerCase()
-    if (!type.includes('run') && !type.includes('walk') && !type.includes('hike')) continue
-    if (a.start_date) touchedDays.add(dayKeyAmsterdam(a.start_date))
-  }
-  if (touchedDays.size > 0) {
+  // Derivation retries cached activities, including dates outside the fetch
+  // window. Rebuild their dates as well, even when the upstream feed is empty.
+  if (processingErrors.length === 0) {
     try {
+      const touchedDays = new Set<string>()
+      const pageSize = 500
+      for (let offset = 0; ; offset += pageSize) {
+        const { data: cachedDates, error: datesError } = await admin
+          .from('strava_activities')
+          .select('start_date')
+          .eq('user_id', userId)
+          .order('start_date', { ascending: false })
+          .order('strava_activity_id', { ascending: false })
+          .range(offset, offset + pageSize - 1)
+        if (datesError) throw new Error(`Strava-datums ophalen mislukt: ${datesError.message}`)
+        for (const activity of cachedDates ?? []) touchedDays.add(dayKeyAmsterdam(activity.start_date))
+        if (!cachedDates || cachedDates.length < pageSize) break
+      }
       await reaggregateDates(userId, Array.from(touchedDays))
     } catch (aggErr) {
       console.error('[strava/sync] re-aggregation failed:', aggErr)

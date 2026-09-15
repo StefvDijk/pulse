@@ -338,3 +338,27 @@ the overall goal active until live evidence supports the complete objective.
   cached dates rather than only freshly fetched run/walk days, pagination and
   payload validation, and concurrent import safety. This is not a claim of
   complete Strava correctness or release readiness. No production data changed.
+
+### Empty-feed retry and cached-date reaggregation (release only)
+
+- Reproduced an empty upstream feed returning null derivation results despite
+  cached work. Removing that early return exposed the second failure: derived
+  historical activities did not trigger any aggregation. Empty feeds now skip
+  only raw upsert, not derivation, failure auditing or reaggregation.
+- After successful derivation, sync loads cached dates for the user in stable
+  500-row pages and rebuilds unique Amsterdam days, weeks and months, including
+  other sports and dates outside the upstream fetch window. Processing failures
+  prevent this stage and last-success advancement; a subsequent retry can finish.
+- Tests verify empty-feed processing, no empty raw upsert, Amsterdam midnight
+  boundaries, historical day/week/month writes, a second date page, and eight
+  completion/failure scenarios with both empty and nonempty feeds.
+- Verification: 37 focused Strava tests pass; full local suite **140 files /
+  902 tests passes**, typecheck, scoped lint and whitespace checks pass.
+  The preceding `fd9014c4486ed4b86110fd3b75a71ae5e6bbde9a` also passed
+  [CI run 34974545223](https://github.com/StefvDijk/pulse/actions/runs/34974545223).
+- Still open: derivation helpers themselves read a bounded database response
+  without pagination; full-history work cost/timeouts, upstream pagination and
+  payload validation, pre-processing failure audits, concurrent import safety,
+  and sport coverage in aggregate calculations. Scheduling all cached dates
+  does not prove the aggregates count every sport correctly. No production data
+  was modified; full release remains draft.
