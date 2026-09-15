@@ -177,7 +177,7 @@ export async function persistTokens(
  */
 export async function getValidTokens(userId: string): Promise<StoredStravaTokens | null> {
   const admin = createAdminClient()
-  const { data: settings } = await admin
+  const { data: settings, error: lookupError } = await admin
     .from('user_settings')
     .select(
       'strava_access_token, strava_refresh_token, strava_token_expiry, strava_athlete_id, strava_athlete_name',
@@ -185,6 +185,7 @@ export async function getValidTokens(userId: string): Promise<StoredStravaTokens
     .eq('user_id', userId)
     .maybeSingle()
 
+  if (lookupError) throw new Error(`Strava token lookup failed: ${lookupError.message}`)
   if (!settings?.strava_refresh_token || !settings.strava_athlete_id) return null
 
   const now = Date.now()
@@ -196,7 +197,7 @@ export async function getValidTokens(userId: string): Promise<StoredStravaTokens
   if (expiry - now < 5 * 60 * 1000) {
     const refreshed = await refreshAccessToken(settings.strava_refresh_token)
     const newExpiry = new Date(refreshed.expires_at * 1000).toISOString()
-    await admin
+    const { error: saveError } = await admin
       .from('user_settings')
       .update({
         strava_access_token: refreshed.access_token,
@@ -204,6 +205,7 @@ export async function getValidTokens(userId: string): Promise<StoredStravaTokens
         strava_token_expiry: newExpiry,
       })
       .eq('user_id', userId)
+    if (saveError) throw new Error(`Strava token save failed: ${saveError.message}`)
     return {
       access_token: refreshed.access_token,
       refresh_token: refreshed.refresh_token,

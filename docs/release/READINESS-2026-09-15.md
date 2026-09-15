@@ -402,3 +402,22 @@ the overall goal active until live evidence supports the complete objective.
 - Still open: detail-response and OAuth token validation, upstream page-limit
   completion, large-history runtime/concurrency, and aggregate sport coverage.
   No production data was changed.
+
+### Strava route preservation and token persistence errors (release only)
+
+- Reproduced summary sync explicitly sending `detailed_polyline: null` on
+  upsert. The column is now omitted, preserving an existing detailed route.
+  Regression asserts the actual sync payload does not clear it. Code inspection
+  also found `getActivity` currently has no callers: run detail reads stored
+  polylines only, contrary to the old lazy-fetch comment. No new fetching feature
+  or completed live high-resolution map flow is claimed here.
+- Reproduced a token lookup database error returning null (misreported as a
+  disconnected account), and rotated tokens being returned after a failed save.
+  Both now throw. Tests also retain genuine-disconnection and successful-refresh
+  behavior through actual token logic with external HTTP/database fixtures.
+- Focused verification: 58 Strava tests pass, typecheck, scoped lint and diff
+  whitespace checks pass. Token payload validation, concurrent refreshes,
+  durable recovery after token rotation/save failure and zero-row updates remain
+  separate work; exposing failure alone does not recover a lost rotated token.
+- Full local suite: **142 files / 923 tests passed**. No real tokens or production
+  data were changed.

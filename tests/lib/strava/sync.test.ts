@@ -101,6 +101,11 @@ describe('Strava sync completion contract', () => {
       await expect(syncStravaActivities('test-user', 30)).rejects.toThrow('Strava-sync onvolledig')
     }
     for (const task of background.tasks) await task()
+    if (!emptyFeed && failure === 'none') {
+      expect(writes.find(write => write.table === 'strava_activities')?.body).toEqual([
+        expect.not.objectContaining({ detailed_polyline: null }),
+      ])
+    }
     expect(writes.some(write => write.table === 'user_settings')).toBe(failure === 'timestamp' || failure === 'none')
     expect(writes.find(write => write.table === 'sync_runs')?.body).toMatchObject({
       status: failure === 'none' ? 'success' : 'error', error_count: failure === 'none' ? 0 : 1,

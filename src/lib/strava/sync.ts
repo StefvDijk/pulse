@@ -58,9 +58,8 @@ function mapToRow(userId: string, a: StravaSummaryActivity): StravaActivityInser
     average_cadence: a.average_cadence ?? null,
     calories: a.calories ?? null,
     summary_polyline: a.map?.summary_polyline ?? null,
-    // The list endpoint never includes the detailed polyline — fetched lazily
-    // by /activities/{id} when needed for the map hero.
-    detailed_polyline: null,
+    // A summary has no detailed polyline. Omit that column so an upsert does
+    // not erase an existing detailed route; new rows use the database default.
     start_lat: startLat,
     start_lng: startLng,
     end_lat: endLat,
