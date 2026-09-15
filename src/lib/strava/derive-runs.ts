@@ -66,12 +66,18 @@ export async function deriveRunsFromStrava(
     const pace = paceSecondsPerKm(sa.distance_meters, duration)
 
     // 1. Already linked? Update in place (idempotent re-run).
-    const { data: byStrava } = await admin
+    const { data: byStrava, error: linkError } = await admin
       .from('runs')
       .select('id, source, apple_health_id')
       .eq('user_id', userId)
       .eq('strava_activity_id', sa.strava_activity_id)
       .maybeSingle()
+
+    if (linkError) {
+      console.error('[derive-runs] linked run lookup failed', linkError)
+      failed += 1
+      continue
+    }
 
     if (byStrava) {
       const { error: updErr } = await admin
@@ -90,6 +96,8 @@ export async function deriveRunsFromStrava(
         .eq('id', byStrava.id)
       if (updErr) {
         console.error('[derive-runs] byStrava update failed', updErr)
+        failed += 1
+        continue
       }
       matched += 1
       continue
@@ -97,13 +105,19 @@ export async function deriveRunsFromStrava(
 
     // 2. Try to find an unlinked HAE-imported run in the same time/size window.
     const { from, to } = runMatchWindow(sa.start_date)
-    const { data: candidates } = await admin
+    const { data: candidates, error: candidatesError } = await admin
       .from('runs')
       .select('id, started_at, distance_meters, duration_seconds, apple_health_id, strava_activity_id')
       .eq('user_id', userId)
       .gte('started_at', from)
       .lte('started_at', to)
       .is('strava_activity_id', null)
+
+    if (candidatesError) {
+      console.error('[derive-runs] candidate lookup failed', candidatesError)
+      failed += 1
+      continue
+    }
 
     const match = pickBestRunMatch(
       {
@@ -133,6 +147,8 @@ export async function deriveRunsFromStrava(
         .eq('id', (match as { id: string }).id)
       if (updErr) {
         console.error('[derive-runs] match update failed', updErr)
+        failed += 1
+        continue
       }
       matched += 1
       continue

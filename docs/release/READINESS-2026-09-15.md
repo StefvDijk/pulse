@@ -274,3 +274,22 @@ the overall goal active until live evidence supports the complete objective.
   passed **138 files / 867 tests**, typecheck, production build and migrations.
   Vercel preview also passed. This resolves the missing full-run evidence for
   this code change; it does not diagnose the local worker-start timeouts.
+
+### Strava run derivation failure safety (release only)
+
+- Reproduced two unsafe read paths through the real Supabase client with mocked
+  database HTTP responses: failed linked-run and Health-candidate lookups both
+  continued to insert a new run and reported zero failures. Both now stop work
+  on that activity and increment `failed`; an unavailable lookup is not proof
+  that a run does not exist.
+- Reproduced failed linked-run and Health-match updates being counted as
+  successful matches. Both now increment `failed`, not `matched`.
+- Six regression cases exercise these four error paths, retry after a read
+  failure, and successful insertion after genuinely empty lookups. The focused
+  Strava suite passes 8 tests; typecheck and scoped ESLint pass.
+- Full local run with two workers: 138 files / 870 tests passed, but
+  `run-coach-manager.test.ts` failed to start its worker (timeout). This run is
+  not green; exact-commit CI still needs verification.
+- This does not yet repair top-level sync success/audit semantics, empty-feed
+  retry, historical reaggregation, equivalent walk/activity error paths, or
+  concurrent imports. No production records were changed or deduplicated.
