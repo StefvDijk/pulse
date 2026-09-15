@@ -7,6 +7,14 @@ import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import { Card } from '@/components/ui'
 import { BaselineTag } from '@/components/shared/BaselineTag'
 import type { BaselineMetric } from '@/lib/baselines/types'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
+import { ErrorAlert } from '@/components/shared/ErrorAlert'
+
+function formatMeasurementDate(date: string): string {
+  return new Intl.DateTimeFormat('nl-NL', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Amsterdam',
+  }).format(new Date(date))
+}
 
 function formatSteps(n: number): string {
   return n.toLocaleString('nl-NL')
@@ -29,9 +37,10 @@ interface StatProps {
   current?: number | null
   baseline?: number | null
   metric?: BaselineMetric
+  date?: string | null
 }
 
-function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
+function Stat({ icon, label, value, current, baseline, metric, date }: StatProps) {
   const showTag = current != null && baseline != null && metric != null
   return (
     <div className="flex flex-col items-center gap-1 py-2">
@@ -40,6 +49,9 @@ function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
         {value ?? '—'}
       </p>
       <p className="text-caption2 text-text-tertiary">{label}</p>
+      {date && <time dateTime={date} className="text-caption2 text-center text-text-tertiary">
+        {formatMeasurementDate(date)}
+      </time>}
       {showTag && (
         <BaselineTag current={current} baseline={baseline} metric={metric} compact />
       )}
@@ -48,8 +60,10 @@ function Stat({ icon, label, value, current, baseline, metric }: StatProps) {
 }
 
 export function DailyHealthBar() {
-  const { health, isLoading } = useTodayHealth()
+  const { health, isLoading, error, refresh } = useTodayHealth()
   const { getBaseline } = useBaselines()
+
+  if (error) return <ErrorAlert message="Gezondheidsgegevens konden niet worden geladen." onRetry={() => { void refresh() }} />
 
   if (isLoading) {
     return (
@@ -75,12 +89,12 @@ export function DailyHealthBar() {
 
   if (!hasAnyData) return null
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = health?.today ?? todayAmsterdam()
   const isToday = health?.date === todayStr
   const dateLabel = isToday
     ? 'Vandaag'
     : health?.date
-      ? new Date(health.date + 'T00:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })
+      ? formatMeasurementDate(health.date)
       : ''
 
   return (
@@ -102,7 +116,7 @@ export function DailyHealthBar() {
             label="Rust HR"
             value={health?.resting_heart_rate != null ? `${health.resting_heart_rate}` : null}
             current={health?.resting_heart_rate ?? null}
-            baseline={getBaseline('resting_hr')}
+            baseline={isToday ? getBaseline('resting_hr') : null}
             metric="resting_hr"
           />
           <Stat
@@ -110,7 +124,7 @@ export function DailyHealthBar() {
             label="HRV"
             value={health?.hrv_average != null ? `${Math.round(health.hrv_average)}` : null}
             current={health?.hrv_average ?? null}
-            baseline={getBaseline('hrv_rmssd')}
+            baseline={isToday ? getBaseline('hrv_rmssd') : null}
             metric="hrv_rmssd"
           />
           <Stat
@@ -118,8 +132,9 @@ export function DailyHealthBar() {
             label="Slaap"
             value={health?.sleep_minutes != null ? formatSleep(health.sleep_minutes) : null}
             current={health?.sleep_minutes ?? null}
-            baseline={getBaseline('sleep_minutes')}
+            baseline={health?.sleep_date === todayStr ? getBaseline('sleep_minutes') : null}
             metric="sleep_minutes"
+            date={health?.sleep_date !== todayStr ? health?.sleep_date : null}
           />
         </div>
       </Card>
@@ -131,12 +146,12 @@ export function DailyHealthBar() {
           <span>{formatWeight(health.weight_kg)}</span>
           {health.weight_date && health.weight_date !== health.date && (
             <span className="text-text-tertiary opacity-60">
-              ({new Date(health.weight_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })})
+              ({formatMeasurementDate(health.weight_date)})
             </span>
           )}
           <BaselineTag
             current={health.weight_kg}
-            baseline={getBaseline('weight_kg')}
+            baseline={health.weight_date === todayStr ? getBaseline('weight_kg') : null}
             metric="weight_kg"
           />
         </div>

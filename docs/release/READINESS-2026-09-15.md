@@ -213,6 +213,28 @@ criteria in `CATCH_UP_RELEASE_RUNBOOK.md`, the PRD and the July audit improvemen
 
 The schema/retry and empty Hevy-feed hotfixes are live and merged to main; the
 draft release contains both corrections.
+
+### Daily health provenance / errors (release only)
+
+- Reproduced missing sleep provenance through `/api/health/today`: current steps
+  and August sleep were returned under one current date. Added `sleep_date`
+  without changing the historical sleep value or existing activity/weight fields.
+  DailyHealthBar now displays the sleep date separately, including year, and uses
+  the response's Amsterdam day instead of the browser's UTC day.
+- All four database query failures previously returned 200. Regressions now prove
+  500 for each failed source, and the UI offers retry for HTTP/network failures.
+  Authentication remains required. Client response validation rejects malformed
+  measurements/dates rather than displaying NaN or crashing a date formatter.
+- Old sleep, activity and weight values are not compared to today's baseline as
+  if they were current. Tests preserve the baseline comparison for current data.
+- Twelve focused route/UI cases pass, including UTC-midnight and baseline cases.
+  Full suite: 138 files / 859 tests; lint and standalone typecheck passed.
+  Previous sleep commit `832bd6b` also passed GitHub quality/migration checks and
+  the hosted Vercel preview build (checked before this follow-up was pushed).
+  No production data changes or live deployment in this follow-up. Remaining:
+  end-to-end mobile acceptance, broader baseline freshness and missing-readiness
+  semantics, plus the ingestion/release gates above.
+
 Next address import identity/data integrity, readiness context and unsupported
 recovery claims, and misleading sync success. Complete
 the requirement-by-requirement audit, and execute the production runbook. Keep

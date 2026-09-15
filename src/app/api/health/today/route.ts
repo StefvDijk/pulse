@@ -24,6 +24,8 @@ export interface TodayHealthData {
   hrv_average: number | null
   stand_hours: number | null
   sleep_minutes: number | null
+  /** Date of the independently selected sleep record, not the activity date. */
+  sleep_date: string | null
   weight_kg: number | null
   weight_date: string | null
 
@@ -75,6 +77,10 @@ export async function GET() {
         .maybeSingle(),
     ])
 
+    for (const result of [activityResult, sleepResult, weightResult, settingsResult]) {
+      if (result.error) throw result.error
+    }
+
     const a = activityResult.data
     const s = sleepResult.data
     const w = weightResult.data
@@ -92,6 +98,7 @@ export async function GET() {
       hrv_average: a?.hrv_average != null ? Number(a.hrv_average) : null,
       stand_hours: a?.stand_hours ?? null,
       sleep_minutes: s?.total_sleep_minutes ?? null,
+      sleep_date: s?.date ?? null,
       weight_kg: w?.weight_kg != null ? Number(w.weight_kg) : null,
       weight_date: w?.date ?? null,
 
