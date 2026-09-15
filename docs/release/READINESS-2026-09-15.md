@@ -123,6 +123,9 @@ criteria in `CATCH_UP_RELEASE_RUNBOOK.md`, the PRD and the July audit improvemen
   The separate no-migration correction passed its hosted/live gates in PR #60.
   Latest verified live sync record at 06:42:45 UTC: success, synced=0, errors=0.
 - With Hevy and chat follow-ups: 133 files / 824 unit tests passed.
+  Final combined release after merging both live fixes: lint/typecheck and
+  104-route Webpack production build passed. Sentry still warns about a missing
+  global React error handler; observability acceptance remains open.
 - Chat history browser suite: 12/12 passed across desktop Chromium, mobile
   Chromium and mobile WebKit, including malformed list recovery and delete-error
   retry. The first run exposed an ambiguous old text selector after adding a
