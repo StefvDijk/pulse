@@ -100,11 +100,27 @@ export const HevyWorkoutEventSchema = z.union([
   HevyWorkoutUnknownEventSchema,
 ])
 
-export const HevyWorkoutEventsResponseSchema = z.object({
+const StandardWorkoutEventsResponseSchema = z.object({
   page: z.number().int(),
   page_count: z.number().int(),
   events: z.array(HevyWorkoutEventSchema),
 })
+
+// Observed from Hevy on 2026-09-15: a no-change response uses `workouts: []`
+// rather than `events: []`. Accept only this exact, terminal empty envelope.
+// Never convert a nonempty workout list or an error payload into sync success.
+const EmptyWorkoutEventsResponseSchema = z.object({
+  page: z.number().int().positive(),
+  page_count: z.number().int().nonnegative(),
+  workouts: z.tuple([]),
+}).strict()
+  .refine(({ page, page_count }) => page_count <= page)
+  .transform(({ page, page_count }) => ({ page, page_count, events: [] }))
+
+export const HevyWorkoutEventsResponseSchema = z.union([
+  StandardWorkoutEventsResponseSchema,
+  EmptyWorkoutEventsResponseSchema,
+])
 
 export const HevyExerciseTemplateSchema = z.object({
   id: z.string(),
