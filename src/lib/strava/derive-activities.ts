@@ -17,6 +17,7 @@ interface DeriveResult {
   scanned: number
   inserted: number
   matched: number
+  failed: number
 }
 
 export async function deriveActivitiesFromStrava(
@@ -35,6 +36,7 @@ export async function deriveActivitiesFromStrava(
   const derivable = (data ?? []).filter(isDerivableActivity)
   let inserted = 0
   let matched = 0
+  let failed = 0
 
   for (const sa of derivable) {
     const duration = sa.moving_time_seconds ?? sa.elapsed_time_seconds ?? null
@@ -60,17 +62,24 @@ export async function deriveActivitiesFromStrava(
       intensity: null,
     }
 
-    const { data: existing } = await admin
+    const { data: existing, error: lookupError } = await admin
       .from('activities')
       .select('id')
       .eq('user_id', userId)
       .eq('strava_activity_id', sa.strava_activity_id)
       .maybeSingle()
 
+    if (lookupError) {
+      console.error('[derive-activities] activity lookup failed', lookupError)
+      failed += 1
+      continue
+    }
+
     if (existing) {
       const { error: updErr } = await admin.from('activities').update(row).eq('id', existing.id)
       if (updErr) {
         console.error('[derive-activities] update failed', updErr)
+        failed += 1
         continue
       }
       matched += 1
@@ -78,11 +87,12 @@ export async function deriveActivitiesFromStrava(
       const { error: insErr } = await admin.from('activities').insert(row)
       if (insErr) {
         console.error('[derive-activities] insert failed', insErr)
+        failed += 1
         continue
       }
       inserted += 1
     }
   }
 
-  return { scanned: derivable.length, inserted, matched }
+  return { scanned: derivable.length, inserted, matched, failed }
 }

@@ -2,10 +2,37 @@ import { createClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 import type { Database } from '@/types/database'
 import { deriveRunsFromStrava } from '@/lib/strava/derive-runs'
+import { deriveWalksFromStrava } from '@/lib/strava/derive-walks'
+import { deriveActivitiesFromStrava } from '@/lib/strava/derive-activities'
 
 vi.mock('server-only', () => ({}))
 
-const activity = {
+describe('other Strava activity failure safety', () => {
+  it.each(['insert', 'update'])('reports a failed %s instead of zero failures', async (operation) => {
+    const { admin } = databaseWithResponses([
+      Response.json([{ ...baseActivity, activity_type: 'Ride', sport_type: 'Ride' }]),
+      Response.json(operation === 'update' ? [{ id: 'existing-activity' }] : []),
+      Response.json({ message: 'write unavailable', code: '42501' }, { status: 403 }),
+    ])
+    expect(await deriveActivitiesFromStrava('test-user', admin)).toEqual({
+      scanned: 1, matched: 0, inserted: 0, failed: 1,
+    })
+  })
+
+  it('does not insert when the existing activity lookup fails', async () => {
+    const { admin, request } = databaseWithResponses([
+      Response.json([{ ...baseActivity, activity_type: 'Ride', sport_type: 'Ride' }]),
+      Response.json({ message: 'lookup unavailable', code: '42501' }, { status: 403 }),
+      new Response(null, { status: 201 }),
+    ])
+    expect(await deriveActivitiesFromStrava('test-user', admin)).toEqual({
+      scanned: 1, matched: 0, inserted: 0, failed: 1,
+    })
+    expect(request).toHaveBeenCalledTimes(2)
+  })
+})
+
+const baseActivity = {
   strava_activity_id: 123,
   name: 'Test run',
   activity_type: 'Run',
@@ -35,7 +62,26 @@ function databaseWithResponses(responses: Response[]) {
   return { admin, request }
 }
 
-describe('deriveRunsFromStrava failure safety', () => {
+describe.each([
+  { name: 'runs', derive: deriveRunsFromStrava, type: 'Run' },
+  { name: 'walks', derive: deriveWalksFromStrava, type: 'Walk' },
+])('$name derivation failure safety', ({ derive, type }) => {
+  const activity = { ...baseActivity, activity_type: type, sport_type: type }
+  it('reports an insert failure and can retry the new activity', async () => {
+    const { admin } = databaseWithResponses([
+      Response.json([activity]), Response.json([]), Response.json([]),
+      Response.json({ message: 'write unavailable', code: '42501' }, { status: 403 }),
+      Response.json([activity]), Response.json([]), Response.json([]),
+      new Response(null, { status: 201 }),
+    ])
+    expect(await derive('test-user', admin)).toEqual({
+      scanned: 1, matched: 0, inserted: 0, failed: 1,
+    })
+    expect(await derive('test-user', admin)).toEqual({
+      scanned: 1, matched: 0, inserted: 1, failed: 0,
+    })
+  })
+
   it('can retry a failed lookup and update the existing run without inserting a duplicate', async () => {
     const { admin, request } = databaseWithResponses([
       Response.json([activity]),
@@ -44,10 +90,10 @@ describe('deriveRunsFromStrava failure safety', () => {
       Response.json([{ id: 'existing-run', source: 'strava', apple_health_id: null }]),
       new Response(null, { status: 204 }),
     ])
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 0, inserted: 0, failed: 1,
     })
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 1, inserted: 0, failed: 0,
     })
     expect(request).toHaveBeenCalledTimes(5)
@@ -58,7 +104,7 @@ describe('deriveRunsFromStrava failure safety', () => {
       Response.json([activity]), Response.json([]), Response.json([]),
       new Response(null, { status: 201 }),
     ])
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 0, inserted: 1, failed: 0,
     })
   })
@@ -75,7 +121,7 @@ describe('deriveRunsFromStrava failure safety', () => {
       ...(kind === 'health' ? [Response.json([existing])] : []),
       Response.json({ message: 'write unavailable', code: '42501' }, { status: 403 }),
     ])
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 0, inserted: 0, failed: 1,
     })
   })
@@ -87,7 +133,7 @@ describe('deriveRunsFromStrava failure safety', () => {
       Response.json({ message: 'lookup unavailable', code: '42501' }, { status: 403 }),
       new Response(null, { status: 201 }),
     ])
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 0, inserted: 0, failed: 1,
     })
     expect(request).toHaveBeenCalledTimes(3)
@@ -101,7 +147,7 @@ describe('deriveRunsFromStrava failure safety', () => {
       new Response(null, { status: 201 }),
     ])
 
-    expect(await deriveRunsFromStrava('test-user', admin)).toEqual({
+    expect(await derive('test-user', admin)).toEqual({
       scanned: 1, matched: 0, inserted: 0, failed: 1,
     })
     expect(request).toHaveBeenCalledTimes(2)

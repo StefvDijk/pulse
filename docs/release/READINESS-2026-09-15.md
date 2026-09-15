@@ -293,3 +293,26 @@ the overall goal active until live evidence supports the complete objective.
 - This does not yet repair top-level sync success/audit semantics, empty-feed
   retry, historical reaggregation, equivalent walk/activity error paths, or
   concurrent imports. No production records were changed or deduplicated.
+
+### Strava walk and other-activity failure safety (release only)
+
+- Extended the run regression contract to walks using the real Supabase client
+  and mocked database HTTP responses. Reproduced the same unsafe insertion after
+  failed lookups and false successful-match counts after failed updates.
+  Walk derivation now stops that activity on lookup errors and reports all
+  failed writes via `failed`, consistent with runs.
+- Other sports also reproduced insertion after a failed linked-activity lookup.
+  Those lookups now fail closed; failed inserts and updates are counted rather
+  than silently omitted from the result.
+- Shared regression file is now `tests/lib/strava/derive-failure-safety.test.ts`.
+  Focused suite: 19 tests pass, including successful retry after a failed insert
+  for runs and walks. Final typecheck, scoped lint and diff whitespace checks
+  pass. Full exact-commit CI remains to be verified for this extension.
+- The preceding run-only fix `b31d16ca76de241b8febfd7bb66c8b320d0b70d2`
+  passed [CI run 34973434530](https://github.com/StefvDijk/pulse/actions/runs/34973434530):
+  audit, lint, typecheck, tests, build and database migration checks. That clears
+  its missing hosted verification, not the unexplained local worker timeout.
+- Top-level sync still ignores failure counts/caught exceptions and can report
+  success. Fixing its public error/audit contract, empty-feed retries and
+  reaggregation remains required before Strava can be called release-ready.
+  No live import or production data mutation was performed.
