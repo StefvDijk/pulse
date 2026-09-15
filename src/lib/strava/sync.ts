@@ -105,10 +105,20 @@ export async function syncStravaActivities(
   // to stay well under 100 reads/15min.
   const allActivities: StravaSummaryActivity[] = []
   const perPage = 200
-  for (let page = 1; page <= 3; page += 1) {
-    const batch = await listActivities(userId, { after, perPage, page })
-    allActivities.push(...batch)
-    if (batch.length < perPage) break
+  try {
+    for (let page = 1; page <= 3; page += 1) {
+      const batch = await listActivities(userId, { after, perPage, page })
+      allActivities.push(...batch)
+      if (batch.length < perPage) break
+    }
+  } catch (error) {
+    runAfterResponse('Strava failed fetch audit logging', () =>
+      recordSyncRun({
+        userId, source: 'strava', startedAt, syncedCount: 0,
+        errors: ['Strava-activiteiten ophalen of valideren mislukt'],
+      }),
+    )
+    throw error
   }
 
   const admin = createAdminClient()

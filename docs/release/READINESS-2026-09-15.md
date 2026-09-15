@@ -380,3 +380,25 @@ the overall goal active until live evidence supports the complete objective.
   large-history performance needs explicit verification and likely incremental
   processing before claiming robust production-scale sync. No production data
   was changed.
+
+### Strava list input validation and fetch failure auditing (release only)
+
+- Reproduced `listActivities` returning an invalid start date unchanged. The
+  list response now uses runtime validation for required identity/date fields
+  and consumed optional measurements, coordinates and map fields. Unknown extra
+  fields are retained for the cached payload. Optional null measurements/maps
+  normalize to unavailable, not zero; empty GPS arrays normalize to null.
+- Reference checked: [Strava API models](https://developers.strava.com/docs/reference/#api-models-SummaryActivity).
+  This is a validation contract for fields Pulse consumes, not proof of every
+  possible upstream response variant.
+- Reproduced rejected upstream data producing no sync audit. Fetch/validation
+  failures now schedule an error audit before propagating the original error;
+  the audit stores a generic message, not upstream response contents. No raw
+  activity upsert or last-success write occurs for these failures.
+- Nine API tests cover malformed consumed fields, empty responses, extra fields
+  and unavailable optional data. Two sync cases verify rejection, no activity
+  writes and an error audit. All 54 focused Strava tests, typecheck, scoped lint
+  and whitespace checks pass. Full local suite: **141 files / 919 tests passed**.
+- Still open: detail-response and OAuth token validation, upstream page-limit
+  completion, large-history runtime/concurrency, and aggregate sport coverage.
+  No production data was changed.

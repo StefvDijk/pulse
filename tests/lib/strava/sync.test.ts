@@ -49,11 +49,12 @@ describe('Strava sync completion contract', () => {
   })
 
   describe.each([false, true])('completion with empty feed: %s', (emptyFeed) => {
-  it.each(['activity-row', 'runs-cache', 'walks-cache', 'activities-cache', 'dates', 'aggregation', 'timestamp', 'none'])(
+  it.each(['upstream', 'activity-row', 'runs-cache', 'walks-cache', 'activities-cache', 'dates', 'aggregation', 'timestamp', 'none'])(
     'reports the correct completion status with failure stage %s', async (failure) => {
     const writes: Array<{ table: string; body: unknown }> = []
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
+      if (url.hostname === 'www.strava.com' && failure === 'upstream') return Response.json([{ start_date: 'invalid' }])
       if (url.hostname === 'www.strava.com') return Response.json(emptyFeed ? [] : [{
         id: 123, athlete: { id: 1 }, name: 'Activity', type: failure === 'aggregation' ? 'Run' : 'Ride', start_date: '2026-09-14T08:00:00Z',
       }])
@@ -93,6 +94,9 @@ describe('Strava sync completion contract', () => {
       await expect(syncStravaActivities('test-user', 30)).resolves.toMatchObject({
         fetched: emptyFeed ? 0 : 1, synced: emptyFeed ? 0 : 1, derivedActivities: { inserted: 1, failed: 0 },
       })
+    } else if (failure === 'upstream') {
+      await expect(syncStravaActivities('test-user', 30)).rejects.toThrow()
+      expect(writes).toEqual([])
     } else {
       await expect(syncStravaActivities('test-user', 30)).rejects.toThrow('Strava-sync onvolledig')
     }
