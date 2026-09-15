@@ -52,10 +52,11 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="text-xs font-medium text-text-tertiary mb-1 block">
+        <label htmlFor="manual-padel-duration" className="text-xs font-medium text-text-tertiary mb-1 block">
           Duur (minuten)
         </label>
         <input
+          id="manual-padel-duration"
           type="number"
           value={duration}
           onChange={(e) => setDuration(e.target.value)}
@@ -65,15 +66,15 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
         />
       </div>
       <div>
-        <label className="text-xs font-medium text-text-tertiary mb-2 block">
+        <span id="manual-padel-intensity" className="text-xs font-medium text-text-tertiary mb-2 block">
           Intensiteit
-        </label>
-        <div className="flex gap-2">
+        </span>
+        <div role="group" aria-labelledby="manual-padel-intensity" className="flex gap-2">
           {intensityLabels.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setIntensity(opt.value)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 intensity === opt.value
                   ? 'bg-[var(--color-status-warn)]/10 text-[var(--color-status-warn)] border border-system-yellow/30'
                   : 'bg-white/[0.06] text-text-secondary border border-bg-border'
@@ -87,7 +88,7 @@ function PadelForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void 
       <button
         onClick={handleSubmit}
         disabled={!duration || parseInt(duration, 10) <= 0}
-        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="min-h-11 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -134,10 +135,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label className="text-xs font-medium text-text-tertiary mb-1 block">
+        <label htmlFor="manual-inbody-weight" className="text-xs font-medium text-text-tertiary mb-1 block">
           Gewicht (kg) *
         </label>
         <input
+          id="manual-inbody-weight"
           type="number"
           step="0.1"
           value={weight}
@@ -148,10 +150,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium text-text-tertiary mb-1 block">
+          <label htmlFor="manual-inbody-muscle" className="text-xs font-medium text-text-tertiary mb-1 block">
             Spiermassa (kg)
           </label>
           <input
+            id="manual-inbody-muscle"
             type="number"
             step="0.1"
             value={muscleMass}
@@ -161,10 +164,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-text-tertiary mb-1 block">
+          <label htmlFor="manual-inbody-fat-mass" className="text-xs font-medium text-text-tertiary mb-1 block">
             Vetmassa (kg)
           </label>
           <input
+            id="manual-inbody-fat-mass"
             type="number"
             step="0.1"
             value={fatMass}
@@ -176,10 +180,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium text-text-tertiary mb-1 block">
+          <label htmlFor="manual-inbody-fat-pct" className="text-xs font-medium text-text-tertiary mb-1 block">
             Vetpercentage (%)
           </label>
           <input
+            id="manual-inbody-fat-pct"
             type="number"
             step="0.1"
             value={fatPct}
@@ -189,10 +194,11 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-text-tertiary mb-1 block">
+          <label htmlFor="manual-inbody-waist" className="text-xs font-medium text-text-tertiary mb-1 block">
             Tailleomtrek (cm)
           </label>
           <input
+            id="manual-inbody-waist"
             type="number"
             step="0.1"
             value={waist}
@@ -205,7 +211,7 @@ function InBodyForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void
       <button
         onClick={handleSubmit}
         disabled={!weight || parseFloat(weight) <= 0}
-        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="min-h-11 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -233,10 +239,11 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="text-xs font-medium text-text-tertiary mb-1 block">
+        <label htmlFor="manual-note" className="text-xs font-medium text-text-tertiary mb-1 block">
           Notitie
         </label>
         <textarea
+          id="manual-note"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Bijv. lichte kniepijn bij squats, extra wandeling gemaakt..."
@@ -247,7 +254,7 @@ function NoteForm({ onSubmit }: { onSubmit: (addition: ManualAddition) => void }
       <button
         onClick={handleSubmit}
         disabled={!text.trim()}
-        className="rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="min-h-11 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Toevoegen
       </button>
@@ -277,7 +284,7 @@ export function ManualAddModal({ onAdd, onClose }: ManualAddModalProps) {
               <button
                 key={opt.type}
                 onClick={() => setSelectedType(opt.type)}
-                className="flex items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-white/[0.06]"
+                className="flex min-h-11 items-center gap-3 rounded-xl border border-bg-border bg-bg-surface p-4 text-left transition-colors hover:bg-white/[0.06]"
               >
                 <span className="text-xl">{opt.icon}</span>
                 <span className="text-sm font-medium text-text-primary">{opt.label}</span>

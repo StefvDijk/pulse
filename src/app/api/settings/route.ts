@@ -15,6 +15,8 @@ type SafeUserSettings = Omit<
   | 'strava_access_token'
   | 'strava_refresh_token'
   | 'strava_token_expiry'
+  | 'hevy_full_sync_next_page'
+  | 'hevy_full_sync_started_at'
 >
 
 export interface SettingsData {

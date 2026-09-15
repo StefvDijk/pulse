@@ -3,7 +3,6 @@ import { getWorkouts, getWorkoutEvents } from '@/lib/hevy/client'
 import { mapHevyWorkoutWithDefinitions } from '@/lib/hevy/mappers'
 import { syncExerciseTemplates } from '@/lib/hevy/template-sync'
 import { syncHevyRoutines } from '@/lib/hevy/routine-sync'
-import type { MappedWorkout } from '@/lib/hevy/mappers'
 import type { HevyWorkout } from '@/lib/hevy/types'
 import {
   HevyWorkoutUpdatedEventSchema,
@@ -14,6 +13,10 @@ import { buildTrainingEventSummary } from '@/lib/ai/extractor-summaries'
 import { reaggregateDates } from '@/lib/aggregations/reaggregate'
 import { dayKeyAmsterdam } from '@/lib/time/amsterdam'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
+import { recordUnmatchedExercise } from '@/lib/hevy/unmatched-exercises'
+import { runAfterResponse } from '@/lib/runtime/after-response'
+import { persistHevyWorkoutAtomic, recomputeHevyStrengthPrs } from '@/lib/hevy/atomic-workout'
+import { canAdvanceFullSyncPage } from '@/lib/hevy/full-sync-cursor'
 
 interface ExerciseDefinition {
   id: string
@@ -24,141 +27,19 @@ export interface SyncResult {
   synced: number
   templatesSynced: number
   routinesSynced: number
+  pendingFullSync: boolean
   errors: string[]
 }
 
-// ---------------------------------------------------------------------------
-// Workout stats computation
-// ---------------------------------------------------------------------------
-
-interface WorkoutStats {
-  totalVolumeKg: number
-  setCount: number
-  exerciseCount: number
-}
-
-function computeWorkoutStats(mapped: MappedWorkout): WorkoutStats {
-  let totalVolumeKg = 0
-  let setCount = 0
-  const exerciseCount = mapped.exercises.filter((e) => e.exerciseDefinitionId).length
-
-  for (const item of mapped.exercises) {
-    for (const set of item.sets) {
-      if (set.set_type !== 'warmup' && set.weight_kg != null && set.reps != null) {
-        totalVolumeKg += set.weight_kg * set.reps
-        setCount++
-      }
-    }
-  }
-
-  return { totalVolumeKg, setCount, exerciseCount }
-}
-
-// ---------------------------------------------------------------------------
-// PR detection
-// ---------------------------------------------------------------------------
-
-interface PrResult {
-  prCount: number
-  errors: string[]
-}
-
-async function detectAndInsertPRs(
-  mapped: MappedWorkout,
-  workoutId: string,
-  userId: string,
-  workoutStartedAt: string,
-): Promise<PrResult> {
-  const admin = createAdminClient()
-  const errors: string[] = []
-  let prCount = 0
-
-  for (const item of mapped.exercises) {
-    if (!item.exerciseDefinitionId) continue
-
-    // Only process strength exercises: must have at least one set with weight_kg
-    const hasWeight = item.sets.some((s) => s.weight_kg != null && s.weight_kg > 0)
-    if (!hasWeight) continue
-
-    // Find max single-set weight (and reps in that set, for context).
-    // Tie-breaker: same weight → prefer the set with more reps.
-    let bestWeight = 0
-    let bestReps: number | null = null
-    for (const set of item.sets) {
-      if (set.set_type === 'warmup') continue
-      if (set.weight_kg == null || set.weight_kg <= 0) continue
-
-      if (
-        set.weight_kg > bestWeight ||
-        (set.weight_kg === bestWeight && (set.reps ?? 0) > (bestReps ?? 0))
-      ) {
-        bestWeight = set.weight_kg
-        bestReps = set.reps ?? null
-      }
-    }
-
-    if (bestWeight === 0) continue
-    const bestValue = bestWeight
-
-    // Check existing PR for this exercise
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing, error: queryError } = await (admin.from('personal_records') as any)
-      .select('value')
-      .eq('user_id', userId)
-      .eq('exercise_definition_id', item.exerciseDefinitionId)
-      .eq('record_type', 'weight')
-      .order('value', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (queryError) {
-      errors.push(
-        `PR query for exercise "${item.hevyExerciseName}": ${queryError.message}`,
-      )
-      continue
-    }
-
-    const previousRecord: number | null = existing?.value ?? null
-
-    if (previousRecord !== null && bestValue <= previousRecord) continue
-
-    // New PR — insert record
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (admin.from('personal_records') as any).insert({
-      user_id: userId,
-      exercise_definition_id: item.exerciseDefinitionId,
-      record_type: 'weight',
-      record_category: 'strength',
-      value: bestValue,
-      reps: bestReps,
-      unit: 'kg',
-      achieved_at: workoutStartedAt,
-      workout_id: workoutId,
-      previous_record: previousRecord,
-    })
-
-    if (insertError) {
-      errors.push(
-        `PR insert for exercise "${item.hevyExerciseName}": ${insertError.message}`,
-      )
-    } else {
-      prCount++
-    }
-  }
-
-  return { prCount, errors }
-}
+const FULL_SYNC_PAGE_BUDGET = 3
 
 // ---------------------------------------------------------------------------
 // Single-workout upsert
 //
 // Encapsulates the full per-workout pipeline so both the full paginated sync
 // and the incremental events flow (and the webhook) share identical behaviour:
-//   1. upsert the workout row (conflict on user_id + hevy_workout_id)
-//   2. delete-then-insert exercises + sets (avoids duplicates; the
-//      workout_exercises unique constraint also guards this at the DB level)
-//   3. compute + persist workout stats (total_volume_kg / set_count / etc.)
-//   4. PR detection + persist pr_count
+//   1. record any unmatched definition names for remediation
+//   2. atomically upsert the workout, replace exercises/sets, and recompute PRs
 //
 // Errors are collected and returned, never thrown, so a single bad workout does
 // not abort a multi-workout sync.
@@ -174,112 +55,43 @@ export async function upsertSingleWorkout(
   hevyWorkout: HevyWorkout,
   userId: string,
   exerciseDefinitions: ExerciseDefinition[],
+  options: { deferPrRecompute?: boolean } = {},
 ): Promise<UpsertSingleWorkoutResult> {
   const admin = createAdminClient()
   const errors: string[] = []
 
   const mapped = mapHevyWorkoutWithDefinitions(hevyWorkout, userId, exerciseDefinitions)
 
-  // 1. Upsert workout (on conflict user_id + hevy_workout_id)
-  const { data: upsertedWorkout, error: workoutError } = await admin
-    .from('workouts')
-    .upsert(mapped.workout, { onConflict: 'user_id,hevy_workout_id' })
-    .select('id')
-    .single()
-
-  if (workoutError) {
-    errors.push(`Workout ${hevyWorkout.id}: ${workoutError.message}`)
-    return { workoutId: null, startedAt: mapped.workout.started_at, errors }
-  }
-
-  const workoutId = upsertedWorkout.id
-
-  // 2. Delete existing exercises + sets, then re-insert. Cascade via FK removes
-  //    workout_sets automatically. This keeps tonnage correct on re-delivery.
-  const { error: deleteError } = await admin
-    .from('workout_exercises')
-    .delete()
-    .eq('workout_id', workoutId)
-
-  if (deleteError) {
-    errors.push(`Clearing exercises for workout ${hevyWorkout.id}: ${deleteError.message}`)
-  }
-
+  // Record unresolvable definitions separately. They cannot be part of the
+  // atomic graph because workout_exercises requires a definition FK.
   for (const item of mapped.exercises) {
-    if (!item.exerciseDefinitionId) {
-      // Skip exercises with no matching definition — already warned in mapper
-      continue
-    }
-
-    const exerciseInsert = {
-      ...item.exercise,
-      workout_id: workoutId,
-      exercise_definition_id: item.exerciseDefinitionId,
-    }
-
-    const { data: insertedExercise, error: exerciseError } = await admin
-      .from('workout_exercises')
-      .insert(exerciseInsert)
-      .select('id')
-      .single()
-
-    if (exerciseError) {
-      errors.push(
-        `Exercise "${item.hevyExerciseName}" in workout ${hevyWorkout.id}: ${exerciseError.message}`,
-      )
-      continue
-    }
-
-    const workoutExerciseId = insertedExercise.id
-
-    const setsToInsert = item.sets.map((set) => ({
-      ...set,
-      workout_exercise_id: workoutExerciseId,
-    }))
-
-    if (setsToInsert.length > 0) {
-      const { error: setsError } = await admin.from('workout_sets').insert(setsToInsert)
-
-      if (setsError) {
-        errors.push(
-          `Sets for exercise "${item.hevyExerciseName}" in workout ${hevyWorkout.id}: ${setsError.message}`,
-        )
-      }
+    if (item.exerciseDefinitionId) continue
+    const unmatchedError = await recordUnmatchedExercise(
+      admin,
+      userId,
+      item.hevyExerciseName,
+      hevyWorkout.id,
+    )
+    if (unmatchedError) {
+      errors.push(unmatchedError)
+      console.error('[hevy-sync] failed to log unmatched exercise:', unmatchedError)
     }
   }
 
-  // 3. Compute workout stats and update the workout row
-  const stats = computeWorkoutStats(mapped)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: statsError } = await (admin.from('workouts') as any)
-    .update({
-      total_volume_kg: stats.totalVolumeKg,
-      set_count: stats.setCount,
-      exercise_count: stats.exerciseCount,
-    })
-    .eq('id', workoutId)
-
-  if (statsError) {
-    errors.push(`Stats update for workout ${hevyWorkout.id}: ${statsError.message}`)
-  }
-
-  // 4. PR detection — only meaningful for exercises with weight
-  const prResult = await detectAndInsertPRs(mapped, workoutId, userId, mapped.workout.started_at)
-
-  if (prResult.errors.length > 0) {
-    errors.push(...prResult.errors.map((e) => `[pr] ${e}`))
-  }
-
-  if (prResult.prCount > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: prCountError } = await (admin.from('workouts') as any)
-      .update({ pr_count: prResult.prCount })
-      .eq('id', workoutId)
-
-    if (prCountError) {
-      errors.push(`PR count update for workout ${hevyWorkout.id}: ${prCountError.message}`)
-    }
+  let workoutId: string
+  try {
+    workoutId = await persistHevyWorkoutAtomic(
+      admin,
+      userId,
+      hevyWorkout.id,
+      mapped,
+      options,
+    )
+  } catch (error) {
+    errors.push(
+      `Workout ${hevyWorkout.id}: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return { workoutId: null, startedAt: mapped.workout.started_at, errors }
   }
 
   return { workoutId, startedAt: mapped.workout.started_at, errors }
@@ -302,37 +114,67 @@ type AdminClient = ReturnType<typeof createAdminClient>
 // Full history paginate. Used on first run or as a recovery path. Returns the
 // count of workouts actually processed; collects per-item errors in `errors`.
 async function runFullSync(
+  admin: AdminClient,
   apiKey: string,
   userId: string,
   exerciseDefinitions: ExerciseDefinition[],
   errors: string[],
-): Promise<number> {
+  startPage: number,
+): Promise<{ synced: number; complete: boolean }> {
   let synced = 0
-  let page = 1
-  let pageCount = 1
+  let page = startPage
+  let pageCount = startPage
+  let pagesProcessed = 0
+  let fetchFailed = false
 
-  while (page <= pageCount) {
+  while (page <= pageCount && pagesProcessed < FULL_SYNC_PAGE_BUDGET) {
     let response
     try {
       response = await getWorkouts(apiKey, page)
     } catch (fetchError) {
       const message = fetchError instanceof Error ? fetchError.message : String(fetchError)
       errors.push(`Page ${page}: ${message}`)
+      fetchFailed = true
       break
     }
 
     pageCount = response.page_count
+    const errorsBeforePage = errors.length
 
     for (const hevyWorkout of response.workouts) {
-      const result = await upsertSingleWorkout(hevyWorkout, userId, exerciseDefinitions)
+      const result = await upsertSingleWorkout(hevyWorkout, userId, exerciseDefinitions, {
+        deferPrRecompute: true,
+      })
       errors.push(...result.errors)
       if (result.workoutId) synced++
     }
 
+    // Re-run the complete page when any workout failed. Successful upserts are
+    // idempotent; advancing here would permanently skip the failed workout.
+    if (!canAdvanceFullSyncPage(errorsBeforePage, errors.length)) break
+
     page++
+    pagesProcessed++
+    const { error: cursorError } = await admin
+      .from('user_settings')
+      .update({ hevy_full_sync_next_page: page })
+      .eq('user_id', userId)
+    if (cursorError) {
+      errors.push(`Failed to persist full-sync page ${page}: ${cursorError.message}`)
+      break
+    }
   }
 
-  return synced
+  if (synced > 0) {
+    try {
+      await recomputeHevyStrengthPrs(admin, userId)
+    } catch (recomputeError) {
+      const message = recomputeError instanceof Error ? recomputeError.message : String(recomputeError)
+      errors.push(`PR recompute after full sync: ${message}`)
+    }
+  }
+
+  return { synced, complete: !fetchFailed && page > pageCount }
 }
 
 // Incremental events feed. 'updated' → upsert the workout; 'deleted' → remove
@@ -467,7 +309,7 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   // HEVY_API_KEY in env was a footgun: it would override every user's key).
   const { data: settings, error: settingsError } = await admin
     .from('user_settings')
-    .select('hevy_api_key, last_hevy_sync_at')
+    .select('hevy_api_key, last_hevy_sync_at, hevy_full_sync_next_page, hevy_full_sync_started_at')
     .eq('user_id', userId)
     .single()
 
@@ -487,6 +329,8 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   // advance last_hevy_sync_at to this instant, so events created *during* the
   // sync are still picked up next time (no gap).
   const syncStartedAt = new Date().toISOString()
+  const fullSyncStartedAt = settings?.hevy_full_sync_started_at ?? syncStartedAt
+  let syncComplete = true
 
   // 2. Sync exercise templates from Hevy first
   const templateResult = await syncExerciseTemplates(apiKey)
@@ -519,17 +363,37 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
   if (since) {
     synced += await runEventsSync(admin, apiKey, userId, exerciseDefinitions, since, errors)
   } else {
-    synced += await runFullSync(apiKey, userId, exerciseDefinitions, errors)
+    if (!settings?.hevy_full_sync_started_at) {
+      const { error: watermarkError } = await admin
+        .from('user_settings')
+        .update({ hevy_full_sync_started_at: fullSyncStartedAt })
+        .eq('user_id', userId)
+      if (watermarkError) errors.push(`Failed to persist full-sync watermark: ${watermarkError.message}`)
+    }
+    const full = await runFullSync(
+      admin,
+      apiKey,
+      userId,
+      exerciseDefinitions,
+      errors,
+      settings?.hevy_full_sync_next_page ?? 1,
+    )
+    synced += full.synced
+    syncComplete = full.complete
   }
 
   // 6. Advance last_hevy_sync_at ONLY after a fully error-free pass. With a real
   //    incremental events feed, advancing on a partial/failed pass would skip
   //    events we never processed (the old `synced > 0 || errors.length === 0`
   //    condition silently lost data the moment a single workout errored).
-  if (errors.length === 0) {
+  if (errors.length === 0 && syncComplete) {
     const { error: updateError } = await admin
       .from('user_settings')
-      .update({ last_hevy_sync_at: syncStartedAt })
+      .update({
+        last_hevy_sync_at: since ? syncStartedAt : fullSyncStartedAt,
+        hevy_full_sync_next_page: 1,
+        hevy_full_sync_started_at: null,
+      })
       .eq('user_id', userId)
 
     if (updateError) {
@@ -541,32 +405,31 @@ export async function syncHevyWorkouts(userId: string): Promise<SyncResult> {
     synced,
     templatesSynced: templateResult.synced,
     routinesSynced: routineResult.synced,
+    pendingFullSync: !syncComplete,
     errors,
   }
 
-  // Record this sync attempt so the per-source status chip + audit trail stay
-  // accurate. Fire-and-forget; recordSyncRun logs its own insert failures.
-  void recordSyncRun({
-    userId,
-    source: 'hevy',
-    startedAt: syncStartedAt,
-    syncedCount: synced,
-    errors,
-  })
+  // Record this sync attempt after the response while keeping the serverless
+  // invocation alive long enough for the audit write to finish.
+  runAfterResponse('Hevy sync audit logging', () =>
+    recordSyncRun({
+      userId,
+      source: 'hevy',
+      startedAt: syncStartedAt,
+      syncedCount: synced,
+      errors,
+    }),
+  )
 
   // Fire-and-forget belief extraction on training-scope events.
   // Only triggers when at least one workout was actually synced. Feeds the
   // extractor a REAL training summary (load, tonnage, PR's) instead of bare
   // sync counters, which couldn't support a falsifiable hypothesis (audit #21).
   if (result.synced > 0) {
-    void (async () => {
-      try {
-        const eventSummary = await buildTrainingEventSummary(admin, userId)
-        await runBeliefExtractor({ userId, scope: 'training', eventSummary })
-      } catch (err) {
-        console.error('[hevy/sync] belief-extractor failed:', err)
-      }
-    })()
+    runAfterResponse('Hevy belief extraction', async () => {
+      const eventSummary = await buildTrainingEventSummary(admin, userId)
+      await runBeliefExtractor({ userId, scope: 'training', eventSummary })
+    })
   }
 
   return result

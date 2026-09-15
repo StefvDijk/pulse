@@ -57,6 +57,7 @@ export function SessionFeedbackNudge() {
       )}
 
       <SessionFeedbackSheet
+        key={`${open ? 'open' : 'closed'}:${active?.session_id ?? ''}`}
         open={open}
         session={active}
         onClose={() => setOpen(false)}

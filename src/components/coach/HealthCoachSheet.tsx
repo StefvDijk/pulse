@@ -28,7 +28,7 @@ export function HealthCoachSheet({ open, onClose }: HealthCoachSheetProps) {
   const health = getCoachConfig('health')
 
   return (
-    <Sheet open={open} onClose={onClose} detents={['large']} grabber autoFocus={false}>
+    <Sheet open={open} onClose={onClose} detents={['large']} title="Gezondheidscoach" showTitle={false} grabber autoFocus={false}>
       <div className="flex h-full flex-col">
         <CoachIdentity
           identity={health.identity}

@@ -39,7 +39,8 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
     )
   }
 
-  if (view.status === 'unavailable') {
+  if (view.status === 'unavailable' || view.status === 'insufficient') {
+    const insufficient = view.status === 'insufficient'
     return (
       <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
         <div className="flex items-center gap-[18px]">
@@ -54,11 +55,12 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
               Readiness
             </div>
             <div className="mt-1 text-[15px] font-semibold text-text-secondary">
-              Nog niet beschikbaar
+              {insufficient ? 'Onvoldoende herstelgegevens' : 'Nog niet beschikbaar'}
             </div>
             <p className="mt-1 text-[12px] leading-snug text-text-tertiary">
-              Je herstelgegevens konden niet worden geladen. Zodra je biometrie
-              (HRV, slaap, rusthart) binnen is, verschijnt hier je score.
+              {insufficient
+                ? 'Er zijn geen bruikbare recente herstelmetingen of check-in. Trainingsbelasting alleen bepaalt je herstel niet. Vul je check-in in voor meer context.'
+                : 'Je herstelgegevens konden niet worden geladen. Probeer het opnieuw.'}
             </p>
           </div>
         </div>
@@ -87,8 +89,8 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
 
   return (
     <>
-      <ExplainTrigger topic="readiness" ariaLabel="Open uitleg over readiness">
-        <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
+      <Card className="p-[18px]" style={{ background: CARD_GRADIENT }}>
+        <ExplainTrigger topic="readiness" ariaLabel="Open uitleg over readiness">
           <div className="flex items-center gap-[18px]">
             <ReadinessOrb value={score / 100} size={108} />
             <div className="flex-1">
@@ -143,21 +145,19 @@ export function ReadinessCard({ view, readiness, summary, label, tone, onRetry }
               label="Slaap"
               value={sleepHours !== null ? `${sleepHours}u ${sleepMins}m` : '—'}
             />
-            <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="7d" />
+            <MicroStat label="Sessies" value={readiness?.recentSessions ?? '—'} delta="3d" />
           </div>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setDrilldownOpen(true)
-            }}
-            className="mt-3 w-full rounded-lg border border-bg-border bg-white/[0.04] py-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-white/[0.06] focus-ring"
-          >
-            Wat bepaalt dit? →
-          </button>
-        </Card>
-      </ExplainTrigger>
+        </ExplainTrigger>
+
+        <button
+          type="button"
+          onClick={() => setDrilldownOpen(true)}
+          className="mt-3 w-full rounded-lg border border-bg-border bg-white/[0.04] py-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-white/[0.06] focus-ring"
+        >
+          Wat bepaalt dit? →
+        </button>
+      </Card>
 
       <ReadinessDrilldownSheet open={drilldownOpen} onClose={() => setDrilldownOpen(false)} />
     </>

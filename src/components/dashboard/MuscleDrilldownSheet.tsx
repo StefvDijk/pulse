@@ -82,7 +82,7 @@ export function MuscleDrilldownSheet({
       open={isOpen}
       onClose={onClose}
       detents={['medium', 'large']}
-      title={isOpen ? getMuscleLabel(muscleGroup!) : undefined}
+      title={isOpen ? getMuscleLabel(muscleGroup!) : 'Spiergroep'}
     >
       {/* Sub-header: hit count */}
       {isOpen && (

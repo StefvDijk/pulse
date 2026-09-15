@@ -115,15 +115,18 @@ pnpm install
 # 3. Setup environment variables
 cp .env.local.example .env.local
 # Vul de variabelen in (zie PRD sectie 10.2)
+cp .env.test.example .env.test.local
+# Vul uitsluitend lokale Supabase-waarden in via `supabase status -o env`
 
 # 4. Start Supabase lokaal
 supabase start
 
-# 5. Run migraties
-supabase db push
+# 5. Reset lokale DB en run alle migraties
+pnpm db:reset:local
 
 # 6. Seed data
-pnpm run seed
+pnpm seed:exercises
+pnpm seed:testdata
 
 # 7. Start dev server
 pnpm dev

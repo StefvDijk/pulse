@@ -44,10 +44,6 @@ export function AnalysisStep({
   const ranRef = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (existingProposal !== null) setProposalFound(true)
-  }, [existingProposal])
-
   async function sendTurn(history: BlockReviewMessage[]) {
     setBusy(true)
     setError(null)
@@ -98,7 +94,8 @@ export function AnalysisStep({
     if (ranRef.current) return
     ranRef.current = true
     if (conversation.length === 0) {
-      sendTurn([])
+      const timeout = window.setTimeout(() => void sendTurn([]), 0)
+      return () => window.clearTimeout(timeout)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -134,7 +131,7 @@ export function AnalysisStep({
       stepIndex={stepIndex}
       stepTotal={stepTotal}
       onBack={onBack}
-      onNext={proposalFound ? onNext : undefined}
+      onNext={proposalFound || existingProposal !== null ? onNext : undefined}
       nextLabel="Naar volgend blok"
     >
       <div ref={scrollRef} className="flex flex-col gap-3 min-h-[100px] max-h-[50vh] overflow-y-auto">
@@ -161,7 +158,7 @@ export function AnalysisStep({
               setError(null)
               sendTurn(conversation)
             }}
-            className="self-start px-3 py-1.5 rounded-full text-[12px] border border-bg-border text-text-primary"
+            className="min-h-11 self-start px-3 py-2 rounded-full text-[12px] border border-bg-border text-text-primary"
           >
             Opnieuw proberen
           </button>
@@ -186,14 +183,14 @@ export function AnalysisStep({
             <button
               type="button"
               onClick={requestSchema}
-              className="h-9 px-4 rounded-full text-[12px] font-semibold bg-white text-black"
+              className="h-11 px-4 rounded-full text-[12px] font-semibold bg-white text-black"
             >
               Genereer schema voorstel
             </button>
             <button
               type="button"
               onClick={onNext}
-              className="h-9 px-4 rounded-full text-[12px] border border-bg-border text-text-tertiary"
+              className="h-11 px-4 rounded-full text-[12px] border border-bg-border text-text-tertiary"
             >
               Sla over
             </button>
@@ -212,7 +209,7 @@ export function AnalysisStep({
                 ? 'Nog iets aanpassen? Of klik "Naar volgend blok"...'
                 : 'Stel een vraag of geef extra context...'
             }
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary placeholder:text-text-tertiary resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -224,7 +221,7 @@ export function AnalysisStep({
             type="button"
             onClick={handleSend}
             disabled={!input.trim() || busy}
-            className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
+            className="h-11 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
           >
             Verstuur
           </button>

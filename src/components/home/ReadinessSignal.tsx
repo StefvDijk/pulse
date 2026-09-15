@@ -17,6 +17,11 @@ interface LevelConfig {
 }
 
 const LEVEL_CONFIG: Record<ReadinessLevel, LevelConfig> = {
+  unknown: {
+    label: 'Onvoldoende herstelgegevens', orbState: 'idle',
+    bgClass: 'bg-white/[0.06]', textClass: 'text-text-secondary',
+    ringColor: 'var(--color-brand-claude)', trackColor: 'rgba(217, 119, 87, 0.18)',
+  },
   good: {
     label: 'Goed hersteld',
     orbState: 'ready',
@@ -170,14 +175,14 @@ export function ReadinessSignal() {
       </p>
 
       {/* Hero score ring */}
-      <div className="mt-4 flex justify-center">
+      {data.score !== null && <div className="mt-4 flex justify-center">
         <ScoreRing
           score={data.score}
           ringColor={config.ringColor}
           trackColor={config.trackColor}
           provisional={cold}
         />
-      </div>
+      </div>}
 
       {/* Cold-start hint */}
       {cold && (

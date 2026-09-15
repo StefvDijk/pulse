@@ -15,21 +15,45 @@ interface Props {
 export function ExplainTrigger({ topic, params, ariaLabel, children, className }: Props) {
   const [open, setOpen] = useState(false)
 
+  // role="button" on a div (not a real <button>) because the card content can
+  // itself contain buttons (e.g. "Wat bepaalt dit?"); a <button> nesting a
+  // <button> is invalid HTML and caused a hydration error on Home + Gezondheid.
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          // Nested actions own their click, while ordinary card content still
+          // activates this trigger when it bubbles to the wrapper.
+          const nestedAction =
+            e.target instanceof Element
+              ? e.target.closest(
+                  'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [contenteditable="true"]',
+                )
+              : null
+          if (nestedAction && nestedAction !== e.currentTarget) return
+          setOpen(true)
+        }}
+        onKeyDown={(e) => {
+          // Interactive descendants own their keyboard events. Without this
+          // guard Enter/Space on an inner action also opened this sheet.
+          if (e.target !== e.currentTarget) return
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setOpen(true)
+          }
+        }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={ariaLabel}
         className={[
-          'block w-full text-left transition-opacity active:opacity-80 active:scale-[0.99]',
+          'block w-full cursor-pointer text-left transition-opacity active:opacity-80 active:scale-[0.99]',
           className ?? '',
         ].join(' ')}
       >
         {children}
-      </button>
+      </div>
       <ExplainSheet
         topic={open ? topic : null}
         params={params}

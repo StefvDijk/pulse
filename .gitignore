@@ -36,6 +36,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.test.example
 
 # vercel
 .vercel
@@ -47,3 +48,6 @@ next-env.d.ts
 
 # local tooling
 .claude/
+
+# One-time local clone of the exercises dataset (see import:catalog)
+vendor/

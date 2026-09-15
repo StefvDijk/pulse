@@ -30,22 +30,36 @@ export async function GET(request: Request) {
         : 'manager'
 
     if (sessionId) {
+      const { data: ownedSession, error: sessionError } = await admin
+        .from('chat_sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (sessionError) throw sessionError
+      if (!ownedSession) {
+        return NextResponse.json(
+          { error: 'Session not found', code: 'SESSION_NOT_FOUND' },
+          { status: 404 },
+        )
+      }
+
       // Fetch messages for specific session
       const { data: messages, error } = await admin
         .from('chat_messages')
-        .select('id, role, content, message_type, created_at')
+        .select('id, role, content, message_type, created_at, cards')
         .eq('session_id', sessionId)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(50)
 
       if (error) throw error
 
-      return NextResponse.json({ session_id: sessionId, messages: messages ?? [] })
+      return NextResponse.json({ session_id: sessionId, messages: (messages ?? []).reverse() })
     }
 
     // No session_id: return most recent session or null
-    const { data: session } = await admin
+    const { data: session, error: sessionError } = await admin
       .from('chat_sessions')
       .select('id, title, started_at, last_message_at, message_count')
       .eq('user_id', user.id)
@@ -53,23 +67,25 @@ export async function GET(request: Request) {
       .order('last_message_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+    if (sessionError) throw sessionError
 
     if (!session) {
       return NextResponse.json({ session_id: null, messages: [] })
     }
 
-    const { data: messages } = await admin
+    const { data: messages, error: messagesError } = await admin
       .from('chat_messages')
-      .select('id, role, content, message_type, created_at')
+      .select('id, role, content, message_type, created_at, cards')
       .eq('session_id', session.id)
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(50)
+    if (messagesError) throw messagesError
 
     return NextResponse.json({
       session_id: session.id,
       session,
-      messages: messages ?? [],
+      messages: (messages ?? []).reverse(),
     })
   } catch (error) {
     console.error('Chat history error:', error)

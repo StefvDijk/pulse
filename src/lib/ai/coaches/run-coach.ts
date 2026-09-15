@@ -5,6 +5,7 @@ import type { QuestionType } from '@/lib/ai/context-assembler'
 import type { PulseTools } from '@/lib/ai/tools'
 import { resolveToolset } from './toolset'
 import type { CoachConfig } from './types'
+import { wrapUntrustedData } from '@/lib/ai/untrusted-data'
 
 export interface CoachChatMessage {
   role: 'user' | 'assistant'
@@ -72,7 +73,10 @@ export function buildCoachRequest(coach: CoachConfig, input: CoachRequestInput):
     coachKnowledge: coach.domainKnowledge ?? null,
   })
 
-  let dynamicBlock = systemDynamic + input.thinContext
+  let dynamicBlock = systemDynamic
+  if (input.thinContext) {
+    dynamicBlock += `\n\n${wrapUntrustedData('runtime_context', input.thinContext)}`
+  }
 
   const skills = selectSkills(input.questionType, input.message, extractContextHints(input.thinContext))
   if (skills.length > 0) {

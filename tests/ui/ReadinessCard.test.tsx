@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, fireEvent, cleanup } from '@testing-library/react'
+import { render, fireEvent, cleanup, screen } from '@testing-library/react'
 import { ReadinessCard } from '@/components/dashboard/v2/ReadinessCard'
 import type { ReadinessSummary } from '@/app/api/readiness/summary/route'
 
@@ -8,6 +8,21 @@ afterEach(() => cleanup())
 const noop = () => {}
 
 describe('ReadinessCard honest states', () => {
+  it('distinguishes insufficient measurements from a failed load and shows no readiness number', () => {
+    render(<ReadinessCard view={{ status: 'insufficient' }} readiness={null} summary={null}
+      label="Op koers" tone="good" onRetry={noop} />)
+    expect(screen.getByText('Onvoldoende herstelgegevens')).toBeVisible()
+    expect(screen.queryByText('Op koers')).toBeNull()
+    expect(screen.queryByText(/konden niet worden geladen/)).toBeNull()
+    expect(screen.queryByText('70')).toBeNull()
+  })
+  it('labels the recent session count as three days, not seven', () => {
+    render(<ReadinessCard view={{ status: 'ready', score: 70, level: 'normal' }}
+      readiness={null} summary={null} label="Op koers" tone="good" onRetry={noop} />)
+    expect(screen.getByText('3d')).toBeTruthy()
+    expect(screen.queryByText('7d')).toBeNull()
+  })
+
   it('unavailable state shows no fabricated score and offers a retry', () => {
     const onRetry = vi.fn()
     const { getByText, queryByText } = render(
@@ -59,6 +74,26 @@ describe('ReadinessCard honest states', () => {
     )
     expect(getByText('98')).toBeTruthy()
     expect(getByText('Goed hersteld')).toBeTruthy()
+  })
+
+  it('keeps the drilldown action outside the explain button semantics', () => {
+    render(
+      <ReadinessCard
+        view={{ status: 'ready', score: 98, level: 'good' }}
+        readiness={null}
+        summary={null}
+        label="Goed hersteld"
+        tone="good"
+        onRetry={noop}
+      />,
+    )
+
+    const explainTrigger = screen.getByRole('button', {
+      name: 'Open uitleg over readiness',
+    })
+    const drilldown = screen.getByRole('button', { name: 'Wat bepaalt dit? →' })
+
+    expect(explainTrigger.contains(drilldown)).toBe(false)
   })
 
   it('attributes the readiness summary to the gezondheidscoach (issue #39)', () => {

@@ -34,7 +34,7 @@ export async function POST(
     const built = await builder.build(user.id, body.params ?? {})
     const userPrompt = builder.buildAiPrompt(built)
 
-    const result = streamChat({
+    const result = await streamChat({
       system: EXPLAIN_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
       // Haiku 4.5 — short explanatory bubbles (~350 tokens) don't need

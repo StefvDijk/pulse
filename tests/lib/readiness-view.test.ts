@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { deriveReadinessView } from '@/components/dashboard/v2/readiness-view'
 
 describe('deriveReadinessView', () => {
+  it('does not let an older summary hide newly unavailable recovery inputs', () => {
+    expect(deriveReadinessView({
+      summary: { score: 78, level: 'normal' },
+      readiness: { score: null, level: 'unknown' }, isLoading: false,
+    })).toEqual({ status: 'insufficient' })
+  })
+  it('does not replace an explicit unknown assessment with an older score', () => {
+    expect(deriveReadinessView({
+      summary: { score: null, level: 'unknown' },
+      readiness: { score: 78, level: 'normal' }, isLoading: false,
+    })).toEqual({ status: 'insufficient' })
+  })
   it('shows the summary score when present', () => {
     const v = deriveReadinessView({
       summary: { score: 98, level: 'good' },

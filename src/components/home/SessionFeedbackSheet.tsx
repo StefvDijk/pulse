@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Dumbbell, Footprints, CircleDot } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { MAX_FEEDBACK_LENGTH } from '@/lib/training/session-feedback-contract'
@@ -40,14 +40,6 @@ export function SessionFeedbackSheet({
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'save' | 'dismiss' | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  // Reset the field whenever the sheet (re)opens for a different session.
-  useEffect(() => {
-    if (!open) return
-    setText('')
-    setError(null)
-    setBusy(null)
-  }, [open, session?.session_id])
 
   async function submit(payload: { feedback_text?: string; dismissed?: boolean }) {
     if (!session) return
@@ -134,7 +126,7 @@ export function SessionFeedbackSheet({
               onChange={(e) => setText(e.target.value.slice(0, MAX_FEEDBACK_LENGTH))}
               placeholder="Optioneel — bijv. een oefening overgeslagen en waarom, hoe het voelde, een pijntje…"
               rows={4}
-              className="min-h-[112px] resize-none rounded-[16px] border-[0.5px] border-white/[0.10] bg-white/[0.03] px-3.5 py-3 text-[15px] leading-[1.45] text-text-primary placeholder:text-text-tertiary focus:border-white/30 focus:outline-none"
+              className="min-h-[112px] resize-none rounded-[16px] border-[0.5px] border-white/[0.10] bg-white/[0.03] px-3.5 py-3 text-[16px] leading-[1.45] text-text-primary placeholder:text-text-tertiary focus:border-white/30 focus:outline-none"
             />
           </div>
 

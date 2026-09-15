@@ -5,6 +5,7 @@ import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import type { SyncResult } from '@/lib/hevy/sync'
 import { addDaysToKey, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // System prompt for the sync analyst
@@ -108,6 +109,7 @@ function getWeekNumber(): number {
  * logged, never thrown.
  */
 export async function analyzeAfterSync(input: AnalysisInput): Promise<void> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
     const { userId, syncSource } = input
@@ -180,13 +182,14 @@ ${prSection}${existingSection}`
 
     // 5. Generate analysis
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(input.userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: ANALYST_SYSTEM,
       messages: [{ role: 'user', content: userContent }],
       maxOutputTokens: 512,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'sync_analyst',
       model: MEMORY_MODEL,
@@ -195,7 +198,9 @@ ${prSection}${existingSection}`
         outputTokens: usage.outputTokens ?? null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
+    reservation = null
 
     // 6. Parse and store updates
     const match = /\[[\s\S]*\]/.exec(text)
@@ -239,6 +244,16 @@ ${prSection}${existingSection}`
       )
     }
   } catch (err) {
+    if (reservation) {
+      await logAiUsage({
+        userId: input.userId,
+        feature: 'sync_analyst',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (err as { name?: string })?.name ?? 'ANALYST_ERROR',
+        reservation,
+      })
+    }
     // Fire-and-forget: never crash the sync response
     console.error('[sync-analyst] Error:', err)
   }

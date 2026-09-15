@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   graphql_public: {
@@ -97,6 +91,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_budget_reservations: {
+        Row: {
+          created_at: string
+          estimated_cost_usd: number
+          expires_at: string
+          id: string
+          released_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost_usd: number
+          expires_at?: string
+          id?: string
+          released_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estimated_cost_usd?: number
+          expires_at?: string
+          id?: string
+          released_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_log: {
         Row: {
           cache_creation_tokens: number | null
@@ -104,6 +125,7 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           error_code: string | null
+          estimated_cost_usd: number
           feature: string
           id: string
           input_tokens: number | null
@@ -118,6 +140,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_code?: string | null
+          estimated_cost_usd?: number
           feature: string
           id?: string
           input_tokens?: number | null
@@ -132,6 +155,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_code?: string | null
+          estimated_cost_usd?: number
           feature?: string
           id?: string
           input_tokens?: number | null
@@ -226,25 +250,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "block_reviews_next_schema_id_fkey"
-            columns: ["next_schema_id"]
+            foreignKeyName: 'block_reviews_next_schema_id_fkey'
+            columns: ['next_schema_id']
             isOneToOne: false
-            referencedRelation: "training_schemas"
-            referencedColumns: ["id"]
+            referencedRelation: 'training_schemas'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "block_reviews_schema_id_fkey"
-            columns: ["schema_id"]
+            foreignKeyName: 'block_reviews_schema_id_fkey'
+            columns: ['schema_id']
             isOneToOne: false
-            referencedRelation: "training_schemas"
-            referencedColumns: ["id"]
+            referencedRelation: 'training_schemas'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "block_reviews_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'block_reviews_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -347,16 +371,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "body_weight_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'body_weight_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
       chat_messages: {
         Row: {
+          cards: Json
           content: string
           context_used: Json | null
           created_at: string | null
@@ -364,10 +389,12 @@ export type Database = {
           message_type: string | null
           role: string
           session_id: string | null
+          source_chat_turn_id: string | null
           tokens_used: number | null
           user_id: string
         }
         Insert: {
+          cards?: Json
           content: string
           context_used?: Json | null
           created_at?: string | null
@@ -375,10 +402,12 @@ export type Database = {
           message_type?: string | null
           role: string
           session_id?: string | null
+          source_chat_turn_id?: string | null
           tokens_used?: number | null
           user_id: string
         }
         Update: {
+          cards?: Json
           content?: string
           context_used?: Json | null
           created_at?: string | null
@@ -386,23 +415,24 @@ export type Database = {
           message_type?: string | null
           role?: string
           session_id?: string | null
+          source_chat_turn_id?: string | null
           tokens_used?: number | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "chat_messages_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: 'chat_messages_session_owner_fkey'
+            columns: ['session_id', 'user_id']
             isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
+            referencedRelation: 'chat_sessions'
+            referencedColumns: ['id', 'user_id']
           },
           {
-            foreignKeyName: "chat_messages_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'chat_messages_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -411,6 +441,7 @@ export type Database = {
           coach_id: string
           created_at: string | null
           id: string
+          initial_turn_id: string | null
           last_message_at: string | null
           message_count: number | null
           started_at: string | null
@@ -421,6 +452,7 @@ export type Database = {
           coach_id?: string
           created_at?: string | null
           id?: string
+          initial_turn_id?: string | null
           last_message_at?: string | null
           message_count?: number | null
           started_at?: string | null
@@ -431,6 +463,7 @@ export type Database = {
           coach_id?: string
           created_at?: string | null
           id?: string
+          initial_turn_id?: string | null
           last_message_at?: string | null
           message_count?: number | null
           started_at?: string | null
@@ -439,63 +472,84 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "chat_sessions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'chat_sessions_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
-      nudges: {
+      chat_turn_executions: {
         Row: {
-          body: string
-          coach_id: string
-          created_at: string | null
-          cta_href: string | null
-          cta_label: string | null
-          dedupe_key: string
-          id: string
-          severity: string
+          created_at: string
+          generated_response: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          request_fingerprint: string
+          session_id: string
           status: string
-          trigger_type: string
+          turn_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          body: string
-          coach_id: string
-          created_at?: string | null
-          cta_href?: string | null
-          cta_label?: string | null
-          dedupe_key: string
-          id?: string
-          severity?: string
+          created_at?: string
+          generated_response?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          request_fingerprint: string
+          session_id: string
           status?: string
-          trigger_type: string
+          turn_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          body?: string
-          coach_id?: string
-          created_at?: string | null
-          cta_href?: string | null
-          cta_label?: string | null
-          dedupe_key?: string
-          id?: string
-          severity?: string
+          created_at?: string
+          generated_response?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          request_fingerprint?: string
+          session_id?: string
           status?: string
-          trigger_type?: string
+          turn_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "nudges_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'chat_turn_executions_session_id_user_id_fkey'
+            columns: ['session_id', 'user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'chat_sessions'
+            referencedColumns: ['id', 'user_id']
           },
         ]
+      }
+      chat_writeback_operations: {
+        Row: {
+          created_at: string
+          kind: string
+          result: Json
+          turn_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          result?: Json
+          turn_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          result?: Json
+          turn_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       coach_beliefs: {
         Row: {
@@ -542,18 +596,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coach_beliefs_superseded_by_fkey"
-            columns: ["superseded_by"]
+            foreignKeyName: 'coach_beliefs_superseded_by_fkey'
+            columns: ['superseded_by']
             isOneToOne: false
-            referencedRelation: "coach_beliefs"
-            referencedColumns: ["id"]
+            referencedRelation: 'coach_beliefs'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "coach_beliefs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'coach_beliefs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -593,11 +647,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coach_inbox_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'coach_inbox_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -640,18 +694,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coach_questions_related_belief_id_fkey"
-            columns: ["related_belief_id"]
+            foreignKeyName: 'coach_questions_related_belief_id_fkey'
+            columns: ['related_belief_id']
             isOneToOne: false
-            referencedRelation: "coach_beliefs"
-            referencedColumns: ["id"]
+            referencedRelation: 'coach_beliefs'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "coach_questions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'coach_questions_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -697,13 +751,112 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coaching_memory_superseded_by_fkey"
-            columns: ["superseded_by"]
+            foreignKeyName: 'coaching_memory_superseded_by_fkey'
+            columns: ['superseded_by']
             isOneToOne: false
-            referencedRelation: "coaching_memory"
-            referencedColumns: ["id"]
+            referencedRelation: 'coaching_memory'
+            referencedColumns: ['id']
           },
         ]
+      }
+      cron_item_failures: {
+        Row: {
+          attempts: number
+          dead_lettered_at: string | null
+          first_failed_at: string
+          item_key: string
+          job_name: string
+          last_error: string | null
+          last_failed_at: string
+          next_retry_at: string
+        }
+        Insert: {
+          attempts?: number
+          dead_lettered_at?: string | null
+          first_failed_at?: string
+          item_key: string
+          job_name: string
+          last_error?: string | null
+          last_failed_at?: string
+          next_retry_at?: string
+        }
+        Update: {
+          attempts?: number
+          dead_lettered_at?: string | null
+          first_failed_at?: string
+          item_key?: string
+          job_name?: string
+          last_error?: string | null
+          last_failed_at?: string
+          next_retry_at?: string
+        }
+        Relationships: []
+      }
+      cron_job_state: {
+        Row: {
+          cursor: string | null
+          job_name: string
+          lease_expires_at: string | null
+          lease_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          cursor?: string | null
+          job_name: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cursor?: string | null
+          job_name?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cron_runs: {
+        Row: {
+          error_count: number
+          finished_at: string | null
+          first_error: string | null
+          http_status: number | null
+          id: string
+          job_name: string
+          processed: number
+          started_at: string
+          status: string
+          summary: Json
+          truncated: boolean
+        }
+        Insert: {
+          error_count?: number
+          finished_at?: string | null
+          first_error?: string | null
+          http_status?: number | null
+          id?: string
+          job_name: string
+          processed?: number
+          started_at?: string
+          status?: string
+          summary?: Json
+          truncated?: boolean
+        }
+        Update: {
+          error_count?: number
+          finished_at?: string | null
+          first_error?: string | null
+          http_status?: number | null
+          id?: string
+          job_name?: string
+          processed?: number
+          started_at?: string
+          status?: string
+          summary?: Json
+          truncated?: boolean
+        }
+        Relationships: []
       }
       daily_activity: {
         Row: {
@@ -753,11 +906,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_activity_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'daily_activity_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -845,11 +998,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_aggregations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'daily_aggregations_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -937,16 +1090,68 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_nutrition_summary_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'daily_nutrition_summary_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
+      exercise_catalog: {
+        Row: {
+          attribution: string
+          body_part: string
+          created_at: string | null
+          equipment: string
+          gif_path: string | null
+          id: string
+          image_path: string | null
+          instruction_steps: string[]
+          media_id: string | null
+          muscle_group: string
+          name: string
+          normalized_name: string
+          secondary_muscles: string[]
+          target: string
+        }
+        Insert: {
+          attribution: string
+          body_part: string
+          created_at?: string | null
+          equipment: string
+          gif_path?: string | null
+          id: string
+          image_path?: string | null
+          instruction_steps?: string[]
+          media_id?: string | null
+          muscle_group: string
+          name: string
+          normalized_name?: string
+          secondary_muscles?: string[]
+          target: string
+        }
+        Update: {
+          attribution?: string
+          body_part?: string
+          created_at?: string | null
+          equipment?: string
+          gif_path?: string | null
+          id?: string
+          image_path?: string | null
+          instruction_steps?: string[]
+          media_id?: string | null
+          muscle_group?: string
+          name?: string
+          normalized_name?: string
+          secondary_muscles?: string[]
+          target?: string
+        }
+        Relationships: []
+      }
       exercise_definitions: {
         Row: {
+          catalog_id: string | null
           category: string | null
           created_at: string | null
           equipment: string | null
@@ -961,6 +1166,7 @@ export type Database = {
           sport_specificity: string[] | null
         }
         Insert: {
+          catalog_id?: string | null
           category?: string | null
           created_at?: string | null
           equipment?: string | null
@@ -975,6 +1181,7 @@ export type Database = {
           sport_specificity?: string[] | null
         }
         Update: {
+          catalog_id?: string | null
           category?: string | null
           created_at?: string | null
           equipment?: string | null
@@ -988,7 +1195,15 @@ export type Database = {
           secondary_muscle_groups?: string[] | null
           sport_specificity?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'exercise_definitions_catalog_id_fkey'
+            columns: ['catalog_id']
+            isOneToOne: false
+            referencedRelation: 'exercise_catalog'
+            referencedColumns: ['id']
+          },
+        ]
       }
       goals: {
         Row: {
@@ -1044,11 +1259,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "goals_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'goals_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1088,11 +1303,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "hevy_routines_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'hevy_routines_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1108,6 +1323,7 @@ export type Database = {
           related_workout_ids: string[] | null
           resolved_at: string | null
           severity: string | null
+          source_chat_turn_id: string | null
           status: string | null
           updated_at: string | null
           user_id: string
@@ -1123,6 +1339,7 @@ export type Database = {
           related_workout_ids?: string[] | null
           resolved_at?: string | null
           severity?: string | null
+          source_chat_turn_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
@@ -1138,17 +1355,18 @@ export type Database = {
           related_workout_ids?: string[] | null
           resolved_at?: string | null
           severity?: string | null
+          source_chat_turn_id?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "injury_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'injury_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1269,11 +1487,61 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "monthly_aggregations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'monthly_aggregations_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      nudges: {
+        Row: {
+          body: string
+          coach_id: string
+          created_at: string | null
+          cta_href: string | null
+          cta_label: string | null
+          dedupe_key: string
+          id: string
+          severity: string
+          status: string
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          coach_id: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          coach_id?: string
+          created_at?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          dedupe_key?: string
+          id?: string
+          severity?: string
+          status?: string
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'nudges_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1291,6 +1559,7 @@ export type Database = {
           id: string
           meal_type: string | null
           raw_input: string
+          source_chat_turn_id: string | null
           time_of_day: string | null
           user_id: string
         }
@@ -1307,6 +1576,7 @@ export type Database = {
           id?: string
           meal_type?: string | null
           raw_input: string
+          source_chat_turn_id?: string | null
           time_of_day?: string | null
           user_id: string
         }
@@ -1323,16 +1593,17 @@ export type Database = {
           id?: string
           meal_type?: string | null
           raw_input?: string
+          source_chat_turn_id?: string | null
           time_of_day?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "nutrition_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'nutrition_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1387,11 +1658,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "padel_sessions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'padel_sessions_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1443,32 +1714,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "personal_records_exercise_definition_id_fkey"
-            columns: ["exercise_definition_id"]
+            foreignKeyName: 'personal_records_exercise_definition_id_fkey'
+            columns: ['exercise_definition_id']
             isOneToOne: false
-            referencedRelation: "exercise_definitions"
-            referencedColumns: ["id"]
+            referencedRelation: 'exercise_definitions'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "personal_records_run_id_fkey"
-            columns: ["run_id"]
+            foreignKeyName: 'personal_records_run_id_fkey'
+            columns: ['run_id']
             isOneToOne: false
-            referencedRelation: "runs"
-            referencedColumns: ["id"]
+            referencedRelation: 'runs'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "personal_records_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'personal_records_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "personal_records_workout_id_fkey"
-            columns: ["workout_id"]
+            foreignKeyName: 'personal_records_workout_id_fkey'
+            columns: ['workout_id']
             isOneToOne: false
-            referencedRelation: "workouts"
-            referencedColumns: ["id"]
+            referencedRelation: 'workouts'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1568,11 +1839,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "runs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'runs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1618,18 +1889,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "schema_block_summaries_schema_id_fkey"
-            columns: ["schema_id"]
+            foreignKeyName: 'schema_block_summaries_schema_id_fkey'
+            columns: ['schema_id']
             isOneToOne: false
-            referencedRelation: "training_schemas"
-            referencedColumns: ["id"]
+            referencedRelation: 'training_schemas'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "schema_block_summaries_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'schema_block_summaries_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1759,11 +2030,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sleep_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'sleep_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1902,11 +2173,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sync_runs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'sync_runs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1926,6 +2197,7 @@ export type Database = {
           scheduled_overrides: Json | null
           schema_type: string
           source_block_review_id: string | null
+          source_chat_turn_id: string | null
           start_date: string
           title: string
           updated_at: string | null
@@ -1948,6 +2220,7 @@ export type Database = {
           scheduled_overrides?: Json | null
           schema_type: string
           source_block_review_id?: string | null
+          source_chat_turn_id?: string | null
           start_date: string
           title: string
           updated_at?: string | null
@@ -1970,6 +2243,7 @@ export type Database = {
           scheduled_overrides?: Json | null
           schema_type?: string
           source_block_review_id?: string | null
+          source_chat_turn_id?: string | null
           start_date?: string
           title?: string
           updated_at?: string | null
@@ -1979,20 +2253,50 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "training_schemas_source_block_review_id_fkey"
-            columns: ["source_block_review_id"]
+            foreignKeyName: 'training_schemas_source_block_review_id_fkey'
+            columns: ['source_block_review_id']
             isOneToOne: false
-            referencedRelation: "block_reviews"
-            referencedColumns: ["id"]
+            referencedRelation: 'block_reviews'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "training_schemas_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'training_schemas_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
+      }
+      unmatched_exercises: {
+        Row: {
+          first_seen_at: string
+          hevy_exercise_name: string
+          id: string
+          last_hevy_workout_id: string | null
+          last_seen_at: string
+          resolved: boolean
+          user_id: string
+        }
+        Insert: {
+          first_seen_at?: string
+          hevy_exercise_name: string
+          id?: string
+          last_hevy_workout_id?: string | null
+          last_seen_at?: string
+          resolved?: boolean
+          user_id: string
+        }
+        Update: {
+          first_seen_at?: string
+          hevy_exercise_name?: string
+          id?: string
+          last_hevy_workout_id?: string | null
+          last_seen_at?: string
+          resolved?: boolean
+          user_id?: string
+        }
+        Relationships: []
       }
       user_profile: {
         Row: {
@@ -2044,6 +2348,8 @@ export type Database = {
           google_calendar_token_expiry: string | null
           health_auto_export_token: string | null
           hevy_api_key: string | null
+          hevy_full_sync_next_page: number
+          hevy_full_sync_started_at: string | null
           last_apple_health_sync_at: string | null
           last_hevy_sync_at: string | null
           last_strava_sync_at: string | null
@@ -2068,6 +2374,8 @@ export type Database = {
           google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
+          hevy_full_sync_next_page?: number
+          hevy_full_sync_started_at?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
           last_strava_sync_at?: string | null
@@ -2092,6 +2400,8 @@ export type Database = {
           google_calendar_token_expiry?: string | null
           health_auto_export_token?: string | null
           hevy_api_key?: string | null
+          hevy_full_sync_next_page?: number
+          hevy_full_sync_started_at?: string | null
           last_apple_health_sync_at?: string | null
           last_hevy_sync_at?: string | null
           last_strava_sync_at?: string | null
@@ -2108,11 +2418,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "user_settings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'user_settings_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2176,11 +2486,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "walks_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'walks_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2277,11 +2587,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "weekly_aggregations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'weekly_aggregations_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2426,18 +2736,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "workout_exercises_exercise_definition_id_fkey"
-            columns: ["exercise_definition_id"]
+            foreignKeyName: 'workout_exercises_exercise_definition_id_fkey'
+            columns: ['exercise_definition_id']
             isOneToOne: false
-            referencedRelation: "exercise_definitions"
-            referencedColumns: ["id"]
+            referencedRelation: 'exercise_definitions'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "workout_exercises_workout_id_fkey"
-            columns: ["workout_id"]
+            foreignKeyName: 'workout_exercises_workout_id_fkey'
+            columns: ['workout_id']
             isOneToOne: false
-            referencedRelation: "workouts"
-            referencedColumns: ["id"]
+            referencedRelation: 'workouts'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2480,11 +2790,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "workout_sets_workout_exercise_id_fkey"
-            columns: ["workout_exercise_id"]
+            foreignKeyName: 'workout_sets_workout_exercise_id_fkey'
+            columns: ['workout_exercise_id']
             isOneToOne: false
-            referencedRelation: "workout_exercises"
-            referencedColumns: ["id"]
+            referencedRelation: 'workout_exercises'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2548,11 +2858,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "workouts_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'workouts_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -2561,8 +2871,219 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      abandon_chat_turn: {
+        Args: { p_lease_token: string; p_turn_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      activate_training_schema: {
+        Args: {
+          p_new_schema_id: string
+          p_previous_end_date?: string
+          p_previous_schema_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      apply_chat_schema_update_once: {
+        Args: {
+          p_description: string
+          p_expected_schedule: Json
+          p_schema_id: string
+          p_turn_id: string
+          p_updated_schedule: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      claim_chat_turn: {
+        Args: {
+          p_lease_seconds?: number
+          p_request_fingerprint: string
+          p_session_id: string
+          p_turn_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      claim_cron_job: {
+        Args: { p_job_name: string; p_lease_seconds?: number }
+        Returns: Json
+      }
+      complete_chat_turn: {
+        Args: { p_lease_token: string; p_turn_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      finalize_block_review: {
+        Args: {
+          p_body_measurement?: Json
+          p_new_goal_ids?: string[]
+          p_previous_end_date: string
+          p_previous_schema_id: string
+          p_review_id: string
+          p_schema: Json
+          p_summary?: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      finalize_block_review_v2: {
+        Args: {
+          p_body_measurement?: Json
+          p_new_goal_ids?: string[]
+          p_previous_end_date: string
+          p_previous_schema_id: string
+          p_review: Json
+          p_review_id: string
+          p_schema: Json
+          p_summary?: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      finalize_cron_run: {
+        Args: {
+          p_error_count: number
+          p_first_error: string
+          p_http_status: number
+          p_item_outcomes: Json
+          p_job_name: string
+          p_lease_token: string
+          p_next_cursor: string
+          p_processed: number
+          p_run_id: string
+          p_status: string
+          p_summary: Json
+          p_truncated: boolean
+        }
+        Returns: undefined
+      }
+      finish_cron_job: {
+        Args: {
+          p_job_name: string
+          p_lease_token: string
+          p_next_cursor: string
+        }
+        Returns: undefined
+      }
+      insert_and_activate_training_schema: {
+        Args: {
+          p_previous_end_date?: string
+          p_previous_schema_id?: string
+          p_schema: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
+      list_nutrition_cron_users: {
+        Args: { p_after?: string; p_limit?: number; p_since: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      recompute_nutrition_summary_locked: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: undefined
+      }
+      recompute_user_strength_prs: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      recompute_user_strength_prs_atomic: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      refresh_chat_session_metrics: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      release_ai_budget_reservation: {
+        Args: { p_reservation_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      replace_hevy_workout_atomic: {
+        Args: {
+          p_exercises: Json
+          p_hevy_workout_id: string
+          p_user_id: string
+          p_workout: Json
+        }
+        Returns: string
+      }
+      replace_hevy_workout_graph_atomic: {
+        Args: {
+          p_exercises: Json
+          p_hevy_workout_id: string
+          p_user_id: string
+          p_workout: Json
+        }
+        Returns: string
+      }
+      replace_hevy_workout_graph_locked: {
+        Args: {
+          p_exercises: Json
+          p_hevy_workout_id: string
+          p_user_id: string
+          p_workout: Json
+        }
+        Returns: string
+      }
+      reserve_ai_budget: {
+        Args: {
+          p_budget_usd: number
+          p_estimated_cost_usd: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      resolve_chat_session_for_turn: {
+        Args: {
+          p_coach_id: string
+          p_title: string
+          p_turn_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      save_nutrition_log_atomic: {
+        Args: { p_log: Json; p_user_id: string }
+        Returns: Json
+      }
+      settle_ai_usage: {
+        Args: {
+          p_cache_creation_tokens: number
+          p_cache_read_tokens: number
+          p_duration_ms: number
+          p_error_code: string
+          p_estimated_cost_usd: number
+          p_feature: string
+          p_input_tokens: number
+          p_model: string
+          p_output_tokens: number
+          p_reservation_id: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      show_trgm: { Args: { '': string }; Returns: string[] }
+      store_chat_turn_response: {
+        Args: {
+          p_generated_response: string
+          p_lease_token: string
+          p_turn_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      undo_chat_nutrition_log: {
+        Args: { p_log_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      write_schema_block_summary_atomic: {
+        Args: { p_end_reason: string; p_schema_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2573,33 +3094,31 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -2608,23 +3127,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -2633,23 +3152,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -2658,36 +3177,36 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
@@ -2698,4 +3217,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

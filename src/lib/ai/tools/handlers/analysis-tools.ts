@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { daysAgoAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
+import { daysAgoAmsterdam, todayAmsterdam, startOfDayUtcIso, addDaysToKey } from '@/lib/time/amsterdam'
 import { calculateSleepScore } from '@/lib/sleep/score'
 import { computeSleepScore } from '@/lib/sleep/compute'
 
@@ -163,8 +163,8 @@ export async function getRecoveryScore(
       .from('workouts')
       .select('started_at, duration_seconds, total_volume_kg')
       .eq('user_id', userId)
-      .gte('started_at', `${daysAgo(3)}T00:00:00`)
-      .lte('started_at', `${targetDate}T23:59:59`),
+      .gte('started_at', startOfDayUtcIso(daysAgo(3)))
+      .lt('started_at', startOfDayUtcIso(addDaysToKey(targetDate, 1))),
     // Sleep baselines for the SleepScore (duration + bedtime).
     admin
       .from('metric_baselines')
@@ -309,7 +309,8 @@ const SLEEP_TIER_LABEL_NL: Record<number, string> = {
  * Returns the same SleepScore (0-100) the user sees on the home card, so the
  * coach quotes one consistent number for "hoe heb ik geslapen?".
  */
-export async function getSleepScore(userId: string, _input: { date?: string }): Promise<string> {
+export async function getSleepScore(userId: string, input: { date?: string }): Promise<string> {
+  void input
   const data = await computeSleepScore(userId)
   if (data.score === null) {
     return 'Geen slaapdata beschikbaar. Sync Apple Health om een slaapscore te zien.'

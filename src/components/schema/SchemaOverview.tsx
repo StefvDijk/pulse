@@ -102,14 +102,14 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg bg-[#0A84FF] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                 >
                   {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                   Opslaan
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
                 >
                   <X size={12} />
                   Annuleren
@@ -118,7 +118,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
             ) : (
               <button
                 onClick={handleStartEdit}
-                className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
+                className="flex min-h-11 items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
               >
                 <Pencil size={12} />
                 Bewerken
@@ -126,7 +126,7 @@ export function SchemaOverview({ title, schemaType, schedule, onSave }: SchemaOv
             )}
             <Link
               href="/chat?context=schema"
-              className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
+              className="flex min-h-11 items-center gap-1.5 rounded-lg border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-white/[0.06]"
             >
               <MessageCircle size={12} />
               Wijzig via Coach

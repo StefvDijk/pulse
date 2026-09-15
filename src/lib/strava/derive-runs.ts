@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { loadCachedStravaActivities } from './cached-activities'
 import { pickBestRunMatch, runMatchWindow } from '@/lib/runs/match'
 
 // Derive `runs` rows from cached Strava activities. Idempotent: re-running this
@@ -23,7 +24,8 @@ type ValidRunType = 'easy' | 'tempo' | 'interval' | 'long' | 'race'
 /** Map a Strava sport_type/activity_type to a DB-valid run_type.
  *  workout_type is not stored in strava_activities, so we always default to 'easy'.
  */
-function toValidRunType(_sportType: string | null | undefined): ValidRunType {
+function toValidRunType(sportType: string | null | undefined): ValidRunType {
+  void sportType
   return 'easy'
 }
 
@@ -42,16 +44,7 @@ export async function deriveRunsFromStrava(
   userId: string,
   admin: AdminClient,
 ): Promise<DeriveResult> {
-  const { data: stravaRuns, error } = await admin
-    .from('strava_activities')
-    .select(
-      'strava_activity_id, name, activity_type, sport_type, start_date, distance_meters, moving_time_seconds, elapsed_time_seconds, total_elevation_gain_meters, average_heartrate, max_heartrate, calories',
-    )
-    .eq('user_id', userId)
-    .in('activity_type', STRAVA_RUN_TYPES as unknown as string[])
-    .order('start_date', { ascending: false })
-
-  if (error) throw new Error(`Failed to load strava_activities: ${error.message}`)
+  const stravaRuns = await loadCachedStravaActivities(userId, admin, STRAVA_RUN_TYPES)
   if (!stravaRuns || stravaRuns.length === 0) {
     return { scanned: 0, matched: 0, inserted: 0, failed: 0 }
   }
@@ -65,12 +58,18 @@ export async function deriveRunsFromStrava(
     const pace = paceSecondsPerKm(sa.distance_meters, duration)
 
     // 1. Already linked? Update in place (idempotent re-run).
-    const { data: byStrava } = await admin
+    const { data: byStrava, error: linkError } = await admin
       .from('runs')
       .select('id, source, apple_health_id')
       .eq('user_id', userId)
       .eq('strava_activity_id', sa.strava_activity_id)
       .maybeSingle()
+
+    if (linkError) {
+      console.error('[derive-runs] linked run lookup failed', linkError)
+      failed += 1
+      continue
+    }
 
     if (byStrava) {
       const { error: updErr } = await admin
@@ -89,6 +88,8 @@ export async function deriveRunsFromStrava(
         .eq('id', byStrava.id)
       if (updErr) {
         console.error('[derive-runs] byStrava update failed', updErr)
+        failed += 1
+        continue
       }
       matched += 1
       continue
@@ -96,13 +97,19 @@ export async function deriveRunsFromStrava(
 
     // 2. Try to find an unlinked HAE-imported run in the same time/size window.
     const { from, to } = runMatchWindow(sa.start_date)
-    const { data: candidates } = await admin
+    const { data: candidates, error: candidatesError } = await admin
       .from('runs')
       .select('id, started_at, distance_meters, duration_seconds, apple_health_id, strava_activity_id')
       .eq('user_id', userId)
       .gte('started_at', from)
       .lte('started_at', to)
       .is('strava_activity_id', null)
+
+    if (candidatesError) {
+      console.error('[derive-runs] candidate lookup failed', candidatesError)
+      failed += 1
+      continue
+    }
 
     const match = pickBestRunMatch(
       {
@@ -132,6 +139,8 @@ export async function deriveRunsFromStrava(
         .eq('id', (match as { id: string }).id)
       if (updErr) {
         console.error('[derive-runs] match update failed', updErr)
+        failed += 1
+        continue
       }
       matched += 1
       continue

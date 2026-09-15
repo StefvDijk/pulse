@@ -22,7 +22,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className={`bg-bg-elevated rounded-full p-1 h-10 flex relative ${className}`}
+      className={`bg-bg-elevated rounded-full p-1 min-h-11 flex relative ${className}`}
       role="tablist"
     >
       {options.map((opt) => {
@@ -32,10 +32,9 @@ export function SegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             role="tab"
-            aria-pressed={isActive}
             aria-selected={isActive}
             onClick={() => onChange(opt.value)}
-            className="relative flex-1 flex items-center justify-center z-10 focus:outline-none"
+            className="relative z-10 flex min-h-11 flex-1 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-page"
           >
             {/* Animated background pill for the active segment */}
             {isActive && (

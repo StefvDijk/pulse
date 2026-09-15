@@ -14,9 +14,9 @@ export function useReadinessSummary() {
   const { data, error, isLoading, mutate } = useSWR<ReadinessSummary>(
     '/api/readiness/summary',
     fetcher,
-    // Server caches for 4h; refresh hourly so a freshly-arrived sleep / HRV
-    // value can flow into the displayed sentence within a reasonable window.
-    { refreshInterval: 60 * 60 * 1000 },
+    // Match the dashboard's refresh cadence. The server checks fresh inputs on
+    // each request and only reuses AI text while those inputs are unchanged.
+    { refreshInterval: 60 * 1000 },
   )
 
   return { data, error: error as Error | undefined, isLoading, refresh: () => mutate() }

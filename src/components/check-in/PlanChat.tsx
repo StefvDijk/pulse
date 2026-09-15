@@ -93,7 +93,7 @@ export function PlanChat({
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center gap-2"
+        className="flex min-h-11 w-full items-center gap-2"
       >
         <MessageSquare size={14} className="text-text-tertiary" />
         <span className="text-subhead font-semibold text-text-primary">Pas aan met de coach</span>
@@ -142,7 +142,7 @@ export function PlanChat({
                   key={chip}
                   type="button"
                   onClick={() => send(chip)}
-                  className="rounded-full border border-bg-border bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-white/[0.08]"
+                  className="min-h-11 rounded-full border border-bg-border bg-white/[0.04] px-3 py-2 text-[11px] font-medium text-text-secondary hover:bg-white/[0.08]"
                 >
                   {chip}
                 </button>
@@ -153,6 +153,7 @@ export function PlanChat({
           {/* Input */}
           <div className="flex items-end gap-2 rounded-xl border border-bg-border bg-white/[0.04] p-2">
             <textarea
+              aria-label="Aanpassing voor het weekplan"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -172,6 +173,7 @@ export function PlanChat({
               onClick={() => send(draft)}
               disabled={busy || !draft.trim()}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
+              aria-label="Stuur aanpassing naar coach"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>

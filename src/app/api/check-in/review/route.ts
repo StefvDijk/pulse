@@ -5,6 +5,7 @@ import { decayStaleMemories } from '@/lib/ai/memory-decay'
 import type { Database, Json } from '@/types/database'
 import { addDaysToKey, dayKeyAmsterdam, todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 // ---------------------------------------------------------------------------
 // Row type aliases
@@ -18,8 +19,6 @@ type NutritionRow = Database['public']['Tables']['daily_nutrition_summary']['Row
 type SleepLogRow = Database['public']['Tables']['sleep_logs']['Row']
 type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row']
 type WeeklyReviewRow = Database['public']['Tables']['weekly_reviews']['Row']
-type UserSettingsRow = Database['public']['Tables']['user_settings']['Row']
-
 // ---------------------------------------------------------------------------
 // Gap detection types
 // ---------------------------------------------------------------------------
@@ -275,7 +274,7 @@ export async function GET(request: Request) {
     const admin = createAdminClient()
 
     // Fire-and-forget: age stale memories so the prompt context stays fresh
-    decayStaleMemories(user.id).catch((err) => console.error('memory decay failed (non-fatal):', err))
+    runAfterResponse('check-in memory decay', () => decayStaleMemories(user.id))
 
     // Determine week range
     const { searchParams } = new URL(request.url)

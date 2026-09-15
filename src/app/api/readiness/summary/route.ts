@@ -12,7 +12,7 @@ export const maxDuration = 20
 
 export interface ReadinessSummary {
   sentence: string
-  score: number
+  score: number | null
   level: ReadinessLevel
   breakdown: {
     sleep: number | null
@@ -38,6 +38,7 @@ export interface ReadinessSummary {
 
 interface CacheEntry {
   value: ReadinessSummary
+  inputs: string
   expiresAt: number
 }
 
@@ -81,6 +82,7 @@ function metricBreakdown(
 // ── Fallback sentence (no Claude call) ────────────────────────────────────────
 
 function fallbackSentence(level: ReadinessLevel, todayWorkout: string | null): string {
+  if (level === 'unknown') return 'Onvoldoende herstelgegevens voor een beoordeling — vul je check-in in; trainingsbelasting alleen zegt niet hoe hersteld je bent.'
   if (level === 'rest_day') return 'Geen workout gepland — geniet van je herstel of plan een easy run.'
   if (level === 'fatigued') {
     return todayWorkout
@@ -105,12 +107,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Cache hit → return immediately
+  // Only reuse generated text after checking the current persisted inputs.
+  // A time-only hit hid schema edits, check-ins and completed syncs for 4h.
   const key = cacheKey(user.id)
-  const hit = cache.get(key)
-  if (hit && hit.expiresAt > Date.now()) {
-    return NextResponse.json(hit.value)
-  }
 
   try {
     const admin = createAdminClient()
@@ -131,9 +130,11 @@ export async function GET() {
         .from('daily_activity')
         .select('date, hrv_average, resting_heart_rate')
         .eq('user_id', user.id)
-        .gte('date', twentyOneDaysAgoStr),
+        .gte('date', twentyOneDaysAgoStr)
+        .lte('date', toAmsterdamDate(now)),
     ])
 
+    if (biometricHistory.error) throw biometricHistory.error
     const biometricRows = biometricHistory.data ?? []
     const hrvDays = biometricRows.filter((r) => r.hrv_average !== null).length
     const biometricDays = biometricRows.filter(
@@ -146,6 +147,13 @@ export async function GET() {
       nightsRemaining: Math.max(0, COLD_START_THRESHOLD - biometricDays),
     }
 
+    const inputs = JSON.stringify({ readiness, coldStart })
+    for (const [entryKey, entry] of cache) {
+      if (entry.expiresAt <= Date.now()) cache.delete(entryKey)
+    }
+    const hit = cache.get(key)
+    if (hit?.inputs === inputs) return NextResponse.json(hit.value)
+
     const { level, score, todayWorkout, acwr, sleepMinutes, restingHR, hrv, recentSessions } =
       readiness
     const breakdown = metricBreakdown(sleepMinutes, hrv, restingHR)
@@ -153,7 +161,7 @@ export async function GET() {
     // Generate the sentence via Haiku — fall back to a pre-canned line if it fails
     let sentence: string
     try {
-      const text = await createJsonCompletion({
+      const text = score === null ? fallbackSentence(level, todayWorkout) : await createJsonCompletion({
         system: READINESS_SUMMARY_SYSTEM,
         userMessage: buildReadinessUserMessage({
           level,
@@ -186,7 +194,7 @@ export async function GET() {
       coldStart,
     }
 
-    cache.set(key, { value: summary, expiresAt: Date.now() + CACHE_TTL_MS })
+    cache.set(key, { value: summary, inputs, expiresAt: Date.now() + CACHE_TTL_MS })
 
     return NextResponse.json(summary)
   } catch (err) {

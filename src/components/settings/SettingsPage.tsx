@@ -225,8 +225,9 @@ export function SettingsPage() {
       {/* Profile form */}
       <FormSection title="Profiel">
         <div className="flex flex-col gap-4">
-          <Field label="Naam">
+          <Field label="Naam" htmlFor="settings-name">
             <input
+              id="settings-name"
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -234,8 +235,9 @@ export function SettingsPage() {
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Gewicht (kg)">
+            <Field label="Gewicht (kg)" htmlFor="settings-weight">
               <input
+                id="settings-weight"
                 type="number"
                 value={weightKg}
                 onChange={(e) => setWeightKg(e.target.value)}
@@ -246,8 +248,9 @@ export function SettingsPage() {
                 className={INPUT_CLASSES}
               />
             </Field>
-            <Field label="Lengte (cm)">
+            <Field label="Lengte (cm)" htmlFor="settings-height">
               <input
+                id="settings-height"
                 type="number"
                 value={heightCm}
                 onChange={(e) => setHeightCm(e.target.value)}
@@ -258,8 +261,9 @@ export function SettingsPage() {
               />
             </Field>
           </div>
-          <Field label="Voedingsvoorkeur">
+          <Field label="Voedingsvoorkeur" htmlFor="settings-diet">
             <select
+              id="settings-diet"
               value={dietaryPref}
               onChange={(e) => setDietaryPref(e.target.value)}
               className={INPUT_CLASSES}
@@ -278,9 +282,10 @@ export function SettingsPage() {
       {/* Connections form */}
       <FormSection title="Koppelingen">
         <div className="flex flex-col gap-4">
-          <Field label="Hevy API key">
+          <Field label="Hevy API key" htmlFor="settings-hevy-key">
             <div className="flex items-center gap-2">
               <input
+                id="settings-hevy-key"
                 type="password"
                 value={hevyKey}
                 onChange={(e) => setHevyKey(e.target.value)}
@@ -290,9 +295,10 @@ export function SettingsPage() {
               <StatusDot active={!!data?.settings.hevy_api_key} />
             </div>
           </Field>
-          <Field label="Health Auto Export token">
+          <Field label="Health Auto Export token" htmlFor="settings-health-token">
             <div className="flex items-center gap-2">
               <input
+                id="settings-health-token"
                 type="password"
                 value={healthToken}
                 onChange={(e) => setHealthToken(e.target.value)}
@@ -432,8 +438,9 @@ export function SettingsPage() {
       {/* Training goals */}
       <FormSection title="Trainingsdoelen">
         <div className="flex flex-col gap-4">
-          <Field label="Proteïne doel (g/kg lichaamsgewicht)">
+          <Field label="Proteïne doel (g/kg lichaamsgewicht)" htmlFor="settings-protein">
             <input
+              id="settings-protein"
               type="number"
               value={proteinPerKg}
               onChange={(e) => setProteinPerKg(e.target.value)}
@@ -447,8 +454,9 @@ export function SettingsPage() {
           <div>
             <p className="mb-2 text-xs font-medium text-text-tertiary">Wekelijkse sessies</p>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Gym">
+              <Field label="Gym" htmlFor="settings-gym-target">
                 <input
+                  id="settings-gym-target"
                   type="number"
                   value={gymTarget}
                   onChange={(e) => setGymTarget(e.target.value)}
@@ -457,8 +465,9 @@ export function SettingsPage() {
                   className={INPUT_CLASSES}
                 />
               </Field>
-              <Field label="Hardlopen">
+              <Field label="Hardlopen" htmlFor="settings-run-target">
                 <input
+                  id="settings-run-target"
                   type="number"
                   value={runTarget}
                   onChange={(e) => setRunTarget(e.target.value)}
@@ -467,8 +476,9 @@ export function SettingsPage() {
                   className={INPUT_CLASSES}
                 />
               </Field>
-              <Field label="Padel">
+              <Field label="Padel" htmlFor="settings-padel-target">
                 <input
+                  id="settings-padel-target"
                   type="number"
                   value={padelTarget}
                   onChange={(e) => setPadelTarget(e.target.value)}
@@ -488,8 +498,9 @@ export function SettingsPage() {
       {/* Account — password change */}
       <FormSection title="Wachtwoord wijzigen">
         <div className="flex flex-col gap-4">
-          <Field label="Nieuw wachtwoord">
+          <Field label="Nieuw wachtwoord" htmlFor="settings-new-password">
             <input
+              id="settings-new-password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -498,8 +509,9 @@ export function SettingsPage() {
               className={INPUT_CLASSES}
             />
           </Field>
-          <Field label="Bevestig nieuw wachtwoord">
+          <Field label="Bevestig nieuw wachtwoord" htmlFor="settings-confirm-password">
             <input
+              id="settings-confirm-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -546,4 +558,3 @@ export function SettingsPage() {
     </div>
   )
 }
-

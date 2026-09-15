@@ -21,7 +21,13 @@ const ExerciseSchema = z.object({
 })
 
 export const SchemaUpdateSchema = z.object({
-  action: z.enum(['replace_exercise', 'add_exercise', 'remove_exercise', 'modify_sets', 'swap_days']),
+  action: z.enum([
+    'replace_exercise',
+    'add_exercise',
+    'remove_exercise',
+    'modify_sets',
+    'swap_days',
+  ]),
   day: z.string().min(1),
   old_exercise: z.string().optional(),
   new_exercise: ExerciseSchema.optional(),
@@ -132,7 +138,37 @@ export async function applySchemaUpdate(
   admin: Admin,
   userId: string,
   update: SchemaUpdateData,
+  sourceChatTurnId?: string,
 ): Promise<ApplySchemaUpdateResult> {
+  // A previous attempt may have committed the mutation while the assistant
+  // message failed to persist. Check the turn ledger before recomputing the
+  // update against the already-mutated schedule; otherwise a legitimate retry
+  // can be misclassified as a no-op.
+  if (sourceChatTurnId) {
+    const { data: replayed, error: replayError } = await admin
+      .from('chat_writeback_operations')
+      .select('result')
+      .eq('user_id', userId)
+      .eq('turn_id', sourceChatTurnId)
+      .eq('kind', 'schema_update')
+      .maybeSingle()
+    if (replayError) {
+      console.error('[apply-schema-update] replay lookup failed:', replayError)
+      return {
+        applied: false,
+        description:
+          'Het controleren van de eerdere schema-aanpassing ging mis. Probeer het opnieuw.',
+      }
+    }
+    if (replayed) {
+      const result = replayed.result as { applied?: boolean; description?: string }
+      return {
+        applied: result.applied === true,
+        description: result.description ?? 'Eerdere schema-aanpassing opnieuw bevestigd.',
+      }
+    }
+  }
+
   const { data: schema } = await admin
     .from('training_schemas')
     .select('id, workout_schedule')
@@ -164,21 +200,55 @@ export async function applySchemaUpdate(
     }
   }
 
-  await admin
-    .from('training_schemas')
-    .update({ workout_schedule: updatedSchedule as unknown as Json })
-    .eq('id', schema.id)
-
   const description = formatSchemaUpdateDescription(update)
-  await admin.from('coaching_memory').upsert(
-    {
-      user_id: userId,
-      key: `ai_schema_update_${todayAmsterdam()}`,
-      category: 'program',
-      value: `Coach heeft het schema aangepast: ${description}`,
-    },
-    { onConflict: 'user_id,key' },
-  )
+  const updateResult = sourceChatTurnId
+    ? await admin.rpc('apply_chat_schema_update_once', {
+        p_user_id: userId,
+        p_turn_id: sourceChatTurnId,
+        p_schema_id: schema.id,
+        p_expected_schedule: schedule as unknown as Json,
+        p_updated_schedule: updatedSchedule as unknown as Json,
+        p_description: description,
+      })
+    : await admin
+        .from('training_schemas')
+        .update({ workout_schedule: updatedSchedule as unknown as Json })
+        .eq('id', schema.id)
+
+  // Never claim success on a failed write: without this check the coach told
+  // the user "aangepast" and logged it as fact in coaching_memory while the DB
+  // was unchanged. Report applied:false so the honest correction path kicks in.
+  if (updateResult.error) {
+    console.error('[apply-schema-update] schema update failed:', updateResult.error)
+    return {
+      applied: false,
+      description: 'Het aanpassen van het schema ging mis. Probeer het opnieuw.',
+    }
+  }
+
+  if (sourceChatTurnId) {
+    const rpcResult = updateResult.data as { applied?: boolean; description?: string } | null
+    if (!rpcResult?.applied) {
+      return { applied: false, description: rpcResult?.description ?? 'Schema niet aangepast.' }
+    }
+  }
+
+  // Chat updates persist memory in the same transaction as the schedule and
+  // replay ledger. Keep the legacy non-chat path explicit.
+  if (!sourceChatTurnId) {
+    const { error: memoryError } = await admin.from('coaching_memory').upsert(
+      {
+        user_id: userId,
+        key: `ai_schema_update_${todayAmsterdam()}`,
+        category: 'program',
+        value: `Coach heeft het schema aangepast: ${description}`,
+      },
+      { onConflict: 'user_id,key' },
+    )
+    if (memoryError) {
+      console.error('[apply-schema-update] coaching memory write failed:', memoryError)
+    }
+  }
 
   return { applied: true, description }
 }

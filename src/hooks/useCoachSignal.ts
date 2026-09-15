@@ -1,6 +1,7 @@
 'use client'
 
 import type { Database } from '@/types/database'
+import type { ReadinessLevel } from '@/types/readiness'
 import { useGoals } from './useGoals'
 import { useReadiness } from './useReadiness'
 import { useReadinessSummary } from './useReadinessSummary'
@@ -101,7 +102,7 @@ export interface CoachSignalInputs {
   readiness: {
     sleepMinutes: number | null
     acwr: number | null
-    level: 'good' | 'normal' | 'fatigued' | 'rest_day'
+    level: ReadinessLevel
   }
   summarySentence: string | undefined
   goals: GoalRow[]

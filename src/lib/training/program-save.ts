@@ -5,6 +5,7 @@ import { computeACWR, projectACWR, type PlannedSessionLoad } from './acwr'
 import { exerciseNamesFromSchedule, resolveExerciseMetadata } from './exercise-lookup'
 import { ProgramProposalV2Schema, type ProgramProposalV2, type ProgramSession } from './program-contract'
 import { auditProgramProposal, type ProgramAudit } from './program-quality'
+import { insertAndActivateTrainingSchema } from './activate-schema'
 
 type Admin = SupabaseClient<Database>
 
@@ -26,7 +27,38 @@ export interface SaveProgramSchemaParams {
   plannedWeeklyLoad: ProgramValidationResult['plannedWeeklyLoad']
   sourceBlockReviewId?: string | null
   generationContext?: string | null
-  isActive?: boolean
+  previousSchemaId?: string | null
+  previousEndDate?: string | null
+  sourceChatTurnId?: string | null
+}
+
+type TrainingSchemaInsert = Database['public']['Tables']['training_schemas']['Insert']
+
+export function buildProgramSchemaRow({
+  userId,
+  proposal,
+  audit,
+  plannedWeeklyLoad,
+  sourceBlockReviewId,
+  generationContext,
+  sourceChatTurnId,
+}: Omit<SaveProgramSchemaParams, 'admin' | 'previousSchemaId' | 'previousEndDate'>): TrainingSchemaInsert {
+  return {
+    user_id: userId,
+    title: proposal.title,
+    schema_type: proposal.schema_type,
+    weeks_planned: proposal.weeks_planned,
+    start_date: proposal.start_date,
+    workout_schedule: proposal.workout_schedule as unknown as Json,
+    progression_rules: proposal.progression as unknown as Json,
+    quality_audit: audit as unknown as Json,
+    planned_weekly_load: plannedWeeklyLoad as unknown as Json,
+    source_block_review_id: sourceBlockReviewId ?? null,
+    is_active: false,
+    ai_generated: true,
+    generation_context: generationContext ?? null,
+    source_chat_turn_id: sourceChatTurnId ?? null,
+  }
 }
 
 function normaliseSportType(focus: string): 'gym' | 'run' | 'padel' | 'rest' {
@@ -159,28 +191,22 @@ export async function insertProgramSchema({
   plannedWeeklyLoad,
   sourceBlockReviewId,
   generationContext,
-  isActive = false,
+  previousSchemaId,
+  previousEndDate,
+  sourceChatTurnId,
 }: SaveProgramSchemaParams): Promise<string> {
-  const { data, error } = await admin
-    .from('training_schemas')
-    .insert({
-      user_id: userId,
-      title: proposal.title,
-      schema_type: proposal.schema_type,
-      weeks_planned: proposal.weeks_planned,
-      start_date: proposal.start_date,
-      workout_schedule: proposal.workout_schedule as unknown as Json,
-      progression_rules: proposal.progression as unknown as Json,
-      quality_audit: audit as unknown as Json,
-      planned_weekly_load: plannedWeeklyLoad as unknown as Json,
-      source_block_review_id: sourceBlockReviewId ?? null,
-      is_active: isActive,
-      ai_generated: true,
-      generation_context: generationContext ?? null,
-    })
-    .select('id')
-    .single()
-
-  if (error || !data) throw error ?? new Error('training_schemas insert returned no row')
-  return data.id
+  return insertAndActivateTrainingSchema(admin, {
+    userId,
+    previousSchemaId,
+    previousEndDate,
+    schema: buildProgramSchemaRow({
+      userId,
+      proposal,
+      audit,
+      plannedWeeklyLoad,
+      sourceBlockReviewId,
+      generationContext,
+      sourceChatTurnId,
+    }) as unknown as Json,
+  })
 }

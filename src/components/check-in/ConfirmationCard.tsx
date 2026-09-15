@@ -275,7 +275,7 @@ export function ConfirmationCard({
               setStepFailures([])
               onConfirmed()
             }}
-            className="mt-3 text-xs font-medium text-[#0A84FF]"
+            className="mt-3 min-h-11 px-2 text-xs font-medium text-[#0A84FF]"
           >
             Toch doorgaan zonder opnieuw te proberen
           </button>

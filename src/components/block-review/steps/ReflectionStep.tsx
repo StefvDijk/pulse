@@ -120,7 +120,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
                   key={r}
                   type="button"
                   onClick={() => setTemplateRating(idx, { rating: r })}
-                  className={`px-3 py-1.5 rounded-full border text-[13px] ${
+                  className={`min-h-11 px-3 py-1.5 rounded-full border text-[13px] ${
                     t.rating === r ? 'border-text-primary text-text-primary' : 'border-bg-border text-text-secondary'
                   }`}
                 >
@@ -138,7 +138,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
                         key={option}
                         type="button"
                         onClick={() => setTemplateRating(idx, { [dim.key]: option } as Partial<TemplateRating>)}
-                        className={`rounded-full border px-2 py-1 text-[11px] ${
+                        className={`min-h-11 rounded-full border px-2 py-1 text-[11px] ${
                           t[dim.key] === option
                             ? 'border-text-primary text-text-primary'
                             : 'border-bg-border text-text-secondary'
@@ -163,7 +163,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
               value={t.note}
               onChange={(e) => setTemplateRating(idx, { note: e.target.value })}
               placeholder="Wat viel je op?"
-              className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary"
+              className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary placeholder:text-text-tertiary"
             />
           </div>
         ))}
@@ -187,7 +187,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
                       key={reason}
                       type="button"
                       onClick={() => setMissedReason(t.focus, reason)}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                      className={`min-h-11 rounded-full border px-2.5 py-1 text-[11px] ${
                         currentReason === reason
                           ? 'border-text-primary text-text-primary'
                           : 'border-bg-border text-text-tertiary'
@@ -219,7 +219,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
                         key={v}
                         type="button"
                         onClick={() => setExerciseVerdict(n, v)}
-                        className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                        className={`min-h-11 rounded-full border px-2.5 py-1 text-[11px] ${
                           verdict === v
                             ? v === 'drop'
                               ? 'border-status-danger text-status-danger'
@@ -241,7 +241,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
                             key={reason}
                             type="button"
                             onClick={() => setExerciseVerdictDetail(n, { reason })}
-                            className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                            className={`min-h-11 rounded-full border px-2.5 py-1 text-[11px] ${
                               ev?.reason === reason
                                 ? 'border-status-danger text-status-danger'
                                 : 'border-bg-border text-text-tertiary'
@@ -281,7 +281,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
             value={value.biggestWin}
             onChange={(e) => onChange({ ...value, biggestWin: e.target.value })}
             rows={2}
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary resize-none"
           />
         </label>
         <label className="flex flex-col gap-1.5">
@@ -290,7 +290,7 @@ export function ReflectionStep({ data, value, onChange, endReason, onEndReasonCh
             value={value.biggestMiss}
             onChange={(e) => onChange({ ...value, biggestMiss: e.target.value })}
             rows={2}
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary resize-none"
           />
         </label>
       </section>

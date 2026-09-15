@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { loadCachedStravaActivities } from './cached-activities'
 import {
   isDerivableActivity,
   stravaActivitySportKey,
@@ -17,24 +18,19 @@ interface DeriveResult {
   scanned: number
   inserted: number
   matched: number
+  failed: number
 }
 
 export async function deriveActivitiesFromStrava(
   userId: string,
   admin: AdminClient,
 ): Promise<DeriveResult> {
-  const { data, error } = await admin
-    .from('strava_activities')
-    .select(
-      'strava_activity_id, name, activity_type, sport_type, start_date, distance_meters, moving_time_seconds, elapsed_time_seconds, total_elevation_gain_meters, average_heartrate, max_heartrate, calories',
-    )
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false })
-  if (error) throw new Error(`Failed to load strava_activities: ${error.message}`)
+  const data = await loadCachedStravaActivities(userId, admin)
 
   const derivable = (data ?? []).filter(isDerivableActivity)
   let inserted = 0
   let matched = 0
+  let failed = 0
 
   for (const sa of derivable) {
     const duration = sa.moving_time_seconds ?? sa.elapsed_time_seconds ?? null
@@ -60,17 +56,24 @@ export async function deriveActivitiesFromStrava(
       intensity: null,
     }
 
-    const { data: existing } = await admin
+    const { data: existing, error: lookupError } = await admin
       .from('activities')
       .select('id')
       .eq('user_id', userId)
       .eq('strava_activity_id', sa.strava_activity_id)
       .maybeSingle()
 
+    if (lookupError) {
+      console.error('[derive-activities] activity lookup failed', lookupError)
+      failed += 1
+      continue
+    }
+
     if (existing) {
       const { error: updErr } = await admin.from('activities').update(row).eq('id', existing.id)
       if (updErr) {
         console.error('[derive-activities] update failed', updErr)
+        failed += 1
         continue
       }
       matched += 1
@@ -78,11 +81,12 @@ export async function deriveActivitiesFromStrava(
       const { error: insErr } = await admin.from('activities').insert(row)
       if (insErr) {
         console.error('[derive-activities] insert failed', insErr)
+        failed += 1
         continue
       }
       inserted += 1
     }
   }
 
-  return { scanned: derivable.length, inserted, matched }
+  return { scanned: derivable.length, inserted, matched, failed }
 }

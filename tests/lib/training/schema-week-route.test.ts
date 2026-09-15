@@ -15,6 +15,7 @@ const { query, schema, storage } = vi.hoisted(() => ({
     scheduled_overrides: {} as Record<string, unknown>,
   },
 }))
+vi.mock('@/lib/runtime/after-response', () => ({runAfterResponse:vi.fn()}))
 vi.mock('@/lib/supabase/server', () => ({createClient: async () => ({auth:{getUser: async () => ({data:{user:{id:'user-1'}}})}})}))
 vi.mock('@/lib/supabase/admin', () => ({createAdminClient: () => ({from: query})}))
 

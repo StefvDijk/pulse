@@ -1,4 +1,5 @@
 import 'server-only'
+import { z } from 'zod'
 import { getValidTokens, type StoredStravaTokens } from './oauth'
 
 // Subset of fields we care about from the Strava activity payload.
@@ -39,6 +40,39 @@ export interface StravaDetailedActivity extends StravaSummaryActivity {
 }
 
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3'
+
+const optionalMetric = z.number().nonnegative().nullish().transform(value => value ?? undefined)
+const coordinates = z.union([
+  z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]),
+  z.tuple([]).transform(() => null),
+]).nullable().optional()
+const summaryActivitySchema = z.object({
+  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  athlete: z.object({ id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) }).passthrough(),
+  name: z.string(),
+  type: z.string().min(1),
+  sport_type: z.string().optional(),
+  start_date: z.string().datetime({ offset: true }),
+  start_date_local: z.string().optional(),
+  timezone: z.string().optional(),
+  distance: optionalMetric,
+  moving_time: optionalMetric,
+  elapsed_time: optionalMetric,
+  total_elevation_gain: optionalMetric,
+  average_speed: optionalMetric,
+  max_speed: optionalMetric,
+  average_heartrate: optionalMetric,
+  max_heartrate: optionalMetric,
+  average_cadence: optionalMetric,
+  calories: optionalMetric,
+  start_latlng: coordinates,
+  end_latlng: coordinates,
+  map: z.object({
+    id: z.string().optional(),
+    summary_polyline: z.string().nullable().optional(),
+    polyline: z.string().nullable().optional(),
+  }).passthrough().nullish().transform(value => value ?? undefined),
+}).passthrough()
 
 async function authHeader(userId: string): Promise<{ headers: Record<string, string>; tokens: StoredStravaTokens }> {
   const tokens = await getValidTokens(userId)
@@ -87,7 +121,7 @@ export async function listActivities(
     const text = await res.text().catch(() => '')
     throw new Error(`Strava listActivities failed: ${res.status} ${text}`)
   }
-  const body = (await res.json()) as StravaSummaryActivity[]
+  const body = z.array(summaryActivitySchema).parse(await res.json())
   console.log('[strava api] returned', body.length, 'activities')
   return body
 }

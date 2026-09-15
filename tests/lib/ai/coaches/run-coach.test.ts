@@ -28,7 +28,8 @@ describe('buildCoachRequest (manager)', () => {
 
     expect(Object.keys(params.tools ?? {}).sort()).toEqual(allNames)
     expect(params.system.length).toBeGreaterThan(0)
-    expect(params.systemDynamic).toContain('<<THIN_CONTEXT_MARKER>>')
+    expect(params.systemDynamic).toContain('&lt;&lt;THIN_CONTEXT_MARKER&gt;&gt;')
+    expect(params.systemDynamic).toContain('<user_data source="runtime_context">')
     expect(params.model).toBeUndefined() // default (Sonnet) for normal questions
     expect(params.meta.feature).toBe('chat')
   })

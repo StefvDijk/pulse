@@ -1,3 +1,5 @@
+import type { ReadinessLevel } from '@/types/readiness'
+
 // Prompt for generating a single Dutch sentence that summarizes today's
 // readiness for Stef. Used by /api/readiness/summary, called via Haiku for
 // low cost since this runs once per session per few hours.
@@ -23,7 +25,7 @@ Voorbeelden van toon:
 Geef UITSLUITEND de zin terug, geen labels, geen aanhalingstekens, geen extra tekst.`
 
 interface PromptInput {
-  level: 'good' | 'normal' | 'fatigued' | 'rest_day'
+  level: ReadinessLevel
   todayWorkout: string | null
   acwr: number | null
   sleepMinutes: number | null

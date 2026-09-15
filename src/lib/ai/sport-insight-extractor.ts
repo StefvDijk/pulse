@@ -3,6 +3,7 @@ import { generateText } from 'ai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const COACHING_MEMORY_KEY = 'sport_pattern_hardest_combo'
 
@@ -91,7 +92,9 @@ function isValidInsight(value: unknown): value is InsightOutput {
  */
 export async function extractSportInsight(
   userId: string,
+  options: { strict?: boolean } = {},
 ): Promise<{ written: boolean }> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
     const today = new Date().toISOString().slice(0, 10)
@@ -107,6 +110,7 @@ export async function extractSportInsight(
 
     if (error) {
       console.error(`[sport-insight] Failed to load aggregations for user=${userId}:`, error)
+      if (options.strict) throw error
       return { written: false }
     }
 
@@ -125,13 +129,15 @@ export async function extractSportInsight(
     const tableText = formatDataTable(rows)
 
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: SYSTEM_PROMPT,
       prompt: `28 dagen data:\n\n${tableText}`,
       temperature: 0.3,
+      maxOutputTokens: 512,
     })
-    logAiUsage({
+    await logAiUsage({
       userId,
       feature: 'sport_insight',
       model: MEMORY_MODEL,
@@ -140,11 +146,14 @@ export async function extractSportInsight(
         outputTokens: usage.outputTokens ?? null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
+    reservation = null
 
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) {
       console.warn(`[sport-insight] No JSON object in response for user=${userId}`)
+      if (options.strict) throw new Error('Sport insight response did not contain a JSON object')
       return { written: false }
     }
 
@@ -153,18 +162,23 @@ export async function extractSportInsight(
       parsed = JSON.parse(match[0])
     } catch (err) {
       console.warn(`[sport-insight] JSON parse failed for user=${userId}:`, err)
+      if (options.strict) throw new Error('Sport insight response contained invalid JSON', { cause: err })
       return { written: false }
     }
 
-    if (!isValidInsight(parsed)) return { written: false }
+    if (!isValidInsight(parsed)) {
+      if (options.strict) throw new Error('Sport insight response failed runtime validation')
+      return { written: false }
+    }
 
     if (!parsed.hasInsight || !parsed.text) {
       // Optional cleanup: remove stale insight when no new pattern this week
-      await admin
+      const { error: deleteError } = await admin
         .from('coaching_memory')
         .delete()
         .eq('user_id', userId)
         .eq('key', COACHING_MEMORY_KEY)
+      if (deleteError) throw deleteError
       return { written: false }
     }
 
@@ -182,12 +196,24 @@ export async function extractSportInsight(
 
     if (upsertError) {
       console.error(`[sport-insight] Upsert failed for user=${userId}:`, upsertError)
+      if (options.strict) throw upsertError
       return { written: false }
     }
 
     return { written: true }
   } catch (error) {
+    if (reservation) {
+      await logAiUsage({
+        userId,
+        feature: 'sport_insight',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (error as { name?: string })?.name ?? 'EXTRACTOR_ERROR',
+        reservation,
+      })
+    }
     console.error(`[sport-insight] Unexpected error for user=${userId}:`, error)
+    if (options.strict) throw error
     return { written: false }
   }
 }

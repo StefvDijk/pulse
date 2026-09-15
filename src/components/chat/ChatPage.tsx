@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { SquarePen } from 'lucide-react'
+import { useState, useCallback, type CSSProperties } from 'react'
+import { SquarePen, Clock } from 'lucide-react'
 import { ChatInterface } from './ChatInterface'
+import { ChatHistoryPanel } from './ChatHistoryPanel'
 import { CoachOrb } from '@/components/shared/CoachOrb'
 import { getCoachConfig } from '@/lib/ai/coaches/registry'
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
 
 interface ChatPageProps {
   initialMessage?: string
@@ -13,17 +15,30 @@ interface ChatPageProps {
 
 export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
   const [sessionKey, setSessionKey] = useState(0)
+  const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
   const [isChatLoading, setIsChatLoading] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const viewportHeight = useVisualViewportHeight()
 
   const handleNewChat = useCallback(() => {
+    setActiveSessionId(undefined)
     setSessionKey((k) => k + 1)
   }, [])
 
+  const handleSelectSession = useCallback((id: string) => {
+    setActiveSessionId(id)
+    setSessionKey((k) => k + 1)
+  }, [])
+
+  const handleCloseHistory = useCallback(() => setHistoryOpen(false), [])
+
   return (
-    <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col lg:h-screen">
-      {/* Header — NavBar with CoachOrb leading slot */}
-      {/* Coach header — custom wrapper keeps the purple-tint gradient while
-          using NavBar's glass-nav backdrop and sticky positioning */}
+    <div
+      className="flex h-[calc(var(--chat-viewport-height,100dvh)-var(--nav-height))] flex-col lg:h-screen"
+      style={{
+        '--chat-viewport-height': viewportHeight ? `${viewportHeight}px` : '100dvh',
+      } as CSSProperties}
+    >
       <header
         className="sticky top-0 z-30 glass-nav border-b-[0.5px] border-bg-border pt-safe pl-safe pr-safe"
         style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.14) 0%, var(--color-bg-glass-nav) 100%)' }}
@@ -43,7 +58,14 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
               Beschikbaar · kent al je data
             </div>
           </div>
-          {/* Trailing: new chat icon button (≥44px tap target) */}
+          <button
+            type="button"
+            aria-label="Gesprekshistorie"
+            onClick={() => setHistoryOpen(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-text-secondary transition-all duration-150 hover:text-text-primary active:scale-95"
+          >
+            <Clock size={20} strokeWidth={1.75} />
+          </button>
           <button
             type="button"
             aria-label="Nieuwe chat"
@@ -59,11 +81,19 @@ export function ChatPage({ initialMessage, seededAssistant }: ChatPageProps) {
       <div className="min-h-0 flex-1">
         <ChatInterface
           key={sessionKey}
+          sessionId={activeSessionId}
           initialMessage={initialMessage}
           seededAssistant={seededAssistant}
           onLoadingChange={setIsChatLoading}
         />
       </div>
+
+      <ChatHistoryPanel
+        open={historyOpen}
+        onClose={handleCloseHistory}
+        onSelect={handleSelectSession}
+        onNewChat={handleNewChat}
+      />
     </div>
   )
 }

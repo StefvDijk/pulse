@@ -1,16 +1,49 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ChatSuggestions } from './ChatSuggestions'
+import { TimeSeparator } from './TimeSeparator'
 import { SkeletonCard, SkeletonLine } from '@/components/shared/Skeleton'
 import type { LiveCoachId } from '@/lib/ai/coaches/registry'
+import { parseCardEvent } from '@/lib/ai/chat/cards'
+import type { AnyCard } from '@/lib/ai/chat/cards'
+import { createSseDataParser } from '@/lib/ai/chat/sse'
+import { dayKeyAmsterdam, todayAmsterdam, diffDayKeys } from '@/lib/time/amsterdam'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  created_at?: string | null
+  cards?: AnyCard[]
+}
+
+export function prepareMessagesForChatAttempt(
+  messages: Message[],
+  message: string,
+  turnId: string,
+  retry: boolean,
+  createdAt = new Date().toISOString(),
+): Message[] {
+  if (retry) {
+    return messages.filter(
+      (item) => item.id !== `assistant-${turnId}` && item.id !== `error-${turnId}`,
+    )
+  }
+  return [
+    ...messages,
+    { id: `user-${turnId}`, role: 'user', content: message, created_at: createdAt },
+  ]
+}
+
+export function seedAssistantForTurn(
+  seededAssistant: string | undefined,
+  seedTurnId: string | null,
+  turnId: string,
+) {
+  return seedTurnId === turnId ? seededAssistant : undefined
 }
 
 interface ChatHistoryResponse {
@@ -20,6 +53,7 @@ interface ChatHistoryResponse {
     role: string
     content: string
     created_at: string | null
+    cards?: unknown
   }>
 }
 
@@ -44,6 +78,17 @@ export interface ChatInterfaceProps {
 
 const NEAR_BOTTOM_PX = 120
 
+export function messageDateLabel(iso: string): string {
+  const diff = diffDayKeys(dayKeyAmsterdam(iso), todayAmsterdam())
+  if (diff === 0) return 'Vandaag'
+  if (diff === 1) return 'Gisteren'
+  return new Intl.DateTimeFormat('nl-NL', {
+    timeZone: 'Europe/Amsterdam',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(iso))
+}
+
 export function ChatInterface({
   sessionId: initialSessionId,
   compact = false,
@@ -54,14 +99,23 @@ export function ChatInterface({
   suggestions,
   emptyState,
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const startsFresh = !initialSessionId
+  const seededFreshMessage = startsFresh && seededAssistant
+  const [messages, setMessages] = useState<Message[]>(() =>
+    seededFreshMessage
+      ? [{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }]
+      : [],
+  )
   const [streamingContent, setStreamingContent] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | undefined>(initialSessionId)
-  const [showSuggestions, setShowSuggestions] = useState(true)
-  const [isInitializing, setIsInitializing] = useState(true)
-  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(!seededFreshMessage)
+  const [isInitializing, setIsInitializing] = useState(!startsFresh)
+  const [lastFailedRequest, setLastFailedRequest] = useState<{
+    message: string
+    turnId: string
+  } | null>(null)
   // When there is no initialSessionId the user started a fresh chat — skip the
   // history fetch until the first send returns a real session_id via header.
   const [isFreshSession, setIsFreshSession] = useState(!initialSessionId)
@@ -76,6 +130,7 @@ export function ChatInterface({
   // down to match upstream rate when the buffer is empty. This eliminates
   // the visible "stutter" between bursts of 20+ tokens followed by a pause.
   const targetRef = useRef('')
+  const seedTurnIdRef = useRef<string | null>(null)
   const renderedRef = useRef('')
   const streamDoneRef = useRef(false)
   const smoothRafRef = useRef<number | null>(null)
@@ -93,12 +148,6 @@ export function ChatInterface({
   // effect re-runs to load the new session's history (which is fine at that point).
   useEffect(() => {
     if (isFreshSession) {
-      // Show empty state immediately; seed assistant nudge if provided.
-      if (seededAssistant) {
-        setMessages([{ id: 'seed-assistant', role: 'assistant', content: seededAssistant }])
-        setShowSuggestions(false)
-      }
-      setIsInitializing(false)
       return
     }
 
@@ -110,11 +159,21 @@ export function ChatInterface({
       .then((r) => r.json() as Promise<ChatHistoryResponse>)
       .then((data) => {
         if (data.session_id) setSessionId(data.session_id)
-        const loaded = (data.messages ?? []).map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        }))
+        const loaded: Message[] = (data.messages ?? []).map((m): Message => {
+          const cards = Array.isArray(m.cards)
+            ? m.cards.flatMap((card) => {
+                const parsed = parseCardEvent({ __card: card })
+                return parsed ? [parsed] : []
+              })
+            : []
+          return {
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            created_at: m.created_at,
+            cards: cards.length > 0 ? cards : undefined,
+          }
+        })
         // Seed a fresh thread with the coach nudge as the first AI message.
         // Skipped when history already exists so we don't duplicate after reload.
         if (loaded.length === 0 && seededAssistant) {
@@ -122,6 +181,7 @@ export function ChatInterface({
             id: 'seed-assistant',
             role: 'assistant',
             content: seededAssistant,
+            created_at: new Date().toISOString(),
           })
         }
         setMessages(loaded)
@@ -148,8 +208,7 @@ export function ChatInterface({
     const container = scrollContainerRef.current
     if (!container) return
 
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
     if (distanceFromBottom > NEAR_BOTTOM_PX) return
 
     if (rafRef.current !== null) return // already scheduled this frame
@@ -202,19 +261,26 @@ export function ChatInterface({
   }, [])
 
   const handleSend = useCallback(
-    async (message: string) => {
+    async (message: string, retryTurnId?: string) => {
       if (isLoading) return
 
       setShowSuggestions(false)
       setIsLoading(true)
-      setLastFailedMessage(null)
+      setLastFailedRequest(null)
+      const turnId = retryTurnId ?? crypto.randomUUID()
 
-      const userMsg: Message = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: message,
+      if (!retryTurnId && !sessionId && seededAssistant && !seedTurnIdRef.current) {
+        seedTurnIdRef.current = turnId
       }
-      setMessages((prev) => [...prev, userMsg])
+
+      if (retryTurnId) {
+        // Replace the failed attempt in place: keep the original user bubble,
+        // remove its partial assistant/error bubbles, and let the durable turn
+        // replay produce one final assistant response.
+        setMessages((prev) => prepareMessagesForChatAttempt(prev, message, turnId, true))
+      } else {
+        setMessages((prev) => prepareMessagesForChatAttempt(prev, message, turnId, false))
+      }
       setStreamingContent('')
       setIsThinking(false)
       targetRef.current = ''
@@ -225,7 +291,11 @@ export function ChatInterface({
       try {
         // Seed is only relevant on the first turn of a fresh seeded thread.
         // After the server persists it the session has it in history naturally.
-        const seedForRequest = !sessionId && seededAssistant ? seededAssistant : undefined
+        const seedForRequest = seedAssistantForTurn(
+          seededAssistant,
+          seedTurnIdRef.current,
+          turnId,
+        )
 
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -234,10 +304,27 @@ export function ChatInterface({
             message,
             session_id: sessionId,
             coach_id: coachId,
+            turn_id: turnId,
             ...(seedForRequest ? { seed_assistant: seedForRequest } : {}),
           }),
         })
 
+        if (res.status === 409) {
+          const conflict = (await res.json().catch(() => null)) as { code?: string } | null
+          if (conflict?.code === 'TURN_IN_PROGRESS') {
+            const retryAfter = Math.max(1, Number(res.headers.get('Retry-After')) || 1)
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `error-${turnId}`,
+                role: 'assistant',
+                content: `Deze poging wordt nog afgerond. Wacht ongeveer ${retryAfter} seconden en probeer opnieuw.`,
+              },
+            ])
+            setLastFailedRequest({ message, turnId })
+            return
+          }
+        }
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`)
         }
@@ -255,24 +342,22 @@ export function ChatInterface({
         }
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
+        const sseParser = createSseDataParser()
         let accumulated = ''
         let errorEvent: { code: string; message: string } | null = null
+        const pendingCards: AnyCard[] = []
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
           const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const payload = line.slice(6)
+          for (const payload of sseParser.feed(chunk)) {
             if (payload === '[DONE]') break
             try {
               const parsed: unknown = JSON.parse(payload)
               if (typeof parsed === 'string') {
-                if (isThinking) setIsThinking(false)
+                setIsThinking(false)
                 accumulated += parsed
                 targetRef.current = accumulated
                 startSmoothReveal()
@@ -294,6 +379,9 @@ export function ChatInterface({
                   code: e.code ?? 'AI_GENERIC_ERROR',
                   message: e.message ?? 'Er ging iets mis bij het genereren van het antwoord.',
                 }
+              } else if (parsed && typeof parsed === 'object' && '__card' in parsed) {
+                const card = parseCardEvent(parsed)
+                if (card) pendingCards.push(card)
               }
             } catch {
               // skip malformed
@@ -314,9 +402,11 @@ export function ChatInterface({
         // Persist any partial response we did get before the error.
         if (accumulated) {
           const assistantMsg: Message = {
-            id: `assistant-${Date.now()}`,
+            id: `assistant-${turnId}`,
             role: 'assistant',
             content: accumulated,
+            created_at: new Date().toISOString(),
+            cards: pendingCards.length > 0 ? [...pendingCards] : undefined,
           }
           setMessages((prev) => [...prev, assistantMsg])
         }
@@ -327,24 +417,24 @@ export function ChatInterface({
           setMessages((prev) => [
             ...prev,
             {
-              id: `error-${Date.now()}`,
+              id: `error-${turnId}`,
               role: 'assistant',
               content: errorEvent.message,
             },
           ])
-          setLastFailedMessage(message)
+          setLastFailedRequest({ message, turnId })
         }
       } catch (err) {
         console.error('Chat send error:', err)
         setMessages((prev) => [
           ...prev,
           {
-            id: `error-${Date.now()}`,
+            id: `error-${turnId}`,
             role: 'assistant',
             content: 'Er is iets misgegaan. Tik op "Opnieuw" of stel je vraag opnieuw.',
           },
         ])
-        setLastFailedMessage(message)
+        setLastFailedRequest({ message, turnId })
       } finally {
         setStreamingContent('')
         setIsThinking(false)
@@ -363,12 +453,8 @@ export function ChatInterface({
 
   // Auto-send initialMessage once history has loaded and there are no existing messages
   useEffect(() => {
-    if (
-      !initialMessage ||
-      isInitializing ||
-      initialMessageSentRef.current ||
-      messages.length > 0
-    ) return
+    if (!initialMessage || isInitializing || initialMessageSentRef.current || messages.length > 0)
+      return
     initialMessageSentRef.current = true
     handleSend(initialMessage)
   }, [initialMessage, isInitializing, messages.length, handleSend])
@@ -390,6 +476,10 @@ export function ChatInterface({
       {/* Message list */}
       <div
         ref={scrollContainerRef}
+        role="log"
+        aria-live="polite"
+        aria-atomic="false"
+        aria-label="Gesprek"
         className={`flex-1 space-y-3 overflow-y-auto ${compact ? 'p-3' : 'p-4'}`}
       >
         {messages.length === 0 && !isLoading && (
@@ -400,43 +490,57 @@ export function ChatInterface({
           </div>
         )}
 
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
-        ))}
+        {messages.map((msg, i) => {
+          const prev = i > 0 ? messages[i - 1] : null
+          const showSeparator =
+            msg.created_at != null &&
+            (prev?.created_at == null ||
+              dayKeyAmsterdam(msg.created_at) !== dayKeyAmsterdam(prev.created_at))
+          return (
+            <Fragment key={msg.id}>
+              {showSeparator && <TimeSeparator dateLabel={messageDateLabel(msg.created_at!)} />}
+              <ChatMessage
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.created_at}
+                cards={msg.cards}
+              />
+            </Fragment>
+          )
+        })}
 
         {/* Streaming message — show empty bubble with typing indicator
             the instant the server flushes its __thinking event, even
             before the first token arrives. */}
         {(streamingContent || isThinking) && (
-          <ChatMessage
-            role="assistant"
-            content={streamingContent}
-            isStreaming
-          />
+          <ChatMessage role="assistant" content={streamingContent} isStreaming />
         )}
 
         <div ref={bottomRef} />
       </div>
 
       {/* Glass input bar — sticky bottom, safe-area aware */}
-      <div className={`glass-nav border-t-0 border-b-0 ${compact ? 'px-2 pt-2 pb-safe-12' : 'px-4 pt-3 pb-safe-16'}`}
+      <div
+        className={`glass-nav border-t-0 border-b-0 ${compact ? 'pb-safe-12 px-2 pt-2' : 'pb-safe-16 px-4 pt-3'}`}
         style={{ borderTop: '0.5px solid var(--color-bg-border-strong)' }}
       >
-        {lastFailedMessage && !isLoading && (
+        {lastFailedRequest && !isLoading && (
           <div className="flex justify-center pb-2">
             <button
               onClick={() => {
-                // Remove the error message and retry
-                setMessages((prev) => prev.filter((m) => !m.id.startsWith('error-')))
-                handleSend(lastFailedMessage)
+                handleSend(lastFailedRequest.message, lastFailedRequest.turnId)
               }}
-              className="rounded-full bg-white/[0.08] border-[0.5px] border-white/[0.14] px-4 py-1.5 text-caption1 font-medium text-text-secondary transition-all duration-150 active:scale-95"
+              className="text-caption1 text-text-secondary min-h-11 rounded-full border-[0.5px] border-white/[0.14] bg-white/[0.08] px-4 py-1.5 font-medium transition-all duration-150 active:scale-95"
             >
               Opnieuw proberen
             </button>
           </div>
         )}
-        <ChatSuggestions onSelect={handleSend} visible={showSuggestions} suggestions={suggestions} />
+        <ChatSuggestions
+          onSelect={handleSend}
+          visible={showSuggestions}
+          suggestions={suggestions}
+        />
         <ChatInput onSend={handleSend} isLoading={isLoading} />
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { StepShell } from '../StepShell'
 import { RichText } from '@/components/shared/RichText'
 import { stripStructuredTags, parseProposalFromStream, isValidProposal } from '../parse-utils'
@@ -42,18 +42,8 @@ export function NextBlockStep({
   const [error, setError] = useState<string | null>(null)
   const [proposalRecovery, setProposalRecovery] = useState<string | null>(null)
 
-  const baselineLenRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (baselineLenRef.current === null) {
-      baselineLenRef.current = form.conversation.length
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const recentRefinements =
-    baselineLenRef.current !== null
-      ? form.conversation.slice(baselineLenRef.current)
-      : []
+  const [baselineLength] = useState(() => form.conversation.length)
+  const recentRefinements = form.conversation.slice(baselineLength)
 
   function blockerMessages(audit: ProgramAudit | null | undefined) {
     return audit?.items.filter((i) => i.severity === 'blocker').map((i) => i.message) ?? []
@@ -322,7 +312,7 @@ export function NextBlockStep({
               type="button"
               onClick={regenerateFullProposal}
               disabled={busy}
-              className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+              className="min-h-11 self-start rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
             >
               Genereer volledig voorstel
             </button>
@@ -400,7 +390,7 @@ export function NextBlockStep({
                 type="button"
                 onClick={repairFromAudit}
                 disabled={busy}
-                className="self-start rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+                className="min-h-11 self-start rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
               >
                 Laat coach herstellen
               </button>
@@ -479,7 +469,7 @@ export function NextBlockStep({
                     type="button"
                     onClick={regenerateFullProposal}
                     disabled={busy}
-                    className="rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-black disabled:opacity-40"
+                    className="min-h-11 rounded-full bg-white px-3 py-2 text-[12px] font-semibold text-black disabled:opacity-40"
                   >
                     Genereer volledig voorstel
                   </button>
@@ -489,7 +479,7 @@ export function NextBlockStep({
                     type="button"
                     onClick={repairFromAudit}
                     disabled={busy}
-                    className="rounded-full border border-bg-border px-3 py-1.5 text-[12px] text-text-primary disabled:opacity-40"
+                    className="min-h-11 rounded-full border border-bg-border px-3 py-2 text-[12px] text-text-primary disabled:opacity-40"
                   >
                     Laat coach herstellen
                   </button>
@@ -503,14 +493,14 @@ export function NextBlockStep({
             onChange={(e) => setInput(e.target.value)}
             rows={2}
             placeholder="Bijv. 'Vervang Lat Pulldown met Pull-ups' of 'minder volume op donderdag'..."
-            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[13px] text-text-primary placeholder:text-text-tertiary resize-none"
+            className="px-3 py-2 bg-bg-base border border-bg-border rounded-md text-[16px] text-text-primary placeholder:text-text-tertiary resize-none"
             disabled={busy}
           />
           <button
             type="button"
             onClick={sendRefinement}
             disabled={!input.trim() || busy}
-            className="h-10 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
+            className="h-11 rounded-full text-[13px] font-semibold text-black bg-white disabled:opacity-30"
           >
             {busy ? 'Coach denkt na...' : 'Verstuur'}
           </button>

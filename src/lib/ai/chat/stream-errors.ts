@@ -5,14 +5,36 @@
  */
 export interface StreamErrorEvent {
   __error: true
-  code: 'AI_AUTH_ERROR' | 'AI_RATE_LIMIT' | 'AI_TIMEOUT' | 'AI_GENERIC_ERROR'
+  code:
+    | 'AI_AUTH_ERROR'
+    | 'AI_RATE_LIMIT'
+    | 'AI_TIMEOUT'
+    | 'AI_CREDIT_ERROR'
+    | 'AI_GENERIC_ERROR'
   message: string
 }
 
 export function classifyStreamError(err: unknown): StreamErrorEvent {
-  const e = err as { name?: string; statusCode?: number; message?: string }
+  const e = err as {
+    name?: string
+    statusCode?: number
+    message?: string
+    responseBody?: string
+  }
 
   if (e?.name === 'AI_APICallError') {
+    const lowerMsg =
+      (e.message ?? '').toLowerCase() + ' ' + (e.responseBody ?? '').toLowerCase()
+
+    if (lowerMsg.includes('credit balance') || lowerMsg.includes('billing')) {
+      return {
+        __error: true,
+        code: 'AI_CREDIT_ERROR',
+        message:
+          'De AI-coach kan tijdelijk niet bereikt worden — Anthropic credits zijn op. ' +
+        'Voeg credits toe via console.anthropic.com en probeer opnieuw.',
+      }
+    }
     if (e.statusCode === 401 || e.statusCode === 403) {
       return {
         __error: true,

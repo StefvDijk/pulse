@@ -1,10 +1,12 @@
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
+import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
 import { recomputeBelief, type EvidenceItem } from '@/lib/ai/belief-update'
 import type { Json } from '@/types/database'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,17 +20,32 @@ export interface RunBeliefExtractorInput {
   eventSummary: string
 }
 
-interface ExtractorAction {
-  action: 'create' | 'evidence'
-  hypothesis_text?: string
-  category?: BeliefScope
-  target_id?: string
-  evidence: {
-    kind: 'for' | 'against'
-    observation: string
-    source: string
-  }
+interface RunBeliefExtractorOptions {
+  /** Re-throw failures so batch/cron callers can report honest run status. */
+  strict?: boolean
 }
+
+const EvidenceSchema = z.object({
+  kind: z.enum(['for', 'against']),
+  observation: z.string().trim().min(1).max(1000),
+  source: z.string().trim().min(1).max(100),
+})
+
+const ExtractorActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('create'),
+    hypothesis_text: z.string().trim().min(1).max(1000),
+    category: z.enum(['training', 'nutrition', 'recovery', 'lifestyle', 'preference']),
+    evidence: EvidenceSchema,
+  }),
+  z.object({
+    action: z.literal('evidence'),
+    target_id: z.string().uuid(),
+    evidence: EvidenceSchema,
+  }),
+])
+
+type ExtractorAction = z.infer<typeof ExtractorActionSchema>
 
 // ---------------------------------------------------------------------------
 // Prompt
@@ -54,14 +71,19 @@ Regels:
 // Main export
 // ---------------------------------------------------------------------------
 
-export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promise<void> {
+export async function runBeliefExtractor(
+  input: RunBeliefExtractorInput,
+  options: RunBeliefExtractorOptions = {},
+): Promise<void> {
+  let reservation: AiBudgetReservation | null = null
   try {
     const admin = createAdminClient()
-    const { data: existing } = await admin
+    const { data: existing, error: existingError } = await admin
       .from('coach_beliefs')
       .select('id, hypothesis_text, category, status')
       .eq('user_id', input.userId)
       .in('status', ['active', 'confirmed'])
+    if (existingError) throw existingError
 
     const existingBlock =
       existing && existing.length
@@ -73,6 +95,7 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
     const userMessage = `Scope: ${input.scope}\n\nGebeurtenis:\n${input.eventSummary.slice(0, 2000)}${existingBlock}`
 
     const startedAt = Date.now()
+    reservation = await reserveAiBudget(input.userId, MEMORY_MODEL, 512)
     const { text, usage } = await generateText({
       model: anthropic(MEMORY_MODEL),
       system: EXTRACTOR_SYSTEM,
@@ -80,7 +103,7 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
       maxOutputTokens: 512,
     })
 
-    logAiUsage({
+    await logAiUsage({
       userId: input.userId,
       feature: 'belief-extractor',
       model: MEMORY_MODEL,
@@ -90,22 +113,49 @@ export async function runBeliefExtractor(input: RunBeliefExtractorInput): Promis
         cacheReadTokens: null,
       },
       durationMs: Date.now() - startedAt,
+      reservation,
     })
+    reservation = null
 
-    let actions: ExtractorAction[]
-    try {
-      actions = JSON.parse(text)
-    } catch {
-      console.warn('[belief-extractor] non-JSON output:', text.slice(0, 200))
-      return
+    // Extract the JSON array even when the model wraps it in prose — a bare
+    // JSON.parse(text) silently failed in production whenever Haiku prefixed a
+    // sentence, so coach_beliefs never got populated. Mirrors memory-extractor.
+    const match = /\[[\s\S]*\]/.exec(text)
+    if (!match) {
+      throw new Error(`No JSON array in Haiku output (raw length ${text.length})`)
     }
-    if (!Array.isArray(actions) || actions.length === 0) return
 
-    for (const action of actions.slice(0, 2)) {
-      await applyAction(admin, input.userId, action)
+    let rawActions: unknown
+    try {
+      rawActions = JSON.parse(match[0])
+    } catch (parseErr) {
+      throw new Error('Belief extractor returned invalid JSON', { cause: parseErr })
+    }
+    const parsedActions = z.array(ExtractorActionSchema).max(2).safeParse(rawActions)
+    if (!parsedActions.success) {
+      throw new Error(`Belief extractor returned invalid actions: ${parsedActions.error.message}`)
+    }
+    if (parsedActions.data.length === 0) return
+
+    for (const action of parsedActions.data) {
+      const applied = await applyAction(admin, input.userId, action)
+      if (!applied && options.strict) {
+        throw new Error(`Belief extractor action could not be applied: ${action.action}`)
+      }
     }
   } catch (err) {
+    if (reservation) {
+      await logAiUsage({
+        userId: input.userId,
+        feature: 'belief-extractor',
+        model: MEMORY_MODEL,
+        status: 'error',
+        errorCode: (err as { name?: string })?.name ?? 'EXTRACTOR_ERROR',
+        reservation,
+      })
+    }
     console.error('[belief-extractor] error (non-fatal):', err)
+    if (options.strict) throw err
   }
 }
 
@@ -117,7 +167,7 @@ async function applyAction(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   action: ExtractorAction,
-): Promise<void> {
+): Promise<boolean> {
   const nowIso = new Date().toISOString()
   const evidenceItem: EvidenceItem = {
     date: nowIso,
@@ -127,14 +177,13 @@ async function applyAction(
   }
 
   if (action.action === 'create') {
-    if (!action.hypothesis_text || !action.category) return
     const initial = {
       evidence_for: action.evidence.kind === 'for' ? [evidenceItem] : [],
       evidence_against: action.evidence.kind === 'against' ? [evidenceItem] : [],
       status: 'active' as const,
     }
     const { confidence, status } = recomputeBelief(initial)
-    await admin.from('coach_beliefs').insert({
+    const { error } = await admin.from('coach_beliefs').insert({
       user_id: userId,
       hypothesis_text: action.hypothesis_text.slice(0, 240),
       category: action.category,
@@ -144,17 +193,19 @@ async function applyAction(
       status,
       last_tested_at: nowIso,
     })
-    return
+    if (error) throw error
+    return true
   }
 
   if (action.action === 'evidence' && action.target_id) {
-    const { data } = await admin
+    const { data, error: queryError } = await admin
       .from('coach_beliefs')
       .select('evidence_for, evidence_against, status')
       .eq('id', action.target_id)
       .eq('user_id', userId)
       .maybeSingle()
-    if (!data) return
+    if (queryError) throw queryError
+    if (!data) return false
 
     const existingFor = (data.evidence_for ?? []) as unknown as EvidenceItem[]
     const existingAgainst = (data.evidence_against ?? []) as unknown as EvidenceItem[]
@@ -167,7 +218,7 @@ async function applyAction(
       status: data.status as 'active' | 'confirmed' | 'superseded' | 'rejected',
     })
 
-    await admin
+    const { error: updateError } = await admin
       .from('coach_beliefs')
       .update({
         evidence_for: evidence_for as unknown as Json[],
@@ -177,5 +228,9 @@ async function applyAction(
         last_tested_at: nowIso,
       })
       .eq('id', action.target_id)
+    if (updateError) throw updateError
+    return true
   }
+
+  return false
 }

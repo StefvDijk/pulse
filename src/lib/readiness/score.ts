@@ -14,8 +14,9 @@ import type { ReadinessLevel } from '@/types/readiness'
 // - Daily check-in   (subjective wellness often outperforms objective markers,
 //                     Saw et al. 2016 — so "voelen" weighs heavily)
 //
-// Missing signals contribute nothing instead of being guessed, and every
-// contribution is reported as a component so the UI can show *why*.
+// Missing signals contribute nothing. With no usable recovery signal, score
+// is null; ACWR alone cannot turn the arbitrary base into an assessment.
+// Every contribution is reported so the UI can show which inputs were used.
 // ---------------------------------------------------------------------------
 
 export interface BaselineStat {
@@ -47,7 +48,7 @@ export interface ReadinessComponent {
 
 export interface ReadinessScoreResult {
   level: ReadinessLevel
-  score: number
+  score: number | null
   components: ReadinessComponent[]
 }
 
@@ -138,6 +139,12 @@ export function calculateReadinessScore(input: ReadinessScoreInput): ReadinessSc
   }
   if (input.sleepQuality !== null) {
     add('sleep_quality', (input.sleepQuality - 3) * SLEEP_QUALITY_WEIGHT)
+  }
+
+  // Load describes training, not recovery. Do not turn the arbitrary base
+  // score into a recovery assessment when no recovery input contributed.
+  if (!components.some(component => component.key !== 'acwr' && component.key !== 'load_x_sleep')) {
+    return { level: 'unknown', score: null, components }
   }
 
   const total = components.reduce((sum, c) => sum + c.delta, 0)

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MEMORY_MODEL } from '@/lib/ai/client'
 import { logAiUsage } from '@/lib/ai/usage'
+import { reserveAiBudget, type AiBudgetReservation } from '@/lib/ai/budget'
 
 const FIXED_SUGGESTION = 'Log wat ik heb gegeten'
 
@@ -34,10 +35,6 @@ Output: JSON-array met 3 strings.
 - Geen vragen die data ophalen die hij elders al ziet (bv. zijn ACWR — die staat op /belasting)
 
 UITSLUITEND geldige JSON, geen uitleg.`
-
-interface AiSuggestion {
-  text: string
-}
 
 function isValidStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((v) => typeof v === 'string')
@@ -149,15 +146,18 @@ export async function GET() {
     }
 
     let dynamicSuggestions: string[] = []
+    let reservation: AiBudgetReservation | null = null
     try {
       const startedAt = Date.now()
+      reservation = await reserveAiBudget(user.id, MEMORY_MODEL, 256)
       const { text, usage } = await generateText({
         model: anthropic(MEMORY_MODEL),
         system: SYSTEM_PROMPT,
         prompt: formatContext(ctx),
         temperature: 0.5,
+        maxOutputTokens: 256,
       })
-      logAiUsage({
+      await logAiUsage({
         userId: user.id,
         feature: 'chat_suggestions',
         model: MEMORY_MODEL,
@@ -166,7 +166,9 @@ export async function GET() {
           outputTokens: usage.outputTokens ?? null,
         },
         durationMs: Date.now() - startedAt,
+        reservation,
       })
+      reservation = null
 
       const match = text.match(/\[[\s\S]*\]/)
       if (match) {
@@ -179,6 +181,16 @@ export async function GET() {
         }
       }
     } catch (err) {
+      if (reservation) {
+        await logAiUsage({
+          userId: user.id,
+          feature: 'chat_suggestions',
+          model: MEMORY_MODEL,
+          status: 'error',
+          errorCode: (err as { name?: string })?.name ?? 'SUGGESTIONS_ERROR',
+          reservation,
+        })
+      }
       console.warn('[chat-suggestions] Claude call failed, using fallback:', err)
     }
 

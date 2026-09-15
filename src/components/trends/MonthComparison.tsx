@@ -7,6 +7,8 @@ type MonthlyRow = Database['public']['Tables']['monthly_aggregations']['Row']
 export interface MonthComparisonProps {
   current: MonthlyRow | null
   previous: MonthlyRow | null
+  /** Current-month totals are incomplete and must not show full-month deltas. */
+  currentIsPartial?: boolean
 }
 
 interface Metric {
@@ -31,7 +33,14 @@ function Delta({ current, previous }: { current: number | null; previous: number
   )
 }
 
-function MetricRow({ label, current, previous, unit, decimals = 0 }: Metric) {
+function MetricRow({
+  label,
+  current,
+  previous,
+  unit,
+  decimals = 0,
+  showDelta = true,
+}: Metric & { showDelta?: boolean }) {
   const fmt = (v: number | null) =>
     v === null ? '–' : `${v.toFixed(decimals)} ${unit}`
 
@@ -40,7 +49,7 @@ function MetricRow({ label, current, previous, unit, decimals = 0 }: Metric) {
       <span className="text-sm text-text-tertiary">{label}</span>
       <div className="flex items-center gap-3">
         <span className="text-xs text-text-tertiary">{fmt(previous)}</span>
-        <Delta current={current} previous={previous} />
+        {showDelta ? <Delta current={current} previous={previous} /> : null}
         <span className="min-w-[60px] text-right text-sm font-medium text-text-primary">
           {fmt(current)}
         </span>
@@ -49,12 +58,20 @@ function MetricRow({ label, current, previous, unit, decimals = 0 }: Metric) {
   )
 }
 
-function monthLabel(row: MonthlyRow | null): string {
+function monthLabel(row: MonthlyRow | null, partial = false): string {
   if (!row) return '–'
-  return new Date(row.year, row.month - 1).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })
+  const label = new Date(row.year, row.month - 1).toLocaleDateString('nl-NL', {
+    month: 'long',
+    year: 'numeric',
+  })
+  return partial ? `${label} · t/m vandaag` : label
 }
 
-export function MonthComparison({ current, previous }: MonthComparisonProps) {
+export function MonthComparison({
+  current,
+  previous,
+  currentIsPartial = false,
+}: MonthComparisonProps) {
   const metrics: Metric[] = [
     { label: 'Sessies', current: current?.total_sessions ?? null, previous: previous?.total_sessions ?? null, unit: '' },
     { label: 'Trainingstijd', current: current?.total_training_hours ?? null, previous: previous?.total_training_hours ?? null, unit: 'u', decimals: 1 },
@@ -71,12 +88,12 @@ export function MonthComparison({ current, previous }: MonthComparisonProps) {
         <span className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Metric</span>
         <div className="flex items-center gap-3">
           <span className="text-xs text-text-tertiary">{monthLabel(previous)}</span>
-          <span className="min-w-[60px] text-right text-xs font-medium text-text-primary">{monthLabel(current)}</span>
+          <span className="min-w-[60px] text-right text-xs font-medium text-text-primary">{monthLabel(current, currentIsPartial)}</span>
         </div>
       </div>
 
       {metrics.map((m) => (
-        <MetricRow key={m.label} {...m} />
+        <MetricRow key={m.label} {...m} showDelta={!currentIsPartial} />
       ))}
     </div>
   )

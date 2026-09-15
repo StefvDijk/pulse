@@ -37,7 +37,7 @@ interface EditRowProps {
   isLast: boolean
 }
 
-function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: EditRowProps) {
+function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, isFirst }: EditRowProps) {
   return (
     <div className="flex items-center gap-2 py-1.5">
       {/* Reorder buttons */}
@@ -45,8 +45,8 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
         <button
           onClick={() => onMoveUp(index)}
           disabled={isFirst}
-          className="text-text-tertiary hover:text-text-primary disabled:opacity-20 p-0.5"
-          title="Omhoog"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-text-tertiary hover:text-text-primary disabled:opacity-20"
+          aria-label={`Verplaats ${exercise.name || 'oefening'} omhoog`}
         >
           <GripVertical size={14} />
         </button>
@@ -54,19 +54,21 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
 
       {/* Name */}
       <input
+        aria-label={`Naam oefening ${index + 1}`}
         type="text"
         value={exercise.name}
         onChange={(e) => onUpdate(index, { ...exercise, name: e.target.value })}
-        className="flex-1 min-w-0 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
+        className="min-h-11 flex-1 min-w-0 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary outline-none focus:border-[#0A84FF]"
         placeholder="Oefening naam"
       />
 
       {/* Sets */}
       <input
+        aria-label={`Sets oefening ${index + 1}`}
         type="number"
         value={exercise.sets ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, sets: e.target.value ? Number(e.target.value) : undefined })}
-        className="w-14 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary text-center outline-none focus:border-[#0A84FF]"
+        className="min-h-11 w-14 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary text-center outline-none focus:border-[#0A84FF]"
         placeholder="Sets"
         min={1}
         max={10}
@@ -74,18 +76,19 @@ function EditRow({ exercise, index, onUpdate, onRemove, onMoveUp, onMoveDown, is
 
       {/* Reps */}
       <input
+        aria-label={`Herhalingen oefening ${index + 1}`}
         type="text"
         value={exercise.reps ?? ''}
         onChange={(e) => onUpdate(index, { ...exercise, reps: e.target.value || undefined })}
-        className="w-16 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary text-center outline-none focus:border-[#0A84FF]"
+        className="min-h-11 w-16 rounded-lg border border-bg-border bg-white/[0.06] px-2 py-1.5 text-[16px] text-text-primary text-center outline-none focus:border-[#0A84FF]"
         placeholder="Reps"
       />
 
       {/* Delete */}
       <button
         onClick={() => onRemove(index)}
-        className="shrink-0 p-1.5 text-text-tertiary hover:text-[var(--color-status-bad)] rounded-lg hover:bg-[var(--color-status-bad)]/10"
-        title="Verwijderen"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-text-tertiary hover:bg-[var(--color-status-bad)]/10 hover:text-[var(--color-status-bad)]"
+        aria-label={`Verwijder ${exercise.name || 'oefening'}`}
       >
         <Trash2 size={14} />
       </button>
@@ -170,7 +173,7 @@ export function SchemaExerciseList({ exercises, editing, onUpdate }: SchemaExerc
 
       <button
         onClick={handleAdd}
-        className="flex items-center gap-1.5 mt-1 rounded-lg border border-dashed border-bg-border px-3 py-2 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:border-bg-border hover:bg-white/[0.06]/50"
+        className="mt-1 flex min-h-11 items-center gap-1.5 rounded-lg border border-dashed border-bg-border px-3 py-2 text-xs font-medium text-text-tertiary hover:text-text-secondary hover:border-bg-border hover:bg-white/[0.06]/50"
       >
         <Plus size={14} />
         Oefening toevoegen

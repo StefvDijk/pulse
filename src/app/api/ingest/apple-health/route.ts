@@ -11,6 +11,8 @@ import { buildRecoveryEventSummary } from '@/lib/ai/extractor-summaries'
 import { recordSyncRun } from '@/lib/sync/record-sync-run'
 import type { Database } from '@/types/database'
 import { dayKeyAmsterdam, todayAmsterdam } from '@/lib/time/amsterdam'
+import { runAfterResponse } from '@/lib/runtime/after-response'
+import { secretsMatch } from '@/lib/security/secrets'
 
 type RunInsert = Database['public']['Tables']['runs']['Insert']
 type PadelInsert = Database['public']['Tables']['padel_sessions']['Insert']
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
 
   let userId: string
 
-  if (envToken && envUserId && token === envToken) {
+  if (envUserId && secretsMatch(token, envToken)) {
     // Single-user mode: token matches env var → use PULSE_USER_ID directly
     userId = envUserId
   } else {
@@ -157,9 +159,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
 
   const payload = parseResult.data
 
-  // Debug: log incoming metric names and data point counts
-  const metricSummary = payload.data.metrics.map((m) => `${m.name}(${m.data.length})`).join(', ')
-  console.log(`apple-health ingest: ${payload.data.metrics.length} metrics, ${payload.data.workouts.length} workouts — [${metricSummary}]`)
+  // Keep operational logs aggregate-only: metric names and values are health data.
+  console.log(
+    `apple-health ingest: received ${payload.data.metrics.length} metrics and ${payload.data.workouts.length} workouts`,
+  )
 
   const { runs: parsedRuns, walks: parsedWalks, padel: parsedPadel, activities: parsedActivities } = parseWorkouts(payload)
   const parsedActivity = parseActivitySummary(payload)
@@ -168,10 +171,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   const parsedGymWorkouts = parseGymWorkouts(payload)
   const parsedBodyComposition = parseBodyComposition(payload)
 
-  console.log(`apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`)
-  if (parsedBodyComposition.length > 0) {
-    console.log('apple-health ingest: bodyComp entries:', JSON.stringify(parsedBodyComposition.slice(0, 5)))
-  }
+  console.log(
+    `apple-health ingest: parsed bodyWeight=${parsedBodyWeight.length}, bodyComp=${parsedBodyComposition.length}`,
+  )
 
   const errors: string[] = []
 
@@ -691,16 +693,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
   }
 
   // ------------------------------------------------------------------
-  // 14. Fire-and-forget: analyze training progress and store as coaching memory
+  // 14. Analyze training progress after responding; Next keeps the invocation
+  //     alive until this registered task settles.
   // ------------------------------------------------------------------
   if (totalDataIngested > 0) {
-    analyzeAfterSync({
-      userId,
-      syncSource: 'apple_health',
-      haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
-    }).catch((err: unknown) => {
-      console.error('[ingest/apple-health] analyzeAfterSync failed:', err)
-    })
+    runAfterResponse('Apple Health sync analysis', () =>
+      analyzeAfterSync({
+        userId,
+        syncSource: 'apple_health',
+        haeResult: { runs: runsProcessed, padel: padelProcessed, activity: activityProcessed },
+      }),
+    )
   }
 
   // ------------------------------------------------------------------
@@ -713,14 +716,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     // Feed the extractor REAL recovery numbers (sleep hours, HRV, RHR, weight)
     // from the last 7 days instead of bare ingest counts, which couldn't
     // support a falsifiable recovery hypothesis (audit #21).
-    void (async () => {
-      try {
-        const eventSummary = await buildRecoveryEventSummary(supabase, userId)
-        await runBeliefExtractor({ userId, scope: 'recovery', eventSummary })
-      } catch (err: unknown) {
-        console.error('[ingest/apple-health] belief-extractor failed:', err)
-      }
-    })()
+    runAfterResponse('Apple Health belief extraction', async () => {
+      const eventSummary = await buildRecoveryEventSummary(supabase, userId)
+      await runBeliefExtractor({ userId, scope: 'recovery', eventSummary })
+    })
   }
 
   // ------------------------------------------------------------------
@@ -737,13 +736,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<IngestRespons
     bodyWeightProcessed +
     bodyCompositionProcessed +
     gymCorrelations
-  void recordSyncRun({
-    userId,
-    source: 'apple_health',
-    startedAt: syncStartedAt,
-    syncedCount,
-    errors,
-  })
+  runAfterResponse('Apple Health sync audit logging', () =>
+    recordSyncRun({
+      userId,
+      source: 'apple_health',
+      startedAt: syncStartedAt,
+      syncedCount,
+      errors,
+    }),
+  )
 
   // ------------------------------------------------------------------
   // 16. Return summary

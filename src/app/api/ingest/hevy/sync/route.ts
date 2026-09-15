@@ -5,6 +5,7 @@ import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { analyzeAfterSync } from '@/lib/ai/sync-analyst'
 import { todayAmsterdam, weekStartAmsterdam } from '@/lib/time/amsterdam'
+import { runAfterResponse } from '@/lib/runtime/after-response'
 
 const getCurrentWeekMonday = (): string => weekStartAmsterdam()
 
@@ -32,14 +33,13 @@ export async function POST(): Promise<NextResponse> {
       result.errors.push(`Re-aggregation failed: ${aggError instanceof Error ? aggError.message : String(aggError)}`)
     }
 
-    // Fire-and-forget: analyze training progress and store as coaching memory
-    analyzeAfterSync({
-      userId: user.id,
-      syncSource: 'hevy',
-      syncResult: result,
-    }).catch((err: unknown) => {
-      console.error('[ingest/hevy/sync] analyzeAfterSync failed:', err)
-    })
+    runAfterResponse('manual Hevy sync analysis', () =>
+      analyzeAfterSync({
+        userId: user.id,
+        syncSource: 'hevy',
+        syncResult: result,
+      }),
+    )
 
     return NextResponse.json(result)
   } catch (error) {

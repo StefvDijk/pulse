@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { calculateSleepScore, type BaselineStat, type SleepScoreResult } from '@/lib/sleep/score'
+import { todayAmsterdam } from '@/lib/time/amsterdam'
 
 export interface SleepScoreResponse extends SleepScoreResult {
   /** YYYY-MM-DD of the scored night, or null when no sleep data exists. */
@@ -35,6 +36,7 @@ export async function computeSleepScore(userId: string): Promise<SleepScoreRespo
       .from('sleep_logs')
       .select('date, total_sleep_minutes, sleep_efficiency, deep_sleep_minutes, rem_sleep_minutes, sleep_start')
       .eq('user_id', userId)
+      .lte('date', todayAmsterdam())
       .order('date', { ascending: false })
       .limit(1)
       .maybeSingle(),

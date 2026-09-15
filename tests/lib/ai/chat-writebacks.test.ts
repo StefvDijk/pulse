@@ -29,6 +29,17 @@ describe('parseWritebacks', () => {
     expect(parsed.injuryRaw).toContain('knie')
   })
 
+  it('drops a truncated (unclosed) tag from the saved text and flags it', () => {
+    // Regression: a <schema_generation> cut off by maxOutputTokens used to be
+    // left verbatim in the saved chat message, and the write silently skipped.
+    const raw = 'Hier is je nieuwe blok:\n<schema_generation>{"name":"Blok 3","days":[{"day":"ma"'
+    const parsed = parseWritebacks(raw)
+    expect(parsed.cleanText).toBe('Hier is je nieuwe blok:')
+    expect(parsed.cleanText).not.toContain('<schema_generation>')
+    expect(parsed.schemaGenerationRaw).toBeNull()
+    expect(parsed.truncatedTags).toContain('schema_generation')
+  })
+
   it('parses cited_memories into id prefixes, dropping junk', () => {
     const parsed = parseWritebacks('Tekst <cited_memories>a1b2c3d4, e5f6 , NOPE</cited_memories>')
     expect(parsed.citedMemories).toEqual(['a1b2c3d4', 'e5f6'])

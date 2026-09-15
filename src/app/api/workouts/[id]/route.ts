@@ -19,6 +19,9 @@ export interface WorkoutExerciseDetail {
   name: string
   primary_muscle_group: string
   image_url: string | null
+  animation_url: string | null
+  equipment: string | null
+  instruction_steps: string[]
   notes: string | null
   sets: WorkoutSet[]
   is_pr: boolean
@@ -76,7 +79,10 @@ export async function GET(
          avg_heart_rate, max_heart_rate, calories_burned,
          workout_exercises(
            exercise_order, notes, exercise_definition_id,
-           exercise_definitions(name, primary_muscle_group, image_url),
+           exercise_definitions(
+             name, primary_muscle_group, image_url,
+             exercise_catalog(image_path, gif_path, equipment, instruction_steps)
+           ),
            workout_sets(set_order, set_type, weight_kg, reps, rpe, distance_meters, duration_seconds)
          )`,
       )
@@ -134,25 +140,36 @@ export async function GET(
       })
 
     const exercises: WorkoutExerciseDetail[] = uniqueExercises
-      .map((we) => ({
-        exercise_order: we.exercise_order,
-        name: we.exercise_definitions?.name ?? 'Unknown',
-        primary_muscle_group: we.exercise_definitions?.primary_muscle_group ?? '',
-        image_url: we.exercise_definitions?.image_url ?? null,
-        notes: we.notes ?? null,
-        sets: [...(we.workout_sets ?? [])]
-          .sort((a, b) => a.set_order - b.set_order)
-          .map((s) => ({
-            set_order: s.set_order,
-            set_type: s.set_type ?? null,
-            weight_kg: s.weight_kg ?? null,
-            reps: s.reps ?? null,
-            rpe: s.rpe ?? null,
-            distance_meters: s.distance_meters ?? null,
-            duration_seconds: s.duration_seconds ?? null,
-          })),
-        is_pr: prExerciseIds.has(we.exercise_definition_id),
-      }))
+      .map((we) => {
+        const catalog = we.exercise_definitions?.exercise_catalog
+        const publicMediaUrl = (path: string | null | undefined) =>
+          path
+            ? admin.storage.from('exercise-media').getPublicUrl(path).data.publicUrl
+            : null
+        return {
+          exercise_order: we.exercise_order,
+          name: we.exercise_definitions?.name ?? 'Unknown',
+          primary_muscle_group: we.exercise_definitions?.primary_muscle_group ?? '',
+          image_url:
+            publicMediaUrl(catalog?.image_path) ?? we.exercise_definitions?.image_url ?? null,
+          animation_url: publicMediaUrl(catalog?.gif_path),
+          equipment: catalog?.equipment ?? null,
+          instruction_steps: catalog?.instruction_steps ?? [],
+          notes: we.notes ?? null,
+          sets: [...(we.workout_sets ?? [])]
+            .sort((a, b) => a.set_order - b.set_order)
+            .map((s) => ({
+              set_order: s.set_order,
+              set_type: s.set_type ?? null,
+              weight_kg: s.weight_kg ?? null,
+              reps: s.reps ?? null,
+              rpe: s.rpe ?? null,
+              distance_meters: s.distance_meters ?? null,
+              duration_seconds: s.duration_seconds ?? null,
+            })),
+          is_pr: prExerciseIds.has(we.exercise_definition_id),
+        }
+      })
 
     // (Previous workout was fetched in parallel with PRs above — see [F4].)
     const previous = prevWorkout

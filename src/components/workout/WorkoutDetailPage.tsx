@@ -9,8 +9,6 @@ import { SkeletonCard, SkeletonLine, SkeletonRect } from '@/components/shared/Sk
 import { WorkoutHero } from './v2/WorkoutHero'
 import { WorkoutStatsBar } from './v2/WorkoutStatsBar'
 import { ExerciseCard } from './v2/ExerciseCard'
-import type { WorkoutSet } from '@/app/api/workouts/[id]/route'
-
 function formatDuration(s: number): string {
   const m = Math.round(s / 60)
   return m < 60 ? `${m}` : `${Math.floor(m / 60)}u ${m % 60}m`

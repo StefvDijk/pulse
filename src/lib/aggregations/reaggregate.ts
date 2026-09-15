@@ -1,5 +1,6 @@
 import { computeDailyAggregation } from '@/lib/aggregations/daily'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
+import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
 import { recomputeAcwrChain } from '@/lib/training/acwr'
 import { weekStartAmsterdam } from '@/lib/time/amsterdam'
 
@@ -34,5 +35,16 @@ export async function reaggregateDates(userId: string, dates: string[]): Promise
 
   for (const weekMonday of uniqueWeeks) {
     await computeWeeklyAggregation(userId, weekMonday)
+  }
+
+  // Recompute the month(s) the touched days fall in. Without this the cron only
+  // rebuilds monthly_aggregations on the 1st (for the previous month), so the
+  // current month had no row and Trends showed it as a "▼100%" drop vs. last
+  // month. Day-keys are YYYY-MM-DD, so year/month slice off directly.
+  const uniqueMonths = Array.from(new Set(uniqueDays.map((day) => day.slice(0, 7)))).sort()
+
+  for (const yearMonth of uniqueMonths) {
+    const [year, month] = yearMonth.split('-').map(Number)
+    await computeMonthlyAggregation(userId, month, year)
   }
 }

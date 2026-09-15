@@ -39,7 +39,7 @@ export function ProgressHeader({ selectedPeriod, onPeriodChange }: ProgressHeade
             <button
               key={period}
               onClick={() => onPeriodChange(period)}
-              className="flex-1 h-8 rounded-[8px] text-[12px] font-semibold transition-colors active:opacity-60"
+              className="min-h-11 flex-1 rounded-[8px] text-[12px] font-semibold transition-colors active:opacity-60"
               style={{
                 background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
                 color: isActive

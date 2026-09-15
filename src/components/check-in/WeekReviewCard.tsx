@@ -298,7 +298,8 @@ export function WeekReviewCard({
                 <span className="text-sm text-text-primary">{item.label}</span>
                 <button
                   onClick={() => onRemoveManual(i)}
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-text-tertiary hover:bg-white/[0.08]"
+                  aria-label={`Verwijder ${item.label}`}
                 >
                   <X size={12} />
                 </button>
@@ -312,7 +313,7 @@ export function WeekReviewCard({
       <div className="flex items-center gap-3 pt-2">
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 rounded-xl border border-bg-border bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary"
+          className="flex min-h-11 items-center gap-1.5 rounded-xl border border-bg-border bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary"
         >
           <Plus size={16} />
           Toevoegen
@@ -320,7 +321,7 @@ export function WeekReviewCard({
         <button
           onClick={onNext}
           disabled={!reflectionValid}
-          className="flex-1 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          className="min-h-11 flex-1 rounded-xl bg-[#0A84FF] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Analyse genereren
         </button>

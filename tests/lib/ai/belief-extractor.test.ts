@@ -10,8 +10,13 @@ vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn(() => ({ name: 'mocked' })),
 }))
 
-const adminInsert = vi.fn(async (_row: unknown) => ({ error: null }))
-const adminUpdate = vi.fn((_payload: unknown) => ({ error: null }))
+const adminInsert = vi.fn(async (row: unknown) => {
+  void row
+  return { error: null }
+})
+const adminUpdate = vi.fn((payload: unknown) => {
+  void payload
+})
 
 let beliefRowForMaybeSingle: { evidence_for: unknown[]; evidence_against: unknown[]; status: string } | null = null
 
@@ -30,7 +35,7 @@ vi.mock('@/lib/supabase/admin', () => ({
       }),
       insert: adminInsert,
       update: (payload: unknown) => ({
-        eq: async (..._args: unknown[]) => {
+        eq: async () => {
           adminUpdate(payload)
           return { error: null }
         },
@@ -78,6 +83,22 @@ describe('runBeliefExtractor', () => {
     expect(call.hypothesis_text).toContain('Ochtendsessies')
   })
 
+  it('extracts the JSON array even when the model prefixes prose', async () => {
+    // Regression: in productie zette Haiku vaak een zin vóór de JSON, waardoor
+    // een kale JSON.parse faalde en beliefs stil nooit werden opgeslagen.
+    generateTextMock.mockResolvedValue({
+      text: `Op basis van de gebeurtenis zie ik één hypothese:\n[{"action":"create","hypothesis_text":"Weinig slaap verlaagt bench-prestatie","category":"recovery","evidence":{"kind":"for","observation":"5u slaap, bench zwaar","source":"chat-turn"}}]`,
+      usage: { inputTokens: 90, outputTokens: 40 },
+    })
+
+    await runBeliefExtractor({ userId: 'user-1', scope: 'recovery', eventSummary: 'Slaap 5u' })
+
+    expect(adminInsert).toHaveBeenCalledTimes(1)
+    const call = adminInsert.mock.calls[0]?.[0] as Record<string, unknown>
+    expect(call.category).toBe('recovery')
+    expect(call.hypothesis_text).toContain('slaap')
+  })
+
   it('does nothing on empty array', async () => {
     generateTextMock.mockResolvedValue({
       text: '[]',
@@ -102,6 +123,47 @@ describe('runBeliefExtractor', () => {
     ).resolves.toBeUndefined()
   })
 
+  it('rethrows parse and LLM failures for honest cron accounting', async () => {
+    generateTextMock.mockResolvedValueOnce({
+      text: 'not json',
+      usage: { inputTokens: 1, outputTokens: 1 },
+    })
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('No JSON array')
+
+    generateTextMock.mockRejectedValueOnce(new Error('provider down'))
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('provider down')
+  })
+
+  it('rejects semantically invalid actions in strict mode', async () => {
+    generateTextMock.mockResolvedValue({
+      text: JSON.stringify([
+        {
+          action: 'create',
+          evidence: { kind: 'for', observation: 'Evidence without hypothesis', source: 'manual' },
+        },
+      ]),
+      usage: { inputTokens: 10, outputTokens: 10 },
+    })
+
+    await expect(
+      runBeliefExtractor(
+        { userId: 'user-1', scope: 'training', eventSummary: 'x' },
+        { strict: true },
+      ),
+    ).rejects.toThrow('invalid actions')
+    expect(adminInsert).not.toHaveBeenCalled()
+  })
+
   it('appends evidence to an existing belief and updates DB', async () => {
     beliefRowForMaybeSingle = {
       evidence_for: [],
@@ -112,7 +174,7 @@ describe('runBeliefExtractor', () => {
       text: JSON.stringify([
         {
           action: 'evidence',
-          target_id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          target_id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
           evidence: { kind: 'for', observation: 'Slecht geslapen, prestaties OK', source: 'chat-turn' },
         },
       ]),

@@ -5,7 +5,6 @@ import type { Json } from '@/types/database'
 import {
   startOfWeekUtcIso,
   todayAmsterdam as todayAmsterdamHelper,
-  weekStartAmsterdam,
 } from '@/lib/time/amsterdam'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -32,10 +31,6 @@ interface WeeklyTarget {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function startOfWeekAmsterdam(): string {
-  return weekStartAmsterdam()
-}
 
 function todayAmsterdam(): string {
   return todayAmsterdamHelper()
@@ -83,7 +78,6 @@ export async function GET() {
   try {
     const admin = createAdminClient()
     const today = todayAmsterdam()
-    const weekStart = startOfWeekAmsterdam()
     // Amsterdam-maandag 00:00 als ondubbelzinnige UTC-instant — voorkomt dat
     // late-zondag-NL-sessies (UTC nog zaterdag/zondag) deze week binnenglippen,
     // én dat maandagochtend-NL-sessies (UTC zondagavond) deze week missen.

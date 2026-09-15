@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Sheet } from '@/components/ui/Sheet'
 
 export interface QuickCheckinValue {
@@ -79,15 +79,6 @@ export function QuickCheckInSheet({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Sync state when the sheet (re)opens with different existing data.
-  useEffect(() => {
-    if (!open) return
-    setFeeling(existing?.feeling ?? null)
-    setSleep(existing?.sleep_quality ?? null)
-    setNote(existing?.note ?? '')
-    setError(null)
-  }, [open, existing])
-
   const canSave = feeling !== null && sleep !== null && !saving
 
   async function handleSave() {
@@ -160,7 +151,7 @@ export function QuickCheckInSheet({
             onChange={(e) => setNote(e.target.value.slice(0, 280))}
             placeholder="Optioneel — wat zit er in je hoofd?"
             rows={3}
-            className="min-h-[88px] resize-none rounded-[16px] border-[0.5px] border-white/[0.10] bg-white/[0.03] px-3.5 py-3 text-[15px] leading-[1.45] text-text-primary placeholder:text-text-tertiary focus:border-white/30 focus:outline-none"
+            className="min-h-[88px] resize-none rounded-[16px] border-[0.5px] border-white/[0.10] bg-white/[0.03] px-3.5 py-3 text-[16px] leading-[1.45] text-text-primary placeholder:text-text-tertiary focus:border-white/30 focus:outline-none"
           />
         </div>
 

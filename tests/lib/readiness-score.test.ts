@@ -36,10 +36,18 @@ describe('zScore', () => {
 })
 
 describe('calculateReadinessScore (v2)', () => {
-  it('returns a neutral score when every signal is missing', () => {
+  it.each([0.5, 1, 1.7])('does not infer recovery from ACWR %s alone', acwr => {
+    expect(calculateReadinessScore({ ...NEUTRAL, acwr })).toMatchObject({ score: null, level: 'unknown' })
+  })
+
+  it('does not use unbaselined heart measurements as a recovery assessment', () => {
+    expect(calculateReadinessScore({ ...NEUTRAL, hrv: 55, restingHr: 50 }))
+      .toMatchObject({ score: null, level: 'unknown' })
+  })
+  it('does not invent a score when every recovery signal is missing', () => {
     const result = calculateReadinessScore(NEUTRAL)
-    expect(result.score).toBe(70)
-    expect(result.level).toBe('normal')
+    expect(result.score).toBeNull()
+    expect(result.level).toBe('unknown')
     expect(result.components).toEqual([])
   })
 
@@ -91,14 +99,14 @@ describe('calculateReadinessScore (v2)', () => {
   })
 
   it('rewards the optimal ACWR corridor and punishes overload', () => {
-    const optimal = calculateReadinessScore({ ...NEUTRAL, acwr: 1.0 })
-    const overload = calculateReadinessScore({ ...NEUTRAL, acwr: 1.7 })
+    const optimal = calculateReadinessScore({ ...NEUTRAL, feeling: 3, acwr: 1.0 })
+    const overload = calculateReadinessScore({ ...NEUTRAL, feeling: 3, acwr: 1.7 })
     expect(optimal.score).toBeGreaterThan(NEUTRAL_SCORE)
     expect(overload.score).toBeLessThan(NEUTRAL_SCORE)
   })
 
   it('keeps a missing ACWR (build-up phase) neutral', () => {
-    expect(calculateReadinessScore({ ...NEUTRAL, acwr: null }).score).toBe(70)
+    expect(calculateReadinessScore({ ...NEUTRAL, feeling: 3, acwr: null }).score).toBe(70)
   })
 
   it('weighs the subjective check-in heavily', () => {
@@ -123,9 +131,9 @@ describe('calculateReadinessScore (v2)', () => {
     expect(goodHeavy.components.some((c) => c.key === 'load_x_sleep')).toBe(false)
     // The interaction widens the gap beyond the pure additive difference.
     const additiveGap =
-      calculateReadinessScore({ ...NEUTRAL, sleepScore: 95 }).score -
-      calculateReadinessScore({ ...NEUTRAL, sleepScore: 40 }).score
-    expect(goodHeavy.score - poorHeavy.score).toBeGreaterThan(additiveGap)
+      calculateReadinessScore({ ...NEUTRAL, sleepScore: 95 }).score! -
+      calculateReadinessScore({ ...NEUTRAL, sleepScore: 40 }).score!
+    expect(goodHeavy.score! - poorHeavy.score!).toBeGreaterThan(additiveGap)
   })
 
   it('reports which components contributed, for the drilldown UI', () => {

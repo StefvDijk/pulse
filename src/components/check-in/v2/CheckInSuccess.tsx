@@ -2,7 +2,6 @@
 
 import { CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
 
 interface CheckInSuccessProps {
   weekNumber: number

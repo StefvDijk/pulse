@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useDialogFocusTrap } from '@/hooks/useDialogFocusTrap'
 
 interface WizardStep {
   title: string
@@ -40,13 +41,15 @@ interface GoalData {
   targetUnit: string
 }
 
-const INPUT_CLASSES = 'bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus-ring'
+const INPUT_CLASSES = 'min-h-11 bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-3 py-2 text-[16px] outline-none focus-ring'
 
 export function OnboardingWizard() {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   useBodyScrollLock(true)
+  useDialogFocusTrap(true, dialogRef, { restoreFocus: false })
 
   const [profile, setProfile] = useState<ProfileData>({ displayName: '', weightKg: '', heightCm: '' })
   const [sports, setSports] = useState<SportData>({ gym: '3', running: '2', padel: '1' })
@@ -124,7 +127,11 @@ export function OnboardingWizard() {
       aria-modal="true"
       aria-label="Onboarding"
     >
-      <div className="w-full max-w-md rounded-2xl p-6 bg-bg-surface border border-bg-border">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl p-6 bg-bg-surface border border-bg-border"
+      >
 
         {/* Step indicator */}
         <div className="mb-6 flex items-center gap-2">
@@ -160,8 +167,9 @@ export function OnboardingWizard() {
           {step === 0 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-text-tertiary">Naam</label>
+                <label htmlFor="onboarding-name" className="text-xs font-medium text-text-tertiary">Naam</label>
                 <input
+                  id="onboarding-name"
                   type="text"
                   value={profile.displayName}
                   onChange={(e) => setProfile((p) => ({ ...p, displayName: e.target.value }))}
@@ -171,8 +179,9 @@ export function OnboardingWizard() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-text-tertiary">Gewicht (kg)</label>
+                  <label htmlFor="onboarding-weight" className="text-xs font-medium text-text-tertiary">Gewicht (kg)</label>
                   <input
+                    id="onboarding-weight"
                     type="number"
                     inputMode="decimal"
                     value={profile.weightKg}
@@ -184,8 +193,9 @@ export function OnboardingWizard() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-text-tertiary">Lengte (cm)</label>
+                  <label htmlFor="onboarding-height" className="text-xs font-medium text-text-tertiary">Lengte (cm)</label>
                   <input
+                    id="onboarding-height"
                     type="number"
                     inputMode="numeric"
                     value={profile.heightCm}
@@ -205,8 +215,9 @@ export function OnboardingWizard() {
               <p className="text-xs text-text-tertiary">Doel aantal sessies per week</p>
               {([['gym', 'Gym', sports.gym], ['running', 'Hardlopen', sports.running], ['padel', 'Padel', sports.padel]] as const).map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm text-text-primary">{label}</span>
+                  <label htmlFor={`onboarding-${key}`} className="text-sm text-text-primary">{label}</label>
                   <input
+                    id={`onboarding-${key}`}
                     type="number"
                     inputMode="numeric"
                     value={sports[key]}
@@ -223,8 +234,9 @@ export function OnboardingWizard() {
           {step === 2 && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-text-tertiary">Hevy API key</label>
+                <label htmlFor="onboarding-hevy-key" className="text-xs font-medium text-text-tertiary">Hevy API key</label>
                 <input
+                  id="onboarding-hevy-key"
                   type="password"
                   value={connections.hevyKey}
                   onChange={(e) => setConnections((c) => ({ ...c, hevyKey: e.target.value }))}
@@ -234,8 +246,9 @@ export function OnboardingWizard() {
                 <p className="text-xs text-text-tertiary">Vind je API key in Hevy → Instellingen → API</p>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-text-tertiary">Health Auto Export token</label>
+                <label htmlFor="onboarding-health-token" className="text-xs font-medium text-text-tertiary">Health Auto Export token</label>
                 <input
+                  id="onboarding-health-token"
                   type="password"
                   value={connections.healthToken}
                   onChange={(e) => setConnections((c) => ({ ...c, healthToken: e.target.value }))}
@@ -255,11 +268,17 @@ export function OnboardingWizard() {
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs font-medium text-text-tertiary">Doel {i + 1}</span>
                     {goals.length > 1 && (
-                      <button onClick={() => removeGoal(i)} className="text-xs text-[var(--color-status-bad)]">Verwijder</button>
+                      <button
+                        onClick={() => removeGoal(i)}
+                        className="min-h-11 px-2 text-xs text-[var(--color-status-bad)]"
+                      >
+                        Verwijder
+                      </button>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
                     <input
+                      aria-label={`Doel ${i + 1}`}
                       type="text"
                       value={goal.title}
                       onChange={(e) => updateGoal(i, 'title', e.target.value)}
@@ -268,9 +287,10 @@ export function OnboardingWizard() {
                     />
                     <div className="grid grid-cols-3 gap-2">
                       <select
+                        aria-label={`Categorie voor doel ${i + 1}`}
                         value={goal.category}
                         onChange={(e) => updateGoal(i, 'category', e.target.value)}
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
+                        className="min-h-11 bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       >
                         <option value="strength">Kracht</option>
                         <option value="running">Hardlopen</option>
@@ -279,6 +299,7 @@ export function OnboardingWizard() {
                         <option value="general">Algemeen</option>
                       </select>
                       <input
+                        aria-label={`Streefwaarde voor doel ${i + 1}`}
                         type="number"
                         inputMode="decimal"
                         value={goal.targetValue}
@@ -286,14 +307,15 @@ export function OnboardingWizard() {
                         placeholder="100"
                         min={0}
                         step="any"
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
+                        className="min-h-11 bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       />
                       <input
+                        aria-label={`Eenheid voor doel ${i + 1}`}
                         type="text"
                         value={goal.targetUnit}
                         onChange={(e) => updateGoal(i, 'targetUnit', e.target.value)}
                         placeholder="kg, km…"
-                        className="bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
+                        className="min-h-11 bg-white/[0.06] border border-bg-border text-text-primary rounded-[10px] px-2 py-1.5 text-[16px] outline-none focus-ring"
                       />
                     </div>
                   </div>
@@ -302,7 +324,7 @@ export function OnboardingWizard() {
               {goals.length < 3 && (
                 <button
                   onClick={addGoal}
-                  className="text-sm text-[#0A84FF]"
+                  className="min-h-11 px-2 text-sm text-[#0A84FF]"
                 >
                   + Nog een doel toevoegen
                 </button>
@@ -327,10 +349,10 @@ export function OnboardingWizard() {
               } catch {
                 // ignore — fall through to redirect
               }
-              window.location.assign('/')
+              router.push('/')
             }}
             disabled={saving}
-            className="rounded-lg px-3 py-2 text-sm text-text-tertiary hover:text-text-primary disabled:opacity-50"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm text-text-tertiary hover:text-text-primary disabled:opacity-50"
           >
             Overslaan
           </button>
@@ -339,7 +361,7 @@ export function OnboardingWizard() {
             {!isFirst && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-white/[0.06] text-text-primary"
+                className="min-h-11 rounded-lg px-4 py-2 text-sm font-medium bg-white/[0.06] text-text-primary"
               >
                 Vorige
               </button>
@@ -348,14 +370,14 @@ export function OnboardingWizard() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white disabled:opacity-50"
+                className="min-h-11 rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white disabled:opacity-50"
               >
                 {saving ? 'Opslaan…' : 'Klaar'}
               </button>
             ) : (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white"
+                className="min-h-11 rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white"
               >
                 Volgende
               </button>

@@ -95,7 +95,7 @@ export function SyncButton() {
         <button
           onClick={handleSync}
           disabled={status === 'syncing'}
-          className="flex items-center gap-1.5 rounded-full bg-[#0A84FF]/10 px-4 py-2 text-caption1 font-semibold text-[#0A84FF] hover:bg-[#0A84FF]/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
+          className="flex min-h-11 items-center gap-1.5 rounded-full bg-[#0A84FF]/10 px-4 py-2 text-caption1 font-semibold text-[#0A84FF] hover:bg-[#0A84FF]/15 active:scale-[0.98] disabled:opacity-50 transition-all duration-150"
         >
           {status === 'syncing' ? (
             <RefreshCw size={12} strokeWidth={2} className="animate-spin" />
@@ -119,7 +119,7 @@ export function SyncButton() {
             type="button"
             onClick={() => setShowInfo((v) => !v)}
             aria-label="Hoe werkt syncen?"
-            className="flex h-6 w-6 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] transition-colors"
+            className="-m-2 flex h-11 w-11 items-center justify-center rounded-full text-text-tertiary hover:bg-white/[0.06] transition-colors"
           >
             <Info size={13} strokeWidth={2} />
           </button>

@@ -62,6 +62,8 @@ export function DayDetailSheet({ day, onClose }: DayDetailSheetProps) {
       open={isOpen}
       onClose={onClose}
       detents={['medium', 'large']}
+      title={`${day.workoutFocus} — ${DAY_LABELS[day.dayName] ?? day.dayName} ${dateNum} ${month}`}
+      showTitle={false}
     >
       <div className="px-5 pt-2 pb-3 flex items-center gap-2.5">
         <SportIcon focus={day.workoutFocus!} />

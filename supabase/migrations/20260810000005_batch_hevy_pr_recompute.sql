@@ -1,0 +1,146 @@
+-- Full-history Hevy syncs replace many workout graphs. Rebuilding the complete
+-- PR chain after every graph is quadratic, so expose a locked graph-only RPC
+-- plus one explicit rebuild RPC for the end of the batch.
+
+CREATE OR REPLACE FUNCTION public.recompute_user_strength_prs(p_user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  definition_id uuid;
+  candidate record;
+  running_record numeric;
+BEGIN
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended('hevy-workouts:' || p_user_id::text, 0)
+  );
+
+  DELETE FROM public.personal_records
+  WHERE user_id = p_user_id
+    AND workout_id IS NOT NULL
+    AND record_category = 'strength'
+    AND record_type = 'weight';
+
+  UPDATE public.workouts
+  SET pr_count = 0
+  WHERE user_id = p_user_id;
+
+  FOR definition_id IN
+    SELECT DISTINCT we.exercise_definition_id
+    FROM public.workout_exercises we
+    JOIN public.workouts w ON w.id = we.workout_id
+    WHERE w.user_id = p_user_id
+    ORDER BY we.exercise_definition_id
+  LOOP
+    running_record := NULL;
+
+    -- Exactly one candidate per workout/definition. A workout may contain the
+    -- same exercise in multiple slots; only its best qualifying set competes.
+    FOR candidate IN
+      SELECT
+        w.id AS workout_id,
+        w.started_at,
+        best.weight_kg,
+        best.reps
+      FROM public.workouts w
+      CROSS JOIN LATERAL (
+        SELECT ws.weight_kg, ws.reps
+        FROM public.workout_exercises we
+        JOIN public.workout_sets ws ON ws.workout_exercise_id = we.id
+        WHERE we.workout_id = w.id
+          AND we.exercise_definition_id = definition_id
+          AND ws.set_type <> 'warmup'
+          AND ws.weight_kg > 0
+        ORDER BY ws.weight_kg DESC, COALESCE(ws.reps, 0) DESC, we.id, ws.id
+        LIMIT 1
+      ) best
+      WHERE w.user_id = p_user_id
+      ORDER BY w.started_at, w.id
+    LOOP
+      IF running_record IS NULL OR candidate.weight_kg > running_record THEN
+        INSERT INTO public.personal_records (
+          user_id,
+          exercise_definition_id,
+          record_type,
+          record_category,
+          value,
+          reps,
+          unit,
+          achieved_at,
+          workout_id,
+          previous_record
+        )
+        VALUES (
+          p_user_id,
+          definition_id,
+          'weight',
+          'strength',
+          candidate.weight_kg,
+          candidate.reps,
+          'kg',
+          candidate.started_at,
+          candidate.workout_id,
+          running_record
+        );
+        running_record := candidate.weight_kg;
+      END IF;
+    END LOOP;
+  END LOOP;
+
+  UPDATE public.workouts w
+  SET pr_count = (
+    SELECT count(*)::integer
+    FROM public.personal_records pr
+    WHERE pr.workout_id = w.id
+      AND pr.record_category = 'strength'
+      AND pr.record_type = 'weight'
+  )
+  WHERE w.user_id = p_user_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.replace_hevy_workout_graph_atomic(
+  p_user_id uuid,
+  p_hevy_workout_id text,
+  p_workout jsonb,
+  p_exercises jsonb
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended('hevy-workouts:' || p_user_id::text, 0)
+  );
+
+  RETURN public.replace_hevy_workout_graph_locked(
+    p_user_id,
+    p_hevy_workout_id,
+    p_workout,
+    p_exercises
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.recompute_user_strength_prs_atomic(p_user_id uuid)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT public.recompute_user_strength_prs(p_user_id);
+$$;
+
+REVOKE ALL ON FUNCTION public.replace_hevy_workout_graph_atomic(uuid, text, jsonb, jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.replace_hevy_workout_graph_atomic(uuid, text, jsonb, jsonb)
+  TO service_role;
+
+REVOKE ALL ON FUNCTION public.recompute_user_strength_prs_atomic(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.recompute_user_strength_prs_atomic(uuid)
+  TO service_role;

@@ -1,14 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { periodToDates } from '@/lib/time/periods'
+import { startOfDayUtcIso, addDaysToKey } from '@/lib/time/amsterdam'
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-function formatPace(secondsPerKm: number): string {
-  const mins = Math.floor(secondsPerKm / 60)
-  const secs = Math.round(secondsPerKm % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}/km`
 }
 
 // ---------------------------------------------------------------------------
@@ -27,8 +22,8 @@ export async function getWorkoutHistory(
       .from('workouts')
       .select('started_at, title, duration_seconds, notes, total_volume_kg, workout_exercises(exercise_order, notes, exercise_definitions(name), workout_sets(set_order, reps, weight_kg, set_type))')
       .eq('user_id', userId)
-      .gte('started_at', `${start}T00:00:00`)
-      .lte('started_at', `${end}T23:59:59`)
+      .gte('started_at', startOfDayUtcIso(start))
+      .lt('started_at', startOfDayUtcIso(addDaysToKey(end, 1)))
       .order('started_at', { ascending: false })
       .limit(30)
 
@@ -64,8 +59,8 @@ export async function getWorkoutHistory(
     .from('workouts')
     .select('started_at, title, duration_seconds, notes, total_volume_kg, exercise_count, set_count')
     .eq('user_id', userId)
-    .gte('started_at', `${start}T00:00:00`)
-    .lte('started_at', `${end}T23:59:59`)
+    .gte('started_at', startOfDayUtcIso(start))
+    .lt('started_at', startOfDayUtcIso(addDaysToKey(end, 1)))
     .order('started_at', { ascending: false })
     .limit(30)
 
@@ -120,7 +115,7 @@ export async function getExerciseStats(
       workouts!inner(started_at, user_id)
     `)
     .in('exercise_definition_id', exerciseIds)
-    .gte('workouts.started_at', `${start}T00:00:00`)
+    .gte('workouts.started_at', startOfDayUtcIso(start))
     .order('workouts(started_at)', { ascending: true })
 
   // Filter to user (RLS bypass means we need manual filter)

@@ -17,9 +17,6 @@ export function ExplainAI({ topic, params, inputsHash }: Props) {
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    setText('')
-    setError(null)
-    setDone(false)
     const controller = new AbortController()
     abortRef.current = controller
 

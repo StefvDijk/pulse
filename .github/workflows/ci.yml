@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,5 +16,21 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=moderate
+      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm build
+
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.113.0
+          github-token: ${{ github.token }}
+      # A fresh GitHub runner has no linked project. `db start` therefore
+      # validates the complete migration chain against an isolated database.
+      - run: supabase db start
+      - run: supabase test db

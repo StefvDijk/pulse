@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const maxDuration = 300
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeWeeklyAggregation } from '@/lib/aggregations/weekly'
 import { computeMonthlyAggregation } from '@/lib/aggregations/monthly'
@@ -10,6 +12,24 @@ import {
   todayAmsterdam,
   weekStartAmsterdam,
 } from '@/lib/time/amsterdam'
+import { runInBatches } from '@/lib/runtime/run-in-batches'
+import {
+  CRON_USER_CONCURRENCY,
+  cursorAfterCronPage,
+  fetchCronCursorPage,
+} from '@/lib/runtime/cron-capacity'
+import { runCronWithStatus } from '@/lib/runtime/cron-runs'
+import { filterRunnableCronItems } from '@/lib/runtime/cron-items'
+import { validBearerSecret } from '@/lib/security/secrets'
+
+interface DailyAggregateResult {
+  userId: string
+  daily: 'ok' | 'error'
+  weekly?: 'ok' | 'error' | 'skipped'
+  monthly?: 'ok' | 'error' | 'skipped'
+  baselines?: 'ok' | 'error'
+  errors: string[]
+}
 
 /**
  * GET /api/cron/daily-aggregate
@@ -19,14 +39,14 @@ import {
  * zodat een workout van 23:30 NL niet in de UTC-vorige-dag valt.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!validBearerSecret(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized', code: 'INVALID_CRON_SECRET' }, { status: 401 })
   }
 
-  const admin = createAdminClient()
+  return runCronWithStatus('daily-aggregate', async ({ cursor }) => {
+    const admin = createAdminClient()
 
   const todayStr = todayAmsterdam()
   const yesterdayStr = addDaysToKey(todayStr, -1)
@@ -55,28 +75,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     : null
 
   // Fetch all user IDs
-  const { data: profiles, error: profilesError } = await admin
-    .from('profiles')
-    .select('id')
-
-  if (profilesError) {
-    console.error('[GET /api/cron/daily-aggregate] Failed to fetch users:', profilesError)
-    return NextResponse.json(
-      { error: 'Failed to fetch users', code: 'QUERY_FAILED' },
-      { status: 500 },
-    )
-  }
-
-  const results: Array<{
-    userId: string
-    daily: 'ok' | 'error'
-    weekly?: 'ok' | 'error' | 'skipped'
-    monthly?: 'ok' | 'error' | 'skipped'
-    baselines?: 'ok' | 'error'
-    errors: string[]
-  }> = []
-
-  for (const { id: userId } of profiles ?? []) {
+  const page = await fetchCronCursorPage(
+    cursor,
+    (after, limit) => {
+      let query = admin.from('profiles').select('id').order('id', { ascending: true })
+      if (after) query = query.gt('id', after)
+      return query.limit(limit)
+    },
+    (profile) => profile.id,
+  )
+  const users = await filterRunnableCronItems('daily-aggregate', page.items, (profile) => profile.id)
+  const settled = await runInBatches(users, CRON_USER_CONCURRENCY, async ({ id: userId }) => {
     const userErrors: string[] = []
     let dailyStatus: 'ok' | 'error' = 'ok'
     let weeklyStatus: 'ok' | 'error' | 'skipped' = 'skipped'
@@ -132,24 +141,53 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       userErrors.push(`baselines: ${message}`)
     }
 
-    results.push({
+    return {
       userId,
       daily: dailyStatus,
       weekly: weeklyStatus,
       monthly: monthlyStatus,
       baselines: baselinesStatus,
       errors: userErrors,
-    })
-  }
+    } satisfies DailyAggregateResult
+  })
+
+  const results: DailyAggregateResult[] = settled.map((result, index) =>
+    result.status === 'fulfilled'
+      ? result.value
+      : {
+          userId: users[index]?.id ?? 'unknown',
+          daily: 'error',
+          weekly: 'error',
+          monthly: 'error',
+          baselines: 'error',
+          errors: [result.reason instanceof Error ? result.reason.message : String(result.reason)],
+        },
+  )
 
   const totalErrors = results.flatMap((r) => r.errors)
 
-  return NextResponse.json({
-    date: yesterdayStr,
-    processed: results.length,
-    triggeredWeekly: isMonday,
-    triggeredMonthly: isFirstOfMonth,
-    totalErrors: totalErrors.length,
-    results,
+  const firstFailed = results.findIndex((result) => result.errors.length > 0)
+  const response = NextResponse.json(
+    {
+      date: yesterdayStr,
+      processed: results.length,
+      triggeredWeekly: isMonday,
+      triggeredMonthly: isFirstOfMonth,
+      truncated: page.truncated,
+      capacity: users.length,
+      totalErrors: totalErrors.length,
+      results,
+    },
+    { status: totalErrors.length > 0 ? 503 : 200 },
+  )
+  return {
+    response,
+    nextCursor: cursorAfterCronPage(page, firstFailed >= 0 ? firstFailed : null),
+    itemOutcomes: results.map((result) => ({
+      itemKey: result.userId,
+      ok: result.errors.length === 0,
+      error: result.errors[0],
+    })),
+  }
   })
 }

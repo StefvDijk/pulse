@@ -81,8 +81,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
 
       {/* Title */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-text-tertiary">Doel *</label>
+        <label htmlFor="goal-title" className="text-xs font-medium text-text-tertiary">Doel *</label>
         <input
+          id="goal-title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -95,8 +96,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
       {/* Category + Target type */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-tertiary">Categorie</label>
+          <label htmlFor="goal-category" className="text-xs font-medium text-text-tertiary">Categorie</label>
           <select
+            id="goal-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className={INPUT_CLASSES}
@@ -108,8 +110,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-tertiary">Type</label>
+          <label htmlFor="goal-type" className="text-xs font-medium text-text-tertiary">Type</label>
           <select
+            id="goal-type"
             value={targetType}
             onChange={(e) => setTargetType(e.target.value)}
             className={INPUT_CLASSES}
@@ -124,8 +127,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
       {/* Target value + unit */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-tertiary">Streefwaarde</label>
+          <label htmlFor="goal-value" className="text-xs font-medium text-text-tertiary">Streefwaarde</label>
           <input
+            id="goal-value"
             type="number"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
@@ -137,8 +141,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-text-tertiary">Eenheid</label>
+          <label htmlFor="goal-unit" className="text-xs font-medium text-text-tertiary">Eenheid</label>
           <input
+            id="goal-unit"
             type="text"
             value={targetUnit}
             onChange={(e) => setTargetUnit(e.target.value)}
@@ -150,8 +155,9 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
 
       {/* Deadline */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-text-tertiary">Deadline (optioneel)</label>
+        <label htmlFor="goal-deadline" className="text-xs font-medium text-text-tertiary">Deadline (optioneel)</label>
         <input
+          id="goal-deadline"
           type="date"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
@@ -164,14 +170,14 @@ export function GoalForm({ onSave, onCancel }: GoalFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-text-tertiary"
+          className="min-h-11 rounded-lg px-4 py-2 text-sm font-medium text-text-tertiary"
         >
           Annuleer
         </button>
         <button
           type="submit"
           disabled={saving || !title.trim()}
-          className="rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white transition-opacity disabled:opacity-50"
+          className="min-h-11 rounded-lg px-4 py-2 text-sm font-medium bg-[#0A84FF] text-white transition-opacity disabled:opacity-50"
         >
           {saving ? 'Opslaan…' : 'Opslaan'}
         </button>

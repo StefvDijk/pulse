@@ -24,14 +24,14 @@ test.describe('R-023: Contextual coach (public)', () => {
 })
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Authenticated tests — skipped without TEST_EMAIL/TEST_PASSWORD
+// Authenticated tests — require the shared E2E test user
 // ──────────────────────────────────────────────────────────────────────────────
 
-const email = process.env.TEST_EMAIL
-const password = process.env.TEST_PASSWORD
+const email = process.env.TEST_USER_EMAIL
+const password = process.env.TEST_USER_PASSWORD
 
 test.describe('R-023: Contextual coach (authenticated)', () => {
-  test.skip(!email || !password, 'TEST_EMAIL / TEST_PASSWORD not set')
+  test.skip(!email || !password, 'TEST_USER_EMAIL / TEST_USER_PASSWORD not set')
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/auth/login')
@@ -87,7 +87,7 @@ test.describe('R-023: Contextual coach (authenticated)', () => {
     await page.goto('/chat?context=exercise&name=Squat&workout=Lower+Body')
     await expect(page.getByText('Coach')).toBeVisible()
     // Click new session
-    await page.getByRole('button', { name: 'Nieuwe sessie' }).click()
+    await page.getByRole('button', { name: 'Nieuwe chat' }).click()
     // After reset, no messages from the old context
     // The input should be empty and ready
     await expect(page.locator('textarea')).toBeVisible()
